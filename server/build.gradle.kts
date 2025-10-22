@@ -15,7 +15,7 @@ dependencies {
     implementation(projects.shared)
     implementation(libs.logback)
 
-    implementation(libs.http4k.bom)
+    implementation(platform(libs.http4k.bom))
     implementation(libs.http4k.core)
     implementation(libs.http4k.server.helidon)
     implementation(libs.http4k.api.openapi)
