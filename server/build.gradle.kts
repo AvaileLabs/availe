@@ -21,5 +21,9 @@ dependencies {
     implementation(libs.http4k.api.openapi)
     implementation(libs.http4k.format.kotlinx.serialization)
 
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlin.reflect)
+
+
     testImplementation(libs.kotlin.testJunit)
 }

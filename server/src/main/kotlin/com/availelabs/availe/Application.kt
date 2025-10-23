@@ -2,6 +2,7 @@ package com.availelabs.availe
 
 import kotlinx.serialization.Serializable
 import org.http4k.contract.ContractRoute
+import org.http4k.contract.contract
 import org.http4k.contract.meta
 import org.http4k.core.Body
 import org.http4k.core.Method
@@ -15,32 +16,37 @@ import org.http4k.server.Helidon
 import org.http4k.server.asServer
 
 fun main() {
+    val apiContract = contract {
+        routes += createListing()
+    }
+
     val app = routes(
-        "route" bind Method.GET to { Response(OK).body("Hello world!") }
+        "/api" bind apiContract,
     )
 
-    val server = app.asServer(Helidon(9000)).start()
+    app.asServer(Helidon(9000)).start()
 }
 
 @Serializable
-sealed interface ListingType {
+sealed interface ListingTypeDto {
     @Serializable
-    data object Item : ListingType
+    data object Item : ListingTypeDto
 
     @Serializable
-    data object Event : ListingType
+    data object Event : ListingTypeDto
 
     @Serializable
-    data object Service : ListingType
+    data object Service : ListingTypeDto
 }
 
 fun createListing(): ContractRoute {
-    val bodyLens = Body.auto<ListingType>().toLens()
+    val bodyLens = Body.auto<ListingTypeDto>().toLens()
 
-    return "listings" meta {
+    return ApiRoutes.LISTINGS meta {
         summary = "Create a new listing."
         description = "Creates a new Item, Event, or Service listing."
-        receiving(bodyLens to ListingType.Item)
+        receiving(bodyLens to ListingTypeDto.Item)
+        returning(OK, bodyLens to ListingTypeDto.Item)
     } bindContract Method.POST to { req ->
         val listingType = bodyLens(req)
         Response(OK).with(bodyLens of listingType)
