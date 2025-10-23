@@ -22,8 +22,9 @@ dependencies {
     implementation(libs.http4k.format.kotlinx.serialization)
 
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.kotlin.reflect)
-
+    implementation("javax.money:money-api:1.1")
+    implementation("org.javamoney.moneta:moneta-core:1.4.5")
+    implementation("org.javamoney.moneta:moneta-convert-ecb:1.4.5")
 
     testImplementation(libs.kotlin.testJunit)
 }
