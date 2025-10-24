@@ -1,9 +1,20 @@
+import com.google.devtools.ksp.gradle.KspAATask
+import org.flywaydb.gradle.task.AbstractFlywayTask
+
 plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.jooq.codegen)
+    alias(libs.plugins.flyway)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kreplica)
     application
 }
+
+val dbUrl = providers.gradleProperty("db.url")
+val dbUser = providers.gradleProperty("db.user")
+val dbPassword = providers.gradleProperty("db.password")
 
 group = "com.availelabs.availe"
 version = "1.0.0"
@@ -22,14 +33,68 @@ dependencies {
     implementation(libs.http4k.format.kotlinx.serialization)
 
     implementation(libs.kotlinx.serialization.json)
-    implementation("javax.money:money-api:1.1")
-    implementation("org.javamoney.moneta:moneta-core:1.4.5")
-    implementation("org.javamoney.moneta:moneta-convert-ecb:1.4.5")
+    implementation(libs.money.api)
+    implementation(libs.moneta.core)
+    implementation(libs.moneta.convert.ecb)
 
-    testImplementation(platform("org.junit:junit-bom:6.0.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 
+    // database dependencies
+    implementation(libs.jooq)
+    implementation(libs.hikariCP)
+    jooqCodegen(libs.postgresql)
+    implementation(libs.postgresql)
+    implementation(libs.flyway.database.postgresql)
+}
 
-//    testImplementation(libs.kotlin.testJunit)
+jooq {
+    configuration {
+        jdbc {
+            driver = "org.postgresql.Driver"
+            url = dbUrl.get()
+            user = dbUser.get()
+            password = dbPassword.get()
+        }
+        generator {
+            name = "org.jooq.codegen.KotlinGenerator"
+            database {
+                name = "org.jooq.meta.postgres.PostgresDatabase"
+                inputSchema = "availe_shop"
+                excludes = "flyway_schema_history"
+            }
+            target {
+                packageName = "com.example.jooq"
+            }
+        }
+    }
+}
+
+flyway {
+    url = dbUrl.get()
+    user = dbUser.get()
+    password = dbPassword.get()
+    schemas = arrayOf("availe_shop")
+    createSchemas = true
+}
+
+tasks.compileKotlin {
+    dependsOn(tasks.jooqCodegen)
+}
+
+tasks.jooqCodegen {
+    dependsOn(tasks.flywayMigrate)
+    inputs.files(fileTree("src/main/resources/db/migration"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.property("jdbc.url", dbUrl)
+    inputs.property("jdbc.user", dbUser)
+}
+
+tasks.withType<KspAATask> {
+    dependsOn(tasks.jooqCodegen)
+}
+
+tasks.withType<AbstractFlywayTask> {
+    notCompatibleWithConfigurationCache("because https://github.com/flyway/flyway/issues/3550")
 }

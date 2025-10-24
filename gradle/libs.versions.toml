@@ -13,12 +13,21 @@ composeHotReload = "1.0.0-rc02"
 composeMultiplatform = "1.9.1"
 http4kBom = "6.19.0.0"
 junit = "4.13.2"
-junitJupiter = "6.0.0"
+junitBom = "6.0.0"
 kotlin = "2.2.20"
 kotlinx-coroutines = "1.10.2"
 ktor = "3.3.1"
 logback = "1.5.20"
 kotlinx-serialization = "1.9.0"
+monetaConvertEcb = "1.4.5"
+monetaCore = "1.4.5"
+moneyApi = "1.1"
+jooq = "3.20.8"
+flyway = "11.15.0"
+hikari = "7.0.2"
+postgresql = "42.7.8"
+ksp = "2.2.20-2.0.3"
+kreplica = "5.0.4"
 
 [libraries]
 http4k-api-openapi = { module = "org.http4k:http4k-api-openapi" }
@@ -26,6 +35,9 @@ http4k-bom = { module = "org.http4k:http4k-bom", version.ref = "http4kBom" }
 http4k-core = { module = "org.http4k:http4k-core" }
 http4k-format-kotlinx-serialization = { module = "org.http4k:http4k-format-kotlinx-serialization" }
 http4k-server-helidon = { module = "org.http4k:http4k-server-helidon" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junitBom" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
@@ -43,7 +55,13 @@ ktor-serverCore = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor
 ktor-serverNetty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
 ktor-serverTestHost = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
-
+moneta-convert-ecb = { module = "org.javamoney.moneta:moneta-convert-ecb", version.ref = "monetaConvertEcb" }
+moneta-core = { module = "org.javamoney.moneta:moneta-core", version.ref = "monetaCore" }
+money-api = { module = "javax.money:money-api", version.ref = "moneyApi" }
+jooq = { module = "org.jooq:jooq", version.ref = "jooq" }
+hikariCP = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+flyway-database-postgresql = { group = "org.flywaydb", name = "flyway-database-postgresql", version.ref = "flyway" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -55,3 +73,7 @@ kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+jooq-codegen = { id = "org.jooq.jooq-codegen-gradle", version.ref = "jooq" }
+flyway = { id = "org.flywaydb.flyway", version.ref = "flyway" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+kreplica = { id = "io.availe.kreplica", version.ref = "kreplica" }
