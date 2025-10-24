@@ -26,5 +26,10 @@ dependencies {
     implementation("org.javamoney.moneta:moneta-core:1.4.5")
     implementation("org.javamoney.moneta:moneta-convert-ecb:1.4.5")
 
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(platform("org.junit:junit-bom:6.0.0"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+
+//    testImplementation(libs.kotlin.testJunit)
 }
