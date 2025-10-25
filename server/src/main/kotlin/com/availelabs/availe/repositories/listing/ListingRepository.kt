@@ -4,7 +4,7 @@ package com.availelabs.availe.repositories.listing
 
 import com.availelabs.availe.domain.listing.NewListing
 import com.availelabs.availe.domain.types.InsertResult
-import com.availelabs.availe.repositories.listing.helpers.IListingCreator
+import com.availelabs.availe.repositories.listing.helpers.creators.IListingCreator
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 
