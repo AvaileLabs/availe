@@ -5,7 +5,6 @@ package com.availelabs.availe.repositories.listing
 import com.availelabs.availe.domain.listing.NewListing
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.repositories.listing.helpers.IListingCreator
-import org.jooq.exception.DataAccessException
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -20,14 +19,10 @@ class ListingRepository(
 ) : IListingRepository {
 
     override fun createListing(newListing: NewListing): InsertResult {
-        return try {
-            when (newListing) {
-                is NewListing.Event -> eventCreator.create(newListing)
-                is NewListing.Item -> itemCreator.create(newListing)
-                is NewListing.Service -> serviceCreator.create(newListing)
-            }
-        } catch (e: DataAccessException) {
-            throw e
+        return when (newListing) {
+            is NewListing.Event -> eventCreator.create(newListing)
+            is NewListing.Item -> itemCreator.create(newListing)
+            is NewListing.Service -> serviceCreator.create(newListing)
         }
     }
 }
