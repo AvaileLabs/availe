@@ -1,11 +1,11 @@
 @file:OptIn(ExperimentalUuidApi::class)
 
-package com.availelabs.availe.repositories.creators
+package com.availelabs.availe.repositories.listing.helpers
 
 import com.availelabs.availe.domain.listing.NewListing
 import com.availelabs.availe.domain.types.InsertResult
-import com.availelabs.availe.repositories.applyCommonData
-import com.availelabs.availe.repositories.toDomainListing
+import com.availelabs.availe.mappers.applyCommonData
+import com.availelabs.availe.mappers.toDomainListing
 import com.example.jooq.enums.ListingTypeEnum
 import com.example.jooq.tables.references.LISTINGS
 import org.jooq.DSLContext

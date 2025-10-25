@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
 
-package com.availelabs.availe.repositories
+package com.availelabs.availe.mappers
 
 import com.availelabs.availe.domain.listing.CommonListingData
 import com.availelabs.availe.domain.listing.Listing

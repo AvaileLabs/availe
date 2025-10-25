@@ -1,10 +1,10 @@
 @file:OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
 
-package com.availelabs.availe.repositories
+package com.availelabs.availe.repositories.listing
 
 import com.availelabs.availe.domain.listing.NewListing
 import com.availelabs.availe.domain.types.InsertResult
-import com.availelabs.availe.repositories.creators.IListingCreator
+import com.availelabs.availe.repositories.listing.helpers.IListingCreator
 import org.jooq.exception.DataAccessException
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi

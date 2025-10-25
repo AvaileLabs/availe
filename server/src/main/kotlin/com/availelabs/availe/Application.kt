@@ -1,10 +1,10 @@
 package com.availelabs.availe
 
 import com.availelabs.availe.controllers.ListingController
-import com.availelabs.availe.repositories.ListingRepository
-import com.availelabs.availe.repositories.creators.EventListingCreator
-import com.availelabs.availe.repositories.creators.ItemListingCreator
-import com.availelabs.availe.repositories.creators.ServiceListingCreator
+import com.availelabs.availe.repositories.listing.ListingRepository
+import com.availelabs.availe.repositories.listing.helpers.EventListingCreator
+import com.availelabs.availe.repositories.listing.helpers.ItemListingCreator
+import com.availelabs.availe.repositories.listing.helpers.ServiceListingCreator
 import com.availelabs.availe.setup.hikariSetup
 import kotlinx.serialization.Serializable
 import org.http4k.contract.contract

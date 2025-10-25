@@ -32,6 +32,8 @@ dependencies {
     implementation(projects.shared)
     implementation(libs.logback)
 
+    implementation(libs.kotlin.reflect)
+
     implementation(platform(libs.http4k.bom))
     implementation(libs.http4k.core)
     implementation(libs.http4k.server.helidon)
@@ -103,4 +105,8 @@ tasks.withType<KspAATask> {
 
 tasks.withType<AbstractFlywayTask> {
     notCompatibleWithConfigurationCache("because https://github.com/flyway/flyway/issues/3550")
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
