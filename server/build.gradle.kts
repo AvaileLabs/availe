@@ -1,6 +1,12 @@
 import com.google.devtools.ksp.gradle.KspAATask
 import org.flywaydb.gradle.task.AbstractFlywayTask
 
+buildscript {
+    dependencies {
+        classpath(libs.flyway.database.postgresql)
+    }
+}
+
 plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
@@ -61,7 +67,7 @@ jooq {
             name = "org.jooq.codegen.KotlinGenerator"
             database {
                 name = "org.jooq.meta.postgres.PostgresDatabase"
-                inputSchema = "availe_shop"
+                inputSchema = "availe"
                 excludes = "flyway_schema_history"
             }
             target {
@@ -75,7 +81,7 @@ flyway {
     url = dbUrl.get()
     user = dbUser.get()
     password = dbPassword.get()
-    schemas = arrayOf("availe_shop")
+    schemas = arrayOf("availe")
     createSchemas = true
 }
 

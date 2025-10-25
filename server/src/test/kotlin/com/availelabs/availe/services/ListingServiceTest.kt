@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-private class FakeIListingRepository(private val willInsert: Boolean) : IListingRepository {
+private class FakeListingRepository(private val willInsert: Boolean) : IListingRepository {
     var received: NewListing? = null
     override fun createListing(newListing: NewListing): Boolean {
         received = newListing
