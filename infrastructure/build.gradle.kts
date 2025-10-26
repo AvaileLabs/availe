@@ -14,9 +14,26 @@ dependencies {
     implementation(libs.docker.java)
     implementation(libs.docker.java.transport.httpclient5)
     implementation(libs.keycloak.admin.client)
+    implementation(libs.postgresql)
+    implementation(libs.logback)
     testImplementation(kotlin("test"))
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+val containersSetup by tasks.registering(JavaExec::class) {
+    group = "infrastructure"
+    description = "Ensures Podman/Docker containers are setup for the application."
+    mainClass.set("com.availelabs.MainKt")
+    classpath = sourceSets.main.get().runtimeClasspath
+}
+
+val destroyAll by tasks.registering(JavaExec::class) {
+    group = "infrastructure"
+    description = "Stops and removes all containers, volumes, and networks for the application."
+    mainClass.set("com.availelabs.MainKt")
+    classpath = sourceSets.main.get().runtimeClasspath
+    args("--destroyAll")
 }

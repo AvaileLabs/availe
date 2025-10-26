@@ -1,6 +1,5 @@
 package com.availelabs.containers.core
 
-import com.availelabs.containers.domain.ContainerPersistenceSpecification
 import com.availelabs.containers.domain.ContainerRunSpecification
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.model.*
@@ -15,7 +14,7 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         data class ContainerRunning(val containerIdentifier: String, val name: String) : ContainerStatus
     }
 
-    fun ensureContainerIsRunning(runSpecification: ContainerRunSpecification): String {
+    fun ensureContainerIsRunning(runSpecification: ContainerRunSpecification<*, *>): String {
         return when (val containerStatus = getContainerStatus(runSpecification.name)) {
             is ContainerStatus.ContainerRunning -> {
                 logger.debug("Container '{}' is already running.", runSpecification.name)
@@ -74,30 +73,20 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         }
     }
 
-    private fun createAndStartNewContainer(runSpecification: ContainerRunSpecification): String {
+    private fun createAndStartNewContainer(runSpecification: ContainerRunSpecification<*, *>): String {
         val imageReference = "${runSpecification.image}:${runSpecification.tag}"
 
         val containerPortBindings = Ports().apply {
-            runSpecification.portMappings.forEach { (hostPortNumber, containerPortNumber) ->
-                bind(ExposedPort.tcp(containerPortNumber), Ports.Binding.bindPort(hostPortNumber))
+            runSpecification.portMappings.all.forEach { portMapping ->
+                bind(
+                    ExposedPort.tcp(portMapping.containerPortNumber),
+                    Ports.Binding.bindPort(portMapping.hostPortNumber)
+                )
             }
         }
 
-        val volumeBinds = runSpecification.persistenceSpecifications.map { persistenceSpecification ->
-            when (persistenceSpecification) {
-                is ContainerPersistenceSpecification.BindMountPersistence -> {
-                    val volumeAccessMode = if (persistenceSpecification.readOnly) AccessMode.ro else AccessMode.rw
-                    Bind(
-                        persistenceSpecification.hostPath,
-                        Volume(persistenceSpecification.containerPath),
-                        volumeAccessMode
-                    )
-                }
-
-                is ContainerPersistenceSpecification.NamedVolumePersistence -> {
-                    Bind(persistenceSpecification.volumeName, Volume(persistenceSpecification.containerPath))
-                }
-            }
+        val volumeBinds = runSpecification.volumes.all.map { volume ->
+            Bind(volume.volumeName, Volume(volume.containerPath))
         }
 
         val hostConfiguration = HostConfig.newHostConfig()

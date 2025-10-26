@@ -4,9 +4,7 @@ import com.availelabs.containers.core.DockerContainerManager
 import com.availelabs.containers.core.DockerImageManager
 import com.availelabs.containers.core.DockerNetworkManager
 import com.availelabs.containers.core.DockerVolumeManager
-import com.availelabs.containers.domain.ContainerPersistenceSpecification
 import com.availelabs.containers.domain.ContainerRunSpecification
-
 
 internal class ContainerOrchestrator(
     private val dockerNetworkManager: DockerNetworkManager,
@@ -14,40 +12,38 @@ internal class ContainerOrchestrator(
     private val dockerImageManager: DockerImageManager,
     private val dockerContainerManager: DockerContainerManager
 ) {
-    fun orchestrationSetup(runSpecifications: List<ContainerRunSpecification>) {
+    fun orchestrationSetup(runSpecifications: List<ContainerRunSpecification<*, *>>) {
         dockerNetworkManager.ensureNetworkExists()
 
-        val namedVolumeSpecifications = runSpecifications
-            .flatMap { it.persistenceSpecifications }
-            .filterIsInstance<ContainerPersistenceSpecification.NamedVolumePersistence>()
-            .distinctBy { it.volumeName }
+        val namedVolumes = runSpecifications
+            .flatMap { it.volumes.all }
+            .distinctBy(ContainerRunSpecification.VolumeMount::volumeName)
 
-        for (volumeSpec in namedVolumeSpecifications) {
-            dockerVolumeManager.ensureVolumeExists(volumeSpec.volumeName)
+        namedVolumes.forEach { volume ->
+            dockerVolumeManager.ensureVolumeExists(volume.volumeName)
         }
 
-        for (runSpecification in runSpecifications) {
-            dockerImageManager.ensureImageExists(runSpecification.image, runSpecification.tag).getOrThrow()
+        runSpecifications.forEach { spec ->
+            dockerImageManager.ensureImageExists(spec.image, spec.tag).getOrThrow()
         }
 
-        for (runSpecification in runSpecifications) {
-            dockerContainerManager.ensureContainerIsRunning(runSpecification)
+        runSpecifications.forEach { spec ->
+            dockerContainerManager.ensureContainerIsRunning(spec)
         }
     }
 
-    fun orchestrationTeardown(runSpecifications: List<ContainerRunSpecification>) {
-        val allContainerNames = runSpecifications.map { it.name }
-        for (containerName in allContainerNames) {
-            dockerContainerManager.stopAndRemoveContainer(containerName)
+    fun orchestrationTeardown(runSpecifications: List<ContainerRunSpecification<*, *>>) {
+        val containerNames = runSpecifications.map { it.name }
+        containerNames.forEach { name ->
+            dockerContainerManager.stopAndRemoveContainer(name)
         }
 
-        val allVolumeNames = runSpecifications
-            .flatMap { it.persistenceSpecifications }
-            .filterIsInstance<ContainerPersistenceSpecification.NamedVolumePersistence>()
-            .distinctBy { it.volumeName }
-            .map { it.volumeName }
+        val volumeNames = runSpecifications
+            .flatMap { it.volumes.all }
+            .map(ContainerRunSpecification.VolumeMount::volumeName)
+            .distinct()
 
-        for (volumeName in allVolumeNames) {
+        volumeNames.forEach { volumeName ->
             dockerVolumeManager.removeVolume(volumeName)
         }
 

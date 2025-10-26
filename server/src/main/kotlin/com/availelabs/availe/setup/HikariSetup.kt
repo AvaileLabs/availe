@@ -9,7 +9,7 @@ import java.util.*
 fun hikariSetup(): HikariDataSource {
     val gradlePropertiesFilePath = File(System.getProperty("user.home"), ".gradle/gradle.properties")
 
-    require(gradlePropertiesFilePath.exists()) {
+    check(gradlePropertiesFilePath.exists()) {
         "Gradle properties file not found at ${gradlePropertiesFilePath.absolutePath}"
     }
 
