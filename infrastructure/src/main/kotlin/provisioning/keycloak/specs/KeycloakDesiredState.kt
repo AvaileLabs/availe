@@ -1,4 +1,4 @@
-package com.availelabs.provisioners.spec
+package com.availelabs.provisioning.keycloak.specs
 
 internal data class DesiredRealmSettings(
     val accessTokenLifespan: Int = 300,

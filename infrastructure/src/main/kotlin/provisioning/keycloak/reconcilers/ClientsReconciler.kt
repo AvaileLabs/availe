@@ -1,6 +1,6 @@
-package com.availelabs.provisioners
+package com.availelabs.provisioning.keycloak.reconcilers
 
-import com.availelabs.provisioners.spec.DesiredClient
+import com.availelabs.provisioning.keycloak.specs.DesiredClient
 import org.keycloak.admin.client.resource.RealmResource
 import org.keycloak.representations.idm.ClientRepresentation
 import org.slf4j.LoggerFactory

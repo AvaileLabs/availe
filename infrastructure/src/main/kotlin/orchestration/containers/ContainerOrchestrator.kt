@@ -1,10 +1,10 @@
-package com.availelabs.containers
+package com.availelabs.orchestration.containers
 
-import com.availelabs.containers.core.DockerContainerManager
-import com.availelabs.containers.core.DockerImageManager
-import com.availelabs.containers.core.DockerNetworkManager
-import com.availelabs.containers.core.DockerVolumeManager
-import com.availelabs.containers.domain.ContainerRunSpecification
+import com.availelabs.orchestration.containers.core.DockerContainerManager
+import com.availelabs.orchestration.containers.core.DockerImageManager
+import com.availelabs.orchestration.containers.core.DockerNetworkManager
+import com.availelabs.orchestration.containers.core.DockerVolumeManager
+import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 
 internal class ContainerOrchestrator(
     private val dockerNetworkManager: DockerNetworkManager,

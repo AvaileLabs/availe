@@ -1,7 +1,7 @@
-package com.availelabs.keycloak
+package com.availelabs.orchestration.keycloak
 
-import com.availelabs.containers.domain.ContainerRunSpecification
-import com.availelabs.postgres.loadPostgresConfig
+import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
+import com.availelabs.orchestration.postgres.loadPostgresConfig
 import com.availelabs.utils.loadGradleProperties
 
 internal data class KeycloakConfig(

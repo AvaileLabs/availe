@@ -1,4 +1,4 @@
-package com.availelabs.containers.domain
+package com.availelabs.orchestration.containers.domain
 
 import com.github.dockerjava.api.model.RestartPolicy
 

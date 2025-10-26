@@ -1,6 +1,6 @@
-package com.availelabs.postgres
+package com.availelabs.orchestration.postgres
 
-import com.availelabs.containers.domain.ContainerRunSpecification
+import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.availelabs.utils.loadGradleProperties
 
 internal data class PostgresConfig(

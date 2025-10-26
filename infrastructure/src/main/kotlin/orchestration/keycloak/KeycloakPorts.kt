@@ -1,6 +1,6 @@
-package com.availelabs.keycloak
+package com.availelabs.orchestration.keycloak
 
-import com.availelabs.containers.domain.ContainerRunSpecification
+import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 
 internal sealed interface KeycloakPorts : ContainerRunSpecification.PortMapping {
     data object Http : KeycloakPorts {

@@ -1,7 +1,7 @@
 package com.availelabs.utils
 
-import com.availelabs.keycloak.KeycloakPortsList
-import com.availelabs.postgres.PostgresConfig
+import com.availelabs.orchestration.keycloak.KeycloakPortsList
+import com.availelabs.orchestration.postgres.PostgresConfig
 import org.slf4j.LoggerFactory
 import java.net.URI
 import java.net.http.HttpClient

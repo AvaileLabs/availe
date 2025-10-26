@@ -1,7 +1,7 @@
-package com.availelabs.provisioners
+package com.availelabs.provisioning
 
-import com.availelabs.postgres.PostgresConfig
-import com.availelabs.provisioners.spec.KeycloakDesiredState
+import com.availelabs.orchestration.postgres.PostgresConfig
+import com.availelabs.provisioning.keycloak.specs.KeycloakDesiredState
 import org.slf4j.LoggerFactory
 import java.sql.DriverManager
 

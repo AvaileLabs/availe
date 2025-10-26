@@ -1,4 +1,4 @@
-package com.availelabs.containers.core
+package com.availelabs.orchestration.containers.core
 
 import com.github.dockerjava.api.DockerClient
 import org.slf4j.LoggerFactory

@@ -1,6 +1,6 @@
-package com.availelabs.containers.core
+package com.availelabs.orchestration.containers.core
 
-import com.availelabs.containers.domain.ContainerRunSpecification
+import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.model.*
 import org.slf4j.LoggerFactory
