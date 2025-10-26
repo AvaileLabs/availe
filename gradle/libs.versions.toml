@@ -28,6 +28,8 @@ hikari = "7.0.2"
 postgresql = "42.7.8"
 ksp = "2.2.20-2.0.3"
 kreplica = "5.1.0"
+dockerJavaBom = "3.6.0"
+keycloakAdminClient = "26.0.7"
 
 [libraries]
 http4k-api-openapi = { module = "org.http4k:http4k-api-openapi" }
@@ -62,6 +64,10 @@ jooq = { module = "org.jooq:jooq", version.ref = "jooq" }
 hikariCP = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 flyway-database-postgresql = { group = "org.flywaydb", name = "flyway-database-postgresql", version.ref = "flyway" }
+docker-java = { module = "com.github.docker-java:docker-java" }
+docker-java-bom = { module = "com.github.docker-java:docker-java-bom", version.ref = "dockerJavaBom" }
+docker-java-transport-httpclient5 = { module = "com.github.docker-java:docker-java-transport-httpclient5" }
+keycloak-admin-client = { module = "org.keycloak:keycloak-admin-client", version.ref = "keycloakAdminClient" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
