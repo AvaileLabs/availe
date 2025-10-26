@@ -27,7 +27,7 @@ flyway = "11.15.0"
 hikari = "7.0.2"
 postgresql = "42.7.8"
 ksp = "2.2.20-2.0.3"
-kreplica = "5.0.4"
+kreplica = "5.1.0"
 
 [libraries]
 http4k-api-openapi = { module = "org.http4k:http4k-api-openapi" }
