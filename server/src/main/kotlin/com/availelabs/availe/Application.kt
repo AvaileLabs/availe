@@ -1,12 +1,12 @@
 package com.availelabs.availe
 
-import com.availelabs.availe.controllers.ListingController
+import com.availelabs.availe.controllers.ListingControllerV1
 import com.availelabs.availe.repositories.listing.ListingRepository
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.EventListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ItemListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
+import com.availelabs.availe.services.ListingService
 import com.availelabs.availe.setup.hikariSetup
-import kotlinx.serialization.Serializable
 import org.http4k.contract.contract
 import org.http4k.routing.bind
 import org.http4k.routing.routes
@@ -14,25 +14,34 @@ import org.http4k.server.Helidon
 import org.http4k.server.asServer
 import org.jooq.DSLContext
 import org.jooq.SQLDialect
+import org.jooq.conf.Settings
 import org.jooq.impl.DSL
+import org.jooq.impl.DefaultConfiguration
 
 fun main() {
     val dataSource = hikariSetup()
-    val dsl: DSLContext = DSL.using(dataSource, SQLDialect.POSTGRES)
+    val dsl: DSLContext = DSL.using(
+        DefaultConfiguration()
+            .set(dataSource)
+            .set(SQLDialect.POSTGRES)
+            .set(Settings().withReturnDefaultOnUpdatableRecord(true))
+    )
 
     val itemCreator = ItemListingCreator(dsl)
     val eventCreator = EventListingCreator(dsl)
     val serviceCreator = ServiceListingCreator(dsl)
 
     val listingRepository = ListingRepository(
+        dsl = dsl,
         itemCreator = itemCreator,
         eventCreator = eventCreator,
         serviceCreator = serviceCreator
     )
-    val listingController = ListingController()
+    val listingService = ListingService(listingRepository)
+    val listingControllerV1 = ListingControllerV1(listingService)
 
     val apiContract = contract {
-        routes += listingController.createListing()
+        routes += listingControllerV1.listOfRoutes
     }
 
     val app = routes(
@@ -40,16 +49,4 @@ fun main() {
     )
 
     app.asServer(Helidon(9000)).start()
-}
-
-@Serializable
-sealed interface ListingTypeDto {
-    @Serializable
-    data object Item : ListingTypeDto
-
-    @Serializable
-    data object Event : ListingTypeDto
-
-    @Serializable
-    data object Service : ListingTypeDto
 }

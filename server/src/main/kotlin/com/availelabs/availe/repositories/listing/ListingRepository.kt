@@ -2,27 +2,156 @@
 
 package com.availelabs.availe.repositories.listing
 
+import com.availelabs.availe.domain.listing.Listing
 import com.availelabs.availe.domain.listing.NewListing
-import com.availelabs.availe.domain.types.InsertResult
+import com.availelabs.availe.domain.types.DbDeleteResult
+import com.availelabs.availe.domain.types.DbFindResult
+import com.availelabs.availe.domain.types.DbInsertResult
+import com.availelabs.availe.domain.types.DbUpdateResult
+import com.availelabs.availe.dto.PriceDto
+import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
+import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
+import com.availelabs.availe.dto.kreplica.ListingServiceDtoSchema
+import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import com.availelabs.availe.mappers.toDomainListing
+import com.availelabs.availe.mappers.toMonetaryAmount
 import com.availelabs.availe.repositories.listing.helpers.creators.IListingCreator
+import com.example.jooq.tables.references.LISTINGS
+import com.example.jooq.tables.references.LISTING_EVENT_DETAILS
+import com.example.jooq.tables.references.LISTING_ITEM_DETAILS
+import com.example.jooq.tables.references.LISTING_SERVICE_DETAILS
+import io.availe.models.SerializablePatchable
+import org.jooq.DSLContext
+import org.jooq.Field
+import java.math.BigDecimal
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+import kotlin.uuid.toJavaUuid
 
 interface IListingRepository {
-    fun createListing(newListing: NewListing): InsertResult
+    fun createListing(newListing: NewListing): DbInsertResult<Listing>
+    fun getListingById(id: Uuid): DbFindResult<Listing>
+    fun getAllListings(): List<Listing>
+    fun updateListing(id: Uuid, patch: TypeV1ListingDtoPatchRequest): DbUpdateResult<Listing>
+    fun deleteListing(id: Uuid): DbDeleteResult
 }
 
 class ListingRepository(
+    private val dsl: DSLContext,
     private val itemCreator: IListingCreator<NewListing.Item>,
     private val eventCreator: IListingCreator<NewListing.Event>,
     private val serviceCreator: IListingCreator<NewListing.Service>
 ) : IListingRepository {
+    private val baseQuery = dsl
+        .select(LISTINGS.asterisk())
+        .from(LISTINGS)
+        .leftJoin(LISTING_ITEM_DETAILS).on(LISTINGS.ID.eq(LISTING_ITEM_DETAILS.LISTING_ID))
+        .leftJoin(LISTING_EVENT_DETAILS).on(LISTINGS.ID.eq(LISTING_EVENT_DETAILS.LISTING_ID))
+        .leftJoin(LISTING_SERVICE_DETAILS).on(LISTINGS.ID.eq(LISTING_SERVICE_DETAILS.LISTING_ID))
 
-    override fun createListing(newListing: NewListing): InsertResult {
+    override fun createListing(newListing: NewListing): DbInsertResult<Listing> {
         return when (newListing) {
             is NewListing.Event -> eventCreator.create(newListing)
             is NewListing.Item -> itemCreator.create(newListing)
             is NewListing.Service -> serviceCreator.create(newListing)
         }
+    }
+
+    override fun getListingById(id: Uuid): DbFindResult<Listing> {
+        return baseQuery
+            .where(LISTINGS.ID.eq(id.toJavaUuid()))
+            .fetchOne()
+            ?.let {
+                DbFindResult.Found(
+                    it.toDomainListing(
+                        LISTINGS,
+                        LISTING_ITEM_DETAILS,
+                        LISTING_EVENT_DETAILS,
+                        LISTING_SERVICE_DETAILS
+                    )
+                )
+            }
+            ?: DbFindResult.NotFound
+    }
+
+    override fun getAllListings(): List<Listing> {
+        return baseQuery
+            .fetch()
+            .map {
+                it.toDomainListing(
+                    LISTINGS,
+                    LISTING_ITEM_DETAILS,
+                    LISTING_EVENT_DETAILS,
+                    LISTING_SERVICE_DETAILS
+                )
+            }
+    }
+
+    private fun addCommonPatchUpdates(
+        updates: MutableMap<Field<*>, Any?>,
+        title: SerializablePatchable<String>,
+        description: SerializablePatchable<String?>,
+        price: SerializablePatchable<PriceDto.V1>,
+        imageLinks: SerializablePatchable<List<String>>
+    ) {
+        if (title is SerializablePatchable.Set) {
+            updates[LISTINGS.TITLE] = title.value
+        }
+        if (description is SerializablePatchable.Set) {
+            updates[LISTINGS.DESCRIPTION] = description.value
+        }
+        if (imageLinks is SerializablePatchable.Set) {
+            updates[LISTINGS.IMAGE_LINKS] = imageLinks.value.toTypedArray()
+        }
+        if (price is SerializablePatchable.Set) {
+            val money = price.value.toMonetaryAmount()
+            updates[LISTINGS.PRICE_AMOUNT] = money.number.numberValue(BigDecimal::class.java)
+            updates[LISTINGS.PRICE_CURRENCY] = money.currency.currencyCode
+        }
+    }
+
+    override fun updateListing(id: Uuid, patch: TypeV1ListingDtoPatchRequest): DbUpdateResult<Listing> {
+        val updates = mutableMapOf<Field<*>, Any?>()
+
+        when (patch) {
+            is ListingItemDtoSchema.V1.PatchRequest ->
+                addCommonPatchUpdates(updates, patch.title, patch.description, patch.price, patch.imageLinks)
+
+            is ListingEventDtoSchema.V1.PatchRequest ->
+                addCommonPatchUpdates(updates, patch.title, patch.description, patch.price, patch.imageLinks)
+
+            is ListingServiceDtoSchema.V1.PatchRequest ->
+                addCommonPatchUpdates(updates, patch.title, patch.description, patch.price, patch.imageLinks)
+        }
+
+        if (updates.isEmpty()) {
+            return when (val currentResult = getListingById(id)) {
+                is DbFindResult.Found -> DbUpdateResult.Updated(currentResult.value)
+                is DbFindResult.NotFound -> DbUpdateResult.NotFound
+            }
+        }
+
+        val rowsAffected = dsl.update(LISTINGS)
+            .set(updates)
+            .where(LISTINGS.ID.eq(id.toJavaUuid()))
+            .execute()
+
+        if (rowsAffected == 0) {
+            return DbUpdateResult.NotFound
+        }
+
+        return when (val updatedResult = getListingById(id)) {
+            is DbFindResult.Found -> DbUpdateResult.Updated(updatedResult.value)
+            is DbFindResult.NotFound -> DbUpdateResult.NotFound
+        }
+    }
+
+    override fun deleteListing(id: Uuid): DbDeleteResult {
+        val rowsAffected = dsl.deleteFrom(LISTINGS)
+            .where(LISTINGS.ID.eq(id.toJavaUuid()))
+            .execute()
+
+        return if (rowsAffected > 0) DbDeleteResult.Deleted else DbDeleteResult.NotFound
     }
 }
