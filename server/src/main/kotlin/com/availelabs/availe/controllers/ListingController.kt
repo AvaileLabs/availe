@@ -30,7 +30,7 @@ import kotlin.uuid.Uuid
 
 val publisherKey = RequestKey.required<Uuid>("publisherId")
 
-class ListingControllerV1(
+class ListingController(
     private val listingService: IListingService
 ) {
     private val listingIdPath = Path.kUuid().of("listingId")

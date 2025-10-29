@@ -42,15 +42,23 @@ private class FakeListingRepository(private val willInsert: Boolean) : IListingR
         TODO("Not yet implemented")
     }
 
+    override fun existsById(id: Uuid): Boolean {
+        TODO("Not yet implemented")
+    }
+
     override fun getAllListings(): List<Listing> {
         TODO("Not yet implemented")
     }
 
-    override fun updateListing(id: Uuid, patch: TypeV1ListingDtoPatchRequest): DbUpdateResult<Listing> {
+    override fun updateListing(
+        id: Uuid,
+        patch: TypeV1ListingDtoPatchRequest,
+        requestingPublisherId: Uuid
+    ): DbUpdateResult<Listing> {
         TODO("Not yet implemented")
     }
 
-    override fun deleteListing(id: Uuid): DbDeleteResult {
+    override fun deleteListing(id: Uuid, requestingPublisherId: Uuid): DbDeleteResult {
         TODO("Not yet implemented")
     }
 }

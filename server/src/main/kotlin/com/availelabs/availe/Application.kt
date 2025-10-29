@@ -1,6 +1,6 @@
 package com.availelabs.availe
 
-import com.availelabs.availe.controllers.ListingControllerV1
+import com.availelabs.availe.controllers.ListingController
 import com.availelabs.availe.repositories.listing.ListingRepository
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.EventListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ItemListingCreator
@@ -38,10 +38,10 @@ fun main() {
         serviceCreator = serviceCreator
     )
     val listingService = ListingService(listingRepository)
-    val listingControllerV1 = ListingControllerV1(listingService)
+    val listingController = ListingController(listingService)
 
     val apiContract = contract {
-        routes += listingControllerV1.listOfRoutes
+        routes += listingController.listOfRoutes
     }
 
     val app = routes(

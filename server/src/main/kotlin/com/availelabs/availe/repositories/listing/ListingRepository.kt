@@ -32,9 +32,15 @@ import kotlin.uuid.toJavaUuid
 interface IListingRepository {
     fun createListing(newListing: NewListing): DbInsertResult<Listing>
     fun getListingById(id: Uuid): DbFindResult<Listing>
+    fun existsById(id: Uuid): Boolean
     fun getAllListings(): List<Listing>
-    fun updateListing(id: Uuid, patch: TypeV1ListingDtoPatchRequest): DbUpdateResult<Listing>
-    fun deleteListing(id: Uuid): DbDeleteResult
+    fun updateListing(
+        id: Uuid,
+        patch: TypeV1ListingDtoPatchRequest,
+        requestingPublisherId: Uuid
+    ): DbUpdateResult<Listing>
+
+    fun deleteListing(id: Uuid, requestingPublisherId: Uuid): DbDeleteResult
 }
 
 class ListingRepository(
@@ -80,6 +86,14 @@ class ListingRepository(
             ?: DbFindResult.NotFound
     }
 
+    override fun existsById(id: Uuid): Boolean {
+        return dsl.fetchExists(
+            dsl.selectOne()
+                .from(LISTINGS)
+                .where(LISTINGS.ID.eq(id.toJavaUuid()))
+        )
+    }
+
     override fun getAllListings(): List<Listing> {
         return baseQuery
             .fetch()
@@ -116,7 +130,11 @@ class ListingRepository(
         }
     }
 
-    override fun updateListing(id: Uuid, patch: TypeV1ListingDtoPatchRequest): DbUpdateResult<Listing> {
+    override fun updateListing(
+        id: Uuid,
+        patch: TypeV1ListingDtoPatchRequest,
+        requestingPublisherId: Uuid
+    ): DbUpdateResult<Listing> {
         val updates = mutableMapOf<Field<*>, Any?>()
 
         when (patch) {
@@ -131,30 +149,43 @@ class ListingRepository(
         }
 
         if (updates.isEmpty()) {
-            return when (val currentResult = getListingById(id)) {
-                is DbFindResult.Found -> DbUpdateResult.Updated(currentResult.value)
-                is DbFindResult.NotFound -> DbUpdateResult.NotFound
+            val isOwner = dsl.fetchExists(
+                dsl.selectOne()
+                    .from(LISTINGS)
+                    .where(LISTINGS.ID.eq(id.toJavaUuid()))
+                    .and(LISTINGS.PUBLISHER_ID.eq(requestingPublisherId.toJavaUuid()))
+            )
+            return if (isOwner) {
+                when (val current = getListingById(id)) {
+                    is DbFindResult.Found -> DbUpdateResult.Updated(current.value)
+                    is DbFindResult.NotFound -> DbUpdateResult.NotFound
+                }
+            } else {
+                DbUpdateResult.NotFound
             }
         }
 
-        val rowsAffected = dsl.update(LISTINGS)
+        val record = dsl.update(LISTINGS)
             .set(updates)
             .where(LISTINGS.ID.eq(id.toJavaUuid()))
-            .execute()
+            .and(LISTINGS.PUBLISHER_ID.eq(requestingPublisherId.toJavaUuid()))
+            .returning()
+            .fetchOne()
 
-        if (rowsAffected == 0) {
+        if (record == null) {
             return DbUpdateResult.NotFound
         }
 
         return when (val updatedResult = getListingById(id)) {
             is DbFindResult.Found -> DbUpdateResult.Updated(updatedResult.value)
-            is DbFindResult.NotFound -> DbUpdateResult.NotFound
+            is DbFindResult.NotFound -> throw IllegalStateException("Failed to find listing $id immediately after update")
         }
     }
 
-    override fun deleteListing(id: Uuid): DbDeleteResult {
+    override fun deleteListing(id: Uuid, requestingPublisherId: Uuid): DbDeleteResult {
         val rowsAffected = dsl.deleteFrom(LISTINGS)
             .where(LISTINGS.ID.eq(id.toJavaUuid()))
+            .and(LISTINGS.PUBLISHER_ID.eq(requestingPublisherId.toJavaUuid()))
             .execute()
 
         return if (rowsAffected > 0) DbDeleteResult.Deleted else DbDeleteResult.NotFound

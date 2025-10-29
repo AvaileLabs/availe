@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.availelabs.availe.repositories.listing.helpers.creators
 
 import com.availelabs.availe.domain.listing.NewListing
@@ -6,6 +8,7 @@ import com.example.jooq.enums.ListingTypeEnum
 import com.example.jooq.tables.references.LISTINGS
 import org.jooq.DSLContext
 import java.util.*
+import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toKotlinUuid
 

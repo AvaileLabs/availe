@@ -5,6 +5,7 @@ package com.availelabs.availe.repositories.listing
 import com.availelabs.availe.domain.listing.CommonListingData
 import com.availelabs.availe.domain.listing.Listing
 import com.availelabs.availe.domain.listing.NewListing
+import com.availelabs.availe.domain.types.DbDeleteResult
 import com.availelabs.availe.domain.types.DbFindResult
 import com.availelabs.availe.domain.types.DbInsertResult
 import com.availelabs.availe.domain.types.DbUpdateResult
@@ -30,12 +31,13 @@ class ListingRepositoryTest : PostgresTestBase() {
 
     private lateinit var repository: ListingRepository
     private val testPublisherId = Uuid.random()
+    private val otherPublisherId = Uuid.random()
 
     private fun aNewItemListing(
         price: MonetaryAmount = Money.of(100.50, "USD"),
         description: String? = "Initial description",
         title: String = "Initial Title",
-        imageLinks: List<String> = listOf("initial.png")
+        imageLinks: List<String> = listOf("initial.png", "header.jpg", "thumbnail.jpg")
     ): NewListing.Item {
         return NewListing.Item(
             CommonListingData(
@@ -86,7 +88,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val newTitle = "New Title"
         val patch = ListingItemDtoSchema.V1.PatchRequest(title = SerializablePatchable.Set(newTitle))
 
-        val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch, testPublisherId)
 
         assertTrue(result is DbUpdateResult.Updated)
         val updatedListing = (result as DbUpdateResult.Updated).value
@@ -102,7 +104,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val expectedPriceMoney = Money.of(BigDecimal("99.99"), "EUR")
         val patch = ListingItemDtoSchema.V1.PatchRequest(price = SerializablePatchable.Set(newPriceDto))
 
-        val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch, testPublisherId)
 
         assertTrue(result is DbUpdateResult.Updated)
         val updatedListing = (result as DbUpdateResult.Updated).value
@@ -116,7 +118,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val initialListing = insertListing(aNewItemListing(description = "Not null"))
         val patch = ListingItemDtoSchema.V1.PatchRequest(description = SerializablePatchable.Set(null))
 
-        val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch, testPublisherId)
 
         assertTrue(result is DbUpdateResult.Updated)
         val updatedListing = (result as DbUpdateResult.Updated).value
@@ -140,7 +142,7 @@ class ListingRepositoryTest : PostgresTestBase() {
             imageLinks = SerializablePatchable.Set(newImageLinks)
         )
 
-        val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch, testPublisherId)
 
         assertTrue(result is DbUpdateResult.Updated)
         val updatedListing = (result as DbUpdateResult.Updated).value
@@ -154,7 +156,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val initialListing = insertListing(aNewItemListing())
         val emptyPatch = ListingItemDtoSchema.V1.PatchRequest()
 
-        val result = repository.updateListing(initialListing.id, emptyPatch)
+        val result = repository.updateListing(initialListing.id, emptyPatch, testPublisherId)
 
         assertTrue(result is DbUpdateResult.Updated)
         val updatedListing = (result as DbUpdateResult.Updated).value
@@ -166,7 +168,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val randomId = Uuid.random()
         val patch = ListingItemDtoSchema.V1.PatchRequest(title = SerializablePatchable.Set("New Title"))
 
-        val result = repository.updateListing(randomId, patch)
+        val result = repository.updateListing(randomId, patch, testPublisherId)
 
         assertTrue(result is DbUpdateResult.NotFound)
     }
@@ -177,12 +179,54 @@ class ListingRepositoryTest : PostgresTestBase() {
         val newTitle = "Updated Event Title"
         val patch = ListingEventDtoSchema.V1.PatchRequest(title = SerializablePatchable.Set(newTitle))
 
-        val result = repository.updateListing(initialEvent.id, patch)
+        val result = repository.updateListing(initialEvent.id, patch, testPublisherId)
 
         assertTrue(result is DbUpdateResult.Updated)
         val updatedEvent = (result as DbUpdateResult.Updated).value
         assertEquals(newTitle, updatedEvent.title)
         assertEquals(initialEvent.description, updatedEvent.description)
+    }
+
+    @Test
+    fun `updateListing returns NotFound when publisherId does not match`() {
+        val initialListing = insertListing(aNewItemListing())
+        val patch = ListingItemDtoSchema.V1.PatchRequest(title = SerializablePatchable.Set("New Title"))
+
+        val result = repository.updateListing(initialListing.id, patch, otherPublisherId)
+
+        assertTrue(result is DbUpdateResult.NotFound)
+    }
+
+    @Test
+    fun `updateListing with empty patch returns NotFound when publisherId does not match`() {
+        val initialListing = insertListing(aNewItemListing())
+        val emptyPatch = ListingItemDtoSchema.V1.PatchRequest()
+
+        val result = repository.updateListing(initialListing.id, emptyPatch, otherPublisherId)
+
+        assertTrue(result is DbUpdateResult.NotFound)
+    }
+
+    @Test
+    fun `deleteListing returns Deleted when publisherId matches`() {
+        val initialListing = insertListing(aNewItemListing())
+
+        val result = repository.deleteListing(initialListing.id, testPublisherId)
+
+        assertTrue(result is DbDeleteResult.Deleted)
+        val findResult = repository.getListingById(initialListing.id)
+        assertTrue(findResult is DbFindResult.NotFound)
+    }
+
+    @Test
+    fun `deleteListing returns NotFound when publisherId does not match`() {
+        val initialListing = insertListing(aNewItemListing())
+
+        val result = repository.deleteListing(initialListing.id, otherPublisherId)
+
+        assertTrue(result is DbDeleteResult.NotFound)
+        val findResult = repository.getListingById(initialListing.id)
+        assertTrue(findResult is DbFindResult.Found)
     }
 
     @Test

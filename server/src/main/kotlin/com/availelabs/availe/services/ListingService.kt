@@ -44,32 +44,26 @@ class ListingService(
         patch: TypeV1ListingDtoPatchRequest,
         requestingPublisherId: Uuid
     ): UpdateResult<Listing> {
-        return when (val findResult = listingRepository.getListingById(listingId)) {
-            is DbFindResult.NotFound -> UpdateResult.NotFound
-            is DbFindResult.Found -> {
-                if (findResult.value.publisherId != requestingPublisherId) {
-                    return UpdateResult.Forbidden
-                }
-
-                when (val updateResult = listingRepository.updateListing(listingId, patch)) {
-                    is DbUpdateResult.NotFound -> UpdateResult.NotFound
-                    is DbUpdateResult.Updated -> UpdateResult.Updated(updateResult.value)
+        return when (val result = listingRepository.updateListing(listingId, patch, requestingPublisherId)) {
+            is DbUpdateResult.Updated -> UpdateResult.Updated(result.value)
+            is DbUpdateResult.NotFound -> {
+                if (listingRepository.existsById(listingId)) {
+                    UpdateResult.Forbidden
+                } else {
+                    UpdateResult.NotFound
                 }
             }
         }
     }
 
     override fun deleteListing(listingId: Uuid, requestingPublisherId: Uuid): DeleteResult {
-        return when (val findResult = listingRepository.getListingById(listingId)) {
-            is DbFindResult.NotFound -> DeleteResult.NotFound
-            is DbFindResult.Found -> {
-                if (findResult.value.publisherId != requestingPublisherId) {
-                    return DeleteResult.Forbidden
-                }
-
-                when (listingRepository.deleteListing(listingId)) {
-                    is DbDeleteResult.Deleted -> DeleteResult.Deleted
-                    is DbDeleteResult.NotFound -> DeleteResult.NotFound
+        return when (listingRepository.deleteListing(listingId, requestingPublisherId)) {
+            is DbDeleteResult.Deleted -> DeleteResult.Deleted
+            is DbDeleteResult.NotFound -> {
+                if (listingRepository.existsById(listingId)) {
+                    DeleteResult.Forbidden
+                } else {
+                    DeleteResult.NotFound
                 }
             }
         }
