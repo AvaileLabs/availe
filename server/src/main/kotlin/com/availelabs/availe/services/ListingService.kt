@@ -10,7 +10,7 @@ import com.availelabs.availe.repositories.listing.IListingRepository
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-interface IListingService {
+internal interface IListingService {
     fun createListing(newListing: NewListing): InsertResult<Listing>
     fun getListingById(id: Uuid): FindResult<Listing>
     fun updateListing(
@@ -22,7 +22,7 @@ interface IListingService {
     fun deleteListing(listingId: Uuid, requestingPublisherId: Uuid): DeleteResult
 }
 
-class ListingService(
+internal class ListingService(
     private val listingRepository: IListingRepository
 ) : IListingService {
     override fun createListing(newListing: NewListing): InsertResult<Listing> {

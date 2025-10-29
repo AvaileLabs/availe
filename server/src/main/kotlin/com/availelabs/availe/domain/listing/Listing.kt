@@ -7,7 +7,7 @@ import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-sealed interface Listing : CommonListingProperties {
+internal sealed interface Listing : CommonListingProperties {
     val id: Uuid
     val createdAt: Instant
     val commonData: CommonListingData
@@ -25,7 +25,7 @@ sealed interface Listing : CommonListingProperties {
     ) : CommonListingProperties by commonData, Listing
 }
 
-sealed interface NewListing : CommonListingProperties {
+internal sealed interface NewListing : CommonListingProperties {
     val commonData: CommonListingData
 
     data class Item(

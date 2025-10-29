@@ -12,11 +12,11 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toKotlinUuid
 
-interface IListingCreator<T : NewListing> {
+internal interface IListingCreator<T : NewListing> {
     fun create(newListing: T): Uuid
 }
 
-abstract class BaseListingCreator<T : NewListing>(
+internal abstract class BaseListingCreator<T : NewListing>(
     private val dsl: DSLContext,
     private val listingType: ListingTypeEnum
 ) : IListingCreator<T> {

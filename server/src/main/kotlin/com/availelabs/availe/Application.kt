@@ -18,7 +18,7 @@ import org.jooq.conf.Settings
 import org.jooq.impl.DSL
 import org.jooq.impl.DefaultConfiguration
 
-fun main() {
+internal fun main() {
     val dataSource = hikariSetup()
     val dsl: DSLContext = DSL.using(
         DefaultConfiguration()

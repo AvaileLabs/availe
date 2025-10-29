@@ -29,7 +29,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 
-interface IListingRepository {
+internal interface IListingRepository {
     fun createListing(newListing: NewListing): DbInsertResult<Listing>
     fun getListingById(id: Uuid): DbFindResult<Listing>
     fun existsById(id: Uuid): Boolean
@@ -43,7 +43,7 @@ interface IListingRepository {
     fun deleteListing(id: Uuid, requestingPublisherId: Uuid): DbDeleteResult
 }
 
-class ListingRepository(
+internal class ListingRepository(
     private val dsl: DSLContext,
     private val itemCreator: IListingCreator<NewListing.Item>,
     private val eventCreator: IListingCreator<NewListing.Event>,

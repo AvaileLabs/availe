@@ -7,7 +7,7 @@ import com.example.jooq.tables.references.LISTING_EVENT_DETAILS
 import org.jooq.DSLContext
 import java.util.*
 
-class EventListingCreator(dsl: DSLContext) :
+internal class EventListingCreator(dsl: DSLContext) :
     BaseListingCreator<NewListing.Event>(dsl, ListingTypeEnum.event) {
 
     override fun createSubtypeDetails(

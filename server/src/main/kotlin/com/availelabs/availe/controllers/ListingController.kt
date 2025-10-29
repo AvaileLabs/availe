@@ -28,9 +28,9 @@ import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-val publisherKey = RequestKey.required<Uuid>("publisherId")
+internal val publisherKey = RequestKey.required<Uuid>("publisherId")
 
-class ListingController(
+internal class ListingController(
     private val listingService: IListingService
 ) {
     private val listingIdPath = Path.kUuid().of("listingId")
@@ -214,4 +214,4 @@ internal fun Listing.toDataDto(): TypeV1ListingDtoData {
     }
 }
 
-fun Path.kUuid() = map(Uuid::parse, Uuid::toString)
+internal fun Path.kUuid() = map(Uuid::parse, Uuid::toString)

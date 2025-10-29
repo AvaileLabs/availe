@@ -7,7 +7,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-sealed interface CommonListingProperties {
+internal sealed interface CommonListingProperties {
     val title: String
     val description: String?
     val price: MonetaryAmount
@@ -15,7 +15,7 @@ sealed interface CommonListingProperties {
     val publisherId: Uuid
 }
 
-data class CommonListingData(
+internal data class CommonListingData(
     override val title: String,
     override val description: String?,
     override val price: MonetaryAmount,

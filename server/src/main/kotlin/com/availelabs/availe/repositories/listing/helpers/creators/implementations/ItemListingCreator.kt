@@ -7,7 +7,7 @@ import com.example.jooq.tables.references.LISTING_ITEM_DETAILS
 import org.jooq.DSLContext
 import java.util.*
 
-class ItemListingCreator(dsl: DSLContext) :
+internal class ItemListingCreator(dsl: DSLContext) :
     BaseListingCreator<NewListing.Item>(dsl, ListingTypeEnum.item) {
 
     override fun createSubtypeDetails(

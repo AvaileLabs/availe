@@ -6,7 +6,7 @@ import org.postgresql.PGProperty
 import java.io.File
 import java.util.*
 
-fun hikariSetup(): HikariDataSource {
+internal fun hikariSetup(): HikariDataSource {
     val gradlePropertiesFilePath = File(System.getProperty("user.home"), ".gradle/gradle.properties")
 
     check(gradlePropertiesFilePath.exists()) {
