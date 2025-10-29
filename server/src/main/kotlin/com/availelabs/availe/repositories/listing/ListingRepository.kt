@@ -51,10 +51,15 @@ class ListingRepository(
         .leftJoin(LISTING_SERVICE_DETAILS).on(LISTINGS.ID.eq(LISTING_SERVICE_DETAILS.LISTING_ID))
 
     override fun createListing(newListing: NewListing): DbInsertResult<Listing> {
-        return when (newListing) {
+        val newListingId: Uuid = when (newListing) {
             is NewListing.Event -> eventCreator.create(newListing)
             is NewListing.Item -> itemCreator.create(newListing)
             is NewListing.Service -> serviceCreator.create(newListing)
+        }
+
+        return when (val findResult = getListingById(newListingId)) {
+            is DbFindResult.Found -> DbInsertResult.Inserted(findResult.value)
+            is DbFindResult.NotFound -> throw IllegalStateException("Failed to find listing $newListingId immediately after creation")
         }
     }
 
