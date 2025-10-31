@@ -47,6 +47,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		18FE2F2516B2306D591F7394 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				14255E66A563479E77623D24 /* availe.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		40796B9370E0087007B811D2 = {
 			isa = PBXGroup;
 			children = (
@@ -54,14 +62,6 @@
 				6B00CC26BA28D2D87250469E /* iosApp */,
 				18FE2F2516B2306D591F7394 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		18FE2F2516B2306D591F7394 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				14255E66A563479E77623D24 /* availe.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -349,20 +349,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		863986D5688FE3452A01D5DE /* Build configuration list for PBXProject "iosApp" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				7281F069155376622263014D /* Debug */,
-				B33B4AD38EB389216C8849BC /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		13B43245E8A001010CEEB386 /* Build configuration list for PBXNativeTarget "iosApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				DD85DE8D35D6F3DEC2C48D77 /* Debug */,
 				E2F5922A5CA60F899F998433 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		863986D5688FE3452A01D5DE /* Build configuration list for PBXProject "iosApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7281F069155376622263014D /* Debug */,
+				B33B4AD38EB389216C8849BC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
