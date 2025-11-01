@@ -54,6 +54,7 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.activity.compose)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -67,6 +68,7 @@ kotlin {
             api(projects.shared)
             implementation(libs.ktor.utils)
             implementation(libs.okio)
+            implementation(libs.multiplatform.settings.no.arg)
 
             // Compose Design System
             implementation(libs.composables.unstyled)
@@ -87,6 +89,10 @@ kotlin {
             // kotlinx serialization
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.kotlinx.serialization.json)
+
+            // kmp-oidc
+            implementation(libs.oidc.appsupport)
+            implementation(libs.oidc.ktor)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -27,6 +27,7 @@ moneyApi = "1.1"
 jooq = "3.20.8"
 flyway = "11.15.0"
 hikari = "7.0.2"
+kmp-oidc = "0.15.4"
 postgresql = "42.7.8"
 ksp = "2.2.20-2.0.3"
 kreplica = "5.2.0"
@@ -43,6 +44,7 @@ kotlinxBrowser = "0.5.0"
 okio = "3.16.2"
 kotlinx-datetime = "0.7.1"
 browser = "1.9.0"
+russhwolf-multiplatformSettings = "1.3.0"
 
 [libraries]
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
@@ -77,6 +79,8 @@ moneta-core = { module = "org.javamoney.moneta:moneta-core", version.ref = "mone
 money-api = { module = "javax.money:money-api", version.ref = "moneyApi" }
 jooq = { module = "org.jooq:jooq", version.ref = "jooq" }
 hikariCP = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+oidc-appsupport = { module = "io.github.kalinjul.kotlin.multiplatform:oidc-appsupport", version.ref = "kmp-oidc" }
+oidc-ktor = { module = "io.github.kalinjul.kotlin.multiplatform:oidc-ktor", version.ref = "kmp-oidc" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 flyway-database-postgresql = { group = "org.flywaydb", name = "flyway-database-postgresql", version.ref = "flyway" }
 docker-java = { module = "com.github.docker-java:docker-java" }
@@ -110,6 +114,7 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
+multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "russhwolf-multiplatformSettings" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

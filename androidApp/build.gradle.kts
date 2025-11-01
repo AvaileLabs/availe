@@ -18,6 +18,10 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        addManifestPlaceholders(
+            mapOf("oidcRedirectScheme" to "com.availe.auth")
+        )
     }
 
     packaging {
@@ -55,5 +59,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.browser)
+    implementation(libs.oidc.appsupport)
+    implementation(libs.oidc.ktor)
     debugImplementation(libs.androidx.ui.tooling)
 }
