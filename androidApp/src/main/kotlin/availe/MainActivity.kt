@@ -4,32 +4,25 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.defaultComponentContext
 import com.availelabs.availe.auth.createPlatformAuthFlowFactory
-import org.publicvalue.multiplatform.oidc.appsupport.AndroidCodeAuthFlowFactory
-import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
+import com.availelabs.availe.auth.createTokenStore
+import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 
 class MainActivity : ComponentActivity() {
-    private val codeAuthFlowFactory = AndroidCodeAuthFlowFactory()
 
+    @OptIn(ExperimentalOpenIdConnect::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val authFactory = createPlatformAuthFlowFactory(this)
+        val tokenStore = createTokenStore(this)
 
-        val root = RootComponent(componentContext = defaultComponentContext(), codeAuthFlowFactory = authFactory)
+        val root = RootComponent(
+            componentContext = defaultComponentContext(),
+            codeAuthFlowFactory = authFactory,
+            tokenStore = tokenStore
+        )
         setContent { App(root) }
     }
-}
-
-@Preview
-@Composable
-fun AppAndroidPreview() {
-    class PreviewRootComponent(override val codeAuthFlowFactory: CodeAuthFlowFactory) : IRootComponent
-    App(PreviewRootComponent(
-        codeAuthFlowFactory =
-            get() =
-    ))
 }

@@ -8,8 +8,14 @@ class RootHolder: ObservableObject {
     init() {
         lifecycle = LifecycleRegistryKt.LifecycleRegistry()
 
+        let activity = PlatformActivity()
+        let codeAuthFlowFactory = AuthFactory_iosKt.createPlatformAuthFlowFactory(activity: activity)
+        let tokenStore = PlatformTokenStore_iosKt.createTokenStore(activity: activity)
+
         root = RootComponent(
-            componentContext: DefaultComponentContext(lifecycle: lifecycle)
+            componentContext: DefaultComponentContext(lifecycle: lifecycle),
+            codeAuthFlowFactory: codeAuthFlowFactory,
+            tokenStore: tokenStore
         )
 
         LifecycleRegistryExtKt.create(lifecycle)

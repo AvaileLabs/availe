@@ -6,6 +6,11 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.lifecycle.stop
+import com.availelabs.availe.auth.PlatformActivity
+import com.availelabs.availe.auth.createPlatformAuthFlowFactory
+import com.availelabs.availe.auth.createTokenStore
+import com.availelabs.availe.auth.handleRedirect
+import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import web.dom.DocumentVisibilityState
 import web.dom.document
 import web.dom.visible
@@ -13,12 +18,21 @@ import web.events.Event
 import web.events.VISIBILITY_CHANGE
 import web.events.addEventListener
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalOpenIdConnect::class)
 fun main() {
+    if (handleRedirect()) {
+        return
+    }
+
     val lifecycle = LifecycleRegistry()
+    val activity = PlatformActivity()
+    val authFactory = createPlatformAuthFlowFactory(activity)
+    val tokenStore = createTokenStore(activity)
 
     val root = RootComponent(
         componentContext = DefaultComponentContext(lifecycle = lifecycle),
+        codeAuthFlowFactory = authFactory,
+        tokenStore = tokenStore
     )
 
     lifecycle.attachToDocument()
