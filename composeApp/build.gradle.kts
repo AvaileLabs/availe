@@ -29,6 +29,11 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+
+            export(projects.shared)
+            export(libs.decompose)
+            export(libs.decompose.extensions.compose)
+            export(libs.essenty.lifecycle)
         }
     }
 
@@ -59,7 +64,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.datetime)
-            implementation(projects.shared)
+            api(projects.shared)
             implementation(libs.ktor.utils)
             implementation(libs.okio)
 
