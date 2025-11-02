@@ -1,4 +1,4 @@
-package com.availelabs.availe.auth
+package com.availelabs.availe.domain
 
 import com.availelabs.availe.NetworkConstants
 

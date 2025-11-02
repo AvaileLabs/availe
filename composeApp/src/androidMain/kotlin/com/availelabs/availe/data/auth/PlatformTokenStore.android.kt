@@ -1,4 +1,4 @@
-package com.availelabs.availe.auth
+package com.availelabs.availe.data.auth
 
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.tokenstore.AndroidDataStoreSettingsStore

@@ -1,4 +1,4 @@
-package com.availelabs.availe.auth
+package com.availelabs.availe.ui.components
 
 import com.arkivanov.decompose.ComponentContext
 

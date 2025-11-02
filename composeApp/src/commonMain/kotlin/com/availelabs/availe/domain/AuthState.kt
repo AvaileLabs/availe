@@ -1,4 +1,4 @@
-package com.availelabs.availe.auth
+package com.availelabs.availe.domain
 
 sealed interface AuthState {
     data object Unknown : AuthState

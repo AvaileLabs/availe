@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.arkivanov.decompose.defaultComponentContext
-import com.availelabs.availe.auth.createPlatformAuthFlowFactory
-import com.availelabs.availe.auth.createTokenStore
+import com.availelabs.availe.data.auth.createPlatformAuthFlowFactory
+import com.availelabs.availe.data.auth.createTokenStore
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 
 class MainActivity : ComponentActivity() {

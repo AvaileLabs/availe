@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalWasmJsInterop::class)
 
-package com.availelabs.availe.auth
+package com.availelabs.availe.data.auth
 
 import kotlinx.browser.window
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect

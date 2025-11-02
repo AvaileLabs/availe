@@ -9,7 +9,14 @@ import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
-import com.availelabs.availe.auth.*
+import com.availelabs.availe.auth.MainScreen
+import com.availelabs.availe.data.auth.AuthService
+import com.availelabs.availe.domain.AuthState
+import com.availelabs.availe.ui.components.DefaultLoginComponent
+import com.availelabs.availe.ui.components.DefaultMainComponent
+import com.availelabs.availe.ui.components.LoginComponent
+import com.availelabs.availe.ui.components.MainComponent
+import com.availelabs.availe.ui.screen.LoginScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

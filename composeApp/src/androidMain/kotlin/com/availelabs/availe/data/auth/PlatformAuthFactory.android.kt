@@ -1,4 +1,4 @@
-package com.availelabs.availe.auth
+package com.availelabs.availe.data.auth
 
 import androidx.activity.ComponentActivity
 import org.publicvalue.multiplatform.oidc.appsupport.AndroidCodeAuthFlowFactory

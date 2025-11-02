@@ -7,9 +7,9 @@ import androidx.compose.ui.window.rememberWindowState
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.availelabs.availe.auth.PlatformActivity
-import com.availelabs.availe.auth.createPlatformAuthFlowFactory
-import com.availelabs.availe.auth.createTokenStore
+import com.availelabs.availe.data.auth.PlatformActivity
+import com.availelabs.availe.data.auth.createPlatformAuthFlowFactory
+import com.availelabs.availe.data.auth.createTokenStore
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 
 @OptIn(ExperimentalOpenIdConnect::class)
