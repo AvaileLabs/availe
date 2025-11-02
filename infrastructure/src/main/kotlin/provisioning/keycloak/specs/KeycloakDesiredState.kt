@@ -1,5 +1,7 @@
 package com.availelabs.provisioning.keycloak.specs
 
+import com.availelabs.availe.NetworkConstants
+
 internal data class DesiredRealmSettings(
     val accessTokenLifespan: Int = 300,
     val ssoSessionIdleTimeout: Int = 1800,
@@ -38,19 +40,21 @@ internal object KeycloakDesiredState {
 
     val REALM_SETTINGS = DesiredRealmSettings()
 
+    private val hostIp = NetworkConstants.HOST_IP
+
     val CLIENTS = listOf(
         DesiredClient(
             clientId = "availe-shop-app",
             clientName = "Availe Shop App",
             isPublic = true,
             redirectUris = setOf(
-                "http://localhost:3000/*",
-                "https://localhost:3000/*",
-                "http://localhost:8888/callback",
+                "http://$hostIp:3000/*",
+                "https://$hostIp:3000/*",
+                "http://$hostIp:8888/callback",
                 "com.availe.auth://callback",
-                "http://localhost:8080/*"
+                "http://$hostIp:8080/*"
             ),
-            webOrigins = setOf("http://localhost:3000", "https://localhost:3000", "http://localhost:8080")
+            webOrigins = setOf("http://$hostIp:3000", "https://$hostIp:3000", "http://$hostIp:8080")
         )
     )
 }

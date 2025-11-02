@@ -1,3 +1,5 @@
+import com.availelabs.buildlogic.getHostIpAddress
+import com.github.gmazzo.buildconfig.BuildConfigSourceSet
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -7,7 +9,10 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kreplica)
+    alias(libs.plugins.gradle.buildconfig)
 }
+
+val useLocalIp = providers.gradleProperty("availe.dev.useLocalIp").getOrElse("false").toBoolean()
 
 kotlin {
     android {
@@ -40,5 +45,26 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+    }
+}
+
+val hostIpProvider = providers.provider {
+    if (useLocalIp) {
+        "\"${getHostIpAddress()}\""
+    } else {
+        "\"localhost\""
+    }
+}
+
+buildConfig {
+    packageName("com.availelabs.availe")
+    className("NetworkConstants")
+
+    useKotlinOutput {
+        internalVisibility = false
+    }
+
+    sourceSets.named<BuildConfigSourceSet>("main") {
+        buildConfigField("String", "HOST_IP", hostIpProvider)
     }
 }

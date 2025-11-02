@@ -19,19 +19,20 @@ import kotlinx.coroutines.launch
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
 import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
-import org.publicvalue.multiplatform.oidc.tokenstore.*
+import org.publicvalue.multiplatform.oidc.tokenstore.TokenStore
+import org.publicvalue.multiplatform.oidc.tokenstore.getTokens
+import org.publicvalue.multiplatform.oidc.tokenstore.removeTokens
+import org.publicvalue.multiplatform.oidc.tokenstore.saveTokens
 import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 
 @OptIn(ExperimentalOpenIdConnect::class)
 open class AuthService(
     private val authFactory: CodeAuthFlowFactory,
     private val tokenStore: TokenStore,
-    private val coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope
 ) {
     private val _authState = MutableValue<AuthState>(AuthState.Unknown)
     open val authState: Value<AuthState> = _authState
-
-    val refreshHandler = TokenRefreshHandler(tokenStore)
 
     private val client = OpenIdConnectClient(discoveryUri = DISCOVERY_URI) {
         this.scope = SCOPE

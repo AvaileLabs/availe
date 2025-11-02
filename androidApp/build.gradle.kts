@@ -1,11 +1,55 @@
+import com.availelabs.buildlogic.getHostIpAddress
+
 plugins {
     id("org.jetbrains.kotlin.android")
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
 }
 
+val useLocalIpForDebug = providers.gradleProperty("availe.dev.useLocalIp").getOrElse("false").toBoolean()
+
 kotlin {
     jvmToolchain(17)
+}
+
+abstract class GenerateNetworkSecurityConfig : DefaultTask() {
+
+    @get:InputFile
+    abstract val template: RegularFileProperty
+
+    @get:Input
+    abstract val hostIp: Property<String>
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        val xml = template.get().asFile.readText()
+            .replace($$"${HOST_IP}", hostIp.get())
+
+        val outFile = outputDir.get().file("xml/network_security_config.xml").asFile
+        outFile.parentFile.mkdirs()
+        outFile.writeText(xml)
+    }
+}
+
+val generateDebugNetworkSecurityConfig =
+    tasks.register<GenerateNetworkSecurityConfig>("generateDebugNetworkSecurityConfig") {
+        template.set(layout.projectDirectory.file("src/main/res-templates/network_security_config.xml.tpl"))
+        hostIp.set(providers.provider { getHostIpAddress() })
+        outputDir.set(layout.buildDirectory.dir("generated/networkSecurity/debug/res"))
+    }
+
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        if (useLocalIpForDebug) {
+            variant.sources.res?.addGeneratedSourceDirectory(
+                generateDebugNetworkSecurityConfig,
+                GenerateNetworkSecurityConfig::outputDir
+            )
+        }
+    }
 }
 
 android {
