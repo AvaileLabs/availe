@@ -1,4 +1,3 @@
-// file: iosApp/AppDelegate.swift
 import UIKit
 import ComposeApp
 

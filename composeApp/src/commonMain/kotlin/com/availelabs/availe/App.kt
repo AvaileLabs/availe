@@ -11,6 +11,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.availelabs.availe.auth.MainScreen
 import com.availelabs.availe.data.auth.AuthService
+import com.availelabs.availe.data.auth.PlatformAuthConfig
 import com.availelabs.availe.domain.AuthState
 import com.availelabs.availe.ui.components.DefaultLoginComponent
 import com.availelabs.availe.ui.components.DefaultMainComponent
@@ -52,7 +53,8 @@ interface IRootComponent {
 class RootComponent(
     componentContext: ComponentContext,
     codeAuthFlowFactory: CodeAuthFlowFactory,
-    tokenStore: TokenStore
+    tokenStore: TokenStore,
+    platformAuthConfig: PlatformAuthConfig
 ) : IRootComponent, ComponentContext by componentContext {
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
@@ -61,7 +63,8 @@ class RootComponent(
     override val authService = AuthService(
         authFactory = codeAuthFlowFactory,
         tokenStore = tokenStore,
-        coroutineScope = scope
+        coroutineScope = scope,
+        platformAuthConfig = platformAuthConfig
     )
 
     override val childStack: Value<ChildStack<*, IRootComponent.Child>> =

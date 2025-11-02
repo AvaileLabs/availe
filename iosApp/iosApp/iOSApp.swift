@@ -17,14 +17,14 @@ struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(root: rootHolder.root)
-                .onChange(of: scenePhase) { newPhase in
-                    switch newPhase {
-                    case .background: LifecycleRegistryExtKt.stop(rootHolder.lifecycle)
-                    case .inactive: LifecycleRegistryExtKt.pause(rootHolder.lifecycle)
-                    case .active: LifecycleRegistryExtKt.resume(rootHolder.lifecycle)
-                    @unknown default: break
-                    }
-                }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            switch newPhase {
+            case .background: LifecycleRegistryExtKt.stop(rootHolder.lifecycle)
+            case .inactive: LifecycleRegistryExtKt.pause(rootHolder.lifecycle)
+            case .active: LifecycleRegistryExtKt.resume(rootHolder.lifecycle)
+            @unknown default: break
+            }
         }
     }
 }

@@ -5,14 +5,6 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.availelabs.availe.domain.AuthConstants.CLIENT_ID
 import com.availelabs.availe.domain.AuthConstants.DISCOVERY_URI
-import com.availelabs.availe.domain.AuthConstants.POST_LOGOUT_REDIRECT_URI_ANDROID
-import com.availelabs.availe.domain.AuthConstants.POST_LOGOUT_REDIRECT_URI_IOS
-import com.availelabs.availe.domain.AuthConstants.POST_LOGOUT_REDIRECT_URI_JVM
-import com.availelabs.availe.domain.AuthConstants.POST_LOGOUT_REDIRECT_URI_WEB
-import com.availelabs.availe.domain.AuthConstants.REDIRECT_URI_ANDROID
-import com.availelabs.availe.domain.AuthConstants.REDIRECT_URI_IOS
-import com.availelabs.availe.domain.AuthConstants.REDIRECT_URI_JVM
-import com.availelabs.availe.domain.AuthConstants.REDIRECT_URI_WEB
 import com.availelabs.availe.domain.AuthConstants.SCOPE
 import com.availelabs.availe.domain.AuthState
 import kotlinx.coroutines.CoroutineScope
@@ -26,21 +18,29 @@ import org.publicvalue.multiplatform.oidc.tokenstore.removeTokens
 import org.publicvalue.multiplatform.oidc.tokenstore.saveTokens
 import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 
+data class PlatformAuthConfig(
+    val redirectUri: String,
+    val postLogoutRedirectUri: String,
+)
+
+expect fun createPlatformAuthConfig(activity: PlatformActivity): PlatformAuthConfig
+
 @OptIn(ExperimentalOpenIdConnect::class)
-open class AuthService(
+class AuthService(
     private val authFactory: CodeAuthFlowFactory,
     private val tokenStore: TokenStore,
+    private val platformAuthConfig: PlatformAuthConfig,
     coroutineScope: CoroutineScope
 ) {
     private val _authState = MutableValue<AuthState>(AuthState.Unknown)
-    open val authState: Value<AuthState> = _authState
+    val authState: Value<AuthState> = _authState
 
     private val client = OpenIdConnectClient(discoveryUri = DISCOVERY_URI) {
         this.scope = SCOPE
         this.clientId = CLIENT_ID
         this.codeChallengeMethod = CodeChallengeMethod.S256
-        this.redirectUri = getPlatformRedirectUri()
-        this.postLogoutRedirectUri = getPlatformPostLogoutRedirectUri()
+        this.redirectUri = platformAuthConfig.redirectUri
+        this.postLogoutRedirectUri = platformAuthConfig.postLogoutRedirectUri
     }
 
     init {
@@ -102,28 +102,6 @@ open class AuthService(
             println("AuthService: Removing tokens and setting state to LoggedOut.")
             tokenStore.removeTokens()
             _authState.update { AuthState.LoggedOut }
-        }
-    }
-
-    private fun getPlatformRedirectUri(): String {
-        return when (authFactory::class.simpleName) {
-            "AndroidCodeAuthFlowFactory" -> REDIRECT_URI_ANDROID
-            "IosCodeAuthFlowFactory" -> REDIRECT_URI_IOS
-            "JvmCodeAuthFlowFactory" -> REDIRECT_URI_JVM
-            "WebMainCodeAuthFlowFactory" -> REDIRECT_URI_WEB
-            "WasmCodeAuthFlowFactory" -> REDIRECT_URI_WEB
-            else -> REDIRECT_URI_WEB
-        }
-    }
-
-    private fun getPlatformPostLogoutRedirectUri(): String {
-        return when (authFactory::class.simpleName) {
-            "AndroidCodeAuthFlowFactory" -> POST_LOGOUT_REDIRECT_URI_ANDROID
-            "IosCodeAuthFlowFactory" -> POST_LOGOUT_REDIRECT_URI_IOS
-            "JvmCodeAuthFlowFactory" -> POST_LOGOUT_REDIRECT_URI_JVM
-            "WebMainCodeAuthFlowFactory" -> POST_LOGOUT_REDIRECT_URI_WEB
-            "WasmCodeAuthFlowFactory" -> POST_LOGOUT_REDIRECT_URI_WEB
-            else -> POST_LOGOUT_REDIRECT_URI_WEB
         }
     }
 }

@@ -8,6 +8,7 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.availelabs.availe.data.auth.PlatformActivity
+import com.availelabs.availe.data.auth.createPlatformAuthConfig
 import com.availelabs.availe.data.auth.createPlatformAuthFlowFactory
 import com.availelabs.availe.data.auth.createTokenStore
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
@@ -19,6 +20,7 @@ fun main() = application {
     val activity = remember { PlatformActivity() }
     val authFactory = remember { createPlatformAuthFlowFactory(activity) }
     val tokenStore = remember { createTokenStore(activity) }
+    val platformAuthConfig = createPlatformAuthConfig(activity)
 
     LifecycleController(lifecycle, windowState)
 
@@ -26,7 +28,8 @@ fun main() = application {
         RootComponent(
             componentContext = DefaultComponentContext(lifecycle = lifecycle),
             codeAuthFlowFactory = authFactory,
-            tokenStore = tokenStore
+            tokenStore = tokenStore,
+            platformAuthConfig = platformAuthConfig
         )
     }
 
