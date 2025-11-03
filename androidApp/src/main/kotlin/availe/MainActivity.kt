@@ -5,9 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.arkivanov.decompose.defaultComponentContext
-import com.availelabs.availe.data.auth.createPlatformAuthConfig
-import com.availelabs.availe.data.auth.createPlatformAuthFlowFactory
-import com.availelabs.availe.data.auth.createTokenStore
+import com.availelabs.availe.di.createAppContainer
+import com.availelabs.availe.ui.components.RootComponent
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 
 class MainActivity : ComponentActivity() {
@@ -16,15 +15,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        val authFactory = createPlatformAuthFlowFactory(this)
-        val tokenStore = createTokenStore(this)
-        val platformAuthConfig = createPlatformAuthConfig(this)
+        val componentContext = defaultComponentContext()
+
+        val appContainer = createAppContainer(componentContext.lifecycle, this)
 
         val root = RootComponent(
-            componentContext = defaultComponentContext(),
-            codeAuthFlowFactory = authFactory,
-            tokenStore = tokenStore,
-            platformAuthConfig = platformAuthConfig
+            componentContext = componentContext,
+            appContainer = appContainer
         )
         setContent { App(root) }
     }

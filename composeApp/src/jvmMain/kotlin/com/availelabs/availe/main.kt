@@ -8,33 +8,33 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.availelabs.availe.data.auth.PlatformActivity
-import com.availelabs.availe.data.auth.createPlatformAuthConfig
-import com.availelabs.availe.data.auth.createPlatformAuthFlowFactory
-import com.availelabs.availe.data.auth.createTokenStore
+import com.availelabs.availe.di.createAppContainer
+import com.availelabs.availe.ui.components.RootComponent
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 
 @OptIn(ExperimentalOpenIdConnect::class)
 fun main() = application {
     val windowState = rememberWindowState()
     val lifecycle = remember { LifecycleRegistry() }
-    val activity = remember { PlatformActivity() }
-    val authFactory = remember { createPlatformAuthFlowFactory(activity) }
-    val tokenStore = remember { createTokenStore(activity) }
-    val platformAuthConfig = createPlatformAuthConfig(activity)
 
     LifecycleController(lifecycle, windowState)
 
     val root = remember {
+        val activity = PlatformActivity()
+        val context = DefaultComponentContext(lifecycle = lifecycle)
+
+        val appContainer = createAppContainer(lifecycle, activity)
+
         RootComponent(
-            componentContext = DefaultComponentContext(lifecycle = lifecycle),
-            codeAuthFlowFactory = authFactory,
-            tokenStore = tokenStore,
-            platformAuthConfig = platformAuthConfig
+            componentContext = context,
+            appContainer = appContainer
         )
     }
 
     Window(
-        onCloseRequest = ::exitApplication,
+        onCloseRequest = {
+            exitApplication()
+        },
         title = "availe",
         state = windowState,
     ) {

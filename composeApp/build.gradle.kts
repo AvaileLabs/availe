@@ -35,6 +35,7 @@ kotlin {
             export(libs.decompose)
             export(libs.decompose.extensions.compose)
             export(libs.essenty.lifecycle)
+            export(libs.essenty.lifecycle.coroutines)
         }
     }
 
@@ -79,6 +80,7 @@ kotlin {
             api(libs.decompose)
             api(libs.decompose.extensions.compose)
             api(libs.essenty.lifecycle)
+            api(libs.essenty.lifecycle.coroutines)
             implementation(libs.decompose.extensions.compose.experimental)
 
             // Ktor common

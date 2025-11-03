@@ -3,11 +3,15 @@ package com.availelabs.availe.data.auth
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
+import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.arkivanov.essenty.lifecycle.coroutines.withLifecycle
 import com.availelabs.availe.domain.AuthConstants.CLIENT_ID
 import com.availelabs.availe.domain.AuthConstants.DISCOVERY_URI
 import com.availelabs.availe.domain.AuthConstants.SCOPE
 import com.availelabs.availe.domain.AuthState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
@@ -36,10 +40,13 @@ class AuthService(
     private val authFactory: CodeAuthFlowFactory,
     private val tokenStore: TokenStore,
     private val platformAuthConfig: PlatformAuthConfig,
-    coroutineScope: CoroutineScope
+    lifecycle: Lifecycle
 ) : IAuthService {
     private val _authState = MutableValue<AuthState>(AuthState.Unknown)
     override val authState: Value<AuthState> = _authState
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+        .withLifecycle(lifecycle)
 
     private val client = OpenIdConnectClient(discoveryUri = DISCOVERY_URI) {
         this.scope = SCOPE

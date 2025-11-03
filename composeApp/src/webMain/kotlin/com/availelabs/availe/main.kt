@@ -6,7 +6,10 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.lifecycle.stop
-import com.availelabs.availe.data.auth.*
+import com.availelabs.availe.data.auth.PlatformActivity
+import com.availelabs.availe.data.auth.handleRedirect
+import com.availelabs.availe.di.createAppContainer
+import com.availelabs.availe.ui.components.RootComponent
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import web.dom.DocumentVisibilityState
 import web.dom.document
@@ -23,15 +26,13 @@ fun main() {
 
     val lifecycle = LifecycleRegistry()
     val activity = PlatformActivity()
-    val authFactory = createPlatformAuthFlowFactory(activity)
-    val tokenStore = createTokenStore(activity)
-    val platformAuthConfig = createPlatformAuthConfig(activity)
+    val context = DefaultComponentContext(lifecycle = lifecycle)
+
+    val appContainer = createAppContainer(lifecycle, activity)
 
     val root = RootComponent(
-        componentContext = DefaultComponentContext(lifecycle = lifecycle),
-        codeAuthFlowFactory = authFactory,
-        tokenStore = tokenStore,
-        platformAuthConfig = platformAuthConfig
+        componentContext = context,
+        appContainer = appContainer
     )
 
     lifecycle.attachToDocument()
