@@ -11,6 +11,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.availelabs.availe.auth.MainScreen
 import com.availelabs.availe.data.auth.AuthService
+import com.availelabs.availe.data.auth.IAuthService
 import com.availelabs.availe.data.auth.PlatformAuthConfig
 import com.availelabs.availe.domain.AuthState
 import com.availelabs.availe.ui.components.ILoginComponent
@@ -40,7 +41,7 @@ fun App(root: IRootComponent) {
 }
 
 interface IRootComponent {
-    val authService: AuthService
+    val authService: IAuthService
     val childStack: Value<ChildStack<*, Child>>
 
     sealed interface Child {

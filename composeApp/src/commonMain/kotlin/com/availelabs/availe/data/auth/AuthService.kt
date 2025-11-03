@@ -25,15 +25,21 @@ data class PlatformAuthConfig(
 
 expect fun createPlatformAuthConfig(activity: PlatformActivity): PlatformAuthConfig
 
+interface IAuthService {
+    val authState: Value<AuthState>
+    suspend fun login()
+    suspend fun logout()
+}
+
 @OptIn(ExperimentalOpenIdConnect::class)
 class AuthService(
     private val authFactory: CodeAuthFlowFactory,
     private val tokenStore: TokenStore,
     private val platformAuthConfig: PlatformAuthConfig,
     coroutineScope: CoroutineScope
-) {
+) : IAuthService {
     private val _authState = MutableValue<AuthState>(AuthState.Unknown)
-    val authState: Value<AuthState> = _authState
+    override val authState: Value<AuthState> = _authState
 
     private val client = OpenIdConnectClient(discoveryUri = DISCOVERY_URI) {
         this.scope = SCOPE
@@ -65,7 +71,7 @@ class AuthService(
         }
     }
 
-    suspend fun login() {
+    override suspend fun login() {
         println("AuthService: login() called.")
         try {
             println("AuthService: Creating AuthFlow...")
@@ -83,7 +89,7 @@ class AuthService(
         }
     }
 
-    suspend fun logout() {
+    override suspend fun logout() {
         println("AuthService: logout() called.")
         try {
             val idToken = tokenStore.getTokens()?.idToken
