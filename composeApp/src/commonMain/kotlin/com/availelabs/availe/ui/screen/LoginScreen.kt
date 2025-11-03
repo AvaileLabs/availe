@@ -7,12 +7,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.availelabs.availe.ui.components.LoginComponent
+import com.availelabs.availe.ui.components.ILoginComponent
 import com.composeunstyled.Button
 import com.composeunstyled.Text
 
 @Composable
-fun LoginScreen(component: LoginComponent) {
+fun LoginScreen(component: ILoginComponent) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center

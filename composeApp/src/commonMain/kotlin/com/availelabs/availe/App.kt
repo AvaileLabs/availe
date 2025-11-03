@@ -13,8 +13,8 @@ import com.availelabs.availe.auth.MainScreen
 import com.availelabs.availe.data.auth.AuthService
 import com.availelabs.availe.data.auth.PlatformAuthConfig
 import com.availelabs.availe.domain.AuthState
-import com.availelabs.availe.ui.components.DefaultLoginComponent
-import com.availelabs.availe.ui.components.DefaultMainComponent
+import com.availelabs.availe.ui.components.ILoginComponent
+import com.availelabs.availe.ui.components.IMainComponent
 import com.availelabs.availe.ui.components.LoginComponent
 import com.availelabs.availe.ui.components.MainComponent
 import com.availelabs.availe.ui.screen.LoginScreen
@@ -44,8 +44,8 @@ interface IRootComponent {
     val childStack: Value<ChildStack<*, Child>>
 
     sealed interface Child {
-        data class Login(val component: LoginComponent) : Child
-        data class Main(val component: MainComponent) : Child
+        data class Login(val component: ILoginComponent) : Child
+        data class Main(val component: IMainComponent) : Child
     }
 }
 
@@ -99,11 +99,11 @@ class RootComponent(
     ): IRootComponent.Child =
         when (config) {
             is Config.Login -> IRootComponent.Child.Login(
-                DefaultLoginComponent(context, onLogin = ::onLogin)
+                LoginComponent(context, onLogin = ::onLogin)
             )
 
             is Config.Main -> IRootComponent.Child.Main(
-                DefaultMainComponent(context, onLogout = ::onLogout)
+                MainComponent(context, onLogout = ::onLogout)
             )
         }
 

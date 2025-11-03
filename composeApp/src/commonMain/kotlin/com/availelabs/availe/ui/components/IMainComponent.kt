@@ -2,14 +2,14 @@ package com.availelabs.availe.ui.components
 
 import com.arkivanov.decompose.ComponentContext
 
-interface MainComponent {
+interface IMainComponent {
     fun onLogoutClicked()
 }
 
-class DefaultMainComponent(
+class MainComponent(
     componentContext: ComponentContext,
     private val onLogout: () -> Unit
-) : MainComponent, ComponentContext by componentContext {
+) : IMainComponent, ComponentContext by componentContext {
 
     override fun onLogoutClicked() {
         onLogout()

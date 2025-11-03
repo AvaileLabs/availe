@@ -7,12 +7,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.availelabs.availe.ui.components.MainComponent
+import com.availelabs.availe.ui.components.IMainComponent
 import com.composeunstyled.Button
 import com.composeunstyled.Text
 
 @Composable
-fun MainScreen(component: MainComponent) {
+fun MainScreen(component: IMainComponent) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center

@@ -2,14 +2,14 @@ package com.availelabs.availe.ui.components
 
 import com.arkivanov.decompose.ComponentContext
 
-interface LoginComponent {
+interface ILoginComponent {
     fun onLoginClicked()
 }
 
-class DefaultLoginComponent(
+class LoginComponent(
     componentContext: ComponentContext,
     private val onLogin: () -> Unit
-) : LoginComponent, ComponentContext by componentContext {
+) : ILoginComponent, ComponentContext by componentContext {
 
     override fun onLoginClicked() {
         onLogin()
