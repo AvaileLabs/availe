@@ -12,9 +12,7 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.availelabs.availe.data.auth.IAuthenticationService
 import com.availelabs.availe.di.ApplicationContainer
-import com.availelabs.availe.domain.auth.AuthenticationState
-import com.availelabs.availe.domain.auth.LoginResult
-import com.availelabs.availe.domain.auth.LogoutResult
+import com.availelabs.availe.domain.auth.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -123,16 +121,19 @@ class RootComponent(
         scope.launch {
             _loginUiState.update { LoginUiState.Loading }
 
-            when (authenticationService.login()) {
+            when (val result = authenticationService.login()) {
                 is LoginResult.Success -> Unit
                 is LoginResult.Cancelled -> {
                     _loginUiState.update { LoginUiState.Error("Login cancelled.") }
                 }
 
                 is LoginResult.Failed -> {
-                    _loginUiState.update {
-                        LoginUiState.Error("Login failed. Please try again.")
+                    val message = when (result.error) {
+                        is LoginError.Authentication -> "Login failed: ${result.error.message}"
+                        is LoginError.Storage -> "Login failed: Could not save session."
+                        is LoginError.Unknown -> "Login failed: An unexpected error occurred."
                     }
+                    _loginUiState.update { LoginUiState.Error(message) }
                 }
             }
         }
@@ -142,9 +143,16 @@ class RootComponent(
         scope.launch {
             _mainUiState.update { MainUiState.LoggingOut }
 
-            when (authenticationService.logout()) {
+            when (val result = authenticationService.logout()) {
                 is LogoutResult.Success -> Unit
+                is LogoutResult.Cancelled -> Unit
                 is LogoutResult.Failed -> {
+                    val message = when (result.error) {
+                        is LogoutError.Authentication -> "Logout failed: ${result.error.message}"
+                        is LogoutError.Storage -> "Logout failed: Could not clear session."
+                        is LogoutError.Unknown -> "Logout failed: An unexpected error occurred."
+                    }
+                    println(message)
                     _mainUiState.update { MainUiState.Idle }
                 }
             }
