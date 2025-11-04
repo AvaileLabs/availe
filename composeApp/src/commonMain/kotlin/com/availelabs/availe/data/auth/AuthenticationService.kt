@@ -73,7 +73,7 @@ class AuthenticationService(
         val response = try {
             val flow = authFactory.createAuthFlow(client)
             flow.getAccessToken()
-        } catch (e: CancellationException) {
+        } catch (_: CancellationException) {
             _authenticationState.update { AuthenticationState.LoggedOut }
             return LoginResult.Cancelled
         } catch (e: OpenIdConnectException) {
@@ -103,7 +103,7 @@ class AuthenticationService(
                 flow.endSession(idToken)
             }
             LogoutResult.Success
-        } catch (e: CancellationException) {
+        } catch (_: CancellationException) {
             LogoutResult.Cancelled
         } catch (e: OpenIdConnectException) {
             LogoutResult.Failed(LogoutError.Authentication(e.message, e.cause))
