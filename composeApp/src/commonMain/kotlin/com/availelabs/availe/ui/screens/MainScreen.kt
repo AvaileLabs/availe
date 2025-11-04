@@ -1,4 +1,4 @@
-package com.availelabs.availe.ui.screen
+package com.availelabs.availe.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,8 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.availelabs.availe.ui.components.IMainComponent
-import com.availelabs.availe.ui.components.MainUiState
+import com.availelabs.availe.ui.decompose.IMainComponent
+import com.availelabs.availe.ui.decompose.MainUiState
 import com.composeunstyled.Button
 import com.composeunstyled.Text
 

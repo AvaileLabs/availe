@@ -9,7 +9,7 @@ import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.availelabs.availe.core.platform.PlatformActivity
 import com.availelabs.availe.di.createApplicationContainer
-import com.availelabs.availe.ui.components.RootComponent
+import com.availelabs.availe.ui.decompose.RootComponent
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 
 @OptIn(ExperimentalOpenIdConnect::class)

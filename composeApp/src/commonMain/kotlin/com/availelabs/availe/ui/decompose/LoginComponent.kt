@@ -1,4 +1,4 @@
-package com.availelabs.availe.ui.components
+package com.availelabs.availe.ui.decompose
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value

@@ -2,11 +2,11 @@ package com.availelabs.availe
 
 import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.extensions.compose.stack.Children
-import com.availelabs.availe.ui.components.IRootComponent
-import com.availelabs.availe.ui.screen.ErrorScreen
-import com.availelabs.availe.ui.screen.LoadingScreen
-import com.availelabs.availe.ui.screen.LoginScreen
-import com.availelabs.availe.ui.screen.MainScreen
+import com.availelabs.availe.ui.decompose.IRootComponent
+import com.availelabs.availe.ui.screens.ErrorScreen
+import com.availelabs.availe.ui.screens.LoadingScreen
+import com.availelabs.availe.ui.screens.LoginScreen
+import com.availelabs.availe.ui.screens.MainScreen
 
 @Composable
 fun App(root: IRootComponent) {
