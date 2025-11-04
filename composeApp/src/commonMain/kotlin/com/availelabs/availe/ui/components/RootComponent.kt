@@ -5,24 +5,30 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.arkivanov.essenty.lifecycle.doOnDestroy
-import com.availelabs.availe.data.auth.IAuthService
+import com.availelabs.availe.data.auth.IAuthenticationService
 import com.availelabs.availe.di.ApplicationContainer
 import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.domain.auth.LoginResult
+import com.availelabs.availe.domain.auth.LogoutResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 interface IRootComponent {
-    val authService: IAuthService
+    val authenticationService: IAuthenticationService
     val childStack: Value<ChildStack<*, Child>>
 
     sealed interface Child {
+        data class Loading(val component: ILoadingComponent) : Child
         data class Login(val component: ILoginComponent) : Child
         data class Main(val component: IMainComponent) : Child
+        data class Error(val component: IErrorComponent) : Child
     }
 }
 
@@ -31,14 +37,20 @@ class RootComponent(
     appContainer: ApplicationContainer
 ) : IRootComponent, ComponentContext by componentContext {
 
-    override val authService: IAuthService = appContainer.authService
+    private data class InitializationError(val error: Throwable?)
+
+    override val authenticationService: IAuthenticationService = appContainer.authenticationService
     private val navigation = StackNavigation<Config>()
+
+    private val _loginUiState = MutableValue<LoginUiState>(LoginUiState.Idle)
+    private val _mainUiState = MutableValue<MainUiState>(MainUiState.Idle)
+    private val _initializationError = MutableValue(InitializationError(null))
 
     override val childStack: Value<ChildStack<*, IRootComponent.Child>> =
         childStack(
             source = navigation,
             serializer = Config.serializer(),
-            initialConfiguration = Config.Login,
+            initialConfiguration = Config.Loading,
             handleBackButton = true,
             childFactory = ::createChild
         )
@@ -46,7 +58,7 @@ class RootComponent(
     private val scope = coroutineScope(Dispatchers.Main.immediate + SupervisorJob())
 
     init {
-        val authSub = authService.authState.subscribe(::onAuthStateChanged)
+        val authSub = authenticationService.authenticationState.subscribe(::onAuthStateChanged)
         lifecycle.doOnDestroy {
             authSub.cancel()
         }
@@ -54,9 +66,22 @@ class RootComponent(
 
     private fun onAuthStateChanged(state: AuthenticationState) {
         when (state) {
-            is AuthenticationState.LoggedIn -> navigation.bringToFront(Config.Main)
-            is AuthenticationState.LoggedOut -> navigation.bringToFront(Config.Login)
-            is AuthenticationState.Unknown -> Unit
+            is AuthenticationState.LoggedIn -> {
+                _loginUiState.update { LoginUiState.Idle }
+                navigation.bringToFront(Config.Main)
+            }
+
+            is AuthenticationState.LoggedOut -> {
+                _mainUiState.update { MainUiState.Idle }
+                navigation.bringToFront(Config.Login)
+            }
+
+            is AuthenticationState.Unknown -> navigation.bringToFront(Config.Loading)
+
+            is AuthenticationState.InitializationFailed -> {
+                _initializationError.update { InitializationError(state.error) }
+                navigation.bringToFront(Config.Error)
+            }
         }
     }
 
@@ -65,33 +90,79 @@ class RootComponent(
         context: ComponentContext
     ): IRootComponent.Child =
         when (config) {
+            is Config.Loading -> IRootComponent.Child.Loading(
+                LoadingComponent(context)
+            )
+
             is Config.Login -> IRootComponent.Child.Login(
-                LoginComponent(context, onLogin = ::onLogin)
+                LoginComponent(
+                    context,
+                    uiState = _loginUiState,
+                    onLogin = ::onLogin
+                )
             )
 
             is Config.Main -> IRootComponent.Child.Main(
-                MainComponent(context, onLogout = ::onLogout)
+                MainComponent(
+                    context,
+                    uiState = _mainUiState,
+                    onLogout = ::onLogout
+                )
+            )
+
+            is Config.Error -> IRootComponent.Child.Error(
+                ErrorComponent(
+                    context,
+                    error = _initializationError.value.error
+                        ?: IllegalStateException("Error state reached without an error")
+                )
             )
         }
 
     private fun onLogin() {
         scope.launch {
-            authService.login()
+            _loginUiState.update { LoginUiState.Loading }
+
+            when (authenticationService.login()) {
+                is LoginResult.Success -> Unit
+                is LoginResult.Cancelled -> {
+                    _loginUiState.update { LoginUiState.Error("Login cancelled.") }
+                }
+
+                is LoginResult.Failed -> {
+                    _loginUiState.update {
+                        LoginUiState.Error("Login failed. Please try again.")
+                    }
+                }
+            }
         }
     }
 
     private fun onLogout() {
         scope.launch {
-            authService.logout()
+            _mainUiState.update { MainUiState.LoggingOut }
+
+            when (authenticationService.logout()) {
+                is LogoutResult.Success -> Unit
+                is LogoutResult.Failed -> {
+                    _mainUiState.update { MainUiState.Idle }
+                }
+            }
         }
     }
 
     @Serializable
     private sealed interface Config {
         @Serializable
+        data object Loading : Config
+
+        @Serializable
         data object Login : Config
 
         @Serializable
         data object Main : Config
+
+        @Serializable
+        data object Error : Config
     }
 }

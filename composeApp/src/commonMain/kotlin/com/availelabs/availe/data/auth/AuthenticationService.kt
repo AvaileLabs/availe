@@ -9,6 +9,8 @@ import com.availelabs.availe.domain.auth.AuthenticationConstants.CLIENT_ID
 import com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI
 import com.availelabs.availe.domain.auth.AuthenticationConstants.SCOPE
 import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.domain.auth.LoginResult
+import com.availelabs.availe.domain.auth.LogoutResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,22 +23,23 @@ import org.publicvalue.multiplatform.oidc.tokenstore.getTokens
 import org.publicvalue.multiplatform.oidc.tokenstore.removeTokens
 import org.publicvalue.multiplatform.oidc.tokenstore.saveTokens
 import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
+import kotlin.coroutines.cancellation.CancellationException
 
-interface IAuthService {
-    val authState: Value<AuthenticationState>
-    suspend fun login()
-    suspend fun logout()
+interface IAuthenticationService {
+    val authenticationState: Value<AuthenticationState>
+    suspend fun login(): LoginResult
+    suspend fun logout(): LogoutResult
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
-class AuthService(
+class AuthenticationService(
     private val authFactory: CodeAuthFlowFactory,
     private val tokenStore: TokenStore,
     private val platformAuthConfig: PlatformAuthenticationConfig,
     lifecycle: Lifecycle
-) : IAuthService {
-    private val _authState = MutableValue<AuthenticationState>(AuthenticationState.Unknown)
-    override val authState: Value<AuthenticationState> = _authState
+) : IAuthenticationService {
+    private val _authenticationState = MutableValue<AuthenticationState>(AuthenticationState.Unknown)
+    override val authenticationState: Value<AuthenticationState> = _authenticationState
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
         .withLifecycle(lifecycle)
@@ -50,64 +53,52 @@ class AuthService(
     }
 
     init {
-        println("AuthService: Initializing...")
         coroutineScope.launch {
-            println("AuthService: Discovering client config...")
-            client.discover()
-            println("AuthService: Discovery complete.")
-            initialize()
+            try {
+                client.discover()
+                val tokens = tokenStore.getTokens()
+                if (tokens != null) {
+                    _authenticationState.update { AuthenticationState.LoggedIn(tokens.accessToken) }
+                } else {
+                    _authenticationState.update { AuthenticationState.LoggedOut }
+                }
+            } catch (e: Exception) {
+                _authenticationState.update { AuthenticationState.InitializationFailed(e) }
+            }
         }
     }
 
-    private suspend fun initialize() {
-        println("AuthService: Checking for existing tokens...")
-        val tokens = tokenStore.getTokens()
-        if (tokens != null) {
-            println("AuthService: Found existing tokens. User is LoggedIn.")
-            _authState.update { AuthenticationState.LoggedIn(tokens.accessToken) }
-        } else {
-            println("AuthService: No tokens found. User is LoggedOut.")
-            _authState.update { AuthenticationState.LoggedOut }
-        }
-    }
-
-    override suspend fun login() {
-        println("AuthService: login() called.")
-        try {
-            println("AuthService: Creating AuthFlow...")
+    override suspend fun login(): LoginResult {
+        return try {
             val flow = authFactory.createAuthFlow(client)
-            println("AuthService: Calling flow.getAccessToken() (this starts the server and opens the browser)...")
             val response = flow.getAccessToken()
-            println("AuthService: getAccessToken() SUCCESS. Saving tokens.")
             tokenStore.saveTokens(response)
-            _authState.update { AuthenticationState.LoggedIn(response.access_token) }
-            println("AuthService: State updated to LoggedIn.")
+            _authenticationState.update { AuthenticationState.LoggedIn(response.access_token) }
+            LoginResult.Success
+        } catch (_: CancellationException) {
+            _authenticationState.update { AuthenticationState.LoggedOut }
+            LoginResult.Cancelled
         } catch (e: Exception) {
-            println("AuthService: login() FAILED: ${e.message}")
-            e.printStackTrace()
-            _authState.update { AuthenticationState.LoggedOut }
+            _authenticationState.update { AuthenticationState.LoggedOut }
+            LoginResult.Failed(e)
         }
     }
 
-    override suspend fun logout() {
-        println("AuthService: logout() called.")
-        try {
+    override suspend fun logout(): LogoutResult {
+        val result = try {
             val idToken = tokenStore.getTokens()?.idToken
             if (idToken != null) {
-                println("AuthService: Ending session with token...")
                 val flow = authFactory.createEndSessionFlow(client)
                 flow.endSession(idToken)
-                println("AuthService: End session flow complete.")
-            } else {
-                println("AuthService: No ID token found, skipping end session call.")
             }
+            LogoutResult.Success
         } catch (e: Exception) {
-            println("AuthService: logout() FAILED: ${e.message}")
-            e.printStackTrace()
-        } finally {
-            println("AuthService: Removing tokens and setting state to LoggedOut.")
-            tokenStore.removeTokens()
-            _authState.update { AuthenticationState.LoggedOut }
+            LogoutResult.Failed(e)
         }
+
+        tokenStore.removeTokens()
+        _authenticationState.update { AuthenticationState.LoggedOut }
+
+        return result
     }
 }

@@ -2,15 +2,11 @@ package com.availelabs.availe.di
 
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.availelabs.availe.core.platform.PlatformActivity
-import com.availelabs.availe.data.auth.AuthService
-import com.availelabs.availe.data.auth.IAuthService
-import com.availelabs.availe.data.auth.createPlatformAuthenticationConfig
-import com.availelabs.availe.data.auth.createPlatformAuthenticationFlowFactory
-import com.availelabs.availe.data.auth.createTokenStore
+import com.availelabs.availe.data.auth.*
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 
 interface ApplicationContainer {
-    val authService: IAuthService
+    val authenticationService: IAuthenticationService
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
@@ -22,7 +18,7 @@ fun createApplicationContainer(
     val tokenStore = createTokenStore(activity)
     val platformAuthConfig = createPlatformAuthenticationConfig(activity)
 
-    val authService = AuthService(
+    val authenticationService = AuthenticationService(
         authFactory = authFactory,
         tokenStore = tokenStore,
         platformAuthConfig = platformAuthConfig,
@@ -30,10 +26,10 @@ fun createApplicationContainer(
     )
 
     return DefaultApplicationContainer(
-        authService = authService
+        authenticationService = authenticationService
     )
 }
 
 private class DefaultApplicationContainer(
-    override val authService: IAuthService
+    override val authenticationService: IAuthenticationService
 ) : ApplicationContainer
