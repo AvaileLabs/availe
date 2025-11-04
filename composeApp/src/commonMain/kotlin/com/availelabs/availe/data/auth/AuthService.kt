@@ -5,10 +5,10 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.coroutines.withLifecycle
-import com.availelabs.availe.domain.AuthConstants.CLIENT_ID
-import com.availelabs.availe.domain.AuthConstants.DISCOVERY_URI
-import com.availelabs.availe.domain.AuthConstants.SCOPE
-import com.availelabs.availe.domain.AuthState
+import com.availelabs.availe.domain.auth.AuthenticationConstants.CLIENT_ID
+import com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI
+import com.availelabs.availe.domain.auth.AuthenticationConstants.SCOPE
+import com.availelabs.availe.domain.auth.AuthenticationState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,15 +22,8 @@ import org.publicvalue.multiplatform.oidc.tokenstore.removeTokens
 import org.publicvalue.multiplatform.oidc.tokenstore.saveTokens
 import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 
-data class PlatformAuthConfig(
-    val redirectUri: String,
-    val postLogoutRedirectUri: String,
-)
-
-expect fun createPlatformAuthConfig(activity: PlatformActivity): PlatformAuthConfig
-
 interface IAuthService {
-    val authState: Value<AuthState>
+    val authState: Value<AuthenticationState>
     suspend fun login()
     suspend fun logout()
 }
@@ -39,11 +32,11 @@ interface IAuthService {
 class AuthService(
     private val authFactory: CodeAuthFlowFactory,
     private val tokenStore: TokenStore,
-    private val platformAuthConfig: PlatformAuthConfig,
+    private val platformAuthConfig: PlatformAuthenticationConfig,
     lifecycle: Lifecycle
 ) : IAuthService {
-    private val _authState = MutableValue<AuthState>(AuthState.Unknown)
-    override val authState: Value<AuthState> = _authState
+    private val _authState = MutableValue<AuthenticationState>(AuthenticationState.Unknown)
+    override val authState: Value<AuthenticationState> = _authState
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
         .withLifecycle(lifecycle)
@@ -71,10 +64,10 @@ class AuthService(
         val tokens = tokenStore.getTokens()
         if (tokens != null) {
             println("AuthService: Found existing tokens. User is LoggedIn.")
-            _authState.update { AuthState.LoggedIn(tokens.accessToken) }
+            _authState.update { AuthenticationState.LoggedIn(tokens.accessToken) }
         } else {
             println("AuthService: No tokens found. User is LoggedOut.")
-            _authState.update { AuthState.LoggedOut }
+            _authState.update { AuthenticationState.LoggedOut }
         }
     }
 
@@ -87,12 +80,12 @@ class AuthService(
             val response = flow.getAccessToken()
             println("AuthService: getAccessToken() SUCCESS. Saving tokens.")
             tokenStore.saveTokens(response)
-            _authState.update { AuthState.LoggedIn(response.access_token) }
+            _authState.update { AuthenticationState.LoggedIn(response.access_token) }
             println("AuthService: State updated to LoggedIn.")
         } catch (e: Exception) {
             println("AuthService: login() FAILED: ${e.message}")
             e.printStackTrace()
-            _authState.update { AuthState.LoggedOut }
+            _authState.update { AuthenticationState.LoggedOut }
         }
     }
 
@@ -114,7 +107,7 @@ class AuthService(
         } finally {
             println("AuthService: Removing tokens and setting state to LoggedOut.")
             tokenStore.removeTokens()
-            _authState.update { AuthState.LoggedOut }
+            _authState.update { AuthenticationState.LoggedOut }
         }
     }
 }

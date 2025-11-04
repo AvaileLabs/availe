@@ -10,7 +10,7 @@ class RootHolder: ObservableObject {
         let context = DefaultComponentContext(lifecycle: lifecycle)
         let activity = PlatformActivity()
 
-        let appContainer = AppFactoryKt.createAppContainer(
+        let appContainer = ApplicationContainerKt.createApplicationContainer(
             lifecycle: lifecycle,
             activity: activity
         )

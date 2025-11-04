@@ -1,8 +1,8 @@
-package com.availelabs.availe.domain
+package com.availelabs.availe.domain.auth
 
 import com.availelabs.availe.NetworkConstants
 
-internal object AuthConstants {
+internal object AuthenticationConstants {
     const val CLIENT_ID: String = "availe-shop-app"
     const val DISCOVERY_URI: String =
         "http://${NetworkConstants.HOST_IP}:8180/realms/availe/.well-known/openid-configuration"

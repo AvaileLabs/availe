@@ -1,4 +1,4 @@
-package com.availelabs.availe.auth
+package com.availelabs.availe.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

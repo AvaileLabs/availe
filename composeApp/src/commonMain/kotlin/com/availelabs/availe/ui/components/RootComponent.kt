@@ -9,8 +9,8 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.availelabs.availe.data.auth.IAuthService
-import com.availelabs.availe.di.IAppContainer
-import com.availelabs.availe.domain.AuthState
+import com.availelabs.availe.di.ApplicationContainer
+import com.availelabs.availe.domain.auth.AuthenticationState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -28,7 +28,7 @@ interface IRootComponent {
 
 class RootComponent(
     componentContext: ComponentContext,
-    appContainer: IAppContainer
+    appContainer: ApplicationContainer
 ) : IRootComponent, ComponentContext by componentContext {
 
     override val authService: IAuthService = appContainer.authService
@@ -52,11 +52,11 @@ class RootComponent(
         }
     }
 
-    private fun onAuthStateChanged(state: AuthState) {
+    private fun onAuthStateChanged(state: AuthenticationState) {
         when (state) {
-            is AuthState.LoggedIn -> navigation.bringToFront(Config.Main)
-            is AuthState.LoggedOut -> navigation.bringToFront(Config.Login)
-            is AuthState.Unknown -> Unit
+            is AuthenticationState.LoggedIn -> navigation.bringToFront(Config.Main)
+            is AuthenticationState.LoggedOut -> navigation.bringToFront(Config.Login)
+            is AuthenticationState.Unknown -> Unit
         }
     }
 

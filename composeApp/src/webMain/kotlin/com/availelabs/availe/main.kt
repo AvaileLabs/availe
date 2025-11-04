@@ -6,9 +6,9 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.lifecycle.stop
-import com.availelabs.availe.data.auth.PlatformActivity
+import com.availelabs.availe.core.platform.PlatformActivity
 import com.availelabs.availe.data.auth.handleRedirect
-import com.availelabs.availe.di.createAppContainer
+import com.availelabs.availe.di.createApplicationContainer
 import com.availelabs.availe.ui.components.RootComponent
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import web.dom.DocumentVisibilityState
@@ -28,7 +28,7 @@ fun main() {
     val activity = PlatformActivity()
     val context = DefaultComponentContext(lifecycle = lifecycle)
 
-    val appContainer = createAppContainer(lifecycle, activity)
+    val appContainer = createApplicationContainer(lifecycle, activity)
 
     val root = RootComponent(
         componentContext = context,

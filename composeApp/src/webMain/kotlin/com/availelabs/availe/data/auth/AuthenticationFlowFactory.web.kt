@@ -2,6 +2,7 @@
 
 package com.availelabs.availe.data.auth
 
+import com.availelabs.availe.core.platform.PlatformActivity
 import kotlinx.browser.window
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
@@ -9,10 +10,8 @@ import org.publicvalue.multiplatform.oidc.appsupport.PlatformCodeAuthFlow
 import org.publicvalue.multiplatform.oidc.appsupport.WebMainCodeAuthFlowFactory
 import kotlin.js.ExperimentalWasmJsInterop
 
-actual class PlatformActivity
-
 @OptIn(ExperimentalOpenIdConnect::class)
-actual fun createPlatformAuthFlowFactory(activity: PlatformActivity): CodeAuthFlowFactory {
+actual fun createPlatformAuthenticationFlowFactory(activity: PlatformActivity): CodeAuthFlowFactory {
     return WebMainCodeAuthFlowFactory()
 }
 
@@ -21,7 +20,7 @@ fun handleRedirect(): Boolean {
     return try {
         PlatformCodeAuthFlow.handleRedirect()
         window.opener != null
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         false
     }
 }

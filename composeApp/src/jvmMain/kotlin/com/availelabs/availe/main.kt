@@ -7,8 +7,8 @@ import androidx.compose.ui.window.rememberWindowState
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.availelabs.availe.data.auth.PlatformActivity
-import com.availelabs.availe.di.createAppContainer
+import com.availelabs.availe.core.platform.PlatformActivity
+import com.availelabs.availe.di.createApplicationContainer
 import com.availelabs.availe.ui.components.RootComponent
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 
@@ -23,7 +23,7 @@ fun main() = application {
         val activity = PlatformActivity()
         val context = DefaultComponentContext(lifecycle = lifecycle)
 
-        val appContainer = createAppContainer(lifecycle, activity)
+        val appContainer = createApplicationContainer(lifecycle, activity)
 
         RootComponent(
             componentContext = context,

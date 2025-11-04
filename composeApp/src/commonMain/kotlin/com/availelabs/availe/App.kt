@@ -2,9 +2,9 @@ package com.availelabs.availe
 
 import androidx.compose.runtime.Composable
 import com.arkivanov.decompose.extensions.compose.stack.Children
-import com.availelabs.availe.auth.MainScreen
 import com.availelabs.availe.ui.components.IRootComponent
 import com.availelabs.availe.ui.screen.LoginScreen
+import com.availelabs.availe.ui.screen.MainScreen
 
 @Composable
 fun App(root: IRootComponent) {
