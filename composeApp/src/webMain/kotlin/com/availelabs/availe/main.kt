@@ -9,7 +9,7 @@ import com.arkivanov.essenty.lifecycle.stop
 import com.availelabs.availe.core.platform.PlatformActivity
 import com.availelabs.availe.data.auth.handleRedirect
 import com.availelabs.availe.di.createApplicationContainer
-import com.availelabs.availe.ui.decompose.RootComponent
+import com.availelabs.availe.ui.navigation.RootComponent
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import web.dom.DocumentVisibilityState
 import web.dom.document

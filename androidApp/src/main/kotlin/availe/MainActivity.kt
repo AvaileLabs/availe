@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.arkivanov.decompose.defaultComponentContext
 import com.availelabs.availe.di.createApplicationContainer
-import com.availelabs.availe.ui.decompose.RootComponent
+import com.availelabs.availe.ui.navigation.RootComponent
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 
 class MainActivity : ComponentActivity() {
