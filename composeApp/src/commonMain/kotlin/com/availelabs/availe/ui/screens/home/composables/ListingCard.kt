@@ -1,3 +1,5 @@
+package com.availelabs.availe.ui.screens.home.composables
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable

@@ -13,6 +13,7 @@ plugins {
 }
 
 kotlin {
+    jvmToolchain(21)
     androidLibrary {
         namespace = "com.availelabs.availe"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
