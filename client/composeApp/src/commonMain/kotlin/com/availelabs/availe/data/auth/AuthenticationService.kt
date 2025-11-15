@@ -6,10 +6,13 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.coroutines.withLifecycle
 import com.availelabs.availe.NetworkConstants
-import com.availelabs.availe.domain.auth.*
 import com.availelabs.availe.domain.auth.AuthenticationConstants.CLIENT_ID
 import com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI
 import com.availelabs.availe.domain.auth.AuthenticationConstants.SCOPE
+import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.domain.auth.LoginResult
+import com.availelabs.availe.domain.auth.LogoutError
+import com.availelabs.availe.domain.auth.LogoutResult
 import com.availelabs.availe.features.profile.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +28,6 @@ import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.tokenstore.TokenStore
 import org.publicvalue.multiplatform.oidc.tokenstore.getTokens
 import org.publicvalue.multiplatform.oidc.tokenstore.removeTokens
-import org.publicvalue.multiplatform.oidc.tokenstore.saveTokens
 import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.encoding.Base64
@@ -34,9 +36,15 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 interface IAuthenticationService {
     val authenticationState: Value<AuthenticationState>
     suspend fun login(): LoginResult
+    suspend fun resumeLogin(code: String)
     suspend fun logout(): LogoutResult
     fun getAccountManagementUrl(): String
     suspend fun getCurrentUserProfile(): UserProfile?
+
+    // Web-specific helpers
+    suspend fun getLoginUrl(): String?
+    suspend fun getLogoutUrl(): String?
+    suspend fun clearLocalTokens()
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
@@ -89,30 +97,35 @@ class AuthenticationService(
         return JwtDecoder.decodeUserProfile(idToken)
     }
 
-    override suspend fun login(): LoginResult {
-        val response = try {
-            val flow = authFactory.createAuthFlow(client)
-            flow.getAccessToken()
-        } catch (_: CancellationException) {
-            _authenticationState.update { AuthenticationState.LoggedOut }
-            return LoginResult.Cancelled
-        } catch (e: OpenIdConnectException) {
-            _authenticationState.update { AuthenticationState.LoggedOut }
-            return LoginResult.Failed(LoginError.Authentication(e.message, e.cause))
-        } catch (e: Exception) {
-            _authenticationState.update { AuthenticationState.LoggedOut }
-            return LoginResult.Failed(LoginError.Unknown(e))
-        }
+    override suspend fun getLoginUrl(): String? {
+        return platformGetLoginUrl(client)
+    }
 
+    override suspend fun getLogoutUrl(): String? {
+        val tokens = runCatching { tokenStore.getTokens() }.getOrNull()
+        val idToken = tokens?.idToken
+        return platformGetLogoutUrl(client, idToken)
+    }
+
+    override suspend fun clearLocalTokens() {
         try {
-            tokenStore.saveTokens(response)
-        } catch (e: Exception) {
+            tokenStore.removeTokens()
             _authenticationState.update { AuthenticationState.LoggedOut }
-            return LoginResult.Failed(LoginError.Storage(e))
+        } catch (e: Exception) {
+            // Ignore errors during local clear
         }
+    }
 
-        _authenticationState.update { AuthenticationState.LoggedIn(response.access_token) }
-        return LoginResult.Success
+    override suspend fun login(): LoginResult {
+        return platformLogin(client, authFactory, tokenStore) { newState ->
+            _authenticationState.update { newState }
+        }
+    }
+
+    override suspend fun resumeLogin(code: String) {
+        platformResumeLogin(code, client, tokenStore) { newState ->
+            _authenticationState.update { newState }
+        }
     }
 
     override suspend fun logout(): LogoutResult {
@@ -131,17 +144,7 @@ class AuthenticationService(
             LogoutResult.Failed(LogoutError.Unknown(e))
         }
 
-        try {
-            tokenStore.removeTokens()
-        } catch (e: Exception) {
-            if (result is LogoutResult.Success) {
-                _authenticationState.update { AuthenticationState.LoggedOut }
-                return LogoutResult.Failed(LogoutError.Storage(e))
-            }
-        }
-
-        _authenticationState.update { AuthenticationState.LoggedOut }
-
+        clearLocalTokens()
         return result
     }
 }
@@ -177,3 +180,20 @@ private object JwtDecoder {
         }
     }
 }
+
+expect suspend fun platformLogin(
+    client: OpenIdConnectClient,
+    authFactory: CodeAuthFlowFactory,
+    tokenStore: TokenStore,
+    onStateUpdate: (AuthenticationState) -> Unit
+): LoginResult
+
+expect suspend fun platformResumeLogin(
+    code: String,
+    client: OpenIdConnectClient,
+    tokenStore: TokenStore,
+    onStateUpdate: (AuthenticationState) -> Unit
+)
+
+expect suspend fun platformGetLoginUrl(client: OpenIdConnectClient): String?
+expect suspend fun platformGetLogoutUrl(client: OpenIdConnectClient, idToken: String?): String?

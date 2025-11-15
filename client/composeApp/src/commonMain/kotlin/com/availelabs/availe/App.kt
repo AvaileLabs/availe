@@ -45,8 +45,9 @@ fun App(root: IRootComponent) {
     val uriHandler = LocalUriHandler.current
 
     // Hook up the URL opener from RootComponent to the Compose LocalUriHandler
+    // Only set if not already set (Web main.kt might set a more specific one for window.location)
     LaunchedEffect(root) {
-        if (root is RootComponent) {
+        if (root is RootComponent && root.urlOpener == null) {
             root.urlOpener = { url -> uriHandler.openUri(url) }
         }
     }

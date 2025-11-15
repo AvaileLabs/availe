@@ -64,14 +64,31 @@ class ProfileComponent(
             ProfileEvents.LoginClicked -> {
                 _uiState.update { it.copy(isLoading = true) }
                 scope.launch {
-                    authService.login()
+                    // Fix for race condition: Get URL on demand.
+                    // If returns string (Web), redirect synchronously.
+                    // If null (Native), perform standard login.
+                    val loginUrl = authService.getLoginUrl()
+                    if (loginUrl != null) {
+                        onOpenUrl(loginUrl)
+                    } else {
+                        authService.login()
+                    }
                 }
             }
 
             ProfileEvents.LogoutClicked -> {
                 _uiState.update { it.copy(isLoading = true) }
                 scope.launch {
-                    authService.logout()
+                    // Fix for Web Logout: Check for Redirect URL first
+                    val logoutUrl = authService.getLogoutUrl()
+                    if (logoutUrl != null) {
+                        // On Web: Clear tokens locally, then redirect to Keycloak to clear cookies
+                        authService.clearLocalTokens()
+                        onOpenUrl(logoutUrl)
+                    } else {
+                        // On Native: Standard background logout
+                        authService.logout()
+                    }
                 }
             }
 
