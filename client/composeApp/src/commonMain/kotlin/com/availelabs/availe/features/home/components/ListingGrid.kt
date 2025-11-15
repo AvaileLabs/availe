@@ -1,4 +1,4 @@
-package com.availelabs.availe.ui.screens.home.composables
+package com.availelabs.availe.features.home.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.availelabs.availe.ui.screens.home.ListingItem
+import com.availelabs.availe.features.home.ListingItem
 
 @Composable
 internal fun ListingGrid(

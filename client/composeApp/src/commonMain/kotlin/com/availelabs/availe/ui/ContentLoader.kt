@@ -1,4 +1,4 @@
-package com.availelabs.availe.ui.utils
+package com.availelabs.ui.utils
 
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value

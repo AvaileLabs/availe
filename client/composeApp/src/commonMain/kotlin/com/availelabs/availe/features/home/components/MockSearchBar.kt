@@ -1,4 +1,4 @@
-package com.availelabs.availe.ui.screens.home.composables
+package com.availelabs.availe.features.home.components
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier

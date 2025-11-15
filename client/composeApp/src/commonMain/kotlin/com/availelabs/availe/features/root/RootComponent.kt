@@ -1,4 +1,4 @@
-package com.availelabs.availe.ui.navigation
+package com.availelabs.availe.features.root
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.arkivanov.decompose.ComponentContext
@@ -11,8 +11,10 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.di.ApplicationContainer
-import com.availelabs.availe.ui.screens.home.HomeScreenComponent
-import com.availelabs.availe.ui.screens.home.IHomeScreenComponent
+import com.availelabs.availe.features.home.HomeComponent
+import com.availelabs.availe.features.home.IHomeComponent
+import com.availelabs.availe.features.profile.IProfileComponent
+import com.availelabs.availe.features.profile.ProfileComponent
 import com.composables.icons.lucide.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,6 +41,7 @@ interface IRootComponent {
     fun onSearchClicked()
     fun onNotificationClicked()
     fun onDismissOverlay()
+    fun openUrl(url: String)
 }
 
 class RootComponent(
@@ -50,7 +53,7 @@ class RootComponent(
         TopLevelDestination(Configuration.Home, "Home", Lucide.House),
         TopLevelDestination(Configuration.Orders, "Orders", Lucide.ChartNoAxesCombined),
         TopLevelDestination(Configuration.Products, "Products", Lucide.Package),
-        TopLevelDestination(Configuration.Settings, "Settings", Lucide.Cog)
+        TopLevelDestination(Configuration.Profile, "Profile", Lucide.User)
     )
 
     private val navigation = StackNavigation<Configuration>()
@@ -65,6 +68,10 @@ class RootComponent(
 
     private val _overlayState = MutableValue<OverlayState>(OverlayState.None)
     override val overlayState: Value<OverlayState> = _overlayState
+
+    // In a real app this might be injected or handled by a platform specific bridge
+    // We will set this from the UI later
+    var urlOpener: ((String) -> Unit)? = null
 
     override fun onNavigate(configuration: Configuration) {
         navigation.bringToFront(configuration)
@@ -87,6 +94,10 @@ class RootComponent(
         _overlayState.update { OverlayState.None }
     }
 
+    override fun openUrl(url: String) {
+        urlOpener?.invoke(url)
+    }
+
     private fun createChild(
         configuration: Configuration,
         componentContext: ComponentContext
@@ -95,12 +106,13 @@ class RootComponent(
             is Configuration.Home -> Child.Home(createHomeScreenComponent(componentContext))
             is Configuration.Orders -> Child.Orders(OrdersComponent(componentContext))
             is Configuration.Products -> Child.Products(ProductsComponent(componentContext))
+            is Configuration.Profile -> Child.Profile(createProfileComponent(componentContext))
             is Configuration.Settings -> Child.Settings(SettingsComponent(componentContext))
         }
     }
 
-    private fun createHomeScreenComponent(componentContext: ComponentContext): IHomeScreenComponent {
-        return HomeScreenComponent(
+    private fun createHomeScreenComponent(componentContext: ComponentContext): IHomeComponent {
+        return HomeComponent(
             componentContext = componentContext,
             onLogout = {
                 scope.launch {
@@ -109,12 +121,21 @@ class RootComponent(
             }
         )
     }
+
+    private fun createProfileComponent(componentContext: ComponentContext): IProfileComponent {
+        return ProfileComponent(
+            componentContext = componentContext,
+            authService = appContainer.authenticationService,
+            onOpenUrl = { url -> openUrl(url) }
+        )
+    }
 }
 
 sealed interface Child {
-    data class Home(val component: IHomeScreenComponent) : Child
+    data class Home(val component: IHomeComponent) : Child
     data class Orders(val component: IOrdersComponent) : Child
     data class Products(val component: IProductsComponent) : Child
+    data class Profile(val component: IProfileComponent) : Child
     data class Settings(val component: ISettingsComponent) : Child
 }
 
@@ -128,6 +149,9 @@ sealed interface Configuration {
 
     @Serializable
     data object Products : Configuration
+
+    @Serializable
+    data object Profile : Configuration
 
     @Serializable
     data object Settings : Configuration

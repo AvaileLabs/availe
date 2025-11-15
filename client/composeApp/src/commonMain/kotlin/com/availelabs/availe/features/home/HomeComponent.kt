@@ -1,25 +1,24 @@
-package com.availelabs.availe.ui.screens.home
+package com.availelabs.availe.features.home
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
-import com.availelabs.availe.ui.events.HomeScreenEvents
-import com.availelabs.availe.ui.utils.ContentLoader
-import com.availelabs.availe.ui.utils.ContentState
+import com.availelabs.ui.utils.ContentLoader
+import com.availelabs.ui.utils.ContentState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 
-interface IHomeScreenComponent {
-    val uiState: Value<HomeUiState>
-    fun onEvent(event: HomeScreenEvents)
+interface IHomeComponent {
+    val uiState: Value<HomeState>
+    fun onEvent(event: HomeEvents)
 }
 
-class HomeScreenComponent(
+class HomeComponent(
     componentContext: ComponentContext,
     private val onLogout: () -> Unit
-) : IHomeScreenComponent, ComponentContext by componentContext {
+) : IHomeComponent, ComponentContext by componentContext {
 
     private val scope = componentContext.coroutineScope(Dispatchers.Main.immediate)
 
@@ -28,8 +27,8 @@ class HomeScreenComponent(
         fetcher = { fetchListings() }
     )
 
-    private val _uiState = MutableValue(HomeUiState())
-    override val uiState: Value<HomeUiState> = _uiState
+    private val _uiState = MutableValue(HomeState())
+    override val uiState: Value<HomeState> = _uiState
 
     init {
         listingsLoader.state.subscribe { newListingsState ->
@@ -39,15 +38,15 @@ class HomeScreenComponent(
         listingsLoader.load()
     }
 
-    override fun onEvent(event: HomeScreenEvents) {
+    override fun onEvent(event: HomeEvents) {
         when (event) {
-            is HomeScreenEvents.Refresh -> listingsLoader.refresh()
-            is HomeScreenEvents.ItemClicked -> {
+            is HomeEvents.Refresh -> listingsLoader.refresh()
+            is HomeEvents.ItemClicked -> {
                 println("Item clicked: ${event.itemId}")
             }
 
-            is HomeScreenEvents.FavoriteClicked -> toggleFavorite(event.itemId)
-            is HomeScreenEvents.LogoutClicked -> onLogout()
+            is HomeEvents.FavoriteClicked -> toggleFavorite(event.itemId)
+            is HomeEvents.LogoutClicked -> onLogout()
         }
     }
 

@@ -1,6 +1,6 @@
-package com.availelabs.availe.ui.screens.home
+package com.availelabs.availe.features.home
 
-import com.availelabs.availe.ui.utils.ContentState
+import com.availelabs.ui.utils.ContentState
 
 data class ListingItem(
     val id: String,
@@ -10,6 +10,6 @@ data class ListingItem(
     val isFavorited: Boolean = false
 )
 
-data class HomeUiState(
+data class HomeState(
     val listingsState: ContentState<List<ListingItem>> = ContentState.Idle
 )

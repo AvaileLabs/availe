@@ -5,14 +5,19 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.coroutines.withLifecycle
+import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.domain.auth.*
 import com.availelabs.availe.domain.auth.AuthenticationConstants.CLIENT_ID
 import com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI
 import com.availelabs.availe.domain.auth.AuthenticationConstants.SCOPE
+import com.availelabs.availe.features.profile.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
 import org.publicvalue.multiplatform.oidc.OpenIdConnectException
@@ -23,11 +28,15 @@ import org.publicvalue.multiplatform.oidc.tokenstore.removeTokens
 import org.publicvalue.multiplatform.oidc.tokenstore.saveTokens
 import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 interface IAuthenticationService {
     val authenticationState: Value<AuthenticationState>
     suspend fun login(): LoginResult
     suspend fun logout(): LogoutResult
+    fun getAccountManagementUrl(): String
+    suspend fun getCurrentUserProfile(): UserProfile?
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
@@ -67,6 +76,17 @@ class AuthenticationService(
                 _authenticationState.update { AuthenticationState.InitializationFailed(e) }
             }
         }
+    }
+
+    override fun getAccountManagementUrl(): String {
+        return "http://${NetworkConstants.HOST_IP}:8180/realms/availe/account"
+    }
+
+    override suspend fun getCurrentUserProfile(): UserProfile? {
+        val tokens = runCatching { tokenStore.getTokens() }.getOrNull() ?: return null
+        val idToken = tokens.idToken ?: return null
+
+        return JwtDecoder.decodeUserProfile(idToken)
     }
 
     override suspend fun login(): LoginResult {
@@ -123,5 +143,37 @@ class AuthenticationService(
         _authenticationState.update { AuthenticationState.LoggedOut }
 
         return result
+    }
+}
+
+private object JwtDecoder {
+    private val json = Json { ignoreUnknownKeys = true }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    fun decodeUserProfile(token: String): UserProfile? {
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return null
+
+            val payload = parts[1]
+            val paddedPayload = when (payload.length % 4) {
+                2 -> "$payload=="
+                3 -> "$payload="
+                else -> payload
+            }
+
+            val decodedBytes = Base64.UrlSafe.decode(paddedPayload)
+            val decodedString = decodedBytes.decodeToString()
+
+            val jsonObject = json.parseToJsonElement(decodedString) as? JsonObject ?: return null
+
+            UserProfile(
+                name = jsonObject["name"]?.jsonPrimitive?.content ?: "User",
+                email = jsonObject["email"]?.jsonPrimitive?.content ?: "",
+                pictureUrl = jsonObject["picture"]?.jsonPrimitive?.content
+            )
+        } catch (e: Exception) {
+            null
+        }
     }
 }

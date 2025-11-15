@@ -7,22 +7,29 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.availelabs.availe.ui.composables.ui.ScreenScaffold
-import com.availelabs.availe.ui.navigation.Child
-import com.availelabs.availe.ui.navigation.IRootComponent
-import com.availelabs.availe.ui.navigation.OverlayState
-import com.availelabs.availe.ui.screens.home.HomeScreen
-import com.availelabs.availe.ui.screens.home.composables.MockSearchBar
+import com.availelabs.availe.features.home.HomeScreen
+import com.availelabs.availe.features.home.components.MockSearchBar
+import com.availelabs.availe.features.orders.OrdersScreen
+import com.availelabs.availe.features.products.ProductsScreen
+import com.availelabs.availe.features.profile.ProfileScreen
+import com.availelabs.availe.features.root.Child
+import com.availelabs.availe.features.root.IRootComponent
+import com.availelabs.availe.features.root.OverlayState
+import com.availelabs.availe.features.root.RootComponent
+import com.availelabs.availe.features.settings.SettingsScreen
+import com.availelabs.availe.ui.ScreenScaffold
 import com.composables.icons.lucide.Bell
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Search
@@ -35,6 +42,14 @@ fun App(root: IRootComponent) {
     val childStack by root.childStack.subscribeAsState()
     val activeConfiguration = childStack.active.configuration
     val overlayState by root.overlayState.subscribeAsState()
+    val uriHandler = LocalUriHandler.current
+
+    // Hook up the URL opener from RootComponent to the Compose LocalUriHandler
+    LaunchedEffect(root) {
+        if (root is RootComponent) {
+            root.urlOpener = { url -> uriHandler.openUri(url) }
+        }
+    }
 
     UiKitTheme {
         AppScaffold {
@@ -92,6 +107,7 @@ fun App(root: IRootComponent) {
                         is Child.Home -> HomeScreen(homeScreenComponent = child.component)
                         is Child.Orders -> OrdersScreen()
                         is Child.Products -> ProductsScreen()
+                        is Child.Profile -> ProfileScreen(component = child.component)
                         is Child.Settings -> SettingsScreen()
                     }
                 }
@@ -226,26 +242,5 @@ fun NotificationOverlay(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun OrdersScreen() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Orders Screen")
-    }
-}
-
-@Composable
-fun ProductsScreen() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Products Screen")
-    }
-}
-
-@Composable
-fun SettingsScreen() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Settings Screen")
     }
 }
