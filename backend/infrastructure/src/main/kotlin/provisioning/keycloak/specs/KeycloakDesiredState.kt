@@ -8,12 +8,12 @@ internal object KeycloakDesiredState {
 
     val REALM_SETTINGS = DesiredRealmSettings()
 
-    private val hostIp = NetworkConstants.HOST_IP
+    private const val HOST_IP = NetworkConstants.HOST_IP
 
     private val webAppRedirects = setOf(
-        "http://$hostIp:3000/*",
-        "https://$hostIp:3000/*",
-        "http://$hostIp:8080/*"
+        "http://$HOST_IP:3000/*",
+        "https://$HOST_IP:3000/*",
+        "http://$HOST_IP:8080/*"
     )
 
     private val mobileAppRedirects = setOf(
@@ -21,15 +21,15 @@ internal object KeycloakDesiredState {
     )
 
     private val serviceRedirects = setOf(
-        "http://$hostIp:8888/callback"
+        "http://$HOST_IP:8888/callback"
     )
 
     private val allRedirectUris = webAppRedirects + mobileAppRedirects + serviceRedirects
 
     private val allWebOrigins = setOf(
-        "http://$hostIp:3000",
-        "https://$hostIp:3000",
-        "http://$hostIp:8080"
+        "http://$HOST_IP:3000",
+        "https://$HOST_IP:3000",
+        "http://$HOST_IP:8080"
     )
 
     val CLIENTS = listOf(
