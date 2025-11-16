@@ -3,7 +3,7 @@ package com.availelabs.availe.domain.auth
 import com.availelabs.availe.NetworkConstants
 
 internal object AuthenticationConstants {
-    const val CLIENT_ID: String = "availe-shop-app"
+    const val CLIENT_ID: String = "availe-app"
     const val DISCOVERY_URI: String =
         "http://${NetworkConstants.HOST_IP}:8180/realms/availe/.well-known/openid-configuration"
     const val SCOPE: String = "openid profile email"
