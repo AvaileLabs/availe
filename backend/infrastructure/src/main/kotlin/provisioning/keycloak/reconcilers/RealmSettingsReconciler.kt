@@ -2,96 +2,90 @@ package com.availelabs.provisioning.keycloak.reconcilers
 
 import com.availelabs.provisioning.keycloak.specs.DesiredRealmSettings
 import org.keycloak.admin.client.resource.RealmResource
-import org.keycloak.representations.idm.RealmRepresentation
 import org.slf4j.LoggerFactory
 
 internal class RealmSettingsReconciler {
     private val logger = LoggerFactory.getLogger(javaClass)
-    private var needsUpdate = false
-
-    private inline fun <T> reconcileProperty(
-        existingRealm: RealmRepresentation,
-        currentValue: T,
-        desiredValue: T,
-        setter: RealmRepresentation.(T) -> Unit
-    ) {
-        if (currentValue != desiredValue) {
-            existingRealm.setter(desiredValue)
-            needsUpdate = true
-        }
-    }
 
     fun reconcile(realmResource: RealmResource, desired: DesiredRealmSettings) {
         val existingRealm = realmResource.toRepresentation()
-        needsUpdate = false
+        var changed = false
 
-        reconcileProperty(
-            existingRealm,
+        fun <T> sync(fieldName: String, current: T?, target: T, setter: (T) -> Unit) {
+            if (current != target) {
+                setter(target)
+                logger.info("Realm setting '{}' changed. Old: '{}', New: '{}'", fieldName, current, target)
+                changed = true
+            }
+        }
+
+        sync(
+            "AccessTokenLifespan",
             existingRealm.accessTokenLifespan,
             desired.accessTokenLifespan
-        ) { accessTokenLifespan = it }
-        reconcileProperty(
-            existingRealm,
+        ) { existingRealm.accessTokenLifespan = it }
+        sync(
+            "SsoSessionIdleTimeout",
             existingRealm.ssoSessionIdleTimeout,
             desired.ssoSessionIdleTimeout
-        ) { ssoSessionIdleTimeout = it }
-        reconcileProperty(
-            existingRealm,
+        ) { existingRealm.ssoSessionIdleTimeout = it }
+        sync(
+            "SsoSessionMaxLifespan",
             existingRealm.ssoSessionMaxLifespan,
             desired.ssoSessionMaxLifespan
-        ) { ssoSessionMaxLifespan = it }
-        reconcileProperty(
-            existingRealm,
+        ) { existingRealm.ssoSessionMaxLifespan = it }
+        sync(
+            "OfflineSessionIdleTimeout",
             existingRealm.offlineSessionIdleTimeout,
             desired.offlineSessionIdleTimeout
-        ) { offlineSessionIdleTimeout = it }
+        ) { existingRealm.offlineSessionIdleTimeout = it }
 
-        reconcileProperty(
-            existingRealm,
+        sync(
+            "RegistrationAllowed",
             existingRealm.isRegistrationAllowed,
             desired.registrationAllowed
-        ) { isRegistrationAllowed = it }
-        reconcileProperty(
-            existingRealm,
+        ) { existingRealm.isRegistrationAllowed = it }
+        sync(
+            "ResetPasswordAllowed",
             existingRealm.isResetPasswordAllowed,
             desired.resetPasswordAllowed
-        ) { isResetPasswordAllowed = it }
-        reconcileProperty(existingRealm, existingRealm.isRememberMe, desired.rememberMe) { isRememberMe = it }
-        reconcileProperty(
-            existingRealm,
+        ) { existingRealm.isResetPasswordAllowed = it }
+        sync("RememberMe", existingRealm.isRememberMe, desired.rememberMe) { existingRealm.isRememberMe = it }
+        sync(
+            "LoginWithEmailAllowed",
             existingRealm.isLoginWithEmailAllowed,
             desired.loginWithEmailAllowed
-        ) { isLoginWithEmailAllowed = it }
-        reconcileProperty(
-            existingRealm,
+        ) { existingRealm.isLoginWithEmailAllowed = it }
+        sync(
+            "RegistrationEmailAsUsername",
             existingRealm.isRegistrationEmailAsUsername,
             desired.registrationEmailAsUsername
-        ) { isRegistrationEmailAsUsername = it }
-        reconcileProperty(
-            existingRealm,
+        ) { existingRealm.isRegistrationEmailAsUsername = it }
+        sync(
+            "DuplicateEmailsAllowed",
             existingRealm.isDuplicateEmailsAllowed,
             desired.duplicateEmailsAllowed
-        ) { isDuplicateEmailsAllowed = it }
-        reconcileProperty(existingRealm, existingRealm.isVerifyEmail, desired.verifyEmail) { isVerifyEmail = it }
+        ) { existingRealm.isDuplicateEmailsAllowed = it }
+        sync("VerifyEmail", existingRealm.isVerifyEmail, desired.verifyEmail) { existingRealm.isVerifyEmail = it }
 
-        reconcileProperty(
-            existingRealm,
+        sync(
+            "BruteForceProtected",
             existingRealm.isBruteForceProtected,
             desired.bruteForceProtected
-        ) { isBruteForceProtected = it }
-        reconcileProperty(
-            existingRealm,
+        ) { existingRealm.isBruteForceProtected = it }
+        sync(
+            "PermanentLockout",
             existingRealm.isPermanentLockout,
             desired.permanentLockout
-        ) { isPermanentLockout = it }
-        reconcileProperty(
-            existingRealm,
+        ) { existingRealm.isPermanentLockout = it }
+        sync(
+            "MaxFailureWaitSeconds",
             existingRealm.maxFailureWaitSeconds,
             desired.maxFailureWaitSeconds
-        ) { maxFailureWaitSeconds = it }
-        reconcileProperty(existingRealm, existingRealm.failureFactor, desired.failureFactor) { failureFactor = it }
+        ) { existingRealm.maxFailureWaitSeconds = it }
+        sync("FailureFactor", existingRealm.failureFactor, desired.failureFactor) { existingRealm.failureFactor = it }
 
-        if (needsUpdate) {
+        if (changed) {
             logger.info("Realm settings are out of sync. Updating...")
             realmResource.update(existingRealm)
             logger.info("Realm settings updated.")

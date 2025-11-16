@@ -13,54 +13,99 @@ internal class ClientsReconciler {
         val clientsResource = realmResource.clients()
         val existingClients = clientsResource.findAll().associateBy { it.clientId }
 
-        desiredClients.forEach { desiredClient ->
-            val existingClient = existingClients[desiredClient.clientId]
-            if (existingClient == null) {
-                logger.info("Client '{}' not found. Creating...", desiredClient.clientId)
-                val newClient = ClientRepresentation().apply {
-                    clientId = desiredClient.clientId
-                    name = desiredClient.clientName
-                    isPublicClient = desiredClient.isPublic
-                    isStandardFlowEnabled = desiredClient.isStandardFlowEnabled
-                    isDirectAccessGrantsEnabled = desiredClient.isDirectAccessGrantsEnabled
-                    redirectUris = desiredClient.redirectUris.toList()
-                    webOrigins = desiredClient.webOrigins.toList()
-                    defaultClientScopes = desiredClient.defaultClientScopes
-                    attributes = desiredClient.attributes.toMutableMap()
-                }
-                clientsResource.create(newClient)
-                logger.info("Client '{}' created.", desiredClient.clientId)
-                return@forEach
-            }
+        desiredClients.forEach { desired ->
+            val existing = existingClients[desired.clientId]
 
-            val currentScopes = existingClient.defaultClientScopes ?: emptyList()
-            val existingAttrs = existingClient.attributes ?: emptyMap()
-
-            val needsUpdate =
-                existingClient.redirectUris.toSet() != desiredClient.redirectUris ||
-                        existingClient.webOrigins.toSet() != desiredClient.webOrigins ||
-                        currentScopes.toSet() != desiredClient.defaultClientScopes.toSet() ||
-                        existingAttrs != desiredClient.attributes ||
-                        existingClient.isPublicClient != desiredClient.isPublic ||
-                        existingClient.isStandardFlowEnabled != desiredClient.isStandardFlowEnabled ||
-                        existingClient.isDirectAccessGrantsEnabled != desiredClient.isDirectAccessGrantsEnabled
-
-            if (needsUpdate) {
-                logger.info("Client '{}' is out of sync. Updating...", desiredClient.clientId)
-                existingClient.redirectUris = desiredClient.redirectUris.toList()
-                existingClient.webOrigins = desiredClient.webOrigins.toList()
-                existingClient.defaultClientScopes = desiredClient.defaultClientScopes
-                existingClient.attributes = desiredClient.attributes.toMutableMap()
-                existingClient.isPublicClient = desiredClient.isPublic
-                existingClient.isStandardFlowEnabled = desiredClient.isStandardFlowEnabled
-                existingClient.isDirectAccessGrantsEnabled = desiredClient.isDirectAccessGrantsEnabled
-
-                clientsResource.get(existingClient.id).update(existingClient)
-                logger.info("Client '{}' updated.", desiredClient.clientId)
+            if (existing == null) {
+                createClient(clientsResource, desired)
             } else {
-                logger.info("Client '{}' is up to date.", desiredClient.clientId)
+                updateClientIfChanged(clientsResource, existing, desired)
             }
         }
         logger.info("Client reconciliation complete.")
+    }
+
+    private fun createClient(
+        clientsResource: org.keycloak.admin.client.resource.ClientsResource,
+        desired: DesiredClient
+    ) {
+        logger.info("Client '{}' not found. Creating...", desired.clientId)
+        val newClient = ClientRepresentation().apply {
+            clientId = desired.clientId
+            name = desired.clientName
+            isPublicClient = desired.isPublic
+            isStandardFlowEnabled = desired.isStandardFlowEnabled
+            isDirectAccessGrantsEnabled = desired.isDirectAccessGrantsEnabled
+            redirectUris = desired.redirectUris.toList()
+            webOrigins = desired.webOrigins.toList()
+            defaultClientScopes = desired.defaultClientScopes
+            attributes = desired.attributes.toMutableMap()
+        }
+        clientsResource.create(newClient)
+        logger.info("Client '{}' created.", desired.clientId)
+    }
+
+    private fun updateClientIfChanged(
+        clientsResource: org.keycloak.admin.client.resource.ClientsResource,
+        existing: ClientRepresentation,
+        desired: DesiredClient
+    ) {
+        var changed = false
+
+        fun <T> sync(fieldName: String, current: T?, target: T, setter: (T) -> Unit) {
+            if (current != target) {
+                setter(target)
+                logger.info(
+                    "Client '{}': Field '{}' changed. Old: '{}', New: '{}'",
+                    desired.clientId,
+                    fieldName,
+                    current,
+                    target
+                )
+                changed = true
+            }
+        }
+
+        fun syncSet(fieldName: String, current: List<String>?, target: Set<String>, setter: (List<String>) -> Unit) {
+            val currentSet = current?.toSet() ?: emptySet()
+            if (currentSet != target) {
+                setter(target.toList())
+                logger.info("Client '{}': Field '{}' changed.", desired.clientId, fieldName)
+                changed = true
+            }
+        }
+
+        sync("Name", existing.name, desired.clientName) { existing.name = it }
+        sync("IsPublic", existing.isPublicClient, desired.isPublic) { existing.isPublicClient = it }
+        sync(
+            "StandardFlow",
+            existing.isStandardFlowEnabled,
+            desired.isStandardFlowEnabled
+        ) { existing.isStandardFlowEnabled = it }
+        sync(
+            "DirectAccess",
+            existing.isDirectAccessGrantsEnabled,
+            desired.isDirectAccessGrantsEnabled
+        ) { existing.isDirectAccessGrantsEnabled = it }
+
+        syncSet("RedirectUris", existing.redirectUris, desired.redirectUris) { existing.redirectUris = it }
+        syncSet("WebOrigins", existing.webOrigins, desired.webOrigins) { existing.webOrigins = it }
+
+        val currentScopes = existing.defaultClientScopes?.toSet() ?: emptySet()
+        val targetScopes = desired.defaultClientScopes.toSet()
+        if (currentScopes != targetScopes) {
+            existing.defaultClientScopes = desired.defaultClientScopes
+            logger.info("Client '{}': Field 'DefaultClientScopes' changed.", desired.clientId)
+            changed = true
+        }
+
+        sync("Attributes", existing.attributes, desired.attributes) { existing.attributes = it.toMutableMap() }
+
+        if (changed) {
+            logger.info("Updating client '{}'...", desired.clientId)
+            clientsResource.get(existing.id).update(existing)
+        } else {
+            logger.info("Client '{}' is up to date.", desired.clientId)
+        }
     }
 }
