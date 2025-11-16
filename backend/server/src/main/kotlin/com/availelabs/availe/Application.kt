@@ -48,5 +48,5 @@ internal fun main() {
         "/api" bind apiContract,
     )
 
-    app.asServer(Helidon(9000)).start()
+    app.asServer(Helidon(9002)).start()
 }
