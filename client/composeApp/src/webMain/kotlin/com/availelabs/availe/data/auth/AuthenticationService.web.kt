@@ -11,6 +11,7 @@ import org.publicvalue.multiplatform.oidc.tokenstore.TokenStore
 import org.publicvalue.multiplatform.oidc.tokenstore.saveTokens
 import org.publicvalue.multiplatform.oidc.types.AuthCodeRequest
 import web.console.console
+import kotlin.js.ExperimentalWasmJsInterop
 
 @OptIn(ExperimentalOpenIdConnect::class)
 actual suspend fun platformLogin(
@@ -19,74 +20,77 @@ actual suspend fun platformLogin(
     tokenStore: TokenStore,
     onStateUpdate: (AuthenticationState) -> Unit
 ): LoginResult {
-    // Fallback if called directly
-    val request = client.createAuthorizationCodeRequest()
+    val authorizationRequest = client.createAuthorizationCodeRequest()
     AuthStorage.saveAuthParams(
-        verifier = request.pkce.codeVerifier,
-        state = request.state,
-        nonce = request.nonce,
-        redirectUri = request.config.redirectUri
+        verifier = authorizationRequest.pkce.codeVerifier,
+        state = authorizationRequest.state,
+        nonce = authorizationRequest.nonce,
+        redirectUri = authorizationRequest.config.redirectUri
     )
-    window.location.href = request.url.toString()
+    window.location.href = authorizationRequest.url.toString()
     return LoginResult.Cancelled
 }
 
-@OptIn(ExperimentalOpenIdConnect::class)
+@OptIn(ExperimentalOpenIdConnect::class, ExperimentalWasmJsInterop::class)
 actual suspend fun platformResumeLogin(
     code: String,
     client: OpenIdConnectClient,
     tokenStore: TokenStore,
     onStateUpdate: (AuthenticationState) -> Unit
 ) {
-    val verifier = AuthStorage.getVerifier()
-    val state = AuthStorage.getState()
-    val nonce = AuthStorage.getNonce()
+    val codeVerifier = AuthStorage.getVerifier()
+    val authenticationState = AuthStorage.getState()
+    val nonceValue = AuthStorage.getNonce()
+    val redirectUniformResourceIdentifier = AuthStorage.getRedirectUri()
 
-    if (verifier == null || state == null) {
+    if (codeVerifier == null || authenticationState == null || redirectUniformResourceIdentifier == null) {
         console.error("Missing auth params in storage")
         return
     }
 
-    val pkce = Pkce(codeVerifier = verifier, codeChallengeMethod = client.config.codeChallengeMethod)
-    val dummyUrl = io.ktor.http.Url("http://localhost")
+    val proofKeyForCodeExchange = Pkce(
+        codeVerifier = codeVerifier,
+        codeChallengeMethod = client.config.codeChallengeMethod
+    )
+    val requestUrl = io.ktor.http.Url(redirectUniformResourceIdentifier)
 
-    val request = AuthCodeRequest(
-        url = dummyUrl,
+    val authenticationCodeRequest = AuthCodeRequest(
+        url = requestUrl,
         config = client.config,
-        pkce = pkce,
-        state = state,
-        nonce = nonce
+        pkce = proofKeyForCodeExchange,
+        state = authenticationState,
+        nonce = nonceValue
     )
 
     try {
-        val response = client.exchangeToken(request, code)
-        tokenStore.saveTokens(response)
+        val tokenResponse = client.exchangeToken(authenticationCodeRequest, code)
+        tokenStore.saveTokens(tokenResponse)
         AuthStorage.clear()
-        onStateUpdate(AuthenticationState.LoggedIn(response.access_token))
+        onStateUpdate(AuthenticationState.LoggedIn(tokenResponse.access_token))
 
         window.history.replaceState(null, "", "/")
-    } catch (e: Exception) {
-        console.error("Failed to exchange token: ${e.message}")
-        onStateUpdate(AuthenticationState.InitializationFailed(e))
+    } catch (exception: Exception) {
+        console.error("Failed to exchange token: ${exception.message}")
+        onStateUpdate(AuthenticationState.InitializationFailed(exception))
     }
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
 actual suspend fun platformGetLoginUrl(client: OpenIdConnectClient): String? {
-    val request = client.createAuthorizationCodeRequest()
+    val authorizationRequest = client.createAuthorizationCodeRequest()
 
     AuthStorage.saveAuthParams(
-        verifier = request.pkce.codeVerifier,
-        state = request.state,
-        nonce = request.nonce,
-        redirectUri = request.config.redirectUri
+        verifier = authorizationRequest.pkce.codeVerifier,
+        state = authorizationRequest.state,
+        nonce = authorizationRequest.nonce,
+        redirectUri = authorizationRequest.config.redirectUri
     )
 
-    return request.url.toString()
+    return authorizationRequest.url.toString()
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
 actual suspend fun platformGetLogoutUrl(client: OpenIdConnectClient, idToken: String?): String? {
-    val request = client.createEndSessionRequest(idToken)
-    return request.url.toString()
+    val endSessionRequest = client.createEndSessionRequest(idToken)
+    return endSessionRequest.url.toString()
 }
