@@ -28,40 +28,54 @@ internal data class DesiredClient(
     val isDirectAccessGrantsEnabled: Boolean = true,
     val redirectUris: Set<String> = emptySet(),
     val webOrigins: Set<String> = emptySet(),
-    val defaultClientScopes: List<String> = listOf("profile", "email", "roles", "web-origins"),
+    val defaultClientScopes: List<String> = listOf(
+        KeycloakClientScopes.PROFILE,
+        KeycloakClientScopes.EMAIL,
+        KeycloakClientScopes.ROLES,
+        KeycloakClientScopes.WEB_ORIGINS
+    ),
     val attributes: Map<String, String> = mapOf(
-        "pkce.code.challenge.method" to "S256"
+        KeycloakClientAttributes.PKCE_METHOD to KeycloakClientAttributes.PKCE_METHOD_S256
     )
 )
 
-internal object KeycloakUserAttributes {
-    const val FIRST_NAME = "firstName"
-    const val LAST_NAME = "lastName"
-    const val EMAIL = "email"
-    const val USERNAME = "username"
-}
-
 internal object KeycloakDesiredState {
-    const val REALM_NAME = "availe"
-    const val DB_SCHEMA_NAME = "keycloak"
+    const val REALM_NAME = KeycloakRealms.AVAILE
+    const val DB_SCHEMA_NAME = KeycloakDbSchemas.KEYCLOAK
 
     val REALM_SETTINGS = DesiredRealmSettings()
 
     private val hostIp = NetworkConstants.HOST_IP
 
+    private val webAppRedirects = setOf(
+        "http://$hostIp:3000/*",
+        "https://$hostIp:3000/*",
+        "http://$hostIp:8080/*"
+    )
+
+    private val mobileAppRedirects = setOf(
+        "com.availe.auth://callback"
+    )
+
+    private val serviceRedirects = setOf(
+        "http://$hostIp:8888/callback"
+    )
+
+    private val allRedirectUris = webAppRedirects + mobileAppRedirects + serviceRedirects
+
+    private val allWebOrigins = setOf(
+        "http://$hostIp:3000",
+        "https://$hostIp:3000",
+        "http://$hostIp:8080"
+    )
+
     val CLIENTS = listOf(
         DesiredClient(
-            clientId = "availe-shop-app",
-            clientName = "Availe Shop App",
+            clientId = KeycloakClientIds.APP,
+            clientName = "Availe App",
             isPublic = true,
-            redirectUris = setOf(
-                "http://$hostIp:3000/*",
-                "https://$hostIp:3000/*",
-                "http://$hostIp:8888/callback",
-                "com.availe.auth://callback",
-                "http://$hostIp:8080/*"
-            ),
-            webOrigins = setOf("http://$hostIp:3000", "https://$hostIp:3000", "http://$hostIp:8080")
+            redirectUris = allRedirectUris,
+            webOrigins = allWebOrigins
         )
     )
 
