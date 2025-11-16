@@ -34,6 +34,13 @@ internal data class DesiredClient(
     )
 )
 
+internal object KeycloakUserAttributes {
+    const val FIRST_NAME = "firstName"
+    const val LAST_NAME = "lastName"
+    const val EMAIL = "email"
+    const val USERNAME = "username"
+}
+
 internal object KeycloakDesiredState {
     const val REALM_NAME = "availe"
     const val DB_SCHEMA_NAME = "keycloak"
@@ -58,5 +65,8 @@ internal object KeycloakDesiredState {
         )
     )
 
-    val USER_PROFILE_ATTRIBUTES_TO_REMOVE = listOf("firstName", "lastName")
+    val USER_PROFILE_ATTRIBUTES_TO_REMOVE = listOf(
+        KeycloakUserAttributes.FIRST_NAME,
+        KeycloakUserAttributes.LAST_NAME
+    )
 }
