@@ -57,4 +57,6 @@ internal object KeycloakDesiredState {
             webOrigins = setOf("http://$hostIp:3000", "https://$hostIp:3000", "http://$hostIp:8080")
         )
     )
+
+    val USER_PROFILE_ATTRIBUTES_TO_REMOVE = listOf("firstName", "lastName")
 }

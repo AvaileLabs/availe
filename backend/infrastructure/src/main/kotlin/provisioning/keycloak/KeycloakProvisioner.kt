@@ -4,6 +4,7 @@ import com.availelabs.orchestration.keycloak.KeycloakConfig
 import com.availelabs.orchestration.keycloak.KeycloakPortsList
 import com.availelabs.provisioning.keycloak.reconcilers.ClientsReconciler
 import com.availelabs.provisioning.keycloak.reconcilers.RealmSettingsReconciler
+import com.availelabs.provisioning.keycloak.reconcilers.UserProfileReconciler
 import com.availelabs.provisioning.keycloak.specs.KeycloakDesiredState
 import jakarta.ws.rs.NotFoundException
 import org.keycloak.OAuth2Constants
@@ -15,7 +16,8 @@ import org.slf4j.LoggerFactory
 internal class KeycloakProvisioner(
     private val config: KeycloakConfig,
     private val realmSettingsReconciler: RealmSettingsReconciler,
-    private val clientsReconciler: ClientsReconciler
+    private val clientsReconciler: ClientsReconciler,
+    private val userProfileReconciler: UserProfileReconciler
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -38,6 +40,7 @@ internal class KeycloakProvisioner(
 
             realmSettingsReconciler.reconcile(realmResource, KeycloakDesiredState.REALM_SETTINGS)
             clientsReconciler.reconcile(realmResource, KeycloakDesiredState.CLIENTS)
+            userProfileReconciler.reconcile(realmResource, KeycloakDesiredState.USER_PROFILE_ATTRIBUTES_TO_REMOVE)
         }
         logger.info("Keycloak provisioning complete.")
     }
@@ -46,7 +49,7 @@ internal class KeycloakProvisioner(
         try {
             keycloak.realm(KeycloakDesiredState.REALM_NAME).toRepresentation()
             logger.info("Realm '{}' already exists.", KeycloakDesiredState.REALM_NAME)
-        } catch (e: NotFoundException) {
+        } catch (_: NotFoundException) {
             logger.info("Realm '{}' not found. Creating it...", KeycloakDesiredState.REALM_NAME)
             val newRealm = RealmRepresentation().apply {
                 realm = KeycloakDesiredState.REALM_NAME

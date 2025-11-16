@@ -10,6 +10,7 @@ import com.availelabs.provisioning.PostgresProvisioner
 import com.availelabs.provisioning.keycloak.KeycloakProvisioner
 import com.availelabs.provisioning.keycloak.reconcilers.ClientsReconciler
 import com.availelabs.provisioning.keycloak.reconcilers.RealmSettingsReconciler
+import com.availelabs.provisioning.keycloak.reconcilers.UserProfileReconciler
 import com.github.dockerjava.api.DockerClient
 import org.slf4j.LoggerFactory
 import kotlin.system.exitProcess
@@ -43,10 +44,13 @@ internal fun main(args: Array<String>) {
 
         val realmSettingsReconciler = RealmSettingsReconciler()
         val clientsReconciler = ClientsReconciler()
+        val userProfileReconciler = UserProfileReconciler()
+
         val keycloakProvisioner = KeycloakProvisioner(
             kcConfig,
             realmSettingsReconciler,
-            clientsReconciler
+            clientsReconciler,
+            userProfileReconciler
         )
 
         val manager = InfrastructureManager(
