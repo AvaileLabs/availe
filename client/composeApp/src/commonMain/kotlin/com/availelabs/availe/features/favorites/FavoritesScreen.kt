@@ -1,4 +1,4 @@
-package com.availelabs.availe.features.orders
+package com.availelabs.availe.features.favorites
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,8 +8,8 @@ import androidx.compose.ui.Modifier
 import com.composables.uikit.components.Text
 
 @Composable
-fun OrdersScreen() {
+fun FavoritesScreen() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Orders Screen")
+        Text("Favorites Screen")
     }
 }

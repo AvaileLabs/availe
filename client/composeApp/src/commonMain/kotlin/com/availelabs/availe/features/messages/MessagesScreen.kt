@@ -1,4 +1,4 @@
-package com.availelabs.availe.features.products
+package com.availelabs.availe.features.messages
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,8 +8,8 @@ import androidx.compose.ui.Modifier
 import com.composables.uikit.components.Text
 
 @Composable
-fun ProductsScreen() {
+fun MessagesScreen() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Products Screen")
+        Text("Messages Screen")
     }
 }

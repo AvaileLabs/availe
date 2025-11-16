@@ -11,8 +11,14 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.di.ApplicationContainer
+import com.availelabs.availe.features.favorites.FavoritesComponent
+import com.availelabs.availe.features.favorites.IFavoritesComponent
 import com.availelabs.availe.features.home.HomeComponent
 import com.availelabs.availe.features.home.IHomeComponent
+import com.availelabs.availe.features.listings.IMyListingsComponent
+import com.availelabs.availe.features.listings.MyListingsComponent
+import com.availelabs.availe.features.messages.IMessagesComponent
+import com.availelabs.availe.features.messages.MessagesComponent
 import com.availelabs.availe.features.profile.IProfileComponent
 import com.availelabs.availe.features.profile.ProfileComponent
 import com.composables.icons.lucide.*
@@ -51,8 +57,9 @@ class RootComponent(
 
     override val topLevelDestinations = listOf(
         TopLevelDestination(Configuration.Home, "Home", Lucide.House),
-        TopLevelDestination(Configuration.Orders, "Orders", Lucide.ChartNoAxesCombined),
-        TopLevelDestination(Configuration.Products, "Products", Lucide.Package),
+        TopLevelDestination(Configuration.Favorites, "Favorites", Lucide.Heart),
+        TopLevelDestination(Configuration.MyListings, "My Listings", Lucide.Package),
+        TopLevelDestination(Configuration.Messages, "Messages", Lucide.MessageSquare),
         TopLevelDestination(Configuration.Profile, "Profile", Lucide.User)
     )
 
@@ -69,8 +76,6 @@ class RootComponent(
     private val _overlayState = MutableValue<OverlayState>(OverlayState.None)
     override val overlayState: Value<OverlayState> = _overlayState
 
-    // In a real app this might be injected or handled by a platform specific bridge
-    // We will set this from the UI later
     var urlOpener: ((String) -> Unit)? = null
 
     override fun onNavigate(configuration: Configuration) {
@@ -104,8 +109,9 @@ class RootComponent(
     ): Child {
         return when (configuration) {
             is Configuration.Home -> Child.Home(createHomeScreenComponent(componentContext))
-            is Configuration.Orders -> Child.Orders(OrdersComponent(componentContext))
-            is Configuration.Products -> Child.Products(ProductsComponent(componentContext))
+            is Configuration.Favorites -> Child.Favorites(FavoritesComponent(componentContext))
+            is Configuration.MyListings -> Child.MyListings(MyListingsComponent(componentContext))
+            is Configuration.Messages -> Child.Messages(MessagesComponent(componentContext))
             is Configuration.Profile -> Child.Profile(createProfileComponent(componentContext))
             is Configuration.Settings -> Child.Settings(SettingsComponent(componentContext))
         }
@@ -133,8 +139,9 @@ class RootComponent(
 
 sealed interface Child {
     data class Home(val component: IHomeComponent) : Child
-    data class Orders(val component: IOrdersComponent) : Child
-    data class Products(val component: IProductsComponent) : Child
+    data class Favorites(val component: IFavoritesComponent) : Child
+    data class MyListings(val component: IMyListingsComponent) : Child
+    data class Messages(val component: IMessagesComponent) : Child
     data class Profile(val component: IProfileComponent) : Child
     data class Settings(val component: ISettingsComponent) : Child
 }
@@ -145,10 +152,13 @@ sealed interface Configuration {
     data object Home : Configuration
 
     @Serializable
-    data object Orders : Configuration
+    data object Favorites : Configuration
 
     @Serializable
-    data object Products : Configuration
+    data object MyListings : Configuration
+
+    @Serializable
+    data object Messages : Configuration
 
     @Serializable
     data object Profile : Configuration
@@ -156,14 +166,6 @@ sealed interface Configuration {
     @Serializable
     data object Settings : Configuration
 }
-
-interface IOrdersComponent
-class OrdersComponent(componentContext: ComponentContext) : IOrdersComponent,
-    ComponentContext by componentContext
-
-interface IProductsComponent
-class ProductsComponent(componentContext: ComponentContext) : IProductsComponent,
-    ComponentContext by componentContext
 
 interface ISettingsComponent
 class SettingsComponent(componentContext: ComponentContext) : ISettingsComponent,

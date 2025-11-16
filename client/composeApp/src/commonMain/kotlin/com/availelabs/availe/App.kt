@@ -19,10 +19,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.availelabs.availe.features.favorites.FavoritesScreen
 import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.home.components.MockSearchBar
-import com.availelabs.availe.features.orders.OrdersScreen
-import com.availelabs.availe.features.products.ProductsScreen
+import com.availelabs.availe.features.listings.MyListingsScreen
+import com.availelabs.availe.features.messages.MessagesScreen
 import com.availelabs.availe.features.profile.ProfileScreen
 import com.availelabs.availe.features.root.Child
 import com.availelabs.availe.features.root.IRootComponent
@@ -44,8 +45,6 @@ fun App(root: IRootComponent) {
     val overlayState by root.overlayState.subscribeAsState()
     val uriHandler = LocalUriHandler.current
 
-    // Hook up the URL opener from RootComponent to the Compose LocalUriHandler
-    // Only set if not already set (Web main.kt might set a more specific one for window.location)
     LaunchedEffect(root) {
         if (root is RootComponent && root.urlOpener == null) {
             root.urlOpener = { url -> uriHandler.openUri(url) }
@@ -106,8 +105,9 @@ fun App(root: IRootComponent) {
                 ) {
                     when (val child = it.instance) {
                         is Child.Home -> HomeScreen(homeScreenComponent = child.component)
-                        is Child.Orders -> OrdersScreen()
-                        is Child.Products -> ProductsScreen()
+                        is Child.Favorites -> FavoritesScreen()
+                        is Child.MyListings -> MyListingsScreen()
+                        is Child.Messages -> MessagesScreen()
                         is Child.Profile -> ProfileScreen(component = child.component)
                         is Child.Settings -> SettingsScreen()
                     }
