@@ -35,6 +35,7 @@ internal class ListingController(
 ) {
     private val listingIdPath = Path.kUuid().of("listingId")
     private val responseBodyLens = Body.auto<TypeV1ListingDtoData>().toLens()
+    private val listResponseBodyLens = Body.auto<List<TypeV1ListingDtoData>>().toLens()
     private val examplePrice = PriceDto.V1("10.00", "USD")
     private val exampleResponseItem = ListingItemDtoSchema.V1.Data(
         id = Uuid.random(),
@@ -44,7 +45,7 @@ internal class ListingController(
         imageLinks = emptyList()
     )
 
-    val listOfRoutes = listOf(createListing(), getListingById(), updateListing(), deleteListing())
+    val listOfRoutes = listOf(createListing(), getListingById(), listAllListings(), updateListing(), deleteListing())
 
     fun createListing(): ContractRoute {
         val bodyLens = Body.auto<TypeV1ListingDtoCreateRequest>().toLens()
@@ -91,6 +92,18 @@ internal class ListingController(
                     is FindResult.NotFound -> Response(Status.NOT_FOUND)
                 }
             }
+        }
+    }
+
+    fun listAllListings(): ContractRoute {
+        return ApiRoutes.LISTINGS meta {
+            summary = "Get all listings."
+            description = "Returns a list of all listings."
+            returning(Status.OK, listResponseBodyLens to listOf(exampleResponseItem))
+        } bindContract Method.GET to { _: Request ->
+            val listings = listingService.getAllListings()
+            val responseDto = listings.map { it.toDataDto() }
+            Response(Status.OK).with(listResponseBodyLens of responseDto)
         }
     }
 

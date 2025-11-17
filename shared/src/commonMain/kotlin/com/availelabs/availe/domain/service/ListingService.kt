@@ -27,6 +27,8 @@ class ListingService(
         }
     }
 
+    override fun getAllListings(): List<Listing> = listingRepository.getAllListings()
+
     override fun updateListing(
         listingId: Uuid,
         patch: TypeV1ListingDtoPatchRequest,

@@ -15,6 +15,7 @@ import kotlin.uuid.Uuid
 interface IListingService {
     fun createListing(newListing: NewListing): InsertResult<Listing>
     fun getListingById(id: Uuid): FindResult<Listing>
+    fun getAllListings(): List<Listing>
     fun updateListing(
         listingId: Uuid,
         patch: TypeV1ListingDtoPatchRequest,
