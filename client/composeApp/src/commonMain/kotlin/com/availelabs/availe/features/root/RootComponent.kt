@@ -125,6 +125,7 @@ class RootComponent(
     private fun createHomeScreenComponent(componentContext: ComponentContext): IHomeComponent {
         return HomeComponent(
             componentContext = componentContext,
+            apiClient = appContainer.apiClient,
             onLogout = {
                 scope.launch {
                     appContainer.authenticationService.logout()

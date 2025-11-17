@@ -28,6 +28,10 @@ application {
     mainClass.set("com.availelabs.availe.ApplicationKt")
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 dependencies {
     implementation(projects.shared)
     implementation(libs.logback)

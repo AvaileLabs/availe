@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.availelabs.availe.features.home
 
 import com.arkivanov.decompose.ComponentContext
@@ -5,10 +7,13 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.availelabs.availe.data.network.IApiClient
+import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.Price
 import com.availelabs.ui.utils.ContentLoader
 import com.availelabs.ui.utils.ContentState
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlin.uuid.ExperimentalUuidApi
 
 interface IHomeComponent {
     val uiState: Value<HomeState>
@@ -17,6 +22,7 @@ interface IHomeComponent {
 
 class HomeComponent(
     componentContext: ComponentContext,
+    private val apiClient: IApiClient,
     private val onLogout: () -> Unit
 ) : IHomeComponent, ComponentContext by componentContext {
 
@@ -51,16 +57,8 @@ class HomeComponent(
     }
 
     private suspend fun fetchListings(): List<ListingItem> {
-        delay(1000)
-        return (1..20).map {
-            ListingItem(
-                id = it.toString(),
-                title = "Cool Item $it",
-                price = "$${(it * 10..it * 20).random()}",
-                imageUrl = "https://picsum.photos/seed/$it/300/300",
-                isFavorited = (it % 4 == 0)
-            )
-        }
+        val domainListings = apiClient.getListings()
+        return domainListings.map { it.toListingItem() }
     }
 
     private fun toggleFavorite(itemId: String) {
@@ -77,5 +75,23 @@ class HomeComponent(
         _uiState.update {
             it.copy(listingsState = ContentState.Content(updatedListings))
         }
+    }
+}
+
+private fun Listing.toListingItem(): ListingItem {
+    return ListingItem(
+        id = this.id.toString(),
+        title = this.title,
+        price = this.price.toPriceString(),
+        imageUrl = this.imageLinks.firstOrNull() ?: "",
+        isFavorited = false
+    )
+}
+
+private fun Price.toPriceString(): String {
+    return when (currency) {
+        "USD" -> "$$amount"
+        "EUR" -> "€$amount"
+        else -> "$amount $currency"
     }
 }

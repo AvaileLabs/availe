@@ -15,6 +15,8 @@ plugins {
 val useLocalIp = providers.gradleProperty("availe.dev.useLocalIp").getOrElse("false").toBoolean()
 
 kotlin {
+    jvmToolchain(21)
+
     android {
         namespace = "com.availelabs.availe.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
