@@ -1,8 +1,11 @@
 package com.availelabs.availe.features.home
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,14 +25,15 @@ internal fun HomeScreen(homeScreenComponent: IHomeComponent) {
     val uiState by homeScreenComponent.uiState.subscribeAsState()
 
     ScreenScaffold {
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 300.dp),
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(16.dp)
         ) {
-            item {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(listOf("For Sale", "Services", "Housing")) { category ->
@@ -43,10 +47,10 @@ internal fun HomeScreen(homeScreenComponent: IHomeComponent) {
             val listingsState = uiState.listingsState
             when (listingsState) {
                 is ContentState.Loading -> {
-                    item {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         Box(
                             modifier = Modifier
-                                .fillParentMaxWidth()
+                                .fillMaxWidth()
                                 .padding(vertical = 32.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -56,10 +60,10 @@ internal fun HomeScreen(homeScreenComponent: IHomeComponent) {
                 }
 
                 is ContentState.Error -> {
-                    item {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         Box(
                             modifier = Modifier
-                                .fillParentMaxWidth()
+                                .fillMaxWidth()
                                 .padding(vertical = 32.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -70,13 +74,11 @@ internal fun HomeScreen(homeScreenComponent: IHomeComponent) {
 
                 is ContentState.Content -> {
                     items(listingsState.data) { item ->
-                        Box(Modifier.padding(horizontal = 16.dp)) {
-                            ListingCard(
-                                item = item,
-                                onItemClick = { homeScreenComponent.onEvent(HomeEvents.ItemClicked(it)) },
-                                onFavoriteClick = { homeScreenComponent.onEvent(HomeEvents.FavoriteClicked(it)) }
-                            )
-                        }
+                        ListingCard(
+                            item = item,
+                            onItemClick = { homeScreenComponent.onEvent(HomeEvents.ItemClicked(it)) },
+                            onFavoriteClick = { homeScreenComponent.onEvent(HomeEvents.FavoriteClicked(it)) }
+                        )
                     }
                 }
 
