@@ -1,11 +1,11 @@
 package com.availelabs.availe
 
 import com.availelabs.availe.controllers.ListingController
+import com.availelabs.availe.domain.service.ListingService
 import com.availelabs.availe.repositories.listing.ListingRepository
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.EventListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ItemListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
-import com.availelabs.availe.services.ListingService
 import com.availelabs.availe.setup.hikariSetup
 import org.http4k.contract.contract
 import org.http4k.routing.bind

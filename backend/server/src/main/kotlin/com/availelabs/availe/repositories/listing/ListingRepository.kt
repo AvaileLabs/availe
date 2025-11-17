@@ -2,8 +2,12 @@
 
 package com.availelabs.availe.repositories.listing
 
-import com.availelabs.availe.domain.listing.Listing
-import com.availelabs.availe.domain.listing.NewListing
+import com.availelabs.availe.adapters.toDomainListing
+import com.availelabs.availe.adapters.toDomainPrice
+import com.availelabs.availe.adapters.toMoneta
+import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.repository.IListingRepository
 import com.availelabs.availe.domain.types.DbDeleteResult
 import com.availelabs.availe.domain.types.DbFindResult
 import com.availelabs.availe.domain.types.DbInsertResult
@@ -13,8 +17,6 @@ import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingServiceDtoSchema
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
-import com.availelabs.availe.mappers.toDomainListing
-import com.availelabs.availe.mappers.toMonetaryAmount
 import com.availelabs.availe.repositories.listing.helpers.creators.IListingCreator
 import com.example.jooq.tables.references.LISTINGS
 import com.example.jooq.tables.references.LISTING_EVENT_DETAILS
@@ -28,20 +30,6 @@ import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
-
-internal interface IListingRepository {
-    fun createListing(newListing: NewListing): DbInsertResult<Listing>
-    fun getListingById(id: Uuid): DbFindResult<Listing>
-    fun existsById(id: Uuid): Boolean
-    fun getAllListings(): List<Listing>
-    fun updateListing(
-        id: Uuid,
-        patch: TypeV1ListingDtoPatchRequest,
-        requestingPublisherId: Uuid
-    ): DbUpdateResult<Listing>
-
-    fun deleteListing(id: Uuid, requestingPublisherId: Uuid): DbDeleteResult
-}
 
 internal class ListingRepository(
     private val dsl: DSLContext,
@@ -124,7 +112,7 @@ internal class ListingRepository(
             updates[LISTINGS.IMAGE_LINKS] = imageLinks.value.toTypedArray()
         }
         if (price is SerializablePatchable.Set) {
-            val money = price.value.toMonetaryAmount()
+            val money = price.value.toDomainPrice().toMoneta()
             updates[LISTINGS.PRICE_AMOUNT] = money.number.numberValue(BigDecimal::class.java)
             updates[LISTINGS.PRICE_CURRENCY] = money.currency.currencyCode
         }

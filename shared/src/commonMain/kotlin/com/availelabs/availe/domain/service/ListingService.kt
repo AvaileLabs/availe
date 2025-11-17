@@ -1,28 +1,16 @@
 @file:OptIn(ExperimentalUuidApi::class)
 
-package com.availelabs.availe.services
+package com.availelabs.availe.domain.service
 
-import com.availelabs.availe.domain.listing.Listing
-import com.availelabs.availe.domain.listing.NewListing
+import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.repository.IListingRepository
 import com.availelabs.availe.domain.types.*
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
-import com.availelabs.availe.repositories.listing.IListingRepository
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-internal interface IListingService {
-    fun createListing(newListing: NewListing): InsertResult<Listing>
-    fun getListingById(id: Uuid): FindResult<Listing>
-    fun updateListing(
-        listingId: Uuid,
-        patch: TypeV1ListingDtoPatchRequest,
-        requestingPublisherId: Uuid
-    ): UpdateResult<Listing>
-
-    fun deleteListing(listingId: Uuid, requestingPublisherId: Uuid): DeleteResult
-}
-
-internal class ListingService(
+class ListingService(
     private val listingRepository: IListingRepository
 ) : IListingService {
     override fun createListing(newListing: NewListing): InsertResult<Listing> {

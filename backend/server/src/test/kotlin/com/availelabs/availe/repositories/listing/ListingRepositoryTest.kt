@@ -2,9 +2,10 @@
 
 package com.availelabs.availe.repositories.listing
 
-import com.availelabs.availe.domain.listing.CommonListingData
-import com.availelabs.availe.domain.listing.Listing
-import com.availelabs.availe.domain.listing.NewListing
+import com.availelabs.availe.domain.model.CommonListingData
+import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.model.Price
 import com.availelabs.availe.domain.types.DbDeleteResult
 import com.availelabs.availe.domain.types.DbFindResult
 import com.availelabs.availe.domain.types.DbInsertResult
@@ -17,12 +18,9 @@ import com.availelabs.availe.repositories.listing.helpers.creators.implementatio
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
 import com.availelabs.availe.testutils.PostgresTestBase
 import io.availe.models.SerializablePatchable
-import org.javamoney.moneta.Money
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.math.BigDecimal
-import javax.money.MonetaryAmount
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -34,7 +32,7 @@ class ListingRepositoryTest : PostgresTestBase() {
     private val otherPublisherId = Uuid.random()
 
     private fun aNewItemListing(
-        price: MonetaryAmount = Money.of(100.50, "USD"),
+        price: Price = Price("100.50", "USD"),
         description: String? = "Initial description",
         title: String = "Initial Title",
         imageLinks: List<String> = listOf("initial.png", "header.jpg", "thumbnail.jpg")
@@ -55,7 +53,7 @@ class ListingRepositoryTest : PostgresTestBase() {
             CommonListingData(
                 title = "Initial Event",
                 description = "Initial event description",
-                price = Money.of(25, "USD"),
+                price = Price("25.00", "USD"),
                 imageLinks = emptyList(),
                 publisherId = testPublisherId
             )
@@ -99,16 +97,16 @@ class ListingRepositoryTest : PostgresTestBase() {
 
     @Test
     fun `updateListing updates price field`() {
-        val initialListing = insertListing(aNewItemListing(price = Money.of(100, "USD")))
+        val initialListing = insertListing(aNewItemListing(price = Price("100.00", "USD")))
         val newPriceDto = PriceDto.V1("99.99", "EUR")
-        val expectedPriceMoney = Money.of(BigDecimal("99.99"), "EUR")
+        val expectedPrice = Price("99.99", "EUR")
         val patch = ListingItemDtoSchema.V1.PatchRequest(price = SerializablePatchable.Set(newPriceDto))
 
         val result = repository.updateListing(initialListing.id, patch, testPublisherId)
 
         assertTrue(result is DbUpdateResult.Updated)
         val updatedListing = (result as DbUpdateResult.Updated).value
-        assertEquals(expectedPriceMoney, updatedListing.price)
+        assertEquals(expectedPrice, updatedListing.price)
         assertNotEquals(initialListing.price, updatedListing.price)
         assertEquals(initialListing.title, updatedListing.title)
     }

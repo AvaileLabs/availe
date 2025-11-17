@@ -3,17 +3,19 @@
 package com.availelabs.availe.controllers
 
 import com.availelabs.availe.ApiRoutes
-import com.availelabs.availe.domain.listing.CommonListingData
-import com.availelabs.availe.domain.listing.Listing
-import com.availelabs.availe.domain.listing.NewListing
+import com.availelabs.availe.adapters.toDataDto
+import com.availelabs.availe.adapters.toDomain
+import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.service.IListingService
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.PriceDto
-import com.availelabs.availe.dto.kreplica.*
-import com.availelabs.availe.mappers.toMonetaryAmount
-import com.availelabs.availe.services.IListingService
+import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
+import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoCreateRequest
+import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
+import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import io.availe.models.SerializablePatchable
 import org.http4k.contract.ContractRoute
 import org.http4k.contract.div
@@ -22,8 +24,6 @@ import org.http4k.core.*
 import org.http4k.format.KotlinxSerialization.auto
 import org.http4k.lens.Path
 import org.http4k.lens.RequestKey
-import java.math.BigDecimal
-import javax.money.MonetaryAmount
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -60,11 +60,7 @@ internal class ListingController(
             returning(Status.UNAUTHORIZED)
         } bindContract Method.POST to { req ->
             val publisherId = publisherKey(req)
-            val newListing = when (val dto = bodyLens(req)) {
-                is ListingEventDtoSchema.V1.CreateRequest -> NewListing.Event(dto.toCommonData(publisherId = publisherId))
-                is ListingItemDtoSchema.V1.CreateRequest -> NewListing.Item(dto.toCommonData(publisherId = publisherId))
-                is ListingServiceDtoSchema.V1.CreateRequest -> NewListing.Service(dto.toCommonData(publisherId = publisherId))
-            }
+            val newListing = bodyLens(req).toDomain(publisherId)
 
             when (val result = listingService.createListing(newListing)) {
                 is InsertResult.Inserted<Listing> -> {
@@ -85,7 +81,7 @@ internal class ListingController(
             returning(Status.OK, responseBodyLens to exampleResponseItem)
             returning(Status.NOT_FOUND)
         } bindContract Method.GET to { listingId ->
-            { _ ->
+            { _: Request ->
                 when (val result = listingService.getListingById(listingId)) {
                     is FindResult.Found -> {
                         val responseDto = result.value.toDataDto()
@@ -147,70 +143,6 @@ internal class ListingController(
                 }
             }
         }
-    }
-}
-
-private fun ListingItemDtoSchema.V1.CreateRequest.toCommonData(publisherId: Uuid) =
-    CommonListingData(
-        title = title,
-        description = description,
-        price = price.toMonetaryAmount(),
-        imageLinks = imageLinks,
-        publisherId = publisherId
-    )
-
-private fun ListingEventDtoSchema.V1.CreateRequest.toCommonData(publisherId: Uuid) =
-    CommonListingData(
-        title = title,
-        description = description,
-        price = price.toMonetaryAmount(),
-        imageLinks = imageLinks,
-        publisherId = publisherId
-    )
-
-private fun ListingServiceDtoSchema.V1.CreateRequest.toCommonData(publisherId: Uuid) =
-    CommonListingData(
-        title = title,
-        description = description,
-        price = price.toMonetaryAmount(),
-        imageLinks = imageLinks,
-        publisherId = publisherId
-    )
-
-internal fun MonetaryAmount.toPriceDtoV1(): PriceDto.V1 = PriceDto.V1(
-    amount = this.number.numberValue(BigDecimal::class.java).toPlainString(),
-    currency = this.currency.currencyCode
-)
-
-internal fun Listing.toDataDto(): TypeV1ListingDtoData {
-    val priceDto = this.price.toPriceDtoV1()
-    return when (this) {
-        is Listing.Event -> ListingEventDtoSchema.V1.Data(
-            id = this.id,
-            title = this.title,
-            description = this.description,
-            price = priceDto,
-            imageLinks = this.imageLinks,
-            schemaVersion = 1
-        )
-
-        is Listing.Item -> ListingItemDtoSchema.V1.Data(
-            id = this.id,
-            title = this.title,
-            description = this.description,
-            price = priceDto,
-            imageLinks = this.imageLinks,
-            schemaVersion = 1
-        )
-
-        is Listing.Service -> ListingServiceDtoSchema.V1.Data(
-            id = this.id,
-            title = this.title,
-            description = this.description,
-            price = priceDto,
-            imageLinks = this.imageLinks,
-            schemaVersion = 1
-        )
     }
 }
 

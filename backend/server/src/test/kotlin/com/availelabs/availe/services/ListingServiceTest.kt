@@ -2,13 +2,14 @@
 
 package com.availelabs.availe.services
 
-import com.availelabs.availe.domain.listing.CommonListingData
-import com.availelabs.availe.domain.listing.Listing
-import com.availelabs.availe.domain.listing.NewListing
+import com.availelabs.availe.domain.model.CommonListingData
+import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.model.Price
+import com.availelabs.availe.domain.repository.IListingRepository
+import com.availelabs.availe.domain.service.ListingService
 import com.availelabs.availe.domain.types.*
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
-import com.availelabs.availe.repositories.listing.IListingRepository
-import org.javamoney.moneta.Money
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -68,7 +69,7 @@ private fun aNewItem(): NewListing.Item =
         CommonListingData(
             title = "Bike",
             description = "Blue road bike",
-            price = Money.of(100, "USD"),
+            price = Price("100.00", "USD"),
             imageLinks = emptyList(),
             publisherId = Uuid.random()
         )

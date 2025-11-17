@@ -2,8 +2,8 @@
 
 package com.availelabs.availe.repositories.listing.helpers.creators
 
-import com.availelabs.availe.domain.listing.NewListing
-import com.availelabs.availe.mappers.applyCommonData
+import com.availelabs.availe.adapters.applyCommonData
+import com.availelabs.availe.domain.model.NewListing
 import com.example.jooq.enums.ListingTypeEnum
 import com.example.jooq.tables.references.LISTINGS
 import org.jooq.DSLContext
