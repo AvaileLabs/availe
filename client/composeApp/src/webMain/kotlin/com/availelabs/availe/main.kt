@@ -7,6 +7,7 @@ import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.lifecycle.stop
 import com.availelabs.availe.core.platform.PlatformActivity
+import com.availelabs.availe.data.auth.AuthenticationService
 import com.availelabs.availe.di.createApplicationContainer
 import com.availelabs.availe.features.root.RootComponent
 import kotlinx.browser.window
@@ -31,14 +32,12 @@ fun main() {
 
     val appContainer = createApplicationContainer(lifecycle, activity)
 
-    // Check for Auth Code in URL (Redirect Flow)
     val searchParams = URLSearchParams(window.location.search.toJsString())
     val code = searchParams.get("code")
 
     if (code != null) {
-        // We are returning from Keycloak
         MainScope().launch {
-            appContainer.authenticationService.resumeLogin(code)
+            (appContainer.authenticationService as AuthenticationService).resumeLogin(code)
         }
     }
 
@@ -47,7 +46,6 @@ fun main() {
         appContainer = appContainer
     )
 
-    // Force full page redirect for Web
     root.urlOpener = { url ->
         window.location.href = url
     }

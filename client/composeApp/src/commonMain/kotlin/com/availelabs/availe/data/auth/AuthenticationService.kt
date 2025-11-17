@@ -36,15 +36,9 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 interface IAuthenticationService {
     val authenticationState: Value<AuthenticationState>
     suspend fun login(): LoginResult
-    suspend fun resumeLogin(code: String)
     suspend fun logout(): LogoutResult
     fun getAccountManagementUrl(): String
     suspend fun getCurrentUserProfile(): UserProfile?
-
-    // Web-specific helpers
-    suspend fun getLoginUrl(): String?
-    suspend fun getLogoutUrl(): String?
-    suspend fun clearLocalTokens()
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
@@ -97,17 +91,7 @@ class AuthenticationService(
         return JwtDecoder.decodeUserProfile(idToken)
     }
 
-    override suspend fun getLoginUrl(): String? {
-        return platformGetLoginUrl(client)
-    }
-
-    override suspend fun getLogoutUrl(): String? {
-        val tokens = runCatching { tokenStore.getTokens() }.getOrNull()
-        val idToken = tokens?.idToken
-        return platformGetLogoutUrl(client, idToken)
-    }
-
-    override suspend fun clearLocalTokens() {
+    private suspend fun clearLocalTokens() {
         try {
             tokenStore.removeTokens()
             _authenticationState.update { AuthenticationState.LoggedOut }
@@ -122,7 +106,7 @@ class AuthenticationService(
         }
     }
 
-    override suspend fun resumeLogin(code: String) {
+    suspend fun resumeLogin(code: String) {
         platformResumeLogin(code, client, tokenStore) { newState ->
             _authenticationState.update { newState }
         }
@@ -194,6 +178,3 @@ expect suspend fun platformResumeLogin(
     tokenStore: TokenStore,
     onStateUpdate: (AuthenticationState) -> Unit
 )
-
-expect suspend fun platformGetLoginUrl(client: OpenIdConnectClient): String?
-expect suspend fun platformGetLogoutUrl(client: OpenIdConnectClient, idToken: String?): String?

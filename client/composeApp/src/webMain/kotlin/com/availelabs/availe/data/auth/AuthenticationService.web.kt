@@ -74,23 +74,3 @@ actual suspend fun platformResumeLogin(
         onStateUpdate(AuthenticationState.InitializationFailed(exception))
     }
 }
-
-@OptIn(ExperimentalOpenIdConnect::class)
-actual suspend fun platformGetLoginUrl(client: OpenIdConnectClient): String? {
-    val authorizationRequest = client.createAuthorizationCodeRequest()
-
-    AuthStorage.saveAuthParams(
-        verifier = authorizationRequest.pkce.codeVerifier,
-        state = authorizationRequest.state,
-        nonce = authorizationRequest.nonce,
-        redirectUri = authorizationRequest.config.redirectUri
-    )
-
-    return authorizationRequest.url.toString()
-}
-
-@OptIn(ExperimentalOpenIdConnect::class)
-actual suspend fun platformGetLogoutUrl(client: OpenIdConnectClient, idToken: String?): String? {
-    val endSessionRequest = client.createEndSessionRequest(idToken)
-    return endSessionRequest.url.toString()
-}

@@ -52,15 +52,3 @@ actual suspend fun platformResumeLogin(
 ) {
     // No-op on Android
 }
-
-@OptIn(ExperimentalOpenIdConnect::class)
-actual suspend fun platformGetLoginUrl(client: OpenIdConnectClient): String? {
-    return null
-}
-
-actual suspend fun platformGetLogoutUrl(
-    client: OpenIdConnectClient,
-    idToken: String?
-): String? {
-    return null
-}
