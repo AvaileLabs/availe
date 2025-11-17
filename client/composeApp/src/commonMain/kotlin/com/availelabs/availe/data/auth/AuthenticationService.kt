@@ -95,7 +95,7 @@ class AuthenticationService(
         try {
             tokenStore.removeTokens()
             _authenticationState.update { AuthenticationState.LoggedOut }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Ignore errors during local clear
         }
     }
@@ -159,12 +159,13 @@ private object JwtDecoder {
                 email = jsonObject["email"]?.jsonPrimitive?.content ?: "",
                 pictureUrl = jsonObject["picture"]?.jsonPrimitive?.content
             )
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
 }
 
+@OptIn(ExperimentalOpenIdConnect::class)
 expect suspend fun platformLogin(
     client: OpenIdConnectClient,
     authFactory: CodeAuthFlowFactory,
@@ -172,6 +173,7 @@ expect suspend fun platformLogin(
     onStateUpdate: (AuthenticationState) -> Unit
 ): LoginResult
 
+@OptIn(ExperimentalOpenIdConnect::class)
 expect suspend fun platformResumeLogin(
     code: String,
     client: OpenIdConnectClient,

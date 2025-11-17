@@ -32,6 +32,7 @@ import com.availelabs.availe.features.root.RootComponent
 import com.availelabs.availe.features.settings.SettingsScreen
 import com.availelabs.availe.ui.ScreenScaffold
 import com.composables.icons.lucide.Bell
+import com.composables.icons.lucide.CirclePlus
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Search
 import com.composables.uikit.components.*
@@ -57,7 +58,8 @@ fun App(root: IRootComponent) {
                 appBar = {
                     UiTopAppBar(
                         onSearchClick = root::onSearchClicked,
-                        onNotifyClick = root::onNotificationClicked
+                        onNotifyClick = root::onNotificationClicked,
+                        onPostClick = root::onPostClicked
                     )
                 },
                 sideBar = {
@@ -130,7 +132,8 @@ fun App(root: IRootComponent) {
 @Composable
 fun UiTopAppBar(
     onSearchClick: () -> Unit,
-    onNotifyClick: () -> Unit
+    onNotifyClick: () -> Unit,
+    onPostClick: () -> Unit
 ) {
     TopAppBar(
         title = { Text("Availe") },
@@ -140,6 +143,9 @@ fun UiTopAppBar(
             }
             IconButton(onClick = onSearchClick) {
                 Icon(Lucide.Search, "Search")
+            }
+            IconButton(onClick = onPostClick) {
+                Icon(Lucide.CirclePlus, "Post")
             }
         }
     )

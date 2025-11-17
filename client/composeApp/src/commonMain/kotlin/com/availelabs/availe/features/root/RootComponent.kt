@@ -48,6 +48,7 @@ interface IRootComponent {
     fun onNotificationClicked()
     fun onDismissOverlay()
     fun openUrl(url: String)
+    fun onPostClicked()
 }
 
 class RootComponent(
@@ -101,6 +102,10 @@ class RootComponent(
 
     override fun openUrl(url: String) {
         urlOpener?.invoke(url)
+    }
+
+    override fun onPostClicked() {
+        println("Post clicked")
     }
 
     private fun createChild(
