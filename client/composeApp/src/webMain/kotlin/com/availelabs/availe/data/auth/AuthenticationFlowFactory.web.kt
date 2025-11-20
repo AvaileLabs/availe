@@ -7,12 +7,12 @@ import kotlinx.browser.window
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.appsupport.PlatformCodeAuthFlow
-import org.publicvalue.multiplatform.oidc.appsupport.WebMainCodeAuthFlowFactory
+import org.publicvalue.multiplatform.oidc.appsupport.WebCodeAuthFlowFactory
 import kotlin.js.ExperimentalWasmJsInterop
 
 @OptIn(ExperimentalOpenIdConnect::class)
 actual fun createPlatformAuthenticationFlowFactory(activity: PlatformActivity): CodeAuthFlowFactory {
-    return WebMainCodeAuthFlowFactory()
+    return WebCodeAuthFlowFactory()
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
