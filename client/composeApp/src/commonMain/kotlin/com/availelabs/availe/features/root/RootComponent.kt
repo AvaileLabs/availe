@@ -2,10 +2,10 @@ package com.availelabs.availe.features.root
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.ChildStack
-import com.arkivanov.decompose.router.stack.StackNavigation
-import com.arkivanov.decompose.router.stack.bringToFront
-import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.decompose.router.stack.*
+import com.arkivanov.decompose.router.webhistory.WebNavigation
+import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
@@ -38,7 +38,8 @@ sealed interface OverlayState {
     data object Notifications : OverlayState
 }
 
-interface IRootComponent {
+@OptIn(ExperimentalDecomposeApi::class)
+interface IRootComponent : WebNavigationOwner {
     val childStack: Value<ChildStack<*, Child>>
     val topLevelDestinations: List<TopLevelDestination>
     val overlayState: Value<OverlayState>
@@ -51,10 +52,17 @@ interface IRootComponent {
     fun onPostClicked()
 }
 
+@OptIn(ExperimentalDecomposeApi::class)
 class RootComponent(
     componentContext: ComponentContext,
-    private val appContainer: ApplicationContainer
+    private val appContainer: ApplicationContainer,
+    private val deepLinkUrl: String?
 ) : IRootComponent, ComponentContext by componentContext {
+
+    constructor(
+        componentContext: ComponentContext,
+        appContainer: ApplicationContainer
+    ) : this(componentContext, appContainer, null)
 
     override val topLevelDestinations = listOf(
         TopLevelDestination(Configuration.Home, "Home", Lucide.House),
@@ -70,8 +78,25 @@ class RootComponent(
     override val childStack = childStack(
         source = navigation,
         serializer = Configuration.serializer(),
-        initialConfiguration = Configuration.Home,
+        initialStack = {
+            if (deepLinkUrl != null) {
+                val configuration = getConfigurationForPath(deepLinkUrl)
+                listOf(configuration)
+            } else {
+                listOf(Configuration.Home)
+            }
+        },
         childFactory = ::createChild,
+    )
+
+    override val webNavigation: WebNavigation<*> = childStackWebNavigation(
+        navigator = navigation,
+        stack = childStack,
+        serializer = Configuration.serializer(),
+        pathMapper = { child -> getPathForConfiguration(child.configuration) },
+        childSelector = {
+            null
+        }
     )
 
     private val _overlayState = MutableValue<OverlayState>(OverlayState.None)
@@ -140,6 +165,28 @@ class RootComponent(
             authService = appContainer.authenticationService,
             onOpenUrl = { url -> openUrl(url) }
         )
+    }
+
+    private fun getPathForConfiguration(configuration: Configuration): String {
+        return when (configuration) {
+            Configuration.Home -> "/"
+            Configuration.Favorites -> "/favorites"
+            Configuration.MyListings -> "/my-listings"
+            Configuration.Messages -> "/messages"
+            Configuration.Profile -> "/profile"
+            Configuration.Settings -> "/settings"
+        }
+    }
+
+    private fun getConfigurationForPath(path: String): Configuration {
+        return when (path.removeSuffix("/")) {
+            "/favorites" -> Configuration.Favorites
+            "/my-listings" -> Configuration.MyListings
+            "/messages" -> Configuration.Messages
+            "/profile" -> Configuration.Profile
+            "/settings" -> Configuration.Settings
+            else -> Configuration.Home
+        }
     }
 }
 

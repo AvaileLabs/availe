@@ -3,9 +3,11 @@ package com.availelabs.availe
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import com.arkivanov.decompose.DefaultComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.lifecycle.stop
+import com.arkivanov.essenty.statekeeper.StateKeeper
 import com.availelabs.availe.core.platform.PlatformActivity
 import com.availelabs.availe.data.auth.AuthenticationService
 import com.availelabs.availe.di.createApplicationContainer
@@ -24,11 +26,20 @@ import web.events.addEventListener
 import kotlin.js.ExperimentalWasmJsInterop
 import kotlin.js.toJsString
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalOpenIdConnect::class, ExperimentalWasmJsInterop::class)
-fun main() {
+@OptIn(
+    ExperimentalComposeUiApi::class,
+    ExperimentalOpenIdConnect::class,
+    ExperimentalWasmJsInterop::class,
+    ExperimentalDecomposeApi::class
+)
+fun startWebApp(deepLink: String?, stateKeeper: StateKeeper): RootComponent {
     val lifecycle = LifecycleRegistry()
     val activity = PlatformActivity()
-    val context = DefaultComponentContext(lifecycle = lifecycle)
+
+    val context = DefaultComponentContext(
+        lifecycle = lifecycle,
+        stateKeeper = stateKeeper
+    )
 
     val appContainer = createApplicationContainer(lifecycle, activity)
 
@@ -43,7 +54,8 @@ fun main() {
 
     val root = RootComponent(
         componentContext = context,
-        appContainer = appContainer
+        appContainer = appContainer,
+        deepLinkUrl = deepLink
     )
 
     root.urlOpener = { url ->
@@ -55,6 +67,8 @@ fun main() {
     ComposeViewport {
         App(root = root)
     }
+
+    return root
 }
 
 private fun LifecycleRegistry.attachToDocument() {

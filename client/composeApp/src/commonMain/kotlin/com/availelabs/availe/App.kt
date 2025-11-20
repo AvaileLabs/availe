@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,11 @@ fun App(root: IRootComponent) {
     val activeConfiguration = childStack.active.configuration
     val overlayState by root.overlayState.subscribeAsState()
     val uriHandler = LocalUriHandler.current
+    val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(activeConfiguration) {
+        focusManager.clearFocus()
+    }
 
     LaunchedEffect(root) {
         if (root is RootComponent && root.urlOpener == null) {
