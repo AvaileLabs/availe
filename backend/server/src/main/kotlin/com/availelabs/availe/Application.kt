@@ -8,6 +8,9 @@ import com.availelabs.availe.repositories.listing.helpers.creators.implementatio
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
 import com.availelabs.availe.setup.hikariSetup
 import org.http4k.contract.contract
+import org.http4k.core.then
+import org.http4k.filter.CorsPolicy
+import org.http4k.filter.ServerFilters
 import org.http4k.routing.bind
 import org.http4k.routing.routes
 import org.http4k.server.Helidon
@@ -44,9 +47,13 @@ internal fun main() {
         routes += listingController.listOfRoutes
     }
 
-    val app = routes(
+    val corsFilter = ServerFilters.Cors(CorsPolicy.UnsafeGlobalPermissive)
+
+    val api = routes(
         "/api" bind apiContract,
     )
+
+    val app = corsFilter.then(api)
 
     app.asServer(Helidon(9002)).start()
 }
