@@ -82,6 +82,7 @@ jooq = { module = "org.jooq:jooq", version.ref = "jooq" }
 hikariCP = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 oidc-appsupport = { module = "io.github.kalinjul.kotlin.multiplatform:oidc-appsupport", version.ref = "kmp-oidc" }
 oidc-ktor = { module = "io.github.kalinjul.kotlin.multiplatform:oidc-ktor", version.ref = "kmp-oidc" }
+oidc-preferences = { module = "io.github.kalinjul.kotlin.multiplatform:oidc-preferences", version.ref = "kmp-oidc" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 flyway-database-postgresql = { group = "org.flywaydb", name = "flyway-database-postgresql", version.ref = "flyway" }
 docker-java = { module = "com.github.docker-java:docker-java" }

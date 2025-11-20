@@ -99,6 +99,7 @@ kotlin {
             // kmp-oidc
             implementation(libs.oidc.appsupport)
             implementation(libs.oidc.ktor)
+            implementation(libs.oidc.preferences)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
