@@ -114,7 +114,7 @@ fun App(root: IRootComponent) {
                     when (val child = it.instance) {
                         is Child.Home -> HomeScreen(homeScreenComponent = child.component)
                         is Child.Favorites -> FavoritesScreen()
-                        is Child.MyListings -> MyListingsScreen()
+                        is Child.MyListings -> MyListingsScreen(component = child.component)
                         is Child.Messages -> MessagesScreen()
                         is Child.Profile -> ProfileScreen(component = child.component)
                         is Child.Settings -> SettingsScreen()

@@ -11,12 +11,13 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.di.ApplicationContainer
+import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.features.favorites.FavoritesComponent
 import com.availelabs.availe.features.favorites.IFavoritesComponent
 import com.availelabs.availe.features.home.HomeComponent
 import com.availelabs.availe.features.home.IHomeComponent
-import com.availelabs.availe.features.listings.IMyListingsComponent
-import com.availelabs.availe.features.listings.MyListingsComponent
+import com.availelabs.availe.features.listings.IMyListingsHostComponent
+import com.availelabs.availe.features.listings.MyListingsHostComponent
 import com.availelabs.availe.features.messages.IMessagesComponent
 import com.availelabs.availe.features.messages.MessagesComponent
 import com.availelabs.availe.features.profile.IProfileComponent
@@ -130,7 +131,18 @@ class RootComponent(
     }
 
     override fun onPostClicked() {
-        println("Post clicked")
+        val authState = appContainer.authenticationService.authenticationState.value
+        if (authState !is AuthenticationState.LoggedIn) {
+            navigation.bringToFront(Configuration.Profile)
+            return
+        }
+
+        navigation.bringToFront(Configuration.MyListings) {
+            val activeChild = childStack.value.active.instance
+            if (activeChild is Child.MyListings) {
+                activeChild.component.showCreateListing()
+            }
+        }
     }
 
     private fun createChild(
@@ -140,7 +152,7 @@ class RootComponent(
         return when (configuration) {
             is Configuration.Home -> Child.Home(createHomeScreenComponent(componentContext))
             is Configuration.Favorites -> Child.Favorites(FavoritesComponent(componentContext))
-            is Configuration.MyListings -> Child.MyListings(MyListingsComponent(componentContext))
+            is Configuration.MyListings -> Child.MyListings(createMyListingsComponent(componentContext))
             is Configuration.Messages -> Child.Messages(MessagesComponent(componentContext))
             is Configuration.Profile -> Child.Profile(createProfileComponent(componentContext))
             is Configuration.Settings -> Child.Settings(SettingsComponent(componentContext))
@@ -164,6 +176,14 @@ class RootComponent(
             componentContext = componentContext,
             authService = appContainer.authenticationService,
             onOpenUrl = { url -> openUrl(url) }
+        )
+    }
+
+    private fun createMyListingsComponent(componentContext: ComponentContext): IMyListingsHostComponent {
+        return MyListingsHostComponent(
+            componentContext = componentContext,
+            apiClient = appContainer.apiClient,
+            authService = appContainer.authenticationService
         )
     }
 
@@ -193,7 +213,7 @@ class RootComponent(
 sealed interface Child {
     data class Home(val component: IHomeComponent) : Child
     data class Favorites(val component: IFavoritesComponent) : Child
-    data class MyListings(val component: IMyListingsComponent) : Child
+    data class MyListings(val component: IMyListingsHostComponent) : Child
     data class Messages(val component: IMessagesComponent) : Child
     data class Profile(val component: IProfileComponent) : Child
     data class Settings(val component: ISettingsComponent) : Child
