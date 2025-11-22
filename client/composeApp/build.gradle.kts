@@ -113,6 +113,7 @@ kotlin {
             implementation(libs.ktor.client.cio)
             implementation(libs.ktor.server.core)
             implementation(libs.ktor.server.netty)
+            implementation(libs.logback)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

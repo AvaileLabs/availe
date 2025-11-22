@@ -21,7 +21,8 @@ internal object KeycloakDesiredState {
     )
 
     private val serviceRedirects = setOf(
-        "http://$HOST_IP:8888/callback"
+        "http://$HOST_IP:8888/callback",
+        "http://127.0.0.1:8888/callback"
     )
 
     private val allRedirectUris = webAppRedirects + mobileAppRedirects + serviceRedirects

@@ -10,11 +10,11 @@ internal object AuthenticationConstants {
 
     const val REDIRECT_URI_ANDROID: String = "com.availe.auth://callback"
     const val REDIRECT_URI_IOS: String = "com.availe.auth://callback"
-    const val REDIRECT_URI_JVM: String = "http://${NetworkConstants.HOST_IP}:8888/callback"
+    const val REDIRECT_URI_JVM: String = "http://127.0.0.1:8888/callback"
     const val REDIRECT_URI_WEB: String = "http://${NetworkConstants.HOST_IP}:8080"
 
     const val POST_LOGOUT_REDIRECT_URI_ANDROID: String = "com.availe.auth://callback"
     const val POST_LOGOUT_REDIRECT_URI_IOS: String = "com.availe.auth://callback"
-    const val POST_LOGOUT_REDIRECT_URI_JVM: String = "http://${NetworkConstants.HOST_IP}:8888/callback"
+    const val POST_LOGOUT_REDIRECT_URI_JVM: String = "http://127.0.0.1:8888/callback"
     const val POST_LOGOUT_REDIRECT_URI_WEB: String = "http://${NetworkConstants.HOST_IP}:8080"
 }
