@@ -37,7 +37,7 @@ internal fun main() {
 
     val events = EventFilters.AddTimestamp()
         .then(EventFilters.AddEventName())
-        .then(AutoMarshallingEvents(KotlinxSerialization))
+        .then(AutoMarshallingEvents(KotlinxSerialization, ::println))
 
     val itemCreator = ItemListingCreator(dsl)
     val eventCreator = EventListingCreator(dsl)
