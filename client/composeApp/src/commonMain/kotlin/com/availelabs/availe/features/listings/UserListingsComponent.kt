@@ -5,6 +5,7 @@ package com.availelabs.availe.features.listings
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.arkivanov.essenty.lifecycle.doOnResume
 import com.availelabs.availe.data.auth.IAuthenticationService
 import com.availelabs.availe.data.network.IApiClient
 import com.availelabs.availe.domain.model.Listing
@@ -39,6 +40,10 @@ class UserListingsComponent(
 
     init {
         listingsLoader.load()
+
+        lifecycle.doOnResume {
+            listingsLoader.refresh()
+        }
     }
 
     override fun onCreateClicked() {

@@ -26,5 +26,6 @@ sealed interface UserProfile {
 data class ProfileState(
     val userProfile: UserProfile? = null,
     val isAuthenticated: Boolean = false,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val initializationError: String? = null
 )

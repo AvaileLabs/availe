@@ -42,17 +42,30 @@ class ProfileComponent(
                     it.copy(
                         isAuthenticated = true,
                         userProfile = profile,
-                        isLoading = false
+                        isLoading = false,
+                        initializationError = null
                     )
                 }
             }
 
-            is AuthenticationState.LoggedOut, AuthenticationState.Unknown, is AuthenticationState.InitializationFailed -> {
+            is AuthenticationState.InitializationFailed -> {
                 _uiState.update {
                     it.copy(
                         isAuthenticated = false,
                         userProfile = null,
-                        isLoading = false
+                        isLoading = false,
+                        initializationError = authState.error.message ?: "Unknown authentication error"
+                    )
+                }
+            }
+
+            is AuthenticationState.LoggedOut, AuthenticationState.Unknown -> {
+                _uiState.update {
+                    it.copy(
+                        isAuthenticated = false,
+                        userProfile = null,
+                        isLoading = false,
+                        initializationError = null
                     )
                 }
             }
@@ -62,7 +75,7 @@ class ProfileComponent(
     override fun onEvent(event: ProfileEvents) {
         when (event) {
             ProfileEvents.LoginClicked -> {
-                _uiState.update { it.copy(isLoading = true) }
+                _uiState.update { it.copy(isLoading = true, initializationError = null) }
                 scope.launch {
                     authService.login()
                 }

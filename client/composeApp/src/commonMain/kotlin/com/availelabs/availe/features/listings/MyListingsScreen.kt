@@ -16,13 +16,12 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.ui.ScreenScaffold
 import com.availelabs.ui.utils.ContentState
+import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.Image
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Trash2
 import com.composables.uikit.components.*
-import com.composables.uikit.styling.accent
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.destructive
+import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
 
 @Composable
@@ -162,10 +161,19 @@ fun CreateListingScreen(component: ICreateListingComponent) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Create Listing",
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            // Header with Back Button and Title
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                IconButton(onClick = component::onCancel) {
+                    Icon(Lucide.ArrowLeft, "Back")
+                }
+                Text(
+                    text = "Create Listing",
+                    style = Theme[textStyles][title]
+                )
+            }
 
             Card(contentPadding = PaddingValues(16.dp)) {
                 Text("Listing Type", color = Color.Gray)
@@ -209,7 +217,6 @@ fun CreateListingScreen(component: ICreateListingComponent) {
                     modifier = Modifier.weight(1f)
                 )
 
-                // Simple toggle for currency for now, can be a Picker later
                 Column(modifier = Modifier.width(100.dp)) {
                     Text("Currency", modifier = Modifier.padding(bottom = 8.dp))
                     if (state.priceCurrency == "USD") {

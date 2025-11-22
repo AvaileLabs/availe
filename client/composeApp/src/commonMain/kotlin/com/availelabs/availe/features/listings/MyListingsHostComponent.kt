@@ -30,7 +30,7 @@ class MyListingsHostComponent(
     )
 
     override fun showCreateListing() {
-        navigation.push(Config.Create)
+        navigation.bringToFront(Config.Create)
     }
 
     private fun createChild(config: Config, componentContext: ComponentContext): MyListingsChild =

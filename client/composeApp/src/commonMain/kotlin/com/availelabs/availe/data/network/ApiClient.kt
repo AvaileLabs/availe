@@ -29,27 +29,43 @@ class ApiClient(
 ) : IApiClient {
 
     override suspend fun getListings(): List<Listing> {
-        val jsonString = httpClient.get(ApiRoutes.LISTINGS).bodyAsText()
+        val response = httpClient.get(ApiRoutes.LISTINGS)
+        val jsonString = response.bodyAsText()
+
+        if (!response.status.isSuccess()) {
+            throw Exception("Failed to fetch listings: ${response.status} - $jsonString")
+        }
+
         val dtos = json.decodeFromString(ListSerializer(TypeV1ListingDtoData.serializer()), jsonString)
         return dtos.map { it.toDomainListing() }
     }
 
     override suspend fun createListing(listing: NewListing, publisherId: Uuid): Listing {
         val dto = listing.toCreateRequestDto()
-        val jsonString = httpClient.post(ApiRoutes.LISTINGS) {
+        val response = httpClient.post(ApiRoutes.LISTINGS) {
             header(HttpHeaders.ContentType, ApiMediaTypes.LISTINGS_V1_JSON)
             header(HttpHeaders.Accept, ApiMediaTypes.LISTINGS_V1_JSON)
             parameter("publisherId", publisherId.toString())
             setBody(dto)
-        }.bodyAsText()
+        }
+
+        val jsonString = response.bodyAsText()
+
+        if (!response.status.isSuccess()) {
+            throw Exception("Creation failed: ${response.status} - $jsonString")
+        }
 
         val responseDto = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)
         return responseDto.toDomainListing()
     }
 
     override suspend fun deleteListing(listingId: Uuid, publisherId: Uuid) {
-        httpClient.delete("${ApiRoutes.LISTINGS}/${listingId}") {
+        val response = httpClient.delete("${ApiRoutes.LISTINGS}/${listingId}") {
             parameter("publisherId", publisherId.toString())
+        }
+
+        if (!response.status.isSuccess()) {
+            throw Exception("Deletion failed: ${response.status} - ${response.bodyAsText()}")
         }
     }
 }

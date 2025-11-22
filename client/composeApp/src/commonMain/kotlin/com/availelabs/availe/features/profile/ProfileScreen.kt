@@ -13,11 +13,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.ui.ScreenScaffold
-import com.composables.icons.lucide.LogOut
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.User
-import com.composables.icons.lucide.UserCog
+import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
+import com.composables.uikit.styling.colors
+import com.composables.uikit.styling.destructive
 import com.composables.uikit.styling.textStyles
 import com.composables.uikit.styling.title
 import com.composeunstyled.theme.Theme
@@ -31,18 +30,71 @@ fun ProfileScreen(component: IProfileComponent) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            if (state.isAuthenticated) {
-                AuthenticatedContent(
-                    profile = state.userProfile,
-                    onManageAccount = { component.onEvent(ProfileEvents.ManageAccountClicked) },
-                    onLogout = { component.onEvent(ProfileEvents.LogoutClicked) }
-                )
-            } else {
-                GuestContent(
-                    isLoading = state.isLoading,
-                    onLogin = { component.onEvent(ProfileEvents.LoginClicked) }
-                )
+            when {
+                state.initializationError != null -> {
+                    ErrorContent(
+                        message = state.initializationError!!,
+                        onRetry = { component.onEvent(ProfileEvents.LoginClicked) }
+                    )
+                }
+
+                state.isAuthenticated -> {
+                    AuthenticatedContent(
+                        profile = state.userProfile,
+                        onManageAccount = { component.onEvent(ProfileEvents.ManageAccountClicked) },
+                        onLogout = { component.onEvent(ProfileEvents.LogoutClicked) }
+                    )
+                }
+
+                else -> {
+                    GuestContent(
+                        isLoading = state.isLoading,
+                        onLogin = { component.onEvent(ProfileEvents.LoginClicked) }
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun ErrorContent(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Lucide.CircleAlert,
+            contentDescription = "Error",
+            modifier = Modifier.size(64.dp),
+            tint = Theme[colors][destructive]
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        Text(
+            text = "Authentication Error",
+            style = Theme[textStyles][title],
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            text = message,
+            color = Color.Gray,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
+
+        Spacer(Modifier.height(32.dp))
+
+        PrimaryButton(onClick = onRetry) {
+            Text("Retry")
         }
     }
 }
