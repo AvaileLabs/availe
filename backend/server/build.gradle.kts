@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.http4k.server.helidon)
     implementation(libs.http4k.api.openapi)
     implementation(libs.http4k.format.kotlinx.serialization)
+    implementation(libs.http4k.format.jackson)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.money.api)

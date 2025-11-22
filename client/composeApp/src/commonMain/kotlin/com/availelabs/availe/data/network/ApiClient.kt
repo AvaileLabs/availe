@@ -6,7 +6,6 @@ import com.availelabs.availe.ApiMediaTypes
 import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoCreateRequest
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -30,12 +29,10 @@ class ApiClient(
 ) : IApiClient {
 
     override suspend fun getListings(): List<Listing> {
-        println("Fetching listings from ${ApiRoutes.LISTINGS}")
         val response = httpClient.get(ApiRoutes.LISTINGS)
         val jsonString = response.bodyAsText()
 
         if (!response.status.isSuccess()) {
-            println("Error fetching listings. Status: ${response.status}. Body: $jsonString")
             throw Exception("Failed to fetch listings: ${response.status} - $jsonString")
         }
 
@@ -45,21 +42,14 @@ class ApiClient(
 
     override suspend fun createListing(listing: NewListing, publisherId: Uuid): Listing {
         val dto = listing.toCreateRequestDto()
-        val requestBody = json.encodeToString(TypeV1ListingDtoCreateRequest.serializer(), dto)
-
-        println("Creating listing. Publisher: $publisherId")
-        println("Request Body: $requestBody")
-
         val response = httpClient.post(ApiRoutes.LISTINGS) {
             header(HttpHeaders.ContentType, ApiMediaTypes.LISTINGS_V1_JSON)
             header(HttpHeaders.Accept, ApiMediaTypes.LISTINGS_V1_JSON)
             parameter("publisherId", publisherId.toString())
-            setBody(requestBody)
+            setBody(dto)
         }
 
         val jsonString = response.bodyAsText()
-        println("Create Listing Response Status: ${response.status}")
-        println("Create Listing Response Body: $jsonString")
 
         if (!response.status.isSuccess()) {
             throw Exception("Creation failed: ${response.status} - $jsonString")
@@ -70,15 +60,12 @@ class ApiClient(
     }
 
     override suspend fun deleteListing(listingId: Uuid, publisherId: Uuid) {
-        println("Deleting listing $listingId for publisher $publisherId")
         val response = httpClient.delete("${ApiRoutes.LISTINGS}/${listingId}") {
             parameter("publisherId", publisherId.toString())
         }
 
         if (!response.status.isSuccess()) {
-            val errorBody = response.bodyAsText()
-            println("Delete Listing Error: ${response.status} - $errorBody")
-            throw Exception("Deletion failed: ${response.status} - $errorBody")
+            throw Exception("Deletion failed: ${response.status} - ${response.bodyAsText()}")
         }
     }
 }

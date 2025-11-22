@@ -25,12 +25,14 @@ import org.http4k.core.*
 import org.http4k.events.Events
 import org.http4k.format.KotlinxSerialization.auto
 import org.http4k.lens.Path
-import org.http4k.lens.RequestKey
+import org.http4k.lens.Query
+import org.http4k.lens.uuid
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import kotlin.uuid.toKotlinUuid
 
-internal val publisherKey = RequestKey.required<Uuid>("publisherId")
+internal val publisherKey = Query.uuid().required("publisherId")
 
 internal class ListingController(
     private val listingService: IListingService,
@@ -63,7 +65,7 @@ internal class ListingController(
             returning(Status.CONFLICT)
             returning(Status.UNAUTHORIZED)
         } bindContract Method.POST to { req ->
-            val publisherId = publisherKey(req)
+            val publisherId = publisherKey(req).toKotlinUuid()
             val newListing = bodyLens(req).toDomain(publisherId)
 
             when (val result = listingService.createListing(newListing)) {
@@ -126,7 +128,7 @@ internal class ListingController(
         } bindContract Method.PATCH to { listingId ->
             { req ->
                 val patchDto = patchBodyLens(req)
-                val publisherId = publisherKey(req)
+                val publisherId = publisherKey(req).toKotlinUuid()
 
                 when (val result = listingService.updateListing(listingId, patchDto, publisherId)) {
                     is UpdateResult.Updated -> {
@@ -151,7 +153,7 @@ internal class ListingController(
             returning(Status.UNAUTHORIZED)
         } bindContract Method.DELETE to { listingId ->
             { req ->
-                val publisherId = publisherKey(req)
+                val publisherId = publisherKey(req).toKotlinUuid()
 
                 when (listingService.deleteListing(listingId, publisherId)) {
                     is DeleteResult.Deleted -> Response(Status.NO_CONTENT)

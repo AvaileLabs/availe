@@ -15,7 +15,7 @@ import org.http4k.events.EventFilters
 import org.http4k.events.then
 import org.http4k.filter.CorsPolicy
 import org.http4k.filter.ServerFilters
-import org.http4k.format.KotlinxSerialization
+import org.http4k.format.Jackson
 import org.http4k.routing.bind
 import org.http4k.routing.routes
 import org.http4k.server.Helidon
@@ -37,7 +37,7 @@ internal fun main() {
 
     val events = EventFilters.AddTimestamp()
         .then(EventFilters.AddEventName())
-        .then(AutoMarshallingEvents(KotlinxSerialization, ::println))
+        .then(AutoMarshallingEvents(Jackson, ::println))
 
     val itemCreator = ItemListingCreator(dsl)
     val eventCreator = EventListingCreator(dsl)
