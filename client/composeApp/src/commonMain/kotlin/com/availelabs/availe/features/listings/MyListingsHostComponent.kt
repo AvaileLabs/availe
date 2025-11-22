@@ -1,6 +1,7 @@
 package com.availelabs.availe.features.listings
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.availelabs.availe.data.auth.IAuthenticationService
@@ -30,6 +31,7 @@ class MyListingsHostComponent(
         childFactory = ::createChild
     )
 
+    @OptIn(DelicateDecomposeApi::class)
     override fun showEditor(listing: Listing?) {
         if (listing != null) {
             currentListingToEdit = listing
