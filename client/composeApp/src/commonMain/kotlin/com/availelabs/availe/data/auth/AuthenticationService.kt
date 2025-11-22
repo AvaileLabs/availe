@@ -135,7 +135,7 @@ class AuthenticationService(
 private object JwtDecoder {
     private val json = Json { ignoreUnknownKeys = true }
 
-    @OptIn(ExperimentalEncodingApi::class)
+    @OptIn(ExperimentalEncodingApi::class, ExperimentalUuidApi::class)
     fun decodeUserProfile(token: String): UserProfile? {
         return try {
             val parts = token.split(".")
@@ -161,12 +161,25 @@ private object JwtDecoder {
 
 @OptIn(ExperimentalUuidApi::class)
 private fun JwtPayloadDto.toUserProfile(): UserProfile {
-    return UserProfile(
-        id = Uuid.parse(this.sub),
-        name = this.name ?: "User",
-        email = this.email ?: throw IllegalArgumentException("Email claim is required"),
-        pictureUrl = this.picture
-    )
+    val id = Uuid.parse(this.sub)
+    val email = this.email ?: throw IllegalArgumentException("Email claim is required")
+    val picture = this.picture
+    val name = this.name
+
+    return if (name != null) {
+        UserProfile.Named(
+            id = id,
+            email = email,
+            pictureUrl = picture,
+            name = name
+        )
+    } else {
+        UserProfile.Anonymous(
+            id = id,
+            email = email,
+            pictureUrl = picture
+        )
+    }
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)

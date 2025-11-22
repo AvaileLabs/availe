@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -26,7 +25,6 @@ import com.composeunstyled.theme.Theme
 @Composable
 fun ProfileScreen(component: IProfileComponent) {
     val state by component.uiState.subscribeAsState()
-    val uriHandler = LocalUriHandler.current
 
     ScreenScaffold {
         Box(
@@ -62,16 +60,28 @@ private fun AuthenticatedContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        val initials = when (profile) {
+            is UserProfile.Named -> profile.name
+            is UserProfile.Anonymous -> "User"
+            null -> "U"
+        }
+
         Avatar(
             painter = rememberPlaceholderPainter(),
-            initials = profile?.name ?: "U",
+            initials = initials,
             modifier = Modifier.size(96.dp)
         )
 
         Spacer(Modifier.height(24.dp))
 
+        val displayName = when (profile) {
+            is UserProfile.Named -> profile.name
+            is UserProfile.Anonymous -> "User"
+            null -> "Unknown User"
+        }
+
         Text(
-            text = profile?.name ?: "Unknown User",
+            text = displayName,
             style = Theme[textStyles][title],
             textAlign = TextAlign.Center
         )

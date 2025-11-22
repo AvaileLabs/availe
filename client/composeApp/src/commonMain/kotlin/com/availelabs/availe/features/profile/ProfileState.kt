@@ -4,12 +4,24 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-data class UserProfile(
-    val id: Uuid,
-    val name: String,
-    val email: String,
-    val pictureUrl: String? = null
-)
+sealed interface UserProfile {
+    val id: Uuid
+    val email: String
+    val pictureUrl: String?
+
+    data class Named(
+        override val id: Uuid,
+        override val email: String,
+        override val pictureUrl: String?,
+        val name: String
+    ) : UserProfile
+
+    data class Anonymous(
+        override val id: Uuid,
+        override val email: String,
+        override val pictureUrl: String?
+    ) : UserProfile
+}
 
 data class ProfileState(
     val userProfile: UserProfile? = null,
