@@ -18,6 +18,7 @@ import kotlin.uuid.ExperimentalUuidApi
 interface IUserListingsComponent {
     val state: Value<ContentState<List<Listing>>>
     fun onCreateClicked()
+    fun onEditClicked(listing: Listing)
     fun onDeleteClicked(listing: Listing)
     fun onRefresh()
 }
@@ -26,7 +27,7 @@ class UserListingsComponent(
     componentContext: ComponentContext,
     private val apiClient: IApiClient,
     private val authService: IAuthenticationService,
-    private val onCreateClickedCallback: () -> Unit
+    private val onEditorRequest: (Listing?) -> Unit
 ) : IUserListingsComponent, ComponentContext by componentContext {
 
     private val scope = componentContext.coroutineScope(Dispatchers.Main.immediate)
@@ -47,7 +48,11 @@ class UserListingsComponent(
     }
 
     override fun onCreateClicked() {
-        onCreateClickedCallback()
+        onEditorRequest(null)
+    }
+
+    override fun onEditClicked(listing: Listing) {
+        onEditorRequest(listing)
     }
 
     override fun onDeleteClicked(listing: Listing) {

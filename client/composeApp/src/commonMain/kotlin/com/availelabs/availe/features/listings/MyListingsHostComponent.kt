@@ -5,12 +5,13 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.availelabs.availe.data.auth.IAuthenticationService
 import com.availelabs.availe.data.network.IApiClient
+import com.availelabs.availe.domain.model.Listing
 import kotlinx.serialization.Serializable
 
 interface IMyListingsHostComponent {
     val childStack: Value<ChildStack<*, MyListingsChild>>
 
-    fun showCreateListing()
+    fun showEditor(listing: Listing?)
 }
 
 class MyListingsHostComponent(
@@ -29,9 +30,17 @@ class MyListingsHostComponent(
         childFactory = ::createChild
     )
 
-    override fun showCreateListing() {
-        navigation.bringToFront(Config.Create)
+    override fun showEditor(listing: Listing?) {
+        if (listing != null) {
+            currentListingToEdit = listing
+            navigation.push(Config.Editor(isEdit = true))
+        } else {
+            currentListingToEdit = null
+            navigation.push(Config.Editor(isEdit = false))
+        }
     }
+
+    private var currentListingToEdit: Listing? = null
 
     private fun createChild(config: Config, componentContext: ComponentContext): MyListingsChild =
         when (config) {
@@ -40,16 +49,20 @@ class MyListingsHostComponent(
                     componentContext = componentContext,
                     apiClient = apiClient,
                     authService = authService,
-                    onCreateClickedCallback = { navigation.push(Config.Create) }
+                    onEditorRequest = { listing -> showEditor(listing) }
                 )
             )
 
-            Config.Create -> MyListingsChild.Create(
-                CreateListingComponent(
+            is Config.Editor -> MyListingsChild.Editor(
+                ListingEditorComponent(
                     componentContext = componentContext,
                     apiClient = apiClient,
                     authService = authService,
-                    onFinishedCallback = { navigation.pop() }
+                    listingToEdit = if (config.isEdit) currentListingToEdit else null,
+                    onFinishedCallback = {
+                        currentListingToEdit = null
+                        navigation.pop()
+                    }
                 )
             )
         }
@@ -60,11 +73,11 @@ class MyListingsHostComponent(
         data object List : Config
 
         @Serializable
-        data object Create : Config
+        data class Editor(val isEdit: Boolean) : Config
     }
 }
 
 sealed interface MyListingsChild {
     data class List(val component: IUserListingsComponent) : MyListingsChild
-    data class Create(val component: ICreateListingComponent) : MyListingsChild
+    data class Editor(val component: IListingEditorComponent) : MyListingsChild
 }

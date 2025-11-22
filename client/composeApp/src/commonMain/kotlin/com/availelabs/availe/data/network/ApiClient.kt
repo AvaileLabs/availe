@@ -7,6 +7,7 @@ import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.NewListing
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
+import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -20,6 +21,7 @@ import kotlin.uuid.Uuid
 interface IApiClient {
     suspend fun getListings(): List<Listing>
     suspend fun createListing(listing: NewListing, publisherId: Uuid): Listing
+    suspend fun updateListing(listingId: Uuid, patch: TypeV1ListingDtoPatchRequest, publisherId: Uuid): Listing
     suspend fun deleteListing(listingId: Uuid, publisherId: Uuid)
 }
 
@@ -53,6 +55,28 @@ class ApiClient(
 
         if (!response.status.isSuccess()) {
             throw Exception("Creation failed: ${response.status} - $jsonString")
+        }
+
+        val responseDto = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)
+        return responseDto.toDomainListing()
+    }
+
+    override suspend fun updateListing(
+        listingId: Uuid,
+        patch: TypeV1ListingDtoPatchRequest,
+        publisherId: Uuid
+    ): Listing {
+        val response = httpClient.patch("${ApiRoutes.LISTINGS}/${listingId}") {
+            header(HttpHeaders.ContentType, ApiMediaTypes.LISTINGS_V1_JSON)
+            header(HttpHeaders.Accept, ApiMediaTypes.LISTINGS_V1_JSON)
+            parameter("publisherId", publisherId.toString())
+            setBody(patch)
+        }
+
+        val jsonString = response.bodyAsText()
+
+        if (!response.status.isSuccess()) {
+            throw Exception("Update failed: ${response.status} - $jsonString")
         }
 
         val responseDto = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)

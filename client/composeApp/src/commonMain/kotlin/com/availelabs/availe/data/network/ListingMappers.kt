@@ -11,7 +11,6 @@ import com.availelabs.availe.dto.kreplica.*
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 internal fun PriceDto.V1.toDomainPrice(): Price = Price(
     amount = this.amount,
@@ -50,7 +49,6 @@ internal fun NewListing.toCreateRequestDto(): TypeV1ListingDtoCreateRequest {
 
 internal fun TypeV1ListingDtoData.toDomainListing(): Listing {
     val createdAt = Instant.DISTANT_PAST
-    val stubbedPublisherId = Uuid.random()
 
     return when (this) {
         is ListingEventDtoSchema.V1.Data -> {
@@ -59,7 +57,7 @@ internal fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 description = this.description,
                 price = this.price.toDomainPrice(),
                 imageLinks = this.imageLinks,
-                publisherId = stubbedPublisherId
+                publisherId = this.publisherId
             )
             Listing.Event(common, this.id, createdAt)
         }
@@ -70,7 +68,7 @@ internal fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 description = this.description,
                 price = this.price.toDomainPrice(),
                 imageLinks = this.imageLinks,
-                publisherId = stubbedPublisherId
+                publisherId = this.publisherId
             )
             Listing.Item(common, this.id, createdAt)
         }
@@ -81,7 +79,7 @@ internal fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 description = this.description,
                 price = this.price.toDomainPrice(),
                 imageLinks = this.imageLinks,
-                publisherId = stubbedPublisherId
+                publisherId = this.publisherId
             )
             Listing.Service(common, this.id, createdAt)
         }

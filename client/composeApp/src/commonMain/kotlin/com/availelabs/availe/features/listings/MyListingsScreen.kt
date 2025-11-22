@@ -5,8 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,10 +15,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.ui.ScreenScaffold
 import com.availelabs.ui.utils.ContentState
-import com.composables.icons.lucide.ArrowLeft
-import com.composables.icons.lucide.Image
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Trash2
+import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
@@ -33,7 +29,7 @@ fun MyListingsScreen(component: IMyListingsHostComponent) {
     ) {
         when (val child = it.instance) {
             is MyListingsChild.List -> UserListingsScreen(child.component)
-            is MyListingsChild.Create -> CreateListingScreen(child.component)
+            is MyListingsChild.Editor -> ListingEditorScreen(child.component)
         }
     }
 }
@@ -41,40 +37,84 @@ fun MyListingsScreen(component: IMyListingsHostComponent) {
 @Composable
 fun UserListingsScreen(component: IUserListingsComponent) {
     val state by component.state.subscribeAsState()
+    var listingToDelete by remember { mutableStateOf<Listing?>(null) }
+
+    if (listingToDelete != null) {
+        CenteredAlert(
+            visible = true,
+            title = { Text("Delete Listing") },
+            body = { Text("Are you sure you want to delete this listing? This action cannot be undone.") },
+            positiveButton = {
+                DestructiveButton(
+                    onClick = {
+                        listingToDelete?.let { component.onDeleteClicked(it) }
+                        listingToDelete = null
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Delete") }
+            },
+            neutralButtons = {
+                SecondaryButton(
+                    onClick = { listingToDelete = null },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Cancel") }
+            }
+        )
+    }
 
     ScreenScaffold {
-        when (val contentState = state) {
-            is ContentState.Loading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    IntermediateProgressIndicator()
+        Column(Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "My Listings",
+                    style = Theme[textStyles][title]
+                )
+                IconButton(onClick = component::onRefresh) {
+                    Icon(Lucide.RefreshCw, "Refresh")
                 }
             }
 
-            is ContentState.Error -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Error: ${contentState.message}")
-                        Spacer(Modifier.height(16.dp))
-                        PrimaryButton(onClick = { component.onRefresh() }) {
-                            Text("Retry")
+            when (val contentState = state) {
+                is ContentState.Loading -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        IntermediateProgressIndicator()
+                    }
+                }
+
+                is ContentState.Error -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Error: ${contentState.message}")
+                            Spacer(Modifier.height(16.dp))
+                            PrimaryButton(onClick = { component.onRefresh() }) {
+                                Text("Retry")
+                            }
                         }
                     }
                 }
-            }
 
-            is ContentState.Content -> {
-                val listings = contentState.data
-                if (listings.isEmpty()) {
-                    EmptyState(onCreateClick = component::onCreateClicked)
-                } else {
-                    ListingsList(
-                        listings = listings,
-                        onDeleteClick = component::onDeleteClicked
-                    )
+                is ContentState.Content -> {
+                    val listings = contentState.data
+                    if (listings.isEmpty()) {
+                        EmptyState(onCreateClick = component::onCreateClicked)
+                    } else {
+                        ListingsList(
+                            listings = listings,
+                            onEditClick = component::onEditClicked,
+                            onDeleteClick = { listingToDelete = it },
+                            onCreateClick = component::onCreateClicked
+                        )
+                    }
                 }
-            }
 
-            is ContentState.Idle -> {
+                is ContentState.Idle -> {
+                }
             }
         }
     }
@@ -98,15 +138,33 @@ private fun EmptyState(onCreateClick: () -> Unit) {
 @Composable
 private fun ListingsList(
     listings: List<Listing>,
-    onDeleteClick: (Listing) -> Unit
+    onEditClick: (Listing) -> Unit,
+    onDeleteClick: (Listing) -> Unit,
+    onCreateClick: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(listings) { listing ->
-            UserListingItem(listing = listing, onDeleteClick = { onDeleteClick(listing) })
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(listings) { listing ->
+                UserListingItem(
+                    listing = listing,
+                    onEditClick = { onEditClick(listing) },
+                    onDeleteClick = { onDeleteClick(listing) }
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            PrimaryButton(onClick = onCreateClick) {
+                Text("Create")
+            }
         }
     }
 }
@@ -114,6 +172,7 @@ private fun ListingsList(
 @Composable
 private fun UserListingItem(
     listing: Listing,
+    onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -138,19 +197,29 @@ private fun UserListingItem(
                 )
             }
 
-            DestructiveButton(
-                onClick = onDeleteClick,
-                modifier = Modifier.size(40.dp),
-                contentPadding = PaddingValues(8.dp)
-            ) {
-                Icon(Lucide.Trash2, contentDescription = "Delete")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SecondaryButton(
+                    onClick = onEditClick,
+                    modifier = Modifier.size(40.dp),
+                    contentPadding = PaddingValues(8.dp)
+                ) {
+                    Icon(Lucide.Pencil, contentDescription = "Edit")
+                }
+
+                DestructiveButton(
+                    onClick = onDeleteClick,
+                    modifier = Modifier.size(40.dp),
+                    contentPadding = PaddingValues(8.dp)
+                ) {
+                    Icon(Lucide.Trash2, contentDescription = "Delete")
+                }
             }
         }
     }
 }
 
 @Composable
-fun CreateListingScreen(component: ICreateListingComponent) {
+fun ListingEditorScreen(component: IListingEditorComponent) {
     val state by component.state.subscribeAsState()
 
     ScreenScaffold {
@@ -161,7 +230,6 @@ fun CreateListingScreen(component: ICreateListingComponent) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header with Back Button and Title
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -170,7 +238,7 @@ fun CreateListingScreen(component: ICreateListingComponent) {
                     Icon(Lucide.ArrowLeft, "Back")
                 }
                 Text(
-                    text = "Create Listing",
+                    text = if (state.isEditing) "Edit Listing" else "Create Listing",
                     style = Theme[textStyles][title]
                 )
             }
@@ -179,14 +247,22 @@ fun CreateListingScreen(component: ICreateListingComponent) {
                 Text("Listing Type", color = Color.Gray)
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CreateListingType.entries.forEach { type ->
+                    ListingType.entries.forEach { type ->
                         val isSelected = state.type == type
+                        val isEnabled = !state.isEditing
+
                         if (isSelected) {
-                            PrimaryButton(onClick = { component.onTypeChanged(type) }) {
+                            PrimaryButton(
+                                onClick = { if (isEnabled) component.onTypeChanged(type) },
+                                enabled = isEnabled
+                            ) {
                                 Text(type.name)
                             }
                         } else {
-                            SecondaryButton(onClick = { component.onTypeChanged(type) }) {
+                            SecondaryButton(
+                                onClick = { if (isEnabled) component.onTypeChanged(type) },
+                                enabled = isEnabled
+                            ) {
                                 Text(type.name)
                             }
                         }
@@ -267,7 +343,7 @@ fun CreateListingScreen(component: ICreateListingComponent) {
                     if (state.isSubmitting) {
                         IntermediateProgressIndicator(modifier = Modifier.size(16.dp))
                     } else {
-                        Text("Publish")
+                        Text(if (state.isEditing) "Save Changes" else "Publish")
                     }
                 }
             }

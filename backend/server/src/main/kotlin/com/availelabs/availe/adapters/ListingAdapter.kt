@@ -107,6 +107,7 @@ internal fun Listing.toDataDto(): TypeV1ListingDtoData {
             description = this.description,
             price = priceDto,
             imageLinks = this.imageLinks,
+            publisherId = this.publisherId,
             schemaVersion = 1
         )
 
@@ -116,6 +117,7 @@ internal fun Listing.toDataDto(): TypeV1ListingDtoData {
             description = this.description,
             price = priceDto,
             imageLinks = this.imageLinks,
+            publisherId = this.publisherId,
             schemaVersion = 1
         )
 
@@ -125,6 +127,7 @@ internal fun Listing.toDataDto(): TypeV1ListingDtoData {
             description = this.description,
             price = priceDto,
             imageLinks = this.imageLinks,
+            publisherId = this.publisherId,
             schemaVersion = 1
         )
     }

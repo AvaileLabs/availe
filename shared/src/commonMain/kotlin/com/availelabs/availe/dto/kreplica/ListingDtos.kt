@@ -23,6 +23,9 @@ private interface ListingDto {
         val description: String?
         val price: PriceDto.V1
         val imageLinks: List<String>
+
+        @Replicate.Property(include = [DtoVariant.DATA])
+        val publisherId: Uuid
     }
 }
 

@@ -140,7 +140,7 @@ class RootComponent(
         navigation.bringToFront(Configuration.MyListings) {
             val activeChild = childStack.value.active.instance
             if (activeChild is Child.MyListings) {
-                activeChild.component.showCreateListing()
+                activeChild.component.showEditor(null)
             }
         }
     }

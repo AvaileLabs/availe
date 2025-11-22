@@ -47,7 +47,8 @@ internal class ListingController(
         title = "Example Item",
         description = null,
         price = examplePrice,
-        imageLinks = emptyList()
+        imageLinks = emptyList(),
+        publisherId = Uuid.random(),
     )
 
     val listOfRoutes = listOf(createListing(), getListingById(), listAllListings(), updateListing(), deleteListing())
