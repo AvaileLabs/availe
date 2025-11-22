@@ -16,11 +16,13 @@ import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoCreateRequest
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import com.availelabs.availe.observability.ListingCreated
 import io.availe.models.SerializablePatchable
 import org.http4k.contract.ContractRoute
 import org.http4k.contract.div
 import org.http4k.contract.meta
 import org.http4k.core.*
+import org.http4k.events.Events
 import org.http4k.format.KotlinxSerialization.auto
 import org.http4k.lens.Path
 import org.http4k.lens.RequestKey
@@ -31,7 +33,8 @@ import kotlin.uuid.Uuid
 internal val publisherKey = RequestKey.required<Uuid>("publisherId")
 
 internal class ListingController(
-    private val listingService: IListingService
+    private val listingService: IListingService,
+    private val events: Events
 ) {
     private val listingIdPath = Path.kUuid().of("listingId")
     private val responseBodyLens = Body.auto<TypeV1ListingDtoData>().toLens()
@@ -66,6 +69,7 @@ internal class ListingController(
             when (val result = listingService.createListing(newListing)) {
                 is InsertResult.Inserted<Listing> -> {
                     val listing = result.value
+                    events(ListingCreated(listing.id.toString(), publisherId.toString()))
                     val responseDto = listing.toDataDto()
                     Response(Status.CREATED).with(responseBodyLens of responseDto)
                 }
