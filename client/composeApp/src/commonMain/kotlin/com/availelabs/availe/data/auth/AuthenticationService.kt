@@ -19,8 +19,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
 import org.publicvalue.multiplatform.oidc.OpenIdConnectException
@@ -32,6 +30,8 @@ import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 interface IAuthenticationService {
     val authenticationState: Value<AuthenticationState>
@@ -96,7 +96,6 @@ class AuthenticationService(
             tokenStore.removeTokens()
             _authenticationState.update { AuthenticationState.LoggedOut }
         } catch (_: Exception) {
-            // Ignore errors during local clear
         }
     }
 
@@ -152,17 +151,22 @@ private object JwtDecoder {
             val decodedBytes = Base64.UrlSafe.decode(paddedPayload)
             val decodedString = decodedBytes.decodeToString()
 
-            val jsonObject = json.parseToJsonElement(decodedString) as? JsonObject ?: return null
-
-            UserProfile(
-                name = jsonObject["name"]?.jsonPrimitive?.content ?: "User",
-                email = jsonObject["email"]?.jsonPrimitive?.content ?: "",
-                pictureUrl = jsonObject["picture"]?.jsonPrimitive?.content
-            )
+            val dto = json.decodeFromString<JwtPayloadDto>(decodedString)
+            dto.toUserProfile()
         } catch (_: Exception) {
             null
         }
     }
+}
+
+@OptIn(ExperimentalUuidApi::class)
+private fun JwtPayloadDto.toUserProfile(): UserProfile {
+    return UserProfile(
+        id = Uuid.parse(this.sub),
+        name = this.name ?: "User",
+        email = this.email ?: throw IllegalArgumentException("Email claim is required"),
+        pictureUrl = this.picture
+    )
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
