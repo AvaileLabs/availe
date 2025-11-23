@@ -8,18 +8,18 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 sealed interface CommonListingProperties {
-    val title: String
-    val description: String?
+    val title: ListingTitle
+    val description: ListingDescription?
     val price: Price
-    val imageLinks: List<String>
+    val imageLinks: List<ImageUrl>
     val publisherId: Uuid
 }
 
 data class CommonListingData(
-    override val title: String,
-    override val description: String?,
+    override val title: ListingTitle,
+    override val description: ListingDescription?,
     override val price: Price,
-    override val imageLinks: List<String>,
+    override val imageLinks: List<ImageUrl>,
     override val publisherId: Uuid
 ) : CommonListingProperties
 

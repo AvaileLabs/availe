@@ -1,27 +1,26 @@
 package com.availelabs.availe.domain.logic
 
-import com.availelabs.availe.domain.model.ListingCategory
-import com.availelabs.availe.domain.model.SupportedCurrency
+import com.availelabs.availe.domain.model.*
 
 data class ListingEditorState(
     val isEditing: Boolean = false,
-    val title: String = "",
-    val description: String = "",
-    val priceAmount: String = "",
+    val title: ListingTitle = ListingTitle(""),
+    val description: ListingDescription = ListingDescription(""),
+    val priceAmount: PriceAmount = PriceAmount(""),
     val priceCurrency: SupportedCurrency = SupportedCurrency.USD,
-    val imageUrl: String = "",
+    val imageUrl: ImageUrl = ImageUrl(""),
     val type: ListingCategory = ListingCategory.Item,
     val isSubmitting: Boolean = false,
     val error: String? = null
 )
 
 sealed interface ListingEditorIntent {
-    data class ChangeTitle(val title: String) : ListingEditorIntent
-    data class ChangeDescription(val value: String) : ListingEditorIntent
-    data class ChangePrice(val amount: String) : ListingEditorIntent
+    data class ChangeTitle(val title: ListingTitle) : ListingEditorIntent
+    data class ChangeDescription(val value: ListingDescription) : ListingEditorIntent
+    data class ChangePrice(val amount: PriceAmount) : ListingEditorIntent
     data class ChangeCurrency(val currency: SupportedCurrency) : ListingEditorIntent
     data class ChangeType(val type: ListingCategory) : ListingEditorIntent
-    data class ChangeImage(val url: String) : ListingEditorIntent
+    data class ChangeImage(val url: ImageUrl) : ListingEditorIntent
     data object Submit : ListingEditorIntent
     data class SetSubmitting(val isSubmitting: Boolean) : ListingEditorIntent
     data class SetError(val message: String?) : ListingEditorIntent
@@ -52,7 +51,7 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
         is ListingEditorIntent.Submit -> {
             if (!InputValidator.isValidTitle(state.title)) {
                 state.copy(error = "Title is invalid")
-            } else if (state.priceAmount.isBlank()) {
+            } else if (state.priceAmount.value.isBlank()) {
                 state.copy(error = "Price is required")
             } else {
                 state.copy(isSubmitting = true, error = null)

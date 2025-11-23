@@ -2,10 +2,7 @@
 
 package com.availelabs.availe.adapters
 
-import com.availelabs.availe.domain.model.CommonListingData
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.Price
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.dto.PriceDto
 import com.availelabs.availe.dto.kreplica.*
 import com.example.jooq.enums.ListingTypeEnum
@@ -24,31 +21,31 @@ import com.example.jooq.tables.ListingServiceDetails as ServiceDetailsTable
 import com.example.jooq.tables.Listings as ListingsTable
 
 private fun Price.toPriceDtoV1(): PriceDto.V1 = PriceDto.V1(
-    amount = this.amount,
+    amount = this.amount.value,
     currency = this.currency
 )
 
 internal fun PriceDto.V1.toDomainPrice(): Price = Price(
-    amount = this.amount,
+    amount = PriceAmount(this.amount),
     currency = this.currency
 )
 
 internal fun ListingsRecord.applyCommonData(commonData: CommonListingData) {
     this.publisherId = commonData.publisherId.toJavaUuid()
-    this.title = commonData.title
-    this.description = commonData.description
+    this.title = commonData.title.value
+    this.description = commonData.description?.value
     val monetaPrice = commonData.price.toMoneta()
     this.priceAmount = monetaPrice.number.numberValue(BigDecimal::class.java)
     this.priceCurrency = monetaPrice.currency.currencyCode
-    this.imageLinks = commonData.imageLinks.toTypedArray()
+    this.imageLinks = commonData.imageLinks.map { it.value }.toTypedArray()
 }
 
 internal fun ListingsRecord.toDomainListing(): Listing {
     val common = CommonListingData(
-        title = this.title!!,
-        description = this.description,
+        title = ListingTitle(this.title!!),
+        description = this.description?.let { ListingDescription(it) },
         price = org.javamoney.moneta.Money.of(this.priceAmount, this.priceCurrency).toSharedPrice(),
-        imageLinks = this.imageLinks?.filterNotNull() ?: emptyList(),
+        imageLinks = this.imageLinks?.filterNotNull()?.map { ImageUrl(it) } ?: emptyList(),
         publisherId = this.publisherId!!.toKotlinUuid()
     )
 
@@ -70,11 +67,11 @@ internal fun Record.toDomainListing(
     serviceDetailsTable: ServiceDetailsTable
 ): Listing {
     val common = CommonListingData(
-        title = this[listingsTable.TITLE]!!,
-        description = this[listingsTable.DESCRIPTION],
+        title = ListingTitle(this[listingsTable.TITLE]!!),
+        description = this[listingsTable.DESCRIPTION]?.let { ListingDescription(it) },
         price = org.javamoney.moneta.Money.of(this[listingsTable.PRICE_AMOUNT], this[listingsTable.PRICE_CURRENCY])
             .toSharedPrice(),
-        imageLinks = this[listingsTable.IMAGE_LINKS]?.filterNotNull() ?: emptyList(),
+        imageLinks = this[listingsTable.IMAGE_LINKS]?.filterNotNull()?.map { ImageUrl(it) } ?: emptyList(),
         publisherId = this[listingsTable.PUBLISHER_ID]!!.toKotlinUuid()
     )
 
@@ -103,30 +100,30 @@ internal fun Listing.toDataDto(): TypeV1ListingDtoData {
     return when (this) {
         is Listing.Event -> ListingEventDtoSchema.V1.Data(
             id = this.id,
-            title = this.title,
-            description = this.description,
+            title = this.title.value,
+            description = this.description?.value,
             price = priceDto,
-            imageLinks = this.imageLinks,
+            imageLinks = this.imageLinks.map { it.value },
             publisherId = this.publisherId,
             schemaVersion = 1
         )
 
         is Listing.Item -> ListingItemDtoSchema.V1.Data(
             id = this.id,
-            title = this.title,
-            description = this.description,
+            title = this.title.value,
+            description = this.description?.value,
             price = priceDto,
-            imageLinks = this.imageLinks,
+            imageLinks = this.imageLinks.map { it.value },
             publisherId = this.publisherId,
             schemaVersion = 1
         )
 
         is Listing.Service -> ListingServiceDtoSchema.V1.Data(
             id = this.id,
-            title = this.title,
-            description = this.description,
+            title = this.title.value,
+            description = this.description?.value,
             price = priceDto,
-            imageLinks = this.imageLinks,
+            imageLinks = this.imageLinks.map { it.value },
             publisherId = this.publisherId,
             schemaVersion = 1
         )
@@ -137,30 +134,30 @@ internal fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: Uuid): NewListi
     return when (this) {
         is ListingEventDtoSchema.V1.CreateRequest -> NewListing.Event(
             CommonListingData(
-                title = title,
-                description = description,
+                title = ListingTitle(title),
+                description = description?.let { ListingDescription(it) },
                 price = price.toDomainPrice(),
-                imageLinks = imageLinks,
+                imageLinks = imageLinks.map { ImageUrl(it) },
                 publisherId = publisherId
             )
         )
 
         is ListingItemDtoSchema.V1.CreateRequest -> NewListing.Item(
             CommonListingData(
-                title = title,
-                description = description,
+                title = ListingTitle(title),
+                description = description?.let { ListingDescription(it) },
                 price = price.toDomainPrice(),
-                imageLinks = imageLinks,
+                imageLinks = imageLinks.map { ImageUrl(it) },
                 publisherId = publisherId
             )
         )
 
         is ListingServiceDtoSchema.V1.CreateRequest -> NewListing.Service(
             CommonListingData(
-                title = title,
-                description = description,
+                title = ListingTitle(title),
+                description = description?.let { ListingDescription(it) },
                 price = price.toDomainPrice(),
-                imageLinks = imageLinks,
+                imageLinks = imageLinks.map { ImageUrl(it) },
                 publisherId = publisherId
             )
         )

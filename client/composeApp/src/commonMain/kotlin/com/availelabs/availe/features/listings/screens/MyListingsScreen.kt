@@ -190,7 +190,7 @@ private fun UserListingItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(listing.title)
+                Text(listing.title.value)
                 Text(
                     text = listing.price.toDisplayString(),
                     color = Theme[colors][accent]

@@ -58,11 +58,12 @@ class CreateListingComponent(
                 }
 
                 val price = Price(currentState.priceAmount, currentState.priceCurrency.code)
-                val imageLinks = if (currentState.imageUrl.isNotBlank()) listOf(currentState.imageUrl) else emptyList()
+                val imageLinks =
+                    if (currentState.imageUrl.value.isNotBlank()) listOf(currentState.imageUrl) else emptyList()
 
                 val commonData = CommonListingData(
                     title = currentState.title,
-                    description = currentState.description.ifBlank { null },
+                    description = if (currentState.description.value.isBlank()) null else currentState.description,
                     price = price,
                     imageLinks = imageLinks,
                     publisherId = user.id

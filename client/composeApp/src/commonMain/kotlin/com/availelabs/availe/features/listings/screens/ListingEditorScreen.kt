@@ -17,8 +17,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.domain.logic.ListingEditorIntent
-import com.availelabs.availe.domain.model.ListingCategory
-import com.availelabs.availe.domain.model.SupportedCurrency
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.features.listings.IListingEditorComponent
 import com.availelabs.availe.ui.ScreenScaffold
 import com.availelabs.availe.ui.components.DismissibleFormField
@@ -112,16 +111,16 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
 
             DismissibleFormField(label = "Title") {
                 TextField(
-                    value = state.title,
-                    onValueChange = { component.onIntent(ListingEditorIntent.ChangeTitle(it)) },
+                    value = state.title.value,
+                    onValueChange = { component.onIntent(ListingEditorIntent.ChangeTitle(ListingTitle(it))) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
             DismissibleFormField(label = "Description") {
                 TextField(
-                    value = state.description,
-                    onValueChange = { component.onIntent(ListingEditorIntent.ChangeDescription(it)) },
+                    value = state.description.value,
+                    onValueChange = { component.onIntent(ListingEditorIntent.ChangeDescription(ListingDescription(it))) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = false
                 )
@@ -133,8 +132,8 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
                     modifier = Modifier.weight(1f)
                 ) {
                     TextField(
-                        value = state.priceAmount,
-                        onValueChange = { component.onIntent(ListingEditorIntent.ChangePrice(it)) },
+                        value = state.priceAmount.value,
+                        onValueChange = { component.onIntent(ListingEditorIntent.ChangePrice(PriceAmount(it))) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -170,8 +169,8 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
 
             DismissibleFormField(label = "Image URL") {
                 TextField(
-                    value = state.imageUrl,
-                    onValueChange = { component.onIntent(ListingEditorIntent.ChangeImage(it)) },
+                    value = state.imageUrl.value,
+                    onValueChange = { component.onIntent(ListingEditorIntent.ChangeImage(ImageUrl(it))) },
                     leading = { Icon(Lucide.Image, null) },
                     modifier = Modifier.fillMaxWidth()
                 )

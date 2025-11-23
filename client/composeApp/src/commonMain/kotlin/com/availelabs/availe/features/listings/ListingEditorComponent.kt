@@ -50,10 +50,10 @@ class ListingEditorComponent(
                 it.copy(
                     isEditing = true,
                     title = listingToEdit.title,
-                    description = listingToEdit.description ?: "",
+                    description = listingToEdit.description ?: ListingDescription(""),
                     priceAmount = listingToEdit.price.amount,
                     priceCurrency = currencyEnum,
-                    imageUrl = listingToEdit.imageLinks.firstOrNull() ?: "",
+                    imageUrl = listingToEdit.imageLinks.firstOrNull() ?: ImageUrl(""),
                     type = when (listingToEdit) {
                         is Listing.Item -> ListingCategory.Item
                         is Listing.Event -> ListingCategory.Event
@@ -85,12 +85,13 @@ class ListingEditorComponent(
                 }
 
                 val price = Price(currentState.priceAmount, currentState.priceCurrency.code)
-                val imageLinks = if (currentState.imageUrl.isNotBlank()) listOf(currentState.imageUrl) else emptyList()
+                val imageLinks =
+                    if (currentState.imageUrl.value.isNotBlank()) listOf(currentState.imageUrl) else emptyList()
 
                 if (listingToEdit == null) {
                     val commonData = CommonListingData(
                         title = currentState.title,
-                        description = currentState.description.ifBlank { null },
+                        description = if (currentState.description.value.isBlank()) null else currentState.description,
                         price = price,
                         imageLinks = imageLinks,
                         publisherId = user.id
@@ -106,24 +107,24 @@ class ListingEditorComponent(
                 } else {
                     val patch: TypeV1ListingDtoPatchRequest = when (listingToEdit) {
                         is Listing.Item -> ListingItemDtoSchema.V1.PatchRequest(
-                            title = SerializablePatchable.Set(currentState.title),
-                            description = SerializablePatchable.Set(currentState.description.ifBlank { null }),
+                            title = SerializablePatchable.Set(currentState.title.value),
+                            description = SerializablePatchable.Set(if (currentState.description.value.isBlank()) null else currentState.description.value),
                             price = SerializablePatchable.Set(price.toDto()),
-                            imageLinks = SerializablePatchable.Set(imageLinks)
+                            imageLinks = SerializablePatchable.Set(imageLinks.map { it.value })
                         )
 
                         is Listing.Event -> ListingEventDtoSchema.V1.PatchRequest(
-                            title = SerializablePatchable.Set(currentState.title),
-                            description = SerializablePatchable.Set(currentState.description.ifBlank { null }),
+                            title = SerializablePatchable.Set(currentState.title.value),
+                            description = SerializablePatchable.Set(if (currentState.description.value.isBlank()) null else currentState.description.value),
                             price = SerializablePatchable.Set(price.toDto()),
-                            imageLinks = SerializablePatchable.Set(imageLinks)
+                            imageLinks = SerializablePatchable.Set(imageLinks.map { it.value })
                         )
 
                         is Listing.Service -> ListingServiceDtoSchema.V1.PatchRequest(
-                            title = SerializablePatchable.Set(currentState.title),
-                            description = SerializablePatchable.Set(currentState.description.ifBlank { null }),
+                            title = SerializablePatchable.Set(currentState.title.value),
+                            description = SerializablePatchable.Set(if (currentState.description.value.isBlank()) null else currentState.description.value),
                             price = SerializablePatchable.Set(price.toDto()),
-                            imageLinks = SerializablePatchable.Set(imageLinks)
+                            imageLinks = SerializablePatchable.Set(imageLinks.map { it.value })
                         )
                     }
                     apiClient.updateListing(listingToEdit.id, patch, user.id)

@@ -81,9 +81,9 @@ class HomeComponent(
 private fun Listing.toListingItem(): ListingItem {
     return ListingItem(
         id = this.id.toString(),
-        title = this.title,
+        title = this.title.value,
         price = this.price.toDisplayString(),
-        imageUrl = this.imageLinks.firstOrNull() ?: "",
+        imageUrl = this.imageLinks.firstOrNull()?.value ?: "",
         isFavorited = false
     )
 }
