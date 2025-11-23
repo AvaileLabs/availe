@@ -33,7 +33,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(projects.logic)
+    implementation(projects.shared.logic)
     implementation(libs.logback)
 
     implementation(libs.kotlin.reflect)

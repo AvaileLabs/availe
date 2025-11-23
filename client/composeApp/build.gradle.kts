@@ -34,7 +34,7 @@ kotlin {
             baseName = "ComposeApp"
             isStatic = true
 
-            export(projects.logic)
+            export(projects.shared.logic)
             export(libs.decompose)
             export(libs.decompose.extensions.compose)
             export(libs.essenty.lifecycle)
@@ -70,7 +70,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.datetime)
-            api(projects.logic)
+            api(projects.shared.logic)
             implementation(libs.ktor.utils)
             implementation(libs.okio)
             implementation(libs.multiplatform.settings.no.arg)
