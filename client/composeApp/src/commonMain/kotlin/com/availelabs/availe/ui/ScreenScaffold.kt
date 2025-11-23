@@ -1,10 +1,13 @@
 package com.availelabs.availe.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.composables.uikit.styling.background
 import com.composables.uikit.styling.colors
@@ -24,10 +27,17 @@ fun ScreenScaffold(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val isWide = currentWindowContainerSize().width > 600.dp
+    val focusManager = LocalFocusManager.current
+
     Row(
         modifier = modifier
             .fillMaxSize()
             .background(backgroundColor)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            }
     ) {
         ProvideContentColor(contentColor) {
             if (sideBar != null && isWide) {
