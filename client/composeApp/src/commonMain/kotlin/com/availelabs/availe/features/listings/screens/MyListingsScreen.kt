@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.availelabs.availe.domain.logic.toDisplayString
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.features.listings.IMyListingsHostComponent
 import com.availelabs.availe.features.listings.IUserListingsComponent
@@ -191,7 +192,7 @@ private fun UserListingItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(listing.title)
                 Text(
-                    text = "${listing.price.amount} ${listing.price.currency}",
+                    text = listing.price.toDisplayString(),
                     color = Theme[colors][accent]
                 )
                 Text(

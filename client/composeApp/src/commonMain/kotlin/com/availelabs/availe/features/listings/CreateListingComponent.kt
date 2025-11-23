@@ -9,6 +9,7 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.data.auth.IAuthenticationService
 import com.availelabs.availe.data.network.IApiClient
+import com.availelabs.availe.domain.logic.InputValidator
 import com.availelabs.availe.domain.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -58,7 +59,7 @@ class CreateListingComponent(
     }
 
     override fun onPriceAmountChanged(amount: String) {
-        if (amount.all { it.isDigit() || it == '.' }) {
+        if (InputValidator.isValidPrice(amount)) {
             _state.update { it.copy(priceAmount = amount) }
         }
     }
@@ -77,8 +78,14 @@ class CreateListingComponent(
 
     override fun onSubmit() {
         val currentState = _state.value
-        if (currentState.title.isBlank() || currentState.priceAmount.isBlank()) {
-            _state.update { it.copy(error = "Title and Price are required") }
+
+        if (!InputValidator.isValidTitle(currentState.title)) {
+            _state.update { it.copy(error = "Title is invalid") }
+            return
+        }
+
+        if (currentState.priceAmount.isBlank()) {
+            _state.update { it.copy(error = "Price is required") }
             return
         }
 

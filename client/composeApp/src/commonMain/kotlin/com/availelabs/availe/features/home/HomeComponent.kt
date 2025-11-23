@@ -8,8 +8,8 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.data.network.IApiClient
+import com.availelabs.availe.domain.logic.toDisplayString
 import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.Price
 import com.availelabs.ui.utils.ContentLoader
 import com.availelabs.ui.utils.ContentState
 import kotlinx.coroutines.Dispatchers
@@ -82,16 +82,8 @@ private fun Listing.toListingItem(): ListingItem {
     return ListingItem(
         id = this.id.toString(),
         title = this.title,
-        price = this.price.toPriceString(),
+        price = this.price.toDisplayString(),
         imageUrl = this.imageLinks.firstOrNull() ?: "",
         isFavorited = false
     )
-}
-
-private fun Price.toPriceString(): String {
-    return when (currency) {
-        "USD" -> "$$amount"
-        "EUR" -> "€$amount"
-        else -> "$amount $currency"
-    }
 }
