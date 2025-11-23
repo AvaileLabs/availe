@@ -9,35 +9,22 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.data.auth.IAuthenticationService
 import com.availelabs.availe.data.network.IApiClient
-import com.availelabs.availe.domain.logic.InputValidator
-import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.domain.logic.ListingEditorIntent
+import com.availelabs.availe.domain.logic.ListingEditorState
+import com.availelabs.availe.domain.logic.reduceListingEditor
+import com.availelabs.availe.domain.model.CommonListingData
+import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.model.Price
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
 
 interface ICreateListingComponent {
-    val state: Value<CreateListingState>
-
-    fun onTitleChanged(title: String)
-    fun onDescriptionChanged(description: String)
-    fun onPriceAmountChanged(amount: String)
-    fun onCurrencyChanged(currency: SupportedCurrency)
-    fun onImageUrlChanged(url: String)
-    fun onTypeChanged(type: ListingCategory)
-    fun onSubmit()
+    val state: Value<ListingEditorState>
+    fun onIntent(intent: ListingEditorIntent)
     fun onCancel()
 }
-
-data class CreateListingState(
-    val title: String = "",
-    val description: String = "",
-    val priceAmount: String = "",
-    val priceCurrency: SupportedCurrency = SupportedCurrency.USD,
-    val imageUrl: String = "",
-    val type: ListingCategory = ListingCategory.Item,
-    val isSubmitting: Boolean = false,
-    val error: String? = null
-)
 
 class CreateListingComponent(
     componentContext: ComponentContext,
@@ -47,55 +34,26 @@ class CreateListingComponent(
 ) : ICreateListingComponent, ComponentContext by componentContext {
 
     private val scope = componentContext.coroutineScope(Dispatchers.Main.immediate)
-    private val _state = MutableValue(CreateListingState())
-    override val state: Value<CreateListingState> = _state
+    private val _state = MutableValue(ListingEditorState())
+    override val state: Value<ListingEditorState> = _state
 
-    override fun onTitleChanged(title: String) {
-        _state.update { it.copy(title = title) }
-    }
+    override fun onIntent(intent: ListingEditorIntent) {
+        _state.update { reduceListingEditor(it, intent) }
 
-    override fun onDescriptionChanged(description: String) {
-        _state.update { it.copy(description = description) }
-    }
-
-    override fun onPriceAmountChanged(amount: String) {
-        if (InputValidator.isValidPrice(amount)) {
-            _state.update { it.copy(priceAmount = amount) }
+        if (intent is ListingEditorIntent.Submit) {
+            val currentState = _state.value
+            if (currentState.isSubmitting && currentState.error == null) {
+                performSubmit(currentState)
+            }
         }
     }
 
-    override fun onCurrencyChanged(currency: SupportedCurrency) {
-        _state.update { it.copy(priceCurrency = currency) }
-    }
-
-    override fun onImageUrlChanged(url: String) {
-        _state.update { it.copy(imageUrl = url) }
-    }
-
-    override fun onTypeChanged(type: ListingCategory) {
-        _state.update { it.copy(type = type) }
-    }
-
-    override fun onSubmit() {
-        val currentState = _state.value
-
-        if (!InputValidator.isValidTitle(currentState.title)) {
-            _state.update { it.copy(error = "Title is invalid") }
-            return
-        }
-
-        if (currentState.priceAmount.isBlank()) {
-            _state.update { it.copy(error = "Price is required") }
-            return
-        }
-
-        _state.update { it.copy(isSubmitting = true, error = null) }
-
+    private fun performSubmit(currentState: ListingEditorState) {
         scope.launch {
             try {
                 val user = authService.getCurrentUserProfile()
                 if (user == null) {
-                    _state.update { it.copy(isSubmitting = false, error = "User not authenticated") }
+                    onIntent(ListingEditorIntent.SetError("User not authenticated"))
                     return@launch
                 }
 
@@ -119,7 +77,7 @@ class CreateListingComponent(
                 apiClient.createListing(newListing, user.id)
                 onFinishedCallback()
             } catch (e: Exception) {
-                _state.update { it.copy(isSubmitting = false, error = e.message ?: "Unknown error") }
+                onIntent(ListingEditorIntent.SetError(e.message ?: "Unknown error"))
             }
         }
     }

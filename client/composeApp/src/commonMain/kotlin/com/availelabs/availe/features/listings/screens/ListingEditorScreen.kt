@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.availelabs.availe.domain.logic.ListingEditorIntent
 import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.SupportedCurrency
 import com.availelabs.availe.features.listings.IListingEditorComponent
@@ -79,14 +80,18 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
 
                         if (isSelected) {
                             PrimaryButton(
-                                onClick = { if (isEnabled) component.onTypeChanged(type) },
+                                onClick = {
+                                    if (isEnabled) component.onIntent(ListingEditorIntent.ChangeType(type))
+                                },
                                 enabled = isEnabled
                             ) {
                                 Text(type.name)
                             }
                         } else {
                             SecondaryButton(
-                                onClick = { if (isEnabled) component.onTypeChanged(type) },
+                                onClick = {
+                                    if (isEnabled) component.onIntent(ListingEditorIntent.ChangeType(type))
+                                },
                                 enabled = isEnabled
                             ) {
                                 Text(type.name)
@@ -108,7 +113,7 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
             DismissibleFormField(label = "Title") {
                 TextField(
                     value = state.title,
-                    onValueChange = component::onTitleChanged,
+                    onValueChange = { component.onIntent(ListingEditorIntent.ChangeTitle(it)) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -116,7 +121,7 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
             DismissibleFormField(label = "Description") {
                 TextField(
                     value = state.description,
-                    onValueChange = component::onDescriptionChanged,
+                    onValueChange = { component.onIntent(ListingEditorIntent.ChangeDescription(it)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = false
                 )
@@ -129,7 +134,7 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
                 ) {
                     TextField(
                         value = state.priceAmount,
-                        onValueChange = component::onPriceAmountChanged,
+                        onValueChange = { component.onIntent(ListingEditorIntent.ChangePrice(it)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -154,7 +159,7 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
                             ) { Text(currency.code) }
                         } else {
                             SecondaryButton(
-                                onClick = { component.onCurrencyChanged(currency) },
+                                onClick = { component.onIntent(ListingEditorIntent.ChangeCurrency(currency)) },
                                 modifier = Modifier.fillMaxWidth()
                             ) { Text(currency.code) }
                         }
@@ -166,7 +171,7 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
             DismissibleFormField(label = "Image URL") {
                 TextField(
                     value = state.imageUrl,
-                    onValueChange = component::onImageUrlChanged,
+                    onValueChange = { component.onIntent(ListingEditorIntent.ChangeImage(it)) },
                     leading = { Icon(Lucide.Image, null) },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -192,7 +197,7 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
                 }
 
                 PrimaryButton(
-                    onClick = component::onSubmit,
+                    onClick = { component.onIntent(ListingEditorIntent.Submit) },
                     enabled = !state.isSubmitting
                 ) {
                     if (state.isSubmitting) {
