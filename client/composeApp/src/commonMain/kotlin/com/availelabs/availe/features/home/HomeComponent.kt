@@ -80,7 +80,7 @@ class HomeComponent(
 
 private fun Listing.toListingItem(): ListingItem {
     return ListingItem(
-        id = this.id.toString(),
+        id = this.id.value.toString(),
         title = this.title.value,
         price = this.price.toDisplayString(),
         imageUrl = this.imageLinks.firstOrNull()?.value ?: "",

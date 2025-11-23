@@ -6,6 +6,8 @@ import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.adapters.toDataDto
 import com.availelabs.availe.adapters.toDomain
 import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.service.IListingService
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
@@ -66,13 +68,13 @@ internal class ListingController(
             returning(Status.CONFLICT)
             returning(Status.UNAUTHORIZED)
         } bindContract Method.POST to { req ->
-            val publisherId = publisherKey(req).toKotlinUuid()
+            val publisherId = UserId(publisherKey(req).toKotlinUuid())
             val newListing = bodyLens(req).toDomain(publisherId)
 
             when (val result = listingService.createListing(newListing)) {
                 is InsertResult.Inserted<Listing> -> {
                     val listing = result.value
-                    events(ListingCreated(listing.id.toString(), publisherId.toString()))
+                    events(ListingCreated(listing.id.value.toString(), publisherId.value.toString()))
                     val responseDto = listing.toDataDto()
                     Response(Status.CREATED).with(responseBodyLens of responseDto)
                 }
@@ -90,7 +92,7 @@ internal class ListingController(
             returning(Status.NOT_FOUND)
         } bindContract Method.GET to { listingId ->
             { _: Request ->
-                when (val result = listingService.getListingById(listingId)) {
+                when (val result = listingService.getListingById(ListingId(listingId))) {
                     is FindResult.Found -> {
                         val responseDto = result.value.toDataDto()
                         Response(Status.OK).with(responseBodyLens of responseDto)
@@ -129,9 +131,9 @@ internal class ListingController(
         } bindContract Method.PATCH to { listingId ->
             { req ->
                 val patchDto = patchBodyLens(req)
-                val publisherId = publisherKey(req).toKotlinUuid()
+                val publisherId = UserId(publisherKey(req).toKotlinUuid())
 
-                when (val result = listingService.updateListing(listingId, patchDto, publisherId)) {
+                when (val result = listingService.updateListing(ListingId(listingId), patchDto, publisherId)) {
                     is UpdateResult.Updated -> {
                         val responseDto = result.value.toDataDto()
                         Response(Status.OK).with(responseBodyLens of responseDto)
@@ -154,9 +156,9 @@ internal class ListingController(
             returning(Status.UNAUTHORIZED)
         } bindContract Method.DELETE to { listingId ->
             { req ->
-                val publisherId = publisherKey(req).toKotlinUuid()
+                val publisherId = UserId(publisherKey(req).toKotlinUuid())
 
-                when (listingService.deleteListing(listingId, publisherId)) {
+                when (listingService.deleteListing(ListingId(listingId), publisherId)) {
                     is DeleteResult.Deleted -> Response(Status.NO_CONTENT)
                     is DeleteResult.NotFound -> Response(Status.NOT_FOUND)
                     is DeleteResult.Forbidden -> Response(Status.FORBIDDEN)

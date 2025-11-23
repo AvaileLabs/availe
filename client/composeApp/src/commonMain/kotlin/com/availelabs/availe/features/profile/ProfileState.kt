@@ -1,25 +1,26 @@
 package com.availelabs.availe.features.profile
 
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
+import com.availelabs.availe.domain.model.Email
+import com.availelabs.availe.domain.model.ImageUrl
+import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.UserName
 
-@OptIn(ExperimentalUuidApi::class)
 sealed interface UserProfile {
-    val id: Uuid
-    val email: String
-    val pictureUrl: String?
+    val id: UserId
+    val email: Email
+    val pictureUrl: ImageUrl?
 
     data class Named(
-        override val id: Uuid,
-        override val email: String,
-        override val pictureUrl: String?,
-        val name: String
+        override val id: UserId,
+        override val email: Email,
+        override val pictureUrl: ImageUrl?,
+        val name: UserName
     ) : UserProfile
 
     data class Anonymous(
-        override val id: Uuid,
-        override val email: String,
-        override val pictureUrl: String?
+        override val id: UserId,
+        override val email: Email,
+        override val pictureUrl: ImageUrl?
     ) : UserProfile
 }
 

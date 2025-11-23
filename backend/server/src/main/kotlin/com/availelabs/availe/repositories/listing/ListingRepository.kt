@@ -6,7 +6,9 @@ import com.availelabs.availe.adapters.toDomainListing
 import com.availelabs.availe.adapters.toDomainPrice
 import com.availelabs.availe.adapters.toMoneta
 import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.repository.IListingRepository
 import com.availelabs.availe.domain.types.DbDeleteResult
 import com.availelabs.availe.domain.types.DbFindResult
@@ -28,7 +30,6 @@ import org.jooq.Field
 import java.math.BigDecimal
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 
 internal class ListingRepository(
@@ -45,10 +46,10 @@ internal class ListingRepository(
         .leftJoin(LISTING_SERVICE_DETAILS).on(LISTINGS.ID.eq(LISTING_SERVICE_DETAILS.LISTING_ID))
 
     override fun createListing(newListing: NewListing): DbInsertResult<Listing> {
-        val newListingId: Uuid = when (newListing) {
-            is NewListing.Event -> eventCreator.create(newListing)
-            is NewListing.Item -> itemCreator.create(newListing)
-            is NewListing.Service -> serviceCreator.create(newListing)
+        val newListingId: ListingId = when (newListing) {
+            is NewListing.Event -> ListingId(eventCreator.create(newListing))
+            is NewListing.Item -> ListingId(itemCreator.create(newListing))
+            is NewListing.Service -> ListingId(serviceCreator.create(newListing))
         }
 
         return when (val findResult = getListingById(newListingId)) {
@@ -57,9 +58,9 @@ internal class ListingRepository(
         }
     }
 
-    override fun getListingById(id: Uuid): DbFindResult<Listing> {
+    override fun getListingById(id: ListingId): DbFindResult<Listing> {
         return baseQuery
-            .where(LISTINGS.ID.eq(id.toJavaUuid()))
+            .where(LISTINGS.ID.eq(id.value.toJavaUuid()))
             .fetchOne()
             ?.let {
                 DbFindResult.Found(
@@ -74,11 +75,11 @@ internal class ListingRepository(
             ?: DbFindResult.NotFound
     }
 
-    override fun existsById(id: Uuid): Boolean {
+    override fun existsById(id: ListingId): Boolean {
         return dsl.fetchExists(
             dsl.selectOne()
                 .from(LISTINGS)
-                .where(LISTINGS.ID.eq(id.toJavaUuid()))
+                .where(LISTINGS.ID.eq(id.value.toJavaUuid()))
         )
     }
 
@@ -119,9 +120,9 @@ internal class ListingRepository(
     }
 
     override fun updateListing(
-        id: Uuid,
+        id: ListingId,
         patch: TypeV1ListingDtoPatchRequest,
-        requestingPublisherId: Uuid
+        requestingPublisherId: UserId
     ): DbUpdateResult<Listing> {
         val updates = mutableMapOf<Field<*>, Any?>()
 
@@ -140,8 +141,8 @@ internal class ListingRepository(
             val isOwner = dsl.fetchExists(
                 dsl.selectOne()
                     .from(LISTINGS)
-                    .where(LISTINGS.ID.eq(id.toJavaUuid()))
-                    .and(LISTINGS.PUBLISHER_ID.eq(requestingPublisherId.toJavaUuid()))
+                    .where(LISTINGS.ID.eq(id.value.toJavaUuid()))
+                    .and(LISTINGS.PUBLISHER_ID.eq(requestingPublisherId.value.toJavaUuid()))
             )
             return if (isOwner) {
                 when (val current = getListingById(id)) {
@@ -155,8 +156,8 @@ internal class ListingRepository(
 
         val record = dsl.update(LISTINGS)
             .set(updates)
-            .where(LISTINGS.ID.eq(id.toJavaUuid()))
-            .and(LISTINGS.PUBLISHER_ID.eq(requestingPublisherId.toJavaUuid()))
+            .where(LISTINGS.ID.eq(id.value.toJavaUuid()))
+            .and(LISTINGS.PUBLISHER_ID.eq(requestingPublisherId.value.toJavaUuid()))
             .returning()
             .fetchOne()
 
@@ -170,10 +171,10 @@ internal class ListingRepository(
         }
     }
 
-    override fun deleteListing(id: Uuid, requestingPublisherId: Uuid): DbDeleteResult {
+    override fun deleteListing(id: ListingId, requestingPublisherId: UserId): DbDeleteResult {
         val rowsAffected = dsl.deleteFrom(LISTINGS)
-            .where(LISTINGS.ID.eq(id.toJavaUuid()))
-            .and(LISTINGS.PUBLISHER_ID.eq(requestingPublisherId.toJavaUuid()))
+            .where(LISTINGS.ID.eq(id.value.toJavaUuid()))
+            .and(LISTINGS.PUBLISHER_ID.eq(requestingPublisherId.value.toJavaUuid()))
             .execute()
 
         return if (rowsAffected > 0) DbDeleteResult.Deleted else DbDeleteResult.NotFound

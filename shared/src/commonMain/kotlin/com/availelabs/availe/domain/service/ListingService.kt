@@ -3,12 +3,13 @@
 package com.availelabs.availe.domain.service
 
 import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.repository.IListingRepository
 import com.availelabs.availe.domain.types.*
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 class ListingService(
     private val listingRepository: IListingRepository
@@ -20,7 +21,7 @@ class ListingService(
         }
     }
 
-    override fun getListingById(id: Uuid): FindResult<Listing> {
+    override fun getListingById(id: ListingId): FindResult<Listing> {
         return when (val result = listingRepository.getListingById(id)) {
             is DbFindResult.Found -> FindResult.Found(result.value)
             is DbFindResult.NotFound -> FindResult.NotFound
@@ -30,9 +31,9 @@ class ListingService(
     override fun getAllListings(): List<Listing> = listingRepository.getAllListings()
 
     override fun updateListing(
-        listingId: Uuid,
+        listingId: ListingId,
         patch: TypeV1ListingDtoPatchRequest,
-        requestingPublisherId: Uuid
+        requestingPublisherId: UserId
     ): UpdateResult<Listing> {
         return when (val result = listingRepository.updateListing(listingId, patch, requestingPublisherId)) {
             is DbUpdateResult.Updated -> UpdateResult.Updated(result.value)
@@ -46,7 +47,7 @@ class ListingService(
         }
     }
 
-    override fun deleteListing(listingId: Uuid, requestingPublisherId: Uuid): DeleteResult {
+    override fun deleteListing(listingId: ListingId, requestingPublisherId: UserId): DeleteResult {
         return when (listingRepository.deleteListing(listingId, requestingPublisherId)) {
             is DbDeleteResult.Deleted -> DeleteResult.Deleted
             is DbDeleteResult.NotFound -> {

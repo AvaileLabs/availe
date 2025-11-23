@@ -12,7 +12,6 @@ import java.math.BigDecimal
 import kotlin.time.ExperimentalTime
 import kotlin.time.toKotlinInstant
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 import com.example.jooq.tables.ListingEventDetails as EventDetailsTable
@@ -31,7 +30,7 @@ internal fun PriceDto.V1.toDomainPrice(): Price = Price(
 )
 
 internal fun ListingsRecord.applyCommonData(commonData: CommonListingData) {
-    this.publisherId = commonData.publisherId.toJavaUuid()
+    this.publisherId = commonData.publisherId.value.toJavaUuid()
     this.title = commonData.title.value
     this.description = commonData.description?.value
     val monetaPrice = commonData.price.toMoneta()
@@ -46,10 +45,10 @@ internal fun ListingsRecord.toDomainListing(): Listing {
         description = this.description?.let { ListingDescription(it) },
         price = org.javamoney.moneta.Money.of(this.priceAmount, this.priceCurrency).toSharedPrice(),
         imageLinks = this.imageLinks?.filterNotNull()?.map { ImageUrl(it) } ?: emptyList(),
-        publisherId = this.publisherId!!.toKotlinUuid()
+        publisherId = UserId(this.publisherId!!.toKotlinUuid())
     )
 
-    val domainId = this.id!!.toKotlinUuid()
+    val domainId = ListingId(this.id!!.toKotlinUuid())
     val domainCreatedAt = this.createdAt!!.toInstant().toKotlinInstant()
 
     return when (this.listingType) {
@@ -72,10 +71,10 @@ internal fun Record.toDomainListing(
         price = org.javamoney.moneta.Money.of(this[listingsTable.PRICE_AMOUNT], this[listingsTable.PRICE_CURRENCY])
             .toSharedPrice(),
         imageLinks = this[listingsTable.IMAGE_LINKS]?.filterNotNull()?.map { ImageUrl(it) } ?: emptyList(),
-        publisherId = this[listingsTable.PUBLISHER_ID]!!.toKotlinUuid()
+        publisherId = UserId(this[listingsTable.PUBLISHER_ID]!!.toKotlinUuid())
     )
 
-    val domainId = this[listingsTable.ID]!!.toKotlinUuid()
+    val domainId = ListingId(this[listingsTable.ID]!!.toKotlinUuid())
     val domainCreatedAt = this[listingsTable.CREATED_AT]!!.toInstant().toKotlinInstant()
 
     return when (this[listingsTable.LISTING_TYPE]) {
@@ -99,38 +98,38 @@ internal fun Listing.toDataDto(): TypeV1ListingDtoData {
     val priceDto = this.price.toPriceDtoV1()
     return when (this) {
         is Listing.Event -> ListingEventDtoSchema.V1.Data(
-            id = this.id,
+            id = this.id.value,
             title = this.title.value,
             description = this.description?.value,
             price = priceDto,
             imageLinks = this.imageLinks.map { it.value },
-            publisherId = this.publisherId,
+            publisherId = this.publisherId.value,
             schemaVersion = 1
         )
 
         is Listing.Item -> ListingItemDtoSchema.V1.Data(
-            id = this.id,
+            id = this.id.value,
             title = this.title.value,
             description = this.description?.value,
             price = priceDto,
             imageLinks = this.imageLinks.map { it.value },
-            publisherId = this.publisherId,
+            publisherId = this.publisherId.value,
             schemaVersion = 1
         )
 
         is Listing.Service -> ListingServiceDtoSchema.V1.Data(
-            id = this.id,
+            id = this.id.value,
             title = this.title.value,
             description = this.description?.value,
             price = priceDto,
             imageLinks = this.imageLinks.map { it.value },
-            publisherId = this.publisherId,
+            publisherId = this.publisherId.value,
             schemaVersion = 1
         )
     }
 }
 
-internal fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: Uuid): NewListing {
+internal fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId): NewListing {
     return when (this) {
         is ListingEventDtoSchema.V1.CreateRequest -> NewListing.Event(
             CommonListingData(

@@ -13,6 +13,10 @@ import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.auth.LoginResult
 import com.availelabs.availe.domain.auth.LogoutError
 import com.availelabs.availe.domain.auth.LogoutResult
+import com.availelabs.availe.domain.model.Email
+import com.availelabs.availe.domain.model.ImageUrl
+import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.UserName
 import com.availelabs.availe.features.profile.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -177,16 +181,16 @@ private fun JwtPayloadDto.toUserProfile(): UserProfile {
 
     return if (name != null) {
         UserProfile.Named(
-            id = id,
-            email = email,
-            pictureUrl = picture,
-            name = name
+            id = UserId(id),
+            email = Email(email),
+            pictureUrl = picture?.let { ImageUrl(it) },
+            name = UserName(name)
         )
     } else {
         UserProfile.Anonymous(
-            id = id,
-            email = email,
-            pictureUrl = picture
+            id = UserId(id),
+            email = Email(email),
+            pictureUrl = picture?.let { ImageUrl(it) }
         )
     }
 }

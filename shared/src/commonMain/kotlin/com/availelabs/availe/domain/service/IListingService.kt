@@ -3,24 +3,25 @@
 package com.availelabs.availe.domain.service
 
 import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 interface IListingService {
     fun createListing(newListing: NewListing): InsertResult<Listing>
-    fun getListingById(id: Uuid): FindResult<Listing>
+    fun getListingById(id: ListingId): FindResult<Listing>
     fun getAllListings(): List<Listing>
     fun updateListing(
-        listingId: Uuid,
+        listingId: ListingId,
         patch: TypeV1ListingDtoPatchRequest,
-        requestingPublisherId: Uuid
+        requestingPublisherId: UserId
     ): UpdateResult<Listing>
 
-    fun deleteListing(listingId: Uuid, requestingPublisherId: Uuid): DeleteResult
+    fun deleteListing(listingId: ListingId, requestingPublisherId: UserId): DeleteResult
 }

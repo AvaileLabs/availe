@@ -5,7 +5,9 @@ package com.availelabs.availe.data.network
 import com.availelabs.availe.ApiMediaTypes
 import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import io.ktor.client.*
@@ -16,13 +18,12 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 interface IApiClient {
     suspend fun getListings(): List<Listing>
-    suspend fun createListing(listing: NewListing, publisherId: Uuid): Listing
-    suspend fun updateListing(listingId: Uuid, patch: TypeV1ListingDtoPatchRequest, publisherId: Uuid): Listing
-    suspend fun deleteListing(listingId: Uuid, publisherId: Uuid)
+    suspend fun createListing(listing: NewListing, publisherId: UserId): Listing
+    suspend fun updateListing(listingId: ListingId, patch: TypeV1ListingDtoPatchRequest, publisherId: UserId): Listing
+    suspend fun deleteListing(listingId: ListingId, publisherId: UserId)
 }
 
 class ApiClient(
@@ -42,12 +43,12 @@ class ApiClient(
         return dtos.map { it.toDomainListing() }
     }
 
-    override suspend fun createListing(listing: NewListing, publisherId: Uuid): Listing {
+    override suspend fun createListing(listing: NewListing, publisherId: UserId): Listing {
         val dto = listing.toCreateRequestDto()
         val response = httpClient.post(ApiRoutes.LISTINGS) {
             header(HttpHeaders.ContentType, ApiMediaTypes.LISTINGS_V1_JSON)
             header(HttpHeaders.Accept, ApiMediaTypes.LISTINGS_V1_JSON)
-            parameter("publisherId", publisherId.toString())
+            parameter("publisherId", publisherId.value.toString())
             setBody(dto)
         }
 
@@ -62,14 +63,14 @@ class ApiClient(
     }
 
     override suspend fun updateListing(
-        listingId: Uuid,
+        listingId: ListingId,
         patch: TypeV1ListingDtoPatchRequest,
-        publisherId: Uuid
+        publisherId: UserId
     ): Listing {
-        val response = httpClient.patch("${ApiRoutes.LISTINGS}/${listingId}") {
+        val response = httpClient.patch("${ApiRoutes.LISTINGS}/${listingId.value}") {
             header(HttpHeaders.ContentType, ApiMediaTypes.LISTINGS_V1_JSON)
             header(HttpHeaders.Accept, ApiMediaTypes.LISTINGS_V1_JSON)
-            parameter("publisherId", publisherId.toString())
+            parameter("publisherId", publisherId.value.toString())
             setBody(patch)
         }
 
@@ -83,9 +84,9 @@ class ApiClient(
         return responseDto.toDomainListing()
     }
 
-    override suspend fun deleteListing(listingId: Uuid, publisherId: Uuid) {
-        val response = httpClient.delete("${ApiRoutes.LISTINGS}/${listingId}") {
-            parameter("publisherId", publisherId.toString())
+    override suspend fun deleteListing(listingId: ListingId, publisherId: UserId) {
+        val response = httpClient.delete("${ApiRoutes.LISTINGS}/${listingId.value}") {
+            parameter("publisherId", publisherId.value.toString())
         }
 
         if (!response.status.isSuccess()) {

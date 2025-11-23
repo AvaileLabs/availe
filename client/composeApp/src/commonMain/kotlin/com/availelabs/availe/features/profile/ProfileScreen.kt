@@ -113,7 +113,7 @@ private fun AuthenticatedContent(
         verticalArrangement = Arrangement.Center
     ) {
         val initials = when (profile) {
-            is UserProfile.Named -> profile.name
+            is UserProfile.Named -> profile.name.value
             is UserProfile.Anonymous -> "User"
             null -> "U"
         }
@@ -127,7 +127,7 @@ private fun AuthenticatedContent(
         Spacer(Modifier.height(24.dp))
 
         val displayName = when (profile) {
-            is UserProfile.Named -> profile.name
+            is UserProfile.Named -> profile.name.value
             is UserProfile.Anonymous -> "User"
             null -> "Unknown User"
         }
@@ -139,7 +139,7 @@ private fun AuthenticatedContent(
         )
 
         Text(
-            text = profile?.email ?: "",
+            text = profile?.email?.value ?: "",
             color = Color.Gray,
             textAlign = TextAlign.Center
         )

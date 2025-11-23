@@ -54,9 +54,9 @@ internal fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 description = this.description?.let { ListingDescription(it) },
                 price = this.price.toDomainPrice(),
                 imageLinks = this.imageLinks.map { ImageUrl(it) },
-                publisherId = this.publisherId
+                publisherId = UserId(this.publisherId)
             )
-            Listing.Event(common, this.id, createdAt)
+            Listing.Event(common, ListingId(this.id), createdAt)
         }
 
         is ListingItemDtoSchema.V1.Data -> {
@@ -65,9 +65,9 @@ internal fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 description = this.description?.let { ListingDescription(it) },
                 price = this.price.toDomainPrice(),
                 imageLinks = this.imageLinks.map { ImageUrl(it) },
-                publisherId = this.publisherId
+                publisherId = UserId(this.publisherId)
             )
-            Listing.Item(common, this.id, createdAt)
+            Listing.Item(common, ListingId(this.id), createdAt)
         }
 
         is ListingServiceDtoSchema.V1.Data -> {
@@ -76,9 +76,9 @@ internal fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 description = this.description?.let { ListingDescription(it) },
                 price = this.price.toDomainPrice(),
                 imageLinks = this.imageLinks.map { ImageUrl(it) },
-                publisherId = this.publisherId
+                publisherId = UserId(this.publisherId)
             )
-            Listing.Service(common, this.id, createdAt)
+            Listing.Service(common, ListingId(this.id), createdAt)
         }
     }
 }

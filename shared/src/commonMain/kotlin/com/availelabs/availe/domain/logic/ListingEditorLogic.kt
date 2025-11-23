@@ -1,10 +1,6 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.availelabs.availe.domain.logic
 
 import com.availelabs.availe.domain.model.*
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 data class ListingEditorState(
     val isEditing: Boolean = false,
@@ -67,7 +63,7 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
     }
 }
 
-fun ListingEditorState.toNewListing(publisherId: Uuid): NewListing {
+fun ListingEditorState.toNewListing(publisherId: UserId): NewListing {
     val price = Price(this.priceAmount, this.priceCurrency.code)
     val imageLinks = if (this.imageUrl.value.isNotBlank()) listOf(this.imageUrl) else emptyList()
 
