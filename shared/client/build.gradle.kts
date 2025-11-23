@@ -38,6 +38,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(projects.shared.logic)
             implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {

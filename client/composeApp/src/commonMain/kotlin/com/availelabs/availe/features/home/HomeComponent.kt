@@ -8,8 +8,8 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.data.network.IApiClient
-import com.availelabs.availe.domain.logic.toDisplayString
 import com.availelabs.availe.domain.model.Listing
+import com.availelabs.domain.toDisplayString
 import com.availelabs.ui.utils.ContentLoader
 import com.availelabs.ui.utils.ContentState
 import kotlinx.coroutines.Dispatchers

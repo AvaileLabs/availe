@@ -16,12 +16,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.availelabs.availe.domain.logic.ListingEditorIntent
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.features.listings.IListingEditorComponent
 import com.availelabs.availe.ui.ScreenScaffold
 import com.availelabs.availe.ui.components.DismissibleFormField
 import com.availelabs.availe.ui.dismissKeyboardOnTap
+import com.availelabs.domain.ListingEditorIntent
 import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.Image
 import com.composables.icons.lucide.Lucide

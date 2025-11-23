@@ -1,5 +1,6 @@
 package com.availelabs.domain
 
+import com.availelabs.availe.domain.logic.InputValidator
 import com.availelabs.availe.domain.model.*
 
 data class ListingEditorState(
