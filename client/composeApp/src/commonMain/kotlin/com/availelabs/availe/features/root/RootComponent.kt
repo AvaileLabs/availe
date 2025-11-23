@@ -23,6 +23,7 @@ import com.availelabs.availe.features.messages.MessagesComponent
 import com.availelabs.availe.features.profile.IProfileComponent
 import com.availelabs.availe.features.profile.ProfileComponent
 import com.composables.icons.lucide.*
+import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -81,7 +82,12 @@ class RootComponent(
         serializer = Configuration.serializer(),
         initialStack = {
             if (deepLinkUrl != null) {
-                val configuration = getConfigurationForPath(deepLinkUrl)
+                val path = try {
+                    Url(deepLinkUrl).encodedPath
+                } catch (_: Exception) {
+                    deepLinkUrl
+                }
+                val configuration = getConfigurationForPath(path)
                 listOf(configuration)
             } else {
                 listOf(Configuration.Home)
