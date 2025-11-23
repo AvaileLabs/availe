@@ -9,9 +9,7 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.data.auth.IAuthenticationService
 import com.availelabs.availe.data.network.IApiClient
-import com.availelabs.availe.domain.model.CommonListingData
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.Price
+import com.availelabs.availe.domain.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
@@ -22,9 +20,9 @@ interface ICreateListingComponent {
     fun onTitleChanged(title: String)
     fun onDescriptionChanged(description: String)
     fun onPriceAmountChanged(amount: String)
-    fun onCurrencyChanged(currency: String)
+    fun onCurrencyChanged(currency: SupportedCurrency)
     fun onImageUrlChanged(url: String)
-    fun onTypeChanged(type: CreateListingType)
+    fun onTypeChanged(type: ListingCategory)
     fun onSubmit()
     fun onCancel()
 }
@@ -33,16 +31,12 @@ data class CreateListingState(
     val title: String = "",
     val description: String = "",
     val priceAmount: String = "",
-    val priceCurrency: String = "USD",
+    val priceCurrency: SupportedCurrency = SupportedCurrency.USD,
     val imageUrl: String = "",
-    val type: CreateListingType = CreateListingType.Item,
+    val type: ListingCategory = ListingCategory.Item,
     val isSubmitting: Boolean = false,
     val error: String? = null
 )
-
-enum class CreateListingType {
-    Item, Event, Service
-}
 
 class CreateListingComponent(
     componentContext: ComponentContext,
@@ -69,7 +63,7 @@ class CreateListingComponent(
         }
     }
 
-    override fun onCurrencyChanged(currency: String) {
+    override fun onCurrencyChanged(currency: SupportedCurrency) {
         _state.update { it.copy(priceCurrency = currency) }
     }
 
@@ -77,7 +71,7 @@ class CreateListingComponent(
         _state.update { it.copy(imageUrl = url) }
     }
 
-    override fun onTypeChanged(type: CreateListingType) {
+    override fun onTypeChanged(type: ListingCategory) {
         _state.update { it.copy(type = type) }
     }
 
@@ -98,7 +92,7 @@ class CreateListingComponent(
                     return@launch
                 }
 
-                val price = Price(currentState.priceAmount, currentState.priceCurrency)
+                val price = Price(currentState.priceAmount, currentState.priceCurrency.code)
                 val imageLinks = if (currentState.imageUrl.isNotBlank()) listOf(currentState.imageUrl) else emptyList()
 
                 val commonData = CommonListingData(
@@ -110,9 +104,9 @@ class CreateListingComponent(
                 )
 
                 val newListing = when (currentState.type) {
-                    CreateListingType.Item -> NewListing.Item(commonData)
-                    CreateListingType.Event -> NewListing.Event(commonData)
-                    CreateListingType.Service -> NewListing.Service(commonData)
+                    ListingCategory.Item -> NewListing.Item(commonData)
+                    ListingCategory.Event -> NewListing.Event(commonData)
+                    ListingCategory.Service -> NewListing.Service(commonData)
                 }
 
                 apiClient.createListing(newListing, user.id)

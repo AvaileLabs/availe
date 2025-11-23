@@ -16,8 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.domain.model.SupportedCurrency
 import com.availelabs.availe.features.listings.IListingEditorComponent
-import com.availelabs.availe.features.listings.ListingType
 import com.availelabs.availe.ui.ScreenScaffold
 import com.availelabs.availe.ui.components.DismissibleFormField
 import com.availelabs.availe.ui.dismissKeyboardOnTap
@@ -72,7 +73,7 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
                 Text("Listing Type", color = Color.Gray)
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ListingType.entries.forEach { type ->
+                    ListingCategory.entries.forEach { type ->
                         val isSelected = state.type == type
                         val isEnabled = !state.isEditing
 
@@ -143,16 +144,21 @@ fun ListingEditorScreen(component: IListingEditorComponent) {
                             }
                             .padding(bottom = 8.dp)
                     )
-                    if (state.priceCurrency == "USD") {
-                        PrimaryButton(
-                            onClick = { component.onCurrencyChanged("EUR") },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("USD") }
-                    } else {
-                        SecondaryButton(
-                            onClick = { component.onCurrencyChanged("USD") },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("EUR") }
+
+                    SupportedCurrency.entries.forEach { currency ->
+                        val isSelected = state.priceCurrency == currency
+                        if (isSelected) {
+                            PrimaryButton(
+                                onClick = { },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text(currency.code) }
+                        } else {
+                            SecondaryButton(
+                                onClick = { component.onCurrencyChanged(currency) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text(currency.code) }
+                        }
+                        Spacer(Modifier.height(4.dp))
                     }
                 }
             }

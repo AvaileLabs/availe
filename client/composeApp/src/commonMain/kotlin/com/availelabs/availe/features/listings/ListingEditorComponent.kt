@@ -10,10 +10,7 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.data.auth.IAuthenticationService
 import com.availelabs.availe.data.network.IApiClient
 import com.availelabs.availe.data.network.toDto
-import com.availelabs.availe.domain.model.CommonListingData
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.Price
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingServiceDtoSchema
@@ -29,9 +26,9 @@ interface IListingEditorComponent {
     fun onTitleChanged(title: String)
     fun onDescriptionChanged(description: String)
     fun onPriceAmountChanged(amount: String)
-    fun onCurrencyChanged(currency: String)
+    fun onCurrencyChanged(currency: SupportedCurrency)
     fun onImageUrlChanged(url: String)
-    fun onTypeChanged(type: ListingType)
+    fun onTypeChanged(type: ListingCategory)
     fun onSubmit()
     fun onCancel()
 }
@@ -41,16 +38,12 @@ data class ListingEditorState(
     val title: String = "",
     val description: String = "",
     val priceAmount: String = "",
-    val priceCurrency: String = "USD",
+    val priceCurrency: SupportedCurrency = SupportedCurrency.USD,
     val imageUrl: String = "",
-    val type: ListingType = ListingType.Item,
+    val type: ListingCategory = ListingCategory.Item,
     val isSubmitting: Boolean = false,
     val error: String? = null
 )
-
-enum class ListingType {
-    Item, Event, Service
-}
 
 class ListingEditorComponent(
     componentContext: ComponentContext,
@@ -66,18 +59,21 @@ class ListingEditorComponent(
 
     init {
         if (listingToEdit != null) {
+            val currencyEnum = SupportedCurrency.entries.find { it.code == listingToEdit.price.currency }
+                ?: SupportedCurrency.USD
+
             _state.update {
                 it.copy(
                     isEditing = true,
                     title = listingToEdit.title,
                     description = listingToEdit.description ?: "",
                     priceAmount = listingToEdit.price.amount,
-                    priceCurrency = listingToEdit.price.currency,
+                    priceCurrency = currencyEnum,
                     imageUrl = listingToEdit.imageLinks.firstOrNull() ?: "",
                     type = when (listingToEdit) {
-                        is Listing.Item -> ListingType.Item
-                        is Listing.Event -> ListingType.Event
-                        is Listing.Service -> ListingType.Service
+                        is Listing.Item -> ListingCategory.Item
+                        is Listing.Event -> ListingCategory.Event
+                        is Listing.Service -> ListingCategory.Service
                     }
                 )
             }
@@ -98,7 +94,7 @@ class ListingEditorComponent(
         }
     }
 
-    override fun onCurrencyChanged(currency: String) {
+    override fun onCurrencyChanged(currency: SupportedCurrency) {
         _state.update { it.copy(priceCurrency = currency) }
     }
 
@@ -106,7 +102,7 @@ class ListingEditorComponent(
         _state.update { it.copy(imageUrl = url) }
     }
 
-    override fun onTypeChanged(type: ListingType) {
+    override fun onTypeChanged(type: ListingCategory) {
         if (listingToEdit == null) {
             _state.update { it.copy(type = type) }
         }
@@ -129,7 +125,7 @@ class ListingEditorComponent(
                     return@launch
                 }
 
-                val price = Price(currentState.priceAmount, currentState.priceCurrency)
+                val price = Price(currentState.priceAmount, currentState.priceCurrency.code)
                 val imageLinks = if (currentState.imageUrl.isNotBlank()) listOf(currentState.imageUrl) else emptyList()
 
                 if (listingToEdit == null) {
@@ -142,9 +138,9 @@ class ListingEditorComponent(
                     )
 
                     val newListing = when (currentState.type) {
-                        ListingType.Item -> NewListing.Item(commonData)
-                        ListingType.Event -> NewListing.Event(commonData)
-                        ListingType.Service -> NewListing.Service(commonData)
+                        ListingCategory.Item -> NewListing.Item(commonData)
+                        ListingCategory.Event -> NewListing.Event(commonData)
+                        ListingCategory.Service -> NewListing.Service(commonData)
                     }
 
                     apiClient.createListing(newListing, user.id)
