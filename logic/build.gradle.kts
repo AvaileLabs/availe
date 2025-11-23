@@ -18,7 +18,7 @@ kotlin {
     jvmToolchain(21)
 
     android {
-        namespace = "com.availelabs.availe.shared"
+        namespace = "com.availelabs.availe.logic"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
         compilerOptions {

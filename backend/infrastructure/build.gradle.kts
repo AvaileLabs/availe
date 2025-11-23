@@ -16,7 +16,7 @@ dependencies {
     implementation(libs.keycloak.admin.client)
     implementation(libs.postgresql)
     implementation(libs.logback)
-    implementation(project(":shared"))
+    implementation(project(":logic"))
     testImplementation(kotlin("test"))
 }
 
