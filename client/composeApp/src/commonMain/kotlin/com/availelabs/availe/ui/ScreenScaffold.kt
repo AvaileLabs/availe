@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
@@ -27,17 +28,10 @@ fun ScreenScaffold(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val isWide = currentWindowContainerSize().width > 600.dp
-    val focusManager = LocalFocusManager.current
-
     Row(
         modifier = modifier
             .fillMaxSize()
             .background(backgroundColor)
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = {
-                    focusManager.clearFocus()
-                })
-            }
     ) {
         ProvideContentColor(contentColor) {
             if (sideBar != null && isWide) {
@@ -60,5 +54,14 @@ fun ScreenScaffold(
                 }
             }
         }
+    }
+}
+
+fun Modifier.dismissKeyboardOnTap(): Modifier = composed {
+    val focusManager = LocalFocusManager.current
+    this.pointerInput(Unit) {
+        detectTapGestures(onTap = {
+            focusManager.clearFocus()
+        })
     }
 }

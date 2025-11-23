@@ -23,7 +23,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.features.favorites.FavoritesScreen
 import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.home.components.MockSearchBar
-import com.availelabs.availe.features.listings.MyListingsScreen
+import com.availelabs.availe.features.listings.screens.MyListingsScreen
 import com.availelabs.availe.features.messages.MessagesScreen
 import com.availelabs.availe.features.profile.ProfileScreen
 import com.availelabs.availe.features.root.Child
