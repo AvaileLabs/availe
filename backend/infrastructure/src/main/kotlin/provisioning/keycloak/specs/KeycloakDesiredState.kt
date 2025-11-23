@@ -39,7 +39,10 @@ internal object KeycloakDesiredState {
             clientName = "Availe App",
             isPublic = true,
             redirectUris = allRedirectUris,
-            webOrigins = allWebOrigins
+            webOrigins = allWebOrigins,
+            optionalClientScopes = listOf(
+                KeycloakClientScopes.OFFLINE_ACCESS
+            )
         )
     )
 

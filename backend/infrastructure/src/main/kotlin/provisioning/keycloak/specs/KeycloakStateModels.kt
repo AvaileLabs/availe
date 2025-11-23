@@ -32,6 +32,7 @@ internal data class DesiredClient(
         KeycloakClientScopes.ROLES,
         KeycloakClientScopes.WEB_ORIGINS
     ),
+    val optionalClientScopes: List<String> = emptyList(),
     val attributes: Map<String, String> = mapOf(
         KeycloakClientAttributes.PKCE_METHOD to KeycloakClientAttributes.PKCE_METHOD_S256
     )

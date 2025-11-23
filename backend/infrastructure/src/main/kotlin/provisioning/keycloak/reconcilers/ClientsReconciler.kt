@@ -39,6 +39,7 @@ internal class ClientsReconciler {
             redirectUris = desired.redirectUris.toList()
             webOrigins = desired.webOrigins.toList()
             defaultClientScopes = desired.defaultClientScopes
+            optionalClientScopes = desired.optionalClientScopes
             attributes = desired.attributes.toMutableMap()
         }
         clientsResource.create(newClient)
@@ -96,6 +97,14 @@ internal class ClientsReconciler {
         if (currentScopes != targetScopes) {
             existing.defaultClientScopes = desired.defaultClientScopes
             logger.info("Client '{}': Field 'DefaultClientScopes' changed.", desired.clientId)
+            changed = true
+        }
+
+        val currentOptionalScopes = existing.optionalClientScopes?.toSet() ?: emptySet()
+        val targetOptionalScopes = desired.optionalClientScopes.toSet()
+        if (currentOptionalScopes != targetOptionalScopes) {
+            existing.optionalClientScopes = desired.optionalClientScopes
+            logger.info("Client '{}': Field 'OptionalClientScopes' changed.", desired.clientId)
             changed = true
         }
 

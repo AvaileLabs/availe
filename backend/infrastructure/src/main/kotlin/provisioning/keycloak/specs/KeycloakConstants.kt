@@ -17,6 +17,7 @@ internal object KeycloakClientScopes {
     const val EMAIL = "email"
     const val ROLES = "roles"
     const val WEB_ORIGINS = "web-origins"
+    const val OFFLINE_ACCESS = "offline_access"
 }
 
 internal object KeycloakClientAttributes {

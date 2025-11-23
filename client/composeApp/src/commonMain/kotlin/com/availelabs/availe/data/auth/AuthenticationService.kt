@@ -26,6 +26,7 @@ import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.tokenstore.TokenStore
 import org.publicvalue.multiplatform.oidc.tokenstore.getTokens
 import org.publicvalue.multiplatform.oidc.tokenstore.removeTokens
+import org.publicvalue.multiplatform.oidc.tokenstore.saveTokens
 import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.encoding.Base64
@@ -55,7 +56,7 @@ class AuthenticationService(
         .withLifecycle(lifecycle)
 
     private val client = OpenIdConnectClient(discoveryUri = DISCOVERY_URI) {
-        this.scope = SCOPE
+        this.scope = "$SCOPE offline_access"
         this.clientId = CLIENT_ID
         this.codeChallengeMethod = CodeChallengeMethod.S256
         this.redirectUri = platformAuthConfig.redirectUri
@@ -66,14 +67,21 @@ class AuthenticationService(
         coroutineScope.launch {
             try {
                 client.discover()
-                val tokens = tokenStore.getTokens()
-                if (tokens != null) {
-                    _authenticationState.update { AuthenticationState.LoggedIn(tokens.accessToken) }
+                val storedTokens = tokenStore.getTokens()
+
+                if (storedTokens != null && storedTokens.refreshToken != null) {
+                    try {
+                        val newTokens = client.refreshToken(storedTokens.refreshToken!!)
+                        tokenStore.saveTokens(newTokens)
+                        _authenticationState.update { AuthenticationState.LoggedIn(newTokens.access_token) }
+                    } catch (_: OpenIdConnectException) {
+                        clearLocalTokens()
+                    } catch (_: Exception) {
+                        clearLocalTokens()
+                    }
                 } else {
                     _authenticationState.update { AuthenticationState.LoggedOut }
                 }
-            } catch (e: OpenIdConnectException) {
-                _authenticationState.update { AuthenticationState.InitializationFailed(e) }
             } catch (e: Exception) {
                 _authenticationState.update { AuthenticationState.InitializationFailed(e) }
             }
@@ -96,6 +104,7 @@ class AuthenticationService(
             tokenStore.removeTokens()
             _authenticationState.update { AuthenticationState.LoggedOut }
         } catch (_: Exception) {
+            _authenticationState.update { AuthenticationState.LoggedOut }
         }
     }
 
