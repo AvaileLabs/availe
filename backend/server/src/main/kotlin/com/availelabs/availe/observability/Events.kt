@@ -22,7 +22,7 @@ data class ListingCreated(
     val publisherId: String
 ) : Event
 
-fun CatchLensFailure(events: Events): Filter = Filter { next ->
+fun catchLensFailure(events: Events): Filter = Filter { next ->
     { req ->
         try {
             next(req)

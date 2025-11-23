@@ -2,7 +2,7 @@ package com.availelabs.availe
 
 import com.availelabs.availe.controllers.ListingController
 import com.availelabs.availe.domain.service.ListingService
-import com.availelabs.availe.observability.CatchLensFailure
+import com.availelabs.availe.observability.catchLensFailure
 import com.availelabs.availe.repositories.listing.ListingRepository
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.EventListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ItemListingCreator
@@ -57,7 +57,7 @@ internal fun main() {
     }
 
     val corsFilter = ServerFilters.Cors(CorsPolicy.UnsafeGlobalPermissive)
-    val lensFailureFilter = CatchLensFailure(events)
+    val lensFailureFilter = catchLensFailure(events)
 
     val api = routes(
         "/api" bind apiContract,
