@@ -12,10 +12,7 @@ import com.availelabs.availe.data.network.IApiClient
 import com.availelabs.availe.domain.logic.ListingEditorIntent
 import com.availelabs.availe.domain.logic.ListingEditorState
 import com.availelabs.availe.domain.logic.reduceListingEditor
-import com.availelabs.availe.domain.model.CommonListingData
-import com.availelabs.availe.domain.model.ListingCategory
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.Price
+import com.availelabs.availe.domain.logic.toNewListing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
@@ -57,24 +54,7 @@ class CreateListingComponent(
                     return@launch
                 }
 
-                val price = Price(currentState.priceAmount, currentState.priceCurrency.code)
-                val imageLinks =
-                    if (currentState.imageUrl.value.isNotBlank()) listOf(currentState.imageUrl) else emptyList()
-
-                val commonData = CommonListingData(
-                    title = currentState.title,
-                    description = if (currentState.description.value.isBlank()) null else currentState.description,
-                    price = price,
-                    imageLinks = imageLinks,
-                    publisherId = user.id
-                )
-
-                val newListing = when (currentState.type) {
-                    ListingCategory.Item -> NewListing.Item(commonData)
-                    ListingCategory.Event -> NewListing.Event(commonData)
-                    ListingCategory.Service -> NewListing.Service(commonData)
-                }
-
+                val newListing = currentState.toNewListing(user.id)
                 apiClient.createListing(newListing, user.id)
                 onFinishedCallback()
             } catch (e: Exception) {

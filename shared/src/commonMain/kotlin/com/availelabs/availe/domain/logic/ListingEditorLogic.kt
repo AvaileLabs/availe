@@ -1,6 +1,10 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.availelabs.availe.domain.logic
 
 import com.availelabs.availe.domain.model.*
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 data class ListingEditorState(
     val isEditing: Boolean = false,
@@ -60,5 +64,24 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
 
         is ListingEditorIntent.SetSubmitting -> state.copy(isSubmitting = intent.isSubmitting)
         is ListingEditorIntent.SetError -> state.copy(error = intent.message, isSubmitting = false)
+    }
+}
+
+fun ListingEditorState.toNewListing(publisherId: Uuid): NewListing {
+    val price = Price(this.priceAmount, this.priceCurrency.code)
+    val imageLinks = if (this.imageUrl.value.isNotBlank()) listOf(this.imageUrl) else emptyList()
+
+    val commonData = CommonListingData(
+        title = this.title,
+        description = if (this.description.value.isBlank()) null else this.description,
+        price = price,
+        imageLinks = imageLinks,
+        publisherId = publisherId
+    )
+
+    return when (this.type) {
+        ListingCategory.Item -> NewListing.Item(commonData)
+        ListingCategory.Event -> NewListing.Event(commonData)
+        ListingCategory.Service -> NewListing.Service(commonData)
     }
 }

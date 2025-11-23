@@ -13,6 +13,7 @@ import com.availelabs.availe.data.network.toDto
 import com.availelabs.availe.domain.logic.ListingEditorIntent
 import com.availelabs.availe.domain.logic.ListingEditorState
 import com.availelabs.availe.domain.logic.reduceListingEditor
+import com.availelabs.availe.domain.logic.toNewListing
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
@@ -84,27 +85,14 @@ class ListingEditorComponent(
                     return@launch
                 }
 
-                val price = Price(currentState.priceAmount, currentState.priceCurrency.code)
-                val imageLinks =
-                    if (currentState.imageUrl.value.isNotBlank()) listOf(currentState.imageUrl) else emptyList()
-
                 if (listingToEdit == null) {
-                    val commonData = CommonListingData(
-                        title = currentState.title,
-                        description = if (currentState.description.value.isBlank()) null else currentState.description,
-                        price = price,
-                        imageLinks = imageLinks,
-                        publisherId = user.id
-                    )
-
-                    val newListing = when (currentState.type) {
-                        ListingCategory.Item -> NewListing.Item(commonData)
-                        ListingCategory.Event -> NewListing.Event(commonData)
-                        ListingCategory.Service -> NewListing.Service(commonData)
-                    }
-
+                    val newListing = currentState.toNewListing(user.id)
                     apiClient.createListing(newListing, user.id)
                 } else {
+                    val price = Price(currentState.priceAmount, currentState.priceCurrency.code)
+                    val imageLinks =
+                        if (currentState.imageUrl.value.isNotBlank()) listOf(currentState.imageUrl) else emptyList()
+
                     val patch: TypeV1ListingDtoPatchRequest = when (listingToEdit) {
                         is Listing.Item -> ListingItemDtoSchema.V1.PatchRequest(
                             title = SerializablePatchable.Set(currentState.title.value),
