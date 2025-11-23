@@ -1,4 +1,4 @@
-package com.availelabs.availe.domain.logic
+package com.availelabs.domain
 
 import com.availelabs.availe.domain.model.*
 

@@ -71,6 +71,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.datetime)
             api(projects.shared.logic)
+            api(projects.shared.client)
             implementation(libs.ktor.utils)
             implementation(libs.okio)
             implementation(libs.multiplatform.settings.no.arg)
