@@ -111,6 +111,27 @@ class RootComponent(
 
     var urlOpener: ((String) -> Unit)? = null
 
+    init {
+        appContainer.authenticationService.authenticationState.subscribe { state ->
+            if (state is AuthenticationState.LoggedOut || state is AuthenticationState.InitializationFailed) {
+                val activeConfig = childStack.value.active.configuration
+                if (isProtectedConfiguration(activeConfig)) {
+                    navigation.bringToFront(Configuration.Profile)
+                }
+            }
+        }
+    }
+
+    private fun isProtectedConfiguration(config: Configuration): Boolean {
+        return when (config) {
+            Configuration.MyListings,
+            Configuration.Favorites,
+            Configuration.Messages -> true
+
+            else -> false
+        }
+    }
+
     override fun onNavigate(configuration: Configuration) {
         navigation.bringToFront(configuration)
         _overlayState.update { OverlayState.None }

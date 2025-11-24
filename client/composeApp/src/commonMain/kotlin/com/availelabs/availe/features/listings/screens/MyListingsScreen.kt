@@ -108,23 +108,46 @@ fun UserListingsScreen(component: IUserListingsComponent) {
                 }
 
                 is ContentState.Content -> {
-                    val listings = contentState.data
-                    if (listings.isEmpty()) {
-                        EmptyState(onCreateClick = component::onCreateClicked)
-                    } else {
-                        ListingsList(
-                            listings = listings,
-                            onEditClick = component::onEditClicked,
-                            onDeleteClick = { listingToDelete = it },
-                            onCreateClick = component::onCreateClicked
-                        )
-                    }
+                    RenderListings(
+                        listings = contentState.data,
+                        onCreateClick = component::onCreateClicked,
+                        onEditClick = component::onEditClicked,
+                        onDeleteClick = { listingToDelete = it }
+                    )
+                }
+
+                is ContentState.Refreshing -> {
+                    RenderListings(
+                        listings = contentState.data,
+                        onCreateClick = component::onCreateClicked,
+                        onEditClick = component::onEditClicked,
+                        onDeleteClick = { listingToDelete = it }
+                    )
                 }
 
                 is ContentState.Idle -> {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RenderListings(
+    listings: List<Listing>,
+    onCreateClick: () -> Unit,
+    onEditClick: (Listing) -> Unit,
+    onDeleteClick: (Listing) -> Unit
+) {
+    if (listings.isEmpty()) {
+        EmptyState(onCreateClick = onCreateClick)
+    } else {
+        ListingsList(
+            listings = listings,
+            onEditClick = onEditClick,
+            onDeleteClick = onDeleteClick,
+            onCreateClick = onCreateClick
+        )
     }
 }
 

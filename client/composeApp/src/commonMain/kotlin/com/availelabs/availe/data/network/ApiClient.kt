@@ -4,6 +4,7 @@ package com.availelabs.availe.data.network
 
 import com.availelabs.availe.ApiMediaTypes
 import com.availelabs.availe.ApiRoutes
+import com.availelabs.availe.domain.auth.SessionManager
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
@@ -14,6 +15,7 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlin.time.ExperimentalTime
@@ -28,17 +30,24 @@ interface IApiClient {
 
 class ApiClient(
     private val httpClient: HttpClient,
-    private val json: Json
+    private val json: Json,
+    private val sessionManager: SessionManager
 ) : IApiClient {
+
+    private suspend fun validateResponse(response: HttpResponse) {
+        if (response.status == HttpStatusCode.Unauthorized) {
+            sessionManager.onSessionInvalidated()
+            throw CancellationException("Unauthorized access")
+        }
+        if (!response.status.isSuccess()) {
+            throw Exception("${response.status} - ${response.bodyAsText()}")
+        }
+    }
 
     override suspend fun getListings(): List<Listing> {
         val response = httpClient.get(ApiRoutes.LISTINGS)
+        validateResponse(response)
         val jsonString = response.bodyAsText()
-
-        if (!response.status.isSuccess()) {
-            throw Exception("Failed to fetch listings: ${response.status} - $jsonString")
-        }
-
         val dtos = json.decodeFromString(ListSerializer(TypeV1ListingDtoData.serializer()), jsonString)
         return dtos.map { it.toDomainListing() }
     }
@@ -52,12 +61,8 @@ class ApiClient(
             setBody(dto)
         }
 
+        validateResponse(response)
         val jsonString = response.bodyAsText()
-
-        if (!response.status.isSuccess()) {
-            throw Exception("Creation failed: ${response.status} - $jsonString")
-        }
-
         val responseDto = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)
         return responseDto.toDomainListing()
     }
@@ -74,12 +79,8 @@ class ApiClient(
             setBody(patch)
         }
 
+        validateResponse(response)
         val jsonString = response.bodyAsText()
-
-        if (!response.status.isSuccess()) {
-            throw Exception("Update failed: ${response.status} - $jsonString")
-        }
-
         val responseDto = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)
         return responseDto.toDomainListing()
     }
@@ -88,9 +89,6 @@ class ApiClient(
         val response = httpClient.delete("${ApiRoutes.LISTINGS}/${listingId.value}") {
             parameter("publisherId", publisherId.value.toString())
         }
-
-        if (!response.status.isSuccess()) {
-            throw Exception("Deletion failed: ${response.status} - ${response.bodyAsText()}")
-        }
+        validateResponse(response)
     }
 }

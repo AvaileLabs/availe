@@ -6,13 +6,10 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.coroutines.withLifecycle
 import com.availelabs.availe.NetworkConstants
+import com.availelabs.availe.domain.auth.*
 import com.availelabs.availe.domain.auth.AuthenticationConstants.CLIENT_ID
 import com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI
 import com.availelabs.availe.domain.auth.AuthenticationConstants.SCOPE
-import com.availelabs.availe.domain.auth.AuthenticationState
-import com.availelabs.availe.domain.auth.LoginResult
-import com.availelabs.availe.domain.auth.LogoutError
-import com.availelabs.availe.domain.auth.LogoutResult
 import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.ImageUrl
 import com.availelabs.availe.domain.model.UserId
@@ -52,7 +49,7 @@ class AuthenticationService(
     private val tokenStore: TokenStore,
     private val platformAuthConfig: PlatformAuthenticationConfig,
     lifecycle: Lifecycle
-) : IAuthenticationService {
+) : IAuthenticationService, SessionManager {
     private val _authenticationState = MutableValue<AuthenticationState>(AuthenticationState.Unknown)
     override val authenticationState: Value<AuthenticationState> = _authenticationState
 
@@ -142,6 +139,10 @@ class AuthenticationService(
 
         clearLocalTokens()
         return result
+    }
+
+    override suspend fun onSessionInvalidated() {
+        logout()
     }
 }
 

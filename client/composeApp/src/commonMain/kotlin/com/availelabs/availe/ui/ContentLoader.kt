@@ -23,7 +23,12 @@ class ContentLoader<T>(
     }
 
     private fun performFetch() {
-        _state.value = ContentState.Loading
+        when (val currentState = _state.value) {
+            is ContentState.Content -> _state.value = ContentState.Refreshing(currentState.data)
+            is ContentState.Refreshing -> {}
+            else -> _state.value = ContentState.Loading
+        }
+
         scope.launch {
             try {
                 val data = fetcher()

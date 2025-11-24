@@ -58,9 +58,11 @@ class UserListingsComponent(
     override fun onDeleteClicked(listing: Listing) {
         scope.launch {
             try {
-                val user = authService.getCurrentUserProfile() ?: return@launch
-                apiClient.deleteListing(listing.id, user.id)
-                listingsLoader.refresh()
+                val user = authService.getCurrentUserProfile()
+                if (user != null) {
+                    apiClient.deleteListing(listing.id, user.id)
+                    listingsLoader.refresh()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -72,8 +74,12 @@ class UserListingsComponent(
     }
 
     private suspend fun fetchUserListings(): List<Listing> {
-        val user = authService.getCurrentUserProfile() ?: return emptyList()
         val allListings = apiClient.getListings()
-        return allListings.filter { it.publisherId == user.id }
+        val user = authService.getCurrentUserProfile()
+        return if (user != null) {
+            allListings.filter { it.publisherId == user.id }
+        } else {
+            emptyList()
+        }
     }
 }

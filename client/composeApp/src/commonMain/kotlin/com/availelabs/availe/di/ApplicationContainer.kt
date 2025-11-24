@@ -55,7 +55,11 @@ fun createApplicationContainer(
         }
     }
 
-    val apiClient = ApiClient(httpClient, json)
+    val apiClient = ApiClient(
+        httpClient = httpClient,
+        json = json,
+        sessionManager = authenticationService
+    )
 
     return DefaultApplicationContainer(
         authenticationService = authenticationService,

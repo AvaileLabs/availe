@@ -82,6 +82,16 @@ internal fun HomeScreen(homeScreenComponent: IHomeComponent) {
                     }
                 }
 
+                is ContentState.Refreshing -> {
+                    items(listingsState.data) { item ->
+                        ListingCard(
+                            item = item,
+                            onItemClick = { homeScreenComponent.onEvent(HomeEvents.ItemClicked(it)) },
+                            onFavoriteClick = { homeScreenComponent.onEvent(HomeEvents.FavoriteClicked(it)) }
+                        )
+                    }
+                }
+
                 is ContentState.Idle -> {
                 }
             }
