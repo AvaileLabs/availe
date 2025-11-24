@@ -25,7 +25,9 @@ import com.composeunstyled.theme.Theme
 fun ProfileScreen(component: IProfileComponent) {
     val state by component.uiState.subscribeAsState()
 
-    ScreenScaffold {
+    ScreenScaffold(
+        appBar = { TopAppBar(title = { Text("Profile") }) }
+    ) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center

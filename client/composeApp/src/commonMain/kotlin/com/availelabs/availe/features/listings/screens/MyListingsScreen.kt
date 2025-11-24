@@ -3,6 +3,8 @@ package com.availelabs.availe.features.listings.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,17 +17,14 @@ import com.availelabs.availe.domain.toDisplayString
 import com.availelabs.availe.features.listings.IMyListingsHostComponent
 import com.availelabs.availe.features.listings.IUserListingsComponent
 import com.availelabs.availe.features.listings.MyListingsChild
-import com.availelabs.availe.ui.ContentState
-import com.availelabs.availe.ui.ScreenScaffold
+import com.availelabs.availe.ui.RefreshableScreenScaffold
+import com.availelabs.availe.ui.components.RefreshIcon
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Pencil
-import com.composables.icons.lucide.RefreshCw
 import com.composables.icons.lucide.Trash2
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.accent
 import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.textStyles
-import com.composables.uikit.styling.title
 import com.composeunstyled.theme.Theme
 
 @Composable
@@ -70,65 +69,26 @@ fun UserListingsScreen(component: IUserListingsComponent) {
         )
     }
 
-    ScreenScaffold {
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "My Listings",
-                    style = Theme[textStyles][title]
-                )
-                IconButton(onClick = component::onRefresh) {
-                    Icon(Lucide.RefreshCw, "Refresh")
-                }
-            }
-
-            when (val contentState = state) {
-                is ContentState.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        IntermediateProgressIndicator()
+    RefreshableScreenScaffold(
+        state = state,
+        onRefresh = component::onRefresh,
+        appBar = { refreshState ->
+            TopAppBar(
+                title = { Text("My Listings") },
+                actions = {
+                    IconButton(onClick = component::onRefresh) {
+                        RefreshIcon(refreshState)
                     }
                 }
-
-                is ContentState.Error -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Error: ${contentState.message}")
-                            Spacer(Modifier.height(16.dp))
-                            PrimaryButton(onClick = { component.onRefresh() }) {
-                                Text("Retry")
-                            }
-                        }
-                    }
-                }
-
-                is ContentState.Content -> {
-                    RenderListings(
-                        listings = contentState.data,
-                        onCreateClick = component::onCreateClicked,
-                        onEditClick = component::onEditClicked,
-                        onDeleteClick = { listingToDelete = it }
-                    )
-                }
-
-                is ContentState.Refreshing -> {
-                    RenderListings(
-                        listings = contentState.data,
-                        onCreateClick = component::onCreateClicked,
-                        onEditClick = component::onEditClicked,
-                        onDeleteClick = { listingToDelete = it }
-                    )
-                }
-
-                is ContentState.Idle -> {
-                }
-            }
+            )
         }
+    ) { listings, _ ->
+        RenderListings(
+            listings = listings,
+            onCreateClick = component::onCreateClicked,
+            onEditClick = component::onEditClicked,
+            onDeleteClick = { listingToDelete = it }
+        )
     }
 }
 
@@ -153,7 +113,12 @@ private fun RenderListings(
 
 @Composable
 private fun EmptyState(onCreateClick: () -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.Center
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)

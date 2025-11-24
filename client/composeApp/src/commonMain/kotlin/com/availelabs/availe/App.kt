@@ -31,13 +31,9 @@ import com.availelabs.availe.features.root.IRootComponent
 import com.availelabs.availe.features.root.OverlayState
 import com.availelabs.availe.features.root.RootComponent
 import com.availelabs.availe.features.settings.SettingsScreen
-import com.availelabs.availe.ui.ScreenScaffold
-import com.composables.icons.lucide.Bell
-import com.composables.icons.lucide.CirclePlus
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Search
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
+import com.composeunstyled.currentWindowContainerSize
 import com.composeunstyled.theme.Theme
 
 @Composable
@@ -60,15 +56,10 @@ fun App(root: IRootComponent) {
 
     UiKitTheme {
         AppScaffold {
-            ScreenScaffold(
-                appBar = {
-                    UiTopAppBar(
-                        onSearchClick = root::onSearchClicked,
-                        onNotifyClick = root::onNotificationClicked,
-                        onPostClick = root::onPostClicked
-                    )
-                },
-                sideBar = {
+            val isWide = currentWindowContainerSize().width > 600.dp
+
+            Row(Modifier.fillMaxSize()) {
+                if (isWide) {
                     SideBar(
                         modifier = Modifier.fillMaxHeight(),
                         navigationItems = {
@@ -84,77 +75,66 @@ fun App(root: IRootComponent) {
                             }
                         },
                     )
-                },
-                bottomBar = {
-                    BottomNavigationBar {
-                        root.topLevelDestinations.forEach { destination ->
-                            val selected = activeConfiguration == destination.configuration
-                            PrimaryTab(
-                                selected = selected,
-                                onSelected = { root.onNavigate(destination.configuration) },
-                                modifier = Modifier.weight(1f),
-                                icon = {
-                                    Icon(destination.icon, contentDescription = null)
-                                },
-                                title = {
-                                    Text(
-                                        text = destination.name,
-                                        overflow = TextOverflow.Ellipsis,
-                                        singleLine = true
-                                    )
-                                },
-                            )
+                }
+
+                Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f)) {
+                        Children(
+                            stack = root.childStack,
+                        ) {
+                            when (val child = it.instance) {
+                                is Child.Home -> HomeScreen(
+                                    homeScreenComponent = child.component,
+                                    onSearchClick = root::onSearchClicked,
+                                    onNotificationClick = root::onNotificationClicked,
+                                    onPostClick = root::onPostClicked
+                                )
+
+                                is Child.Favorites -> FavoritesScreen()
+                                is Child.MyListings -> MyListingsScreen(component = child.component)
+                                is Child.Messages -> MessagesScreen()
+                                is Child.Profile -> ProfileScreen(component = child.component)
+                                is Child.Settings -> SettingsScreen()
+                            }
+                        }
+
+                        SearchOverlay(
+                            visible = overlayState is OverlayState.Search,
+                            onDismiss = root::onDismissOverlay
+                        )
+
+                        NotificationOverlay(
+                            visible = overlayState is OverlayState.Notifications,
+                            onDismiss = root::onDismissOverlay
+                        )
+                    }
+
+                    if (!isWide) {
+                        BottomNavigationBar {
+                            root.topLevelDestinations.forEach { destination ->
+                                val selected = activeConfiguration == destination.configuration
+                                PrimaryTab(
+                                    selected = selected,
+                                    onSelected = { root.onNavigate(destination.configuration) },
+                                    modifier = Modifier.weight(1f),
+                                    icon = {
+                                        Icon(destination.icon, contentDescription = null)
+                                    },
+                                    title = {
+                                        Text(
+                                            text = destination.name,
+                                            overflow = TextOverflow.Ellipsis,
+                                            singleLine = true
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
                 }
-            ) {
-                Children(
-                    stack = root.childStack,
-                ) {
-                    when (val child = it.instance) {
-                        is Child.Home -> HomeScreen(homeScreenComponent = child.component)
-                        is Child.Favorites -> FavoritesScreen()
-                        is Child.MyListings -> MyListingsScreen(component = child.component)
-                        is Child.Messages -> MessagesScreen()
-                        is Child.Profile -> ProfileScreen(component = child.component)
-                        is Child.Settings -> SettingsScreen()
-                    }
-                }
-
-                SearchOverlay(
-                    visible = overlayState is OverlayState.Search,
-                    onDismiss = root::onDismissOverlay
-                )
-
-                NotificationOverlay(
-                    visible = overlayState is OverlayState.Notifications,
-                    onDismiss = root::onDismissOverlay
-                )
             }
         }
     }
-}
-
-@Composable
-fun UiTopAppBar(
-    onSearchClick: () -> Unit,
-    onNotifyClick: () -> Unit,
-    onPostClick: () -> Unit
-) {
-    TopAppBar(
-        title = { Text("Availe") },
-        actions = {
-            IconButton(onClick = onNotifyClick) {
-                Icon(Lucide.Bell, "Notifications")
-            }
-            IconButton(onClick = onSearchClick) {
-                Icon(Lucide.Search, "Search")
-            }
-            IconButton(onClick = onPostClick) {
-                Icon(Lucide.CirclePlus, "Post")
-            }
-        }
-    )
 }
 
 @Composable

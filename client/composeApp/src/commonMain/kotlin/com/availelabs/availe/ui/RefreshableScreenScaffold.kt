@@ -28,7 +28,7 @@ fun <T> RefreshableScreenScaffold(
     bottomBar: (@Composable () -> Unit)? = null,
     backgroundColor: Color = Theme[colors][background],
     contentColor: Color = Theme[colors][onBackground],
-    content: @Composable BoxScope.(T) -> Unit,
+    content: @Composable BoxScope.(T, RefreshUiState) -> Unit,
 ) {
     val refreshStateHolder = remember { RefreshStateHolder() }
 
@@ -89,11 +89,11 @@ fun <T> RefreshableScreenScaffold(
                 }
 
                 is ContentState.Content -> {
-                    content(state.data)
+                    content(state.data, refreshUiState)
                 }
 
                 is ContentState.Refreshing -> {
-                    content(state.data)
+                    content(state.data, refreshUiState)
                 }
             }
         }

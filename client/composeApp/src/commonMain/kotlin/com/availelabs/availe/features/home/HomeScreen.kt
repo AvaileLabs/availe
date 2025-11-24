@@ -14,17 +14,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.features.home.components.ListingCard
-import com.availelabs.availe.ui.ContentState
-import com.availelabs.availe.ui.ScreenScaffold
-import com.composables.uikit.components.Chip
-import com.composables.uikit.components.IntermediateProgressIndicator
-import com.composables.uikit.components.Text
+import com.availelabs.availe.ui.RefreshableScreenScaffold
+import com.availelabs.availe.ui.components.RefreshIcon
+import com.composables.icons.lucide.Bell
+import com.composables.icons.lucide.CirclePlus
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Search
+import com.composables.uikit.components.*
 
 @Composable
-internal fun HomeScreen(homeScreenComponent: IHomeComponent) {
+internal fun HomeScreen(
+    homeScreenComponent: IHomeComponent,
+    onSearchClick: () -> Unit,
+    onNotificationClick: () -> Unit,
+    onPostClick: () -> Unit
+) {
     val uiState by homeScreenComponent.uiState.subscribeAsState()
 
-    ScreenScaffold {
+    RefreshableScreenScaffold(
+        state = uiState.listingsState,
+        onRefresh = { homeScreenComponent.onEvent(HomeEvents.Refresh) },
+        appBar = {
+            TopAppBar(
+                title = { Text("Availe") },
+                actions = {
+                    IconButton(onClick = onNotificationClick) {
+                        Icon(Lucide.Bell, "Notifications")
+                    }
+                    IconButton(onClick = onSearchClick) {
+                        Icon(Lucide.Search, "Search")
+                    }
+                    IconButton(onClick = onPostClick) {
+                        Icon(Lucide.CirclePlus, "Post")
+                    }
+                }
+            )
+        }
+    ) { listings, refreshState ->
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 300.dp),
             modifier = Modifier.fillMaxSize(),
@@ -33,67 +59,34 @@ internal fun HomeScreen(homeScreenComponent: IHomeComponent) {
             contentPadding = PaddingValues(16.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(listOf("For Sale", "Services", "Housing")) { category ->
-                        Chip {
-                            Text(category)
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(listOf("For Sale", "Services", "Housing")) { category ->
+                            Chip {
+                                Text(category)
+                            }
                         }
+                    }
+
+                    IconButton(onClick = { homeScreenComponent.onEvent(HomeEvents.Refresh) }) {
+                        RefreshIcon(refreshState)
                     }
                 }
             }
 
-            val listingsState = uiState.listingsState
-            when (listingsState) {
-                is ContentState.Loading -> {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            IntermediateProgressIndicator()
-                        }
-                    }
-                }
-
-                is ContentState.Error -> {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(listingsState.message)
-                        }
-                    }
-                }
-
-                is ContentState.Content -> {
-                    items(listingsState.data) { item ->
-                        ListingCard(
-                            item = item,
-                            onItemClick = { homeScreenComponent.onEvent(HomeEvents.ItemClicked(it)) },
-                            onFavoriteClick = { homeScreenComponent.onEvent(HomeEvents.FavoriteClicked(it)) }
-                        )
-                    }
-                }
-
-                is ContentState.Refreshing -> {
-                    items(listingsState.data) { item ->
-                        ListingCard(
-                            item = item,
-                            onItemClick = { homeScreenComponent.onEvent(HomeEvents.ItemClicked(it)) },
-                            onFavoriteClick = { homeScreenComponent.onEvent(HomeEvents.FavoriteClicked(it)) }
-                        )
-                    }
-                }
-
-                is ContentState.Idle -> {
-                }
+            items(listings) { item ->
+                ListingCard(
+                    item = item,
+                    onItemClick = { homeScreenComponent.onEvent(HomeEvents.ItemClicked(it)) },
+                    onFavoriteClick = { homeScreenComponent.onEvent(HomeEvents.FavoriteClicked(it)) }
+                )
             }
         }
     }
