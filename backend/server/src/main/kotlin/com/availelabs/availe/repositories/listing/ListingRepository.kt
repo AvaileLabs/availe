@@ -38,7 +38,8 @@ internal class ListingRepository(
     private val eventCreator: IListingCreator<NewListing.Event>,
     private val serviceCreator: IListingCreator<NewListing.Service>
 ) : IListingRepository {
-    private val baseQuery = dsl
+
+    private fun baseQuery() = dsl
         .select(LISTINGS.asterisk())
         .from(LISTINGS)
         .leftJoin(LISTING_ITEM_DETAILS).on(LISTINGS.ID.eq(LISTING_ITEM_DETAILS.LISTING_ID))
@@ -59,7 +60,7 @@ internal class ListingRepository(
     }
 
     override fun getListingById(id: ListingId): DbFindResult<Listing> {
-        return baseQuery
+        return baseQuery()
             .where(LISTINGS.ID.eq(id.value.toJavaUuid()))
             .fetchOne()
             ?.let {
@@ -84,7 +85,7 @@ internal class ListingRepository(
     }
 
     override fun getAllListings(): List<Listing> {
-        return baseQuery
+        return baseQuery()
             .fetch()
             .map {
                 it.toDomainListing(
