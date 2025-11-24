@@ -9,9 +9,9 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.data.network.IApiClient
 import com.availelabs.availe.domain.model.Listing
-import com.availelabs.domain.toDisplayString
-import com.availelabs.ui.utils.ContentLoader
-import com.availelabs.ui.utils.ContentState
+import com.availelabs.availe.domain.toDisplayString
+import com.availelabs.availe.ui.ContentLoader
+import com.availelabs.availe.ui.ContentState
 import kotlinx.coroutines.Dispatchers
 import kotlin.uuid.ExperimentalUuidApi
 

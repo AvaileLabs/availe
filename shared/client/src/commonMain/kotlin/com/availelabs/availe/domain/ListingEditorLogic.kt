@@ -1,4 +1,4 @@
-package com.availelabs.domain
+package com.availelabs.availe.domain
 
 import com.availelabs.availe.domain.logic.InputValidator
 import com.availelabs.availe.domain.model.*

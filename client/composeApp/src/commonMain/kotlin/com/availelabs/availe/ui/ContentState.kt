@@ -1,4 +1,4 @@
-package com.availelabs.ui.utils
+package com.availelabs.availe.ui
 
 sealed interface ContentState<out T> {
     data object Idle : ContentState<Nothing>

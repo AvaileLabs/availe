@@ -1,4 +1,4 @@
-package com.availelabs.domain
+package com.availelabs.availe.domain
 
 import com.availelabs.availe.domain.model.Price
 import com.availelabs.availe.domain.model.SupportedCurrency

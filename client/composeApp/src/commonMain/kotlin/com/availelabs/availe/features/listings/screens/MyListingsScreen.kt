@@ -11,12 +11,12 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.toDisplayString
 import com.availelabs.availe.features.listings.IMyListingsHostComponent
 import com.availelabs.availe.features.listings.IUserListingsComponent
 import com.availelabs.availe.features.listings.MyListingsChild
+import com.availelabs.availe.ui.ContentState
 import com.availelabs.availe.ui.ScreenScaffold
-import com.availelabs.domain.toDisplayString
-import com.availelabs.ui.utils.ContentState
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Pencil
 import com.composables.icons.lucide.RefreshCw

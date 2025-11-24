@@ -9,10 +9,10 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.availelabs.availe.data.auth.IAuthenticationService
 import com.availelabs.availe.data.network.IApiClient
-import com.availelabs.domain.ListingEditorIntent
-import com.availelabs.domain.ListingEditorState
-import com.availelabs.domain.reduceListingEditor
-import com.availelabs.domain.toNewListing
+import com.availelabs.availe.domain.ListingEditorIntent
+import com.availelabs.availe.domain.ListingEditorState
+import com.availelabs.availe.domain.reduceListingEditor
+import com.availelabs.availe.domain.toNewListing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi

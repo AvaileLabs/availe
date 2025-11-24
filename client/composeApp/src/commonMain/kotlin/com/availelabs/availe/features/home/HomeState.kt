@@ -1,6 +1,6 @@
 package com.availelabs.availe.features.home
 
-import com.availelabs.ui.utils.ContentState
+import com.availelabs.availe.ui.ContentState
 
 data class ListingItem(
     val id: String,

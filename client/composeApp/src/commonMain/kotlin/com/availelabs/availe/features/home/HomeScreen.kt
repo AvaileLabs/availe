@@ -14,8 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.features.home.components.ListingCard
+import com.availelabs.availe.ui.ContentState
 import com.availelabs.availe.ui.ScreenScaffold
-import com.availelabs.ui.utils.ContentState
 import com.composables.uikit.components.Chip
 import com.composables.uikit.components.IntermediateProgressIndicator
 import com.composables.uikit.components.Text
