@@ -19,7 +19,7 @@ import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoCreateRequest
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.observability.ListingCreated
-import io.availe.models.SerializablePatchable
+import io.availe.models.Patchable
 import org.http4k.contract.ContractRoute
 import org.http4k.contract.div
 import org.http4k.contract.meta
@@ -118,7 +118,7 @@ internal class ListingController(
 
     fun updateListing(): ContractRoute {
         val patchBodyLens = Body.auto<TypeV1ListingDtoPatchRequest>().toLens()
-        val exampleRequest = ListingItemDtoSchema.V1.PatchRequest(title = SerializablePatchable.Set("New Title"))
+        val exampleRequest = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set("New Title"))
 
         return ApiRoutes.LISTINGS / listingIdPath meta {
             summary = "Update an existing listing."

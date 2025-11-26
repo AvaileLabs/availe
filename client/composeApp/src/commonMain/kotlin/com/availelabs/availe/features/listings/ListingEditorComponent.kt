@@ -19,7 +19,7 @@ import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingServiceDtoSchema
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
-import io.availe.models.SerializablePatchable
+import io.availe.models.Patchable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
@@ -95,24 +95,24 @@ class ListingEditorComponent(
 
                     val patch: TypeV1ListingDtoPatchRequest = when (listingToEdit) {
                         is Listing.Item -> ListingItemDtoSchema.V1.PatchRequest(
-                            title = SerializablePatchable.Set(currentState.title.value),
-                            description = SerializablePatchable.Set(if (currentState.description.value.isBlank()) null else currentState.description.value),
-                            price = SerializablePatchable.Set(price.toDto()),
-                            imageLinks = SerializablePatchable.Set(imageLinks.map { it.value })
+                            title = Patchable.Set(currentState.title.value),
+                            description = Patchable.Set(if (currentState.description.value.isBlank()) null else currentState.description.value),
+                            price = Patchable.Set(price.toDto()),
+                            imageLinks = Patchable.Set(imageLinks.map { it.value })
                         )
 
                         is Listing.Event -> ListingEventDtoSchema.V1.PatchRequest(
-                            title = SerializablePatchable.Set(currentState.title.value),
-                            description = SerializablePatchable.Set(if (currentState.description.value.isBlank()) null else currentState.description.value),
-                            price = SerializablePatchable.Set(price.toDto()),
-                            imageLinks = SerializablePatchable.Set(imageLinks.map { it.value })
+                            title = Patchable.Set(currentState.title.value),
+                            description = Patchable.Set(if (currentState.description.value.isBlank()) null else currentState.description.value),
+                            price = Patchable.Set(price.toDto()),
+                            imageLinks = Patchable.Set(imageLinks.map { it.value })
                         )
 
                         is Listing.Service -> ListingServiceDtoSchema.V1.PatchRequest(
-                            title = SerializablePatchable.Set(currentState.title.value),
-                            description = SerializablePatchable.Set(if (currentState.description.value.isBlank()) null else currentState.description.value),
-                            price = SerializablePatchable.Set(price.toDto()),
-                            imageLinks = SerializablePatchable.Set(imageLinks.map { it.value })
+                            title = Patchable.Set(currentState.title.value),
+                            description = Patchable.Set(if (currentState.description.value.isBlank()) null else currentState.description.value),
+                            price = Patchable.Set(price.toDto()),
+                            imageLinks = Patchable.Set(imageLinks.map { it.value })
                         )
                     }
                     apiClient.updateListing(listingToEdit.id, patch, user.id)

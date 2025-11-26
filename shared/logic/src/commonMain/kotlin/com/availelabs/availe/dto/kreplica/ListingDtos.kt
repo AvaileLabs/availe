@@ -34,7 +34,6 @@ private interface ListingItemDto {
         variants = [DtoVariant.DATA, DtoVariant.PATCH, DtoVariant.CREATE],
         supertypes = [TypeV1ListingDto::class]
     )
-    @Replicate.Apply([Serializable::class])
     interface V1 : ListingItemDto {
         @Replicate.Flatten
         val commonData: ListingDtoSchema.V1
@@ -46,7 +45,6 @@ private interface ListingEventDto {
         variants = [DtoVariant.DATA, DtoVariant.PATCH, DtoVariant.CREATE],
         supertypes = [TypeV1ListingDto::class]
     )
-    @Replicate.Apply([Serializable::class])
     interface V1 : ListingEventDto {
         @Replicate.Flatten
         val commonData: ListingDtoSchema.V1
@@ -58,7 +56,6 @@ private interface ListingServiceDto {
         variants = [DtoVariant.DATA, DtoVariant.PATCH, DtoVariant.CREATE],
         supertypes = [TypeV1ListingDto::class]
     )
-    @Replicate.Apply([Serializable::class])
     interface V1 : ListingServiceDto {
         @Replicate.Flatten
         val commonData: ListingDtoSchema.V1

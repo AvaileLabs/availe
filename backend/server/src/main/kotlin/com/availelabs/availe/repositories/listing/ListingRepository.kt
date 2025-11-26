@@ -24,7 +24,7 @@ import com.example.jooq.tables.references.LISTINGS
 import com.example.jooq.tables.references.LISTING_EVENT_DETAILS
 import com.example.jooq.tables.references.LISTING_ITEM_DETAILS
 import com.example.jooq.tables.references.LISTING_SERVICE_DETAILS
-import io.availe.models.SerializablePatchable
+import io.availe.models.Patchable
 import org.jooq.DSLContext
 import org.jooq.Field
 import java.math.BigDecimal
@@ -99,21 +99,21 @@ internal class ListingRepository(
 
     private fun addCommonPatchUpdates(
         updates: MutableMap<Field<*>, Any?>,
-        title: SerializablePatchable<String>,
-        description: SerializablePatchable<String?>,
-        price: SerializablePatchable<PriceDto.V1>,
-        imageLinks: SerializablePatchable<List<String>>
+        title: Patchable<String>,
+        description: Patchable<String?>,
+        price: Patchable<PriceDto.V1>,
+        imageLinks: Patchable<List<String>>
     ) {
-        if (title is SerializablePatchable.Set) {
+        if (title is Patchable.Set) {
             updates[LISTINGS.TITLE] = title.value
         }
-        if (description is SerializablePatchable.Set) {
+        if (description is Patchable.Set) {
             updates[LISTINGS.DESCRIPTION] = description.value
         }
-        if (imageLinks is SerializablePatchable.Set) {
+        if (imageLinks is Patchable.Set) {
             updates[LISTINGS.IMAGE_LINKS] = imageLinks.value.toTypedArray()
         }
-        if (price is SerializablePatchable.Set) {
+        if (price is Patchable.Set) {
             val money = price.value.toDomainPrice().toMoneta()
             updates[LISTINGS.PRICE_AMOUNT] = money.number.numberValue(BigDecimal::class.java)
             updates[LISTINGS.PRICE_CURRENCY] = money.currency.currencyCode

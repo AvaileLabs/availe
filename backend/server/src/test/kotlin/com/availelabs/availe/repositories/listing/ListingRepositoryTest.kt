@@ -17,7 +17,7 @@ import com.availelabs.availe.repositories.listing.helpers.creators.implementatio
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ItemListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
 import com.availelabs.availe.testutils.PostgresTestBase
-import io.availe.models.SerializablePatchable
+import io.availe.models.Patchable
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -84,7 +84,7 @@ class ListingRepositoryTest : PostgresTestBase() {
     fun `updateListing updates a single title field`() {
         val initialListing = insertListing(aNewItemListing(title = "Old Title"))
         val newTitle = "New Title"
-        val patch = ListingItemDtoSchema.V1.PatchRequest(title = SerializablePatchable.Set(newTitle))
+        val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
 
         val result = repository.updateListing(initialListing.id, patch, testPublisherId)
 
@@ -100,7 +100,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val initialListing = insertListing(aNewItemListing(price = Price("100.00", "USD")))
         val newPriceDto = PriceDto.V1("99.99", "EUR")
         val expectedPrice = Price("99.99", "EUR")
-        val patch = ListingItemDtoSchema.V1.PatchRequest(price = SerializablePatchable.Set(newPriceDto))
+        val patch = ListingItemDtoSchema.V1.PatchRequest(price = Patchable.Set(newPriceDto))
 
         val result = repository.updateListing(initialListing.id, patch, testPublisherId)
 
@@ -114,7 +114,7 @@ class ListingRepositoryTest : PostgresTestBase() {
     @Test
     fun `updateListing updates description to null`() {
         val initialListing = insertListing(aNewItemListing(description = "Not null"))
-        val patch = ListingItemDtoSchema.V1.PatchRequest(description = SerializablePatchable.Set(null))
+        val patch = ListingItemDtoSchema.V1.PatchRequest(description = Patchable.Set(null))
 
         val result = repository.updateListing(initialListing.id, patch, testPublisherId)
 
@@ -136,8 +136,8 @@ class ListingRepositoryTest : PostgresTestBase() {
         val newImageLinks = listOf("new1.png", "new2.png")
 
         val patch = ListingItemDtoSchema.V1.PatchRequest(
-            title = SerializablePatchable.Set(newTitle),
-            imageLinks = SerializablePatchable.Set(newImageLinks)
+            title = Patchable.Set(newTitle),
+            imageLinks = Patchable.Set(newImageLinks)
         )
 
         val result = repository.updateListing(initialListing.id, patch, testPublisherId)
@@ -164,7 +164,7 @@ class ListingRepositoryTest : PostgresTestBase() {
     @Test
     fun `updateListing on non-existent ID returns NotFound`() {
         val randomId = Uuid.random()
-        val patch = ListingItemDtoSchema.V1.PatchRequest(title = SerializablePatchable.Set("New Title"))
+        val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set("New Title"))
 
         val result = repository.updateListing(randomId, patch, testPublisherId)
 
@@ -175,7 +175,7 @@ class ListingRepositoryTest : PostgresTestBase() {
     fun `updateListing works for Event listing type`() {
         val initialEvent = insertListing(aNewEventListing())
         val newTitle = "Updated Event Title"
-        val patch = ListingEventDtoSchema.V1.PatchRequest(title = SerializablePatchable.Set(newTitle))
+        val patch = ListingEventDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
 
         val result = repository.updateListing(initialEvent.id, patch, testPublisherId)
 
@@ -188,7 +188,7 @@ class ListingRepositoryTest : PostgresTestBase() {
     @Test
     fun `updateListing returns NotFound when publisherId does not match`() {
         val initialListing = insertListing(aNewItemListing())
-        val patch = ListingItemDtoSchema.V1.PatchRequest(title = SerializablePatchable.Set("New Title"))
+        val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set("New Title"))
 
         val result = repository.updateListing(initialListing.id, patch, otherPublisherId)
 
