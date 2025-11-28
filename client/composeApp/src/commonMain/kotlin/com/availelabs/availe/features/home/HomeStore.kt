@@ -25,8 +25,7 @@ data class ListingUiModel(
     val id: ListingId,
     val title: ListingTitle,
     val price: String,
-    val imageUrl: ImageUrl,
-    val isFavorited: Boolean = false
+    val imageUrl: ImageUrl
 )
 
 interface HomeStore : Store<Intent, State, Label> {
@@ -37,7 +36,6 @@ interface HomeStore : Store<Intent, State, Label> {
         data object LoginClicked : Intent
         data object LogoutClicked : Intent
         data class ListingClicked(val listingId: ListingId) : Intent
-        data class ToggleFavorite(val listingId: ListingId) : Intent
     }
 
     data class State(
@@ -83,7 +81,6 @@ class HomeStoreFactory(
         data class SetError(val message: String?) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
         data class SetAuthServiceAvailable(val isAvailable: Boolean) : Message
-        data class UpdateListingFavorite(val listingId: ListingId, val isFavorited: Boolean) : Message
     }
 
     private inner class HomeBootstrapper : CoroutineBootstrapper<Action>() {
@@ -108,7 +105,6 @@ class HomeStoreFactory(
                 Intent.LoginClicked -> performLogin()
                 Intent.LogoutClicked -> performLogout()
                 is Intent.ListingClicked -> publish(Label.NavigateToListingDetails(intent.listingId))
-                is Intent.ToggleFavorite -> toggleFavorite(intent.listingId)
             }
         }
 
@@ -162,9 +158,9 @@ class HomeStoreFactory(
                     when (listingRepository.createListing(newListing)) {
                         is InsertResult.Inserted -> fetchListings(isRefresh = true)
                         is InsertResult.AlreadyExists -> {
-                            val msg = "Listing already exists"
-                            dispatch(Message.SetError(msg))
-                            publish(Label.DisplayError(msg))
+                            val errorMessage = "Listing already exists"
+                            dispatch(Message.SetError(errorMessage))
+                            publish(Label.DisplayError(errorMessage))
                             dispatch(Message.SetRefreshing(false))
                         }
                     }
@@ -228,32 +224,23 @@ class HomeStoreFactory(
                         is AuthenticationState.SessionExpired -> {
                             dispatch(Message.SetAuthenticated(false))
                             dispatch(Message.SetAuthServiceAvailable(true))
-                            val msg = "Session expired. Please log in again."
-                            dispatch(Message.SetError(msg))
-                            publish(Label.DisplayError(msg))
+                            val message = "Session expired. Please log in again."
+                            dispatch(Message.SetError(message))
+                            publish(Label.DisplayError(message))
                         }
 
                         is AuthenticationState.InitializationFailed -> {
                             dispatch(Message.SetAuthenticated(false))
                             dispatch(Message.SetAuthServiceAvailable(false))
-                            val msg = "Authentication service unavailable."
-                            dispatch(Message.SetError(msg))
+                            val message = "Authentication service unavailable."
+                            dispatch(Message.SetError(message))
                         }
 
                         AuthenticationState.Unknown -> {
-                            // No-op or loading state
                         }
                     }
                 }
             }
-        }
-
-        private fun toggleFavorite(listingId: ListingId) {
-            val currentListings = state().listingUiModels
-            val listing = currentListings.find { it.id == listingId } ?: return
-            val newFavoriteStatus = !listing.isFavorited
-
-            dispatch(Message.UpdateListingFavorite(listingId, newFavoriteStatus))
         }
     }
 
@@ -266,16 +253,6 @@ class HomeStoreFactory(
                 is Message.SetError -> copy(errorMessage = msg.message)
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
                 is Message.SetAuthServiceAvailable -> copy(isAuthServiceAvailable = msg.isAvailable)
-                is Message.UpdateListingFavorite -> {
-                    val updatedListings = listingUiModels.map { listing ->
-                        if (listing.id == msg.listingId) {
-                            listing.copy(isFavorited = msg.isFavorited)
-                        } else {
-                            listing
-                        }
-                    }
-                    copy(listingUiModels = updatedListings)
-                }
             }
     }
 
@@ -284,8 +261,7 @@ class HomeStoreFactory(
             id = this.id,
             title = this.title,
             price = this.price.toDisplayString(),
-            imageUrl = this.imageLinks.firstOrNull() ?: ImageUrl(""),
-            isFavorited = false
+            imageUrl = this.imageLinks.firstOrNull() ?: ImageUrl("")
         )
     }
 }
