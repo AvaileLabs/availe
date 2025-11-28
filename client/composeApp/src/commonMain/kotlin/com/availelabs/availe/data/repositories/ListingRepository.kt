@@ -31,8 +31,7 @@ class ListingRepository(
     }
 
     override suspend fun existsById(id: ListingId): Boolean {
-        // Optimistic check via get
-        return remoteDataSource.getListingById(id) is FindResult.Found
+        return remoteDataSource.existsById(id)
     }
 
     override suspend fun updateListing(

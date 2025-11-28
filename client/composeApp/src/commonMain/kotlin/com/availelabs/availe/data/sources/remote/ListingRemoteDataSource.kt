@@ -26,6 +26,7 @@ import kotlin.uuid.ExperimentalUuidApi
 interface IListingRemoteDataSource {
     suspend fun getAllListings(): List<Listing>
     suspend fun getListingById(id: ListingId): FindResult<Listing>
+    suspend fun existsById(id: ListingId): Boolean
     suspend fun createListing(listing: NewListing): InsertResult<Listing>
     suspend fun updateListing(
         listingId: ListingId,
@@ -59,6 +60,19 @@ class ListingRemoteDataSource(
             }
 
             HttpStatusCode.NotFound -> FindResult.NotFound
+            else -> {
+                ensureSuccess(response)
+                throw IllegalStateException("Unexpected status code: ${response.status}")
+            }
+        }
+    }
+
+    override suspend fun existsById(id: ListingId): Boolean {
+        val response = httpClient.head("${ApiRoutes.LISTINGS}/${id.value}")
+
+        return when (response.status) {
+            HttpStatusCode.OK -> true
+            HttpStatusCode.NotFound -> false
             else -> {
                 ensureSuccess(response)
                 throw IllegalStateException("Unexpected status code: ${response.status}")

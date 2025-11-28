@@ -5,8 +5,12 @@ package com.availelabs.availe.services
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.repository.IListingRepository
 import com.availelabs.availe.domain.service.ListingService
-import com.availelabs.availe.domain.types.*
+import com.availelabs.availe.domain.types.DeleteResult
+import com.availelabs.availe.domain.types.FindResult
+import com.availelabs.availe.domain.types.InsertResult
+import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -19,10 +23,10 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalTime::class)
 private class FakeListingRepository(private val willInsert: Boolean) : IListingRepository {
     var received: NewListing? = null
-    override fun createListing(newListing: NewListing): DbInsertResult<Listing> {
+    override suspend fun createListing(newListing: NewListing): InsertResult<Listing> {
         received = newListing
 
-        if (!willInsert) return DbInsertResult.AlreadyExists
+        if (!willInsert) return InsertResult.AlreadyExists
 
         val fakeId = ListingId(Uuid.random())
         val fakeCreatedAt = Instant.now().toKotlinInstant()
@@ -33,30 +37,29 @@ private class FakeListingRepository(private val willInsert: Boolean) : IListingR
             is NewListing.Service -> Listing.Service(newListing.commonData, fakeId, fakeCreatedAt)
         }
 
-        return DbInsertResult.Inserted(fakeDomainListing)
+        return InsertResult.Inserted(fakeDomainListing)
     }
 
-    override fun getListingById(id: ListingId): DbFindResult<Listing> {
+    override suspend fun getListingById(id: ListingId): FindResult<Listing> {
         TODO("Not yet implemented")
     }
 
-    override fun existsById(id: ListingId): Boolean {
+    override suspend fun existsById(id: ListingId): Boolean {
         TODO("Not yet implemented")
     }
 
-    override fun getAllListings(): List<Listing> {
+    override suspend fun getAllListings(): List<Listing> {
         TODO("Not yet implemented")
     }
 
-    override fun updateListing(
+    override suspend fun updateListing(
         id: ListingId,
-        patch: TypeV1ListingDtoPatchRequest,
-        requestingPublisherId: UserId
-    ): DbUpdateResult<Listing> {
+        patch: TypeV1ListingDtoPatchRequest
+    ): UpdateResult<Listing> {
         TODO("Not yet implemented")
     }
 
-    override fun deleteListing(id: ListingId, requestingPublisherId: UserId): DbDeleteResult {
+    override suspend fun deleteListing(id: ListingId): DeleteResult {
         TODO("Not yet implemented")
     }
 }
@@ -79,7 +82,7 @@ class ListingServiceTest {
         val service = ListingService(fakeRepo)
         val newItem = aNewItem()
 
-        val result = service.createListing(newItem)
+        val result = runBlocking { service.createListing(newItem) }
 
         assertTrue(result is InsertResult.Inserted)
         assertEquals(newItem, fakeRepo.received)
@@ -91,7 +94,7 @@ class ListingServiceTest {
         val service = ListingService(fakeRepo)
         val newItem = aNewItem()
 
-        val result = service.createListing(newItem)
+        val result = runBlocking { service.createListing(newItem) }
 
         assertTrue(result is InsertResult.AlreadyExists)
         assertEquals(newItem, fakeRepo.received)

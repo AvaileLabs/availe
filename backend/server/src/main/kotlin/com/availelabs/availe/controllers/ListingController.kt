@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
-
 package com.availelabs.availe.controllers
 
 import com.availelabs.availe.ApiParameters
@@ -35,6 +33,7 @@ import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
+@OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
 internal class ListingController(
     private val listingService: IListingService,
     private val events: Events,
@@ -54,7 +53,14 @@ internal class ListingController(
         publisherId = UserId(Uuid.random()),
     )
 
-    val listOfRoutes = listOf(createListing(), getListingById(), listAllListings(), updateListing(), deleteListing())
+    val listOfRoutes = listOf(
+        createListing(),
+        getListingById(),
+        checkListingExists(),
+        listAllListings(),
+        updateListing(),
+        deleteListing()
+    )
 
     fun createListing(): ContractRoute {
         val bodyLens = Body.auto<TypeV1ListingDtoCreateRequest>().toLens()
@@ -104,6 +110,32 @@ internal class ListingController(
                         }
 
                         is FindResult.NotFound -> Response(Status.NOT_FOUND)
+                    }
+                }
+            }
+        }
+    }
+
+    fun checkListingExists(): ContractRoute {
+        return ApiRoutes.LISTINGS / listingIdPath meta {
+            summary = "Check if a listing exists."
+            description = "Returns 200 OK if the listing exists, 404 Not Found otherwise."
+            returning(Status.OK)
+            returning(Status.NOT_FOUND)
+        } bindContract Method.HEAD to { listingId ->
+            { _: Request ->
+                runBlocking {
+                    val exists = try {
+                        val result = listingService.getListingById(listingId)
+                        result is FindResult.Found
+                    } catch (e: Exception) {
+                        false
+                    }
+
+                    if (exists) {
+                        Response(Status.OK)
+                    } else {
+                        Response(Status.NOT_FOUND)
                     }
                 }
             }
