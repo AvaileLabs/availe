@@ -9,7 +9,6 @@ import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.lifecycle.stop
 import com.arkivanov.essenty.statekeeper.StateKeeper
 import com.availelabs.availe.core.platform.PlatformActivity
-import com.availelabs.availe.data.auth.AuthenticationService
 import com.availelabs.availe.di.createApplicationContainer
 import com.availelabs.availe.features.root.RootComponent
 import kotlinx.browser.window
@@ -48,7 +47,7 @@ fun startWebApp(deepLink: String?, stateKeeper: StateKeeper): RootComponent {
 
     if (code != null) {
         MainScope().launch {
-            (appContainer.authenticationService as AuthenticationService).resumeLogin(code)
+            appContainer.authRepository.resumeLogin(code, appContainer.sessionManager::updateState)
         }
     }
 

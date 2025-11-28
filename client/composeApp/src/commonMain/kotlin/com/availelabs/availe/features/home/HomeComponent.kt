@@ -6,8 +6,9 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.availelabs.availe.data.auth.IAuthenticationService
-import com.availelabs.availe.data.network.IApiClient
+import com.availelabs.availe.data.repository.IAuthRepository
+import com.availelabs.availe.data.repository.IListingRepository
+import com.availelabs.availe.domain.auth.ISessionManager
 import com.availelabs.availe.domain.model.ListingId
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
@@ -19,16 +20,18 @@ interface IHomeComponent {
 
 class HomeComponent(
     componentContext: ComponentContext,
-    private val apiClient: IApiClient,
-    private val authenticationService: IAuthenticationService,
+    private val listingRepository: IListingRepository,
+    private val sessionManager: ISessionManager,
+    private val authRepository: IAuthRepository,
     private val onNavigateToListingDetails: (ListingId) -> Unit
 ) : IHomeComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
         HomeStoreFactory(
             storeFactory = DefaultStoreFactory(),
-            apiClient = apiClient,
-            authenticationService = authenticationService
+            listingRepository = listingRepository,
+            sessionManager = sessionManager,
+            authRepository = authRepository
         ).create()
     }
 

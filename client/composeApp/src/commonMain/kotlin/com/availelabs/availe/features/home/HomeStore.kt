@@ -7,11 +7,13 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.availelabs.availe.data.auth.IAuthenticationService
-import com.availelabs.availe.data.network.IApiClient
+import com.availelabs.availe.data.repository.IAuthRepository
+import com.availelabs.availe.data.repository.IListingRepository
 import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.domain.auth.ISessionManager
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.toDisplayString
+import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.features.home.HomeStore.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
@@ -54,8 +56,9 @@ interface HomeStore : Store<Intent, State, Label> {
 
 class HomeStoreFactory(
     private val storeFactory: StoreFactory,
-    private val apiClient: IApiClient,
-    private val authenticationService: IAuthenticationService
+    private val listingRepository: IListingRepository,
+    private val sessionManager: ISessionManager,
+    private val authRepository: IAuthRepository
 ) {
 
     fun create(): HomeStore =
@@ -110,7 +113,7 @@ class HomeStoreFactory(
         private fun performLogin() {
             scope.launch {
                 try {
-                    authenticationService.login()
+                    authRepository.login(sessionManager::updateState)
                 } catch (e: Exception) {
                     val errorMessage = e.message ?: "Login failed"
                     dispatch(Message.SetError(errorMessage))
@@ -122,7 +125,7 @@ class HomeStoreFactory(
         private fun performLogout() {
             scope.launch {
                 try {
-                    authenticationService.logout()
+                    authRepository.logout()
                 } catch (e: Exception) {
                     val errorMessage = e.message ?: "Logout failed"
                     dispatch(Message.SetError(errorMessage))
@@ -133,7 +136,7 @@ class HomeStoreFactory(
 
         private fun performQuickCreate() {
             scope.launch {
-                val userProfile = authenticationService.getCurrentUserProfile()
+                val userProfile = sessionManager.getCurrentUserProfile()
                 if (userProfile == null) {
                     val errorMessage = "You must be logged in to create a listing"
                     dispatch(Message.SetError(errorMessage))
@@ -153,8 +156,16 @@ class HomeStoreFactory(
                             publisherId = userProfile.id
                         )
                     )
-                    apiClient.createListing(newListing, userProfile.id)
-                    fetchListings(isRefresh = true)
+
+                    when (listingRepository.createListing(newListing, userProfile.id)) {
+                        is InsertResult.Inserted -> fetchListings(isRefresh = true)
+                        is InsertResult.AlreadyExists -> {
+                            val msg = "Listing already exists"
+                            dispatch(Message.SetError(msg))
+                            publish(Label.DisplayError(msg))
+                            dispatch(Message.SetRefreshing(false))
+                        }
+                    }
                 } catch (exception: Exception) {
                     val errorMessage = exception.message ?: "Failed to create listing"
                     dispatch(Message.SetError(errorMessage))
@@ -174,7 +185,7 @@ class HomeStoreFactory(
 
             scope.launch {
                 try {
-                    val domainListings = apiClient.getListings()
+                    val domainListings = listingRepository.getListings()
                     val uiModels = domainListings.map { it.toListingUiModel() }
                     dispatch(Message.ListingsLoaded(uiModels))
                 } catch (exception: Exception) {
@@ -194,7 +205,7 @@ class HomeStoreFactory(
         private fun observeAuthentication() {
             scope.launch {
                 val authFlow = callbackFlow {
-                    val subscription = authenticationService.authenticationState.subscribe { state ->
+                    val subscription = sessionManager.authenticationState.subscribe { state ->
                         trySend(state)
                     }
                     awaitClose { subscription.cancel() }

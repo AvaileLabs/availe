@@ -72,8 +72,9 @@ class RootComponent(
             Configuration.Home -> ChildComponent.Home(
                 HomeComponent(
                     componentContext = context,
-                    apiClient = appContainer.apiClient,
-                    authenticationService = appContainer.authenticationService,
+                    listingRepository = appContainer.listingRepository,
+                    sessionManager = appContainer.sessionManager,
+                    authRepository = appContainer.authRepository,
                     onNavigateToListingDetails = { /* TODO */ }
                 )
             )

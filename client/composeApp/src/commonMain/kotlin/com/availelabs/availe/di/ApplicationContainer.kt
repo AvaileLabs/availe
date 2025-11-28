@@ -3,20 +3,32 @@ package com.availelabs.availe.di
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.core.platform.PlatformActivity
-import com.availelabs.availe.data.auth.*
-import com.availelabs.availe.data.network.ApiClient
-import com.availelabs.availe.data.network.IApiClient
+import com.availelabs.availe.data.auth.AuthRemoteDataSource
+import com.availelabs.availe.data.auth.createPlatformAuthenticationConfig
+import com.availelabs.availe.data.auth.createPlatformAuthenticationFlowFactory
+import com.availelabs.availe.data.auth.createTokenStore
+import com.availelabs.availe.data.network.ListingRemoteDataSource
+import com.availelabs.availe.data.repository.AuthRepository
+import com.availelabs.availe.data.repository.IAuthRepository
+import com.availelabs.availe.data.repository.IListingRepository
+import com.availelabs.availe.data.repository.ListingRepository
+import com.availelabs.availe.domain.auth.ISessionManager
+import com.availelabs.availe.domain.auth.SessionManager
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
+import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
+import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 
 interface ApplicationContainer {
-    val authenticationService: IAuthenticationService
-    val apiClient: IApiClient
+    val sessionManager: ISessionManager
+    val authRepository: IAuthRepository
+    val listingRepository: IListingRepository
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
@@ -28,12 +40,28 @@ fun createApplicationContainer(
     val tokenStore = createTokenStore(activity)
     val platformAuthConfig = createPlatformAuthenticationConfig(activity)
 
-    val authenticationService = AuthenticationService(
+    val client =
+        OpenIdConnectClient(discoveryUri = com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI) {
+            this.scope = "${com.availelabs.availe.domain.auth.AuthenticationConstants.SCOPE} offline_access"
+            this.clientId = com.availelabs.availe.domain.auth.AuthenticationConstants.CLIENT_ID
+            this.codeChallengeMethod = CodeChallengeMethod.S256
+            this.redirectUri = platformAuthConfig.redirectUri
+            this.postLogoutRedirectUri = platformAuthConfig.postLogoutRedirectUri
+        }
+
+    val authRemoteDataSource = AuthRemoteDataSource(
+        client = client,
         authFactory = authFactory,
-        tokenStore = tokenStore,
-        platformAuthConfig = platformAuthConfig,
-        lifecycle = lifecycle
+        tokenStore = tokenStore
     )
+
+    val sessionManager = SessionManager(
+        authRemoteDataSource = authRemoteDataSource,
+        lifecycle = lifecycle,
+        accountManagementUrl = "http://${NetworkConstants.HOST_IP}:8180/realms/availe/account"
+    )
+
+    val authRepository = AuthRepository(authRemoteDataSource)
 
     val json = Json {
         ignoreUnknownKeys = true
@@ -45,6 +73,16 @@ fun createApplicationContainer(
         install(ContentNegotiation) {
             json(json)
         }
+
+        HttpResponseValidator {
+            validateResponse { response ->
+                if (response.status == HttpStatusCode.Unauthorized) {
+                    sessionManager.onSessionInvalidated()
+                    throw CancellationException("Unauthorized access")
+                }
+            }
+        }
+
         defaultRequest {
             url {
                 protocol = URLProtocol.HTTP
@@ -55,19 +93,22 @@ fun createApplicationContainer(
         }
     }
 
-    val apiClient = ApiClient(
+    val listingRemoteDataSource = ListingRemoteDataSource(
         httpClient = httpClient,
-        json = json,
-        sessionManager = authenticationService
+        json = json
     )
 
+    val listingRepository = ListingRepository(listingRemoteDataSource)
+
     return DefaultApplicationContainer(
-        authenticationService = authenticationService,
-        apiClient = apiClient
+        sessionManager = sessionManager,
+        authRepository = authRepository,
+        listingRepository = listingRepository
     )
 }
 
 private class DefaultApplicationContainer(
-    override val authenticationService: IAuthenticationService,
-    override val apiClient: IApiClient
+    override val sessionManager: ISessionManager,
+    override val authRepository: IAuthRepository,
+    override val listingRepository: IListingRepository
 ) : ApplicationContainer
