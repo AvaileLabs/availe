@@ -1,6 +1,6 @@
 package com.availelabs.provisioning.keycloak.reconcilers
 
-import com.availelabs.provisioning.keycloak.specs.DesiredClient
+import com.availelabs.availe.provisioning.keycloak.specs.DesiredClient
 import org.keycloak.admin.client.resource.RealmResource
 import org.keycloak.representations.idm.ClientRepresentation
 import org.slf4j.LoggerFactory
@@ -20,6 +20,7 @@ internal class ClientsReconciler {
                 createClient(clientsResource, desired)
             } else {
                 updateClientIfChanged(clientsResource, existing, desired)
+                reconcileMappers(clientsResource, existing.id, desired)
             }
         }
         logger.info("Client reconciliation complete.")
@@ -41,6 +42,7 @@ internal class ClientsReconciler {
             defaultClientScopes = desired.defaultClientScopes
             optionalClientScopes = desired.optionalClientScopes
             attributes = desired.attributes.toMutableMap()
+            protocolMappers = desired.protocolMappers
         }
         clientsResource.create(newClient)
         logger.info("Client '{}' created.", desired.clientId)
@@ -115,6 +117,26 @@ internal class ClientsReconciler {
             clientsResource.get(existing.id).update(existing)
         } else {
             logger.info("Client '{}' is up to date.", desired.clientId)
+        }
+    }
+
+    private fun reconcileMappers(
+        clientsResource: org.keycloak.admin.client.resource.ClientsResource,
+        clientUuid: String,
+        desired: DesiredClient
+    ) {
+        val protocolMappersResource = clientsResource.get(clientUuid).protocolMappers
+        val existingMappers = protocolMappersResource.mappers.associateBy { it.name }
+
+        desired.protocolMappers.forEach { desiredMapper ->
+            if (!existingMappers.containsKey(desiredMapper.name)) {
+                logger.info(
+                    "Client '{}': Mapper '{}' missing. Creating...",
+                    desired.clientId,
+                    desiredMapper.name
+                )
+                protocolMappersResource.createMapper(desiredMapper)
+            }
         }
     }
 }

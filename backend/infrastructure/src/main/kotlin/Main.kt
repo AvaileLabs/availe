@@ -9,10 +9,10 @@ import com.availelabs.orchestration.postgres.postgresRunSpec
 import com.availelabs.provisioning.PostgresProvisioner
 import com.availelabs.provisioning.keycloak.KeycloakProvisioner
 import com.availelabs.provisioning.keycloak.reconcilers.ClientsReconciler
-import com.availelabs.provisioning.keycloak.reconcilers.RealmSettingsReconciler
 import com.availelabs.provisioning.keycloak.reconcilers.UserProfileReconciler
 import com.github.dockerjava.api.DockerClient
 import org.slf4j.LoggerFactory
+import provisioning.keycloak.reconcilers.RealmSettingsReconciler
 import kotlin.system.exitProcess
 
 internal fun main(args: Array<String>) {

@@ -3,7 +3,6 @@ package com.availelabs.provisioning.keycloak
 import com.availelabs.orchestration.keycloak.KeycloakConfig
 import com.availelabs.orchestration.keycloak.KeycloakPortsList
 import com.availelabs.provisioning.keycloak.reconcilers.ClientsReconciler
-import com.availelabs.provisioning.keycloak.reconcilers.RealmSettingsReconciler
 import com.availelabs.provisioning.keycloak.reconcilers.UserProfileReconciler
 import com.availelabs.provisioning.keycloak.specs.KeycloakDesiredState
 import jakarta.ws.rs.NotFoundException
@@ -12,6 +11,7 @@ import org.keycloak.admin.client.Keycloak
 import org.keycloak.admin.client.KeycloakBuilder
 import org.keycloak.representations.idm.RealmRepresentation
 import org.slf4j.LoggerFactory
+import provisioning.keycloak.reconcilers.RealmSettingsReconciler
 
 internal class KeycloakProvisioner(
     private val config: KeycloakConfig,

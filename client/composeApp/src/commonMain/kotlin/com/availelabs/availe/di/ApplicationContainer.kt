@@ -15,7 +15,6 @@ import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
@@ -99,15 +98,6 @@ fun createApplicationContainer(
                     } else {
                         null
                     }
-                }
-            }
-        }
-
-        HttpResponseValidator {
-            validateResponse { response ->
-                if (response.status == HttpStatusCode.Unauthorized) {
-                    sessionManager.onSessionInvalidated()
-                    throw CancellationException("Unauthorized access")
                 }
             }
         }

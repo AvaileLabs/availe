@@ -1,5 +1,6 @@
 package com.availelabs.availe.observability
 
+import com.availelabs.availe.domain.model.UserId
 import kotlinx.serialization.Serializable
 import org.http4k.core.Filter
 import org.http4k.core.Response
@@ -20,6 +21,36 @@ data class SerializationError(
 data class ListingCreated(
     val listingId: String,
     val publisherId: String
+) : Event
+
+@Serializable
+data class AuthenticationTokenReceived(
+    val tokenLength: Int
+) : Event
+
+@Serializable
+data class TokenVerificationSuccess(
+    val userId: UserId,
+    val issuer: String?
+) : Event
+
+@Serializable
+data class TokenVerificationFailed(
+    val reason: String,
+    val exceptionType: String,
+    val stackTrace: List<String>,
+    val keyIdentifier: String?,
+    val tokenIssuer: String?,
+    val expectedIssuer: String,
+    val jsonWebKeySetUniformResourceIdentifier: String,
+    val availableClaims: Map<String, String>? = null
+) : Event
+
+@Serializable
+data class AuthenticationResult(
+    val isSuccessful: Boolean,
+    val httpStatus: Int,
+    val reason: String? = null
 ) : Event
 
 fun catchLensFailure(events: Events): Filter = Filter { next ->

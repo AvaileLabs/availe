@@ -1,4 +1,8 @@
-package com.availelabs.provisioning.keycloak.specs
+package com.availelabs.availe.provisioning.keycloak.specs
+
+import com.availelabs.provisioning.keycloak.specs.KeycloakClientAttributes
+import com.availelabs.provisioning.keycloak.specs.KeycloakClientScopes
+import org.keycloak.representations.idm.ProtocolMapperRepresentation
 
 internal data class DesiredRealmSettings(
     val accessTokenLifespan: Int = 300,
@@ -35,5 +39,6 @@ internal data class DesiredClient(
     val optionalClientScopes: List<String> = emptyList(),
     val attributes: Map<String, String> = mapOf(
         KeycloakClientAttributes.PKCE_METHOD to KeycloakClientAttributes.PKCE_METHOD_S256
-    )
+    ),
+    val protocolMappers: List<ProtocolMapperRepresentation> = emptyList()
 )

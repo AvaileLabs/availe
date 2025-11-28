@@ -53,8 +53,8 @@ internal fun main() {
     )
     val listingService = ListingService(listingRepository)
 
-    val tokenVerifier = KeycloakTokenVerifier()
-    val authenticationFilter = AuthenticationFilter(tokenVerifier)
+    val tokenVerifier = KeycloakTokenVerifier(events)
+    val authenticationFilter = AuthenticationFilter(tokenVerifier, events)
 
     val listingController = ListingController(listingService, events, authenticationFilter)
 
