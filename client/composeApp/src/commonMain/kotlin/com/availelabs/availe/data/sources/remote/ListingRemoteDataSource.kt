@@ -3,6 +3,7 @@
 package com.availelabs.availe.data.sources.remote
 
 import com.availelabs.availe.ApiMediaTypes
+import com.availelabs.availe.ApiParameters
 import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.data.network.toCreateRequestDto
 import com.availelabs.availe.data.network.toDomainListing
@@ -73,7 +74,7 @@ class ListingRemoteDataSource(
         val response = httpClient.post(ApiRoutes.LISTINGS) {
             header(HttpHeaders.ContentType, ApiMediaTypes.LISTINGS_V1_JSON)
             header(HttpHeaders.Accept, ApiMediaTypes.LISTINGS_V1_JSON)
-            parameter("publisherId", publisherId.value.toString())
+            setPublisherId(publisherId)
             setBody(dto)
         }
 
@@ -100,7 +101,7 @@ class ListingRemoteDataSource(
         val response = httpClient.patch("${ApiRoutes.LISTINGS}/${listingId.value}") {
             header(HttpHeaders.ContentType, ApiMediaTypes.LISTINGS_V1_JSON)
             header(HttpHeaders.Accept, ApiMediaTypes.LISTINGS_V1_JSON)
-            parameter("publisherId", publisherId.value.toString())
+            setPublisherId(publisherId)
             setBody(patch)
         }
 
@@ -122,7 +123,7 @@ class ListingRemoteDataSource(
 
     override suspend fun deleteListing(listingId: ListingId, publisherId: UserId): DeleteResult {
         val response = httpClient.delete("${ApiRoutes.LISTINGS}/${listingId.value}") {
-            parameter("publisherId", publisherId.value.toString())
+            setPublisherId(publisherId)
         }
 
         return when (response.status) {
@@ -134,6 +135,10 @@ class ListingRemoteDataSource(
                 throw IllegalStateException("Unexpected status code: ${response.status}")
             }
         }
+    }
+
+    private fun HttpRequestBuilder.setPublisherId(publisherId: UserId) {
+        parameter(ApiParameters.PUBLISHER_ID, publisherId.value.toString())
     }
 
     private suspend fun ensureSuccess(response: HttpResponse) {

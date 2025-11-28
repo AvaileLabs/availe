@@ -2,6 +2,7 @@
 
 package com.availelabs.availe.controllers
 
+import com.availelabs.availe.ApiParameters
 import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.service.IListingService
@@ -34,7 +35,7 @@ import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
 internal val publisherKey =
-    Query.uuid().map({ UserId(it.toKotlinUuid()) }, { it.value.toJavaUuid() }).required("publisherId")
+    Query.uuid().map({ UserId(it.toKotlinUuid()) }, { it.value.toJavaUuid() }).required(ApiParameters.PUBLISHER_ID)
 
 internal class ListingController(
     private val listingService: IListingService,
