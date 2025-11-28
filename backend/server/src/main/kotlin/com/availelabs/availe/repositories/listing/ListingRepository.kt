@@ -8,13 +8,11 @@ import com.availelabs.availe.domain.types.DbDeleteResult
 import com.availelabs.availe.domain.types.DbFindResult
 import com.availelabs.availe.domain.types.DbInsertResult
 import com.availelabs.availe.domain.types.DbUpdateResult
-import com.availelabs.availe.dto.PriceDto
 import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingServiceDtoSchema
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.mappers.toDomainListing
-import com.availelabs.availe.mappers.toDomainPrice
 import com.availelabs.availe.mappers.toMoneta
 import com.availelabs.availe.repositories.listing.helpers.creators.IListingCreator
 import com.example.jooq.tables.references.LISTINGS
@@ -98,7 +96,7 @@ internal class ListingRepository(
         updates: MutableMap<Field<*>, Any?>,
         title: Patchable<ListingTitle>,
         description: Patchable<ListingDescription?>,
-        price: Patchable<PriceDto.V1>,
+        price: Patchable<Price>,
         imageLinks: Patchable<List<ImageUrl>>
     ) {
         if (title is Patchable.Set) {
@@ -111,7 +109,7 @@ internal class ListingRepository(
             updates[LISTINGS.IMAGE_LINKS] = imageLinks.value.map { it.value }.toTypedArray()
         }
         if (price is Patchable.Set) {
-            val money = price.value.toDomainPrice().toMoneta()
+            val money = price.value.toMoneta()
             updates[LISTINGS.PRICE_AMOUNT] = money.number.numberValue(BigDecimal::class.java)
             updates[LISTINGS.PRICE_CURRENCY] = money.currency.currencyCode
         }

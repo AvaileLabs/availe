@@ -10,7 +10,6 @@ import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
-import com.availelabs.availe.dto.PriceDto
 import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoCreateRequest
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
@@ -45,7 +44,7 @@ internal class ListingController(
         Path.uuid().map({ ListingId(it.toKotlinUuid()) }, { it.value.toJavaUuid() }).of(ApiParameters.LISTING_ID)
     private val responseBodyLens = Body.auto<TypeV1ListingDtoData>().toLens()
     private val listResponseBodyLens = Body.auto<List<TypeV1ListingDtoData>>().toLens()
-    private val examplePrice = PriceDto.V1(PriceAmount("10.00"), CurrencyCode("USD"))
+    private val examplePrice = Price(PriceAmount("10.00"), CurrencyCode("USD"))
     private val exampleResponseItem = ListingItemDtoSchema.V1.Data(
         id = ListingId(Uuid.random()),
         title = ListingTitle("Example Item"),

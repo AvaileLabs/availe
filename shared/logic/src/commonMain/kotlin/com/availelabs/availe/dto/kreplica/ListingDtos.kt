@@ -1,7 +1,6 @@
 package com.availelabs.availe.dto.kreplica
 
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.dto.PriceDto
 import io.availe.Replicate
 import io.availe.models.DtoVariant
 import io.availe.models.DtoVisibility
@@ -21,7 +20,7 @@ private interface ListingDto {
         val id: ListingId
         val title: ListingTitle
         val description: ListingDescription?
-        val price: PriceDto.V1
+        val price: Price
         val imageLinks: List<ImageUrl>
 
         @Replicate.Property(include = [DtoVariant.DATA])

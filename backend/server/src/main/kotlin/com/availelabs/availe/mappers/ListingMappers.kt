@@ -3,7 +3,6 @@
 package com.availelabs.availe.mappers
 
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.dto.PriceDto
 import com.availelabs.availe.dto.kreplica.*
 import com.example.jooq.enums.ListingTypeEnum
 import com.example.jooq.tables.records.ListingsRecord
@@ -18,16 +17,6 @@ import com.example.jooq.tables.ListingEventDetails as EventDetailsTable
 import com.example.jooq.tables.ListingItemDetails as ItemDetailsTable
 import com.example.jooq.tables.ListingServiceDetails as ServiceDetailsTable
 import com.example.jooq.tables.Listings as ListingsTable
-
-private fun Price.toPriceDtoV1(): PriceDto.V1 = PriceDto.V1(
-    amount = this.amount,
-    currency = this.currency
-)
-
-internal fun PriceDto.V1.toDomainPrice(): Price = Price(
-    amount = this.amount,
-    currency = this.currency
-)
 
 internal fun ListingsRecord.applyCommonData(commonData: CommonListingData) {
     this.publisherId = commonData.publisherId.value.toJavaUuid()
@@ -95,13 +84,12 @@ internal fun Record.toDomainListing(
 }
 
 internal fun Listing.toDataDto(): TypeV1ListingDtoData {
-    val priceDto = this.price.toPriceDtoV1()
     return when (this) {
         is Listing.Event -> ListingEventDtoSchema.V1.Data(
             id = this.id,
             title = this.title,
             description = this.description,
-            price = priceDto,
+            price = this.price,
             imageLinks = this.imageLinks,
             publisherId = this.publisherId,
             schemaVersion = 1
@@ -111,7 +99,7 @@ internal fun Listing.toDataDto(): TypeV1ListingDtoData {
             id = this.id,
             title = this.title,
             description = this.description,
-            price = priceDto,
+            price = this.price,
             imageLinks = this.imageLinks,
             publisherId = this.publisherId,
             schemaVersion = 1
@@ -121,7 +109,7 @@ internal fun Listing.toDataDto(): TypeV1ListingDtoData {
             id = this.id,
             title = this.title,
             description = this.description,
-            price = priceDto,
+            price = this.price,
             imageLinks = this.imageLinks,
             publisherId = this.publisherId,
             schemaVersion = 1
@@ -135,7 +123,7 @@ internal fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId): NewLis
             CommonListingData(
                 title = title,
                 description = description,
-                price = price.toDomainPrice(),
+                price = price,
                 imageLinks = imageLinks,
                 publisherId = publisherId
             )
@@ -145,7 +133,7 @@ internal fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId): NewLis
             CommonListingData(
                 title = title,
                 description = description,
-                price = price.toDomainPrice(),
+                price = price,
                 imageLinks = imageLinks,
                 publisherId = publisherId
             )
@@ -155,7 +143,7 @@ internal fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId): NewLis
             CommonListingData(
                 title = title,
                 description = description,
-                price = price.toDomainPrice(),
+                price = price,
                 imageLinks = imageLinks,
                 publisherId = publisherId
             )
