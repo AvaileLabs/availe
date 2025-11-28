@@ -42,7 +42,7 @@ internal class ListingController(
     private val events: Events
 ) {
     private val listingIdPath =
-        Path.uuid().map({ ListingId(it.toKotlinUuid()) }, { it.value.toJavaUuid() }).of("listingId")
+        Path.uuid().map({ ListingId(it.toKotlinUuid()) }, { it.value.toJavaUuid() }).of(ApiParameters.LISTING_ID)
     private val responseBodyLens = Body.auto<TypeV1ListingDtoData>().toLens()
     private val listResponseBodyLens = Body.auto<List<TypeV1ListingDtoData>>().toLens()
     private val examplePrice = PriceDto.V1(PriceAmount("10.00"), CurrencyCode("USD"))

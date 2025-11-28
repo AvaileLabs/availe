@@ -3,9 +3,7 @@ package com.availelabs.availe.di
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.core.platform.PlatformActivity
-import com.availelabs.availe.data.auth.AuthRemoteDataSource
-import com.availelabs.availe.data.auth.createPlatformAuthenticationConfig
-import com.availelabs.availe.data.auth.createPlatformAuthenticationFlowFactory
+import com.availelabs.availe.data.auth.*
 import com.availelabs.availe.data.repositories.*
 import com.availelabs.availe.data.sources.local.createTokenStore
 import com.availelabs.availe.data.sources.remote.ListingRemoteDataSource
@@ -37,7 +35,12 @@ fun createApplicationContainer(
 
     val client =
         OpenIdConnectClient(discoveryUri = com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI) {
-            this.scope = "${com.availelabs.availe.domain.auth.AuthenticationConstants.SCOPE} offline_access"
+            this.scope = setOf(
+                AuthScope.OPEN_ID,
+                AuthScope.PROFILE,
+                AuthScope.EMAIL,
+                AuthScope.OFFLINE_ACCESS
+            ).toScopeString()
             this.clientId = com.availelabs.availe.domain.auth.AuthenticationConstants.CLIENT_ID
             this.codeChallengeMethod = CodeChallengeMethod.S256
             this.redirectUri = platformAuthConfig.redirectUri

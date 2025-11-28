@@ -6,6 +6,7 @@ object ApiRoutes {
 
 object ApiParameters {
     const val PUBLISHER_ID = "publisherId"
+    const val LISTING_ID = "listingId"
 }
 
 object ApiMediaTypes {
