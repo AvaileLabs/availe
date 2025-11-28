@@ -128,7 +128,7 @@ internal class ListingController(
                     val exists = try {
                         val result = listingService.getListingById(listingId)
                         result is FindResult.Found
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         false
                     }
 

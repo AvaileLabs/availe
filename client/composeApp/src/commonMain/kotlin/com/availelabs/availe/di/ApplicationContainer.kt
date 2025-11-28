@@ -79,7 +79,7 @@ fun createApplicationContainer(
                 loadTokens {
                     val tokens = authRemoteDataSource.getTokens()
                     if (tokens?.accessToken != null && tokens.refreshToken != null) {
-                        BearerTokens(tokens.accessToken!!, tokens.refreshToken!!)
+                        BearerTokens(tokens.accessToken, tokens.refreshToken!!)
                     } else {
                         null
                     }
@@ -92,7 +92,7 @@ fun createApplicationContainer(
                             val newTokens = authRemoteDataSource.refreshTokens(oldRefreshToken)
                             authRemoteDataSource.saveTokens(newTokens)
                             BearerTokens(newTokens.access_token, newTokens.refresh_token ?: oldRefreshToken)
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             null
                         }
                     } else {

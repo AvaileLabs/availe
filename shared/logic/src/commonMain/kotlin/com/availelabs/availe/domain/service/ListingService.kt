@@ -18,8 +18,6 @@ class ListingService(
     private val listingRepository: IListingRepository
 ) : IListingService {
     override suspend fun createListing(newListing: NewListing): InsertResult<Listing> {
-        // Since we unified types, we just pass through.
-        // If repo returned DbInsertResult, we would map here.
         return listingRepository.createListing(newListing)
     }
 
