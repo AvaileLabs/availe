@@ -1,8 +1,8 @@
 @file:OptIn(ExperimentalUuidApi::class)
 
-package com.availelabs.availe.data.repository
+package com.availelabs.availe.data.repositories
 
-import com.availelabs.availe.data.network.IListingRemoteDataSource
+import com.availelabs.availe.data.sources.remote.IListingRemoteDataSource
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing

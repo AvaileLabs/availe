@@ -1,4 +1,4 @@
-package com.availelabs.availe.data.auth
+package com.availelabs.availe.data.dto
 
 import kotlinx.serialization.Serializable
 

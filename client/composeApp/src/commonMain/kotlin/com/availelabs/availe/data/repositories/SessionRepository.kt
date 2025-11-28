@@ -1,4 +1,4 @@
-package com.availelabs.availe.domain.auth
+package com.availelabs.availe.data.repositories
 
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -6,6 +6,9 @@ import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.coroutines.withLifecycle
 import com.availelabs.availe.data.auth.IAuthRemoteDataSource
+import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.domain.auth.JwtUserProfileMapper
+import com.availelabs.availe.domain.auth.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

@@ -1,4 +1,4 @@
-package com.availelabs.availe.data.repository
+package com.availelabs.availe.data.repositories
 
 import com.availelabs.availe.data.auth.IAuthRemoteDataSource
 import com.availelabs.availe.domain.auth.AuthenticationState

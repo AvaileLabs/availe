@@ -7,10 +7,10 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.availelabs.availe.data.repository.IAuthRepository
-import com.availelabs.availe.data.repository.IListingRepository
+import com.availelabs.availe.data.repositories.IAuthRepository
+import com.availelabs.availe.data.repositories.IListingRepository
+import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
-import com.availelabs.availe.domain.auth.ISessionManager
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.toDisplayString
 import com.availelabs.availe.domain.types.InsertResult

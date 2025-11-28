@@ -1,6 +1,6 @@
 package com.availelabs.availe.domain.auth
 
-import com.availelabs.availe.data.auth.JwtPayloadDto
+import com.availelabs.availe.data.dto.JwtPayloadDto
 import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.ImageUrl
 import com.availelabs.availe.domain.model.UserId

@@ -1,4 +1,4 @@
-package com.availelabs.availe.data.auth
+package com.availelabs.availe.data.sources.local
 
 import com.availelabs.availe.core.platform.PlatformActivity
 import com.russhwolf.settings.Settings

@@ -6,14 +6,9 @@ import com.availelabs.availe.core.platform.PlatformActivity
 import com.availelabs.availe.data.auth.AuthRemoteDataSource
 import com.availelabs.availe.data.auth.createPlatformAuthenticationConfig
 import com.availelabs.availe.data.auth.createPlatformAuthenticationFlowFactory
-import com.availelabs.availe.data.auth.createTokenStore
-import com.availelabs.availe.data.network.ListingRemoteDataSource
-import com.availelabs.availe.data.repository.AuthRepository
-import com.availelabs.availe.data.repository.IAuthRepository
-import com.availelabs.availe.data.repository.IListingRepository
-import com.availelabs.availe.data.repository.ListingRepository
-import com.availelabs.availe.domain.auth.ISessionManager
-import com.availelabs.availe.domain.auth.SessionManager
+import com.availelabs.availe.data.repositories.*
+import com.availelabs.availe.data.sources.local.createTokenStore
+import com.availelabs.availe.data.sources.remote.ListingRemoteDataSource
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*

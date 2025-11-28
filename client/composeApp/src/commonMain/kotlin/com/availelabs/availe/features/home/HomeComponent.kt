@@ -6,9 +6,9 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.availelabs.availe.data.repository.IAuthRepository
-import com.availelabs.availe.data.repository.IListingRepository
-import com.availelabs.availe.domain.auth.ISessionManager
+import com.availelabs.availe.data.repositories.IAuthRepository
+import com.availelabs.availe.data.repositories.IListingRepository
+import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.model.ListingId
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow

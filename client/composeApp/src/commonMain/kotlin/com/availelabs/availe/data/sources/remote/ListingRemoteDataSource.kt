@@ -1,9 +1,11 @@
 @file:OptIn(ExperimentalUuidApi::class)
 
-package com.availelabs.availe.data.network
+package com.availelabs.availe.data.sources.remote
 
 import com.availelabs.availe.ApiMediaTypes
 import com.availelabs.availe.ApiRoutes
+import com.availelabs.availe.data.network.toCreateRequestDto
+import com.availelabs.availe.data.network.toDomainListing
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
