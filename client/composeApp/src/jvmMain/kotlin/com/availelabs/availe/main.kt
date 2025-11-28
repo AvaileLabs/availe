@@ -38,6 +38,6 @@ fun main() = application {
         title = "availe",
         state = windowState,
     ) {
-        App(root = root)
+        App(rootComponent = root)
     }
 }

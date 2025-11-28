@@ -60,7 +60,7 @@ fun startWebApp(deepLink: String?, stateKeeper: StateKeeper): RootComponent {
     lifecycle.attachToDocument()
 
     ComposeViewport {
-        App(root = root)
+        App(rootComponent = root)
     }
 
     return root

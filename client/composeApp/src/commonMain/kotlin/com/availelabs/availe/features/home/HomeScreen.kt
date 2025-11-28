@@ -11,11 +11,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.composables.icons.lucide.CirclePlus
-import com.composables.icons.lucide.LogIn
-import com.composables.icons.lucide.LogOut
-import com.composables.icons.lucide.Lucide
-import com.composables.uikit.components.*
+import com.composables.uikit.components.IntermediateProgressIndicator
+import com.composables.uikit.components.PrimaryButton
+import com.composables.uikit.components.Text
 import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
@@ -24,98 +22,65 @@ internal fun HomeScreen(
     onSearchClick: () -> Unit,
     onNotificationClick: () -> Unit
 ) {
-    val state by homeComponent.state.collectAsState()
+    val homeState by homeComponent.state.collectAsState()
 
-    AppScaffold {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (state.isAuthenticated) {
-                        IconButton(
-                            onClick = { homeComponent.onIntent(HomeStore.Intent.QuickCreateListing) }
-                        ) {
-                            Icon(Lucide.CirclePlus, "Add")
-                        }
-                        IconButton(
-                            onClick = { homeComponent.onIntent(HomeStore.Intent.LogoutClicked) }
-                        ) {
-                            Icon(Lucide.LogOut, "Logout")
-                        }
-                    } else {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            when {
+                homeState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IntermediateProgressIndicator()
+                    }
+                }
+
+                homeState.errorMessage != null -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(homeState.errorMessage!!)
+                        Spacer(Modifier.height(16.dp))
                         PrimaryButton(
-                            onClick = { homeComponent.onIntent(HomeStore.Intent.LoginClicked) },
-                            enabled = state.isAuthServiceAvailable
+                            onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListings) }
                         ) {
-                            Icon(Lucide.LogIn, null)
-                            Text("Log In")
+                            Text("Retry")
                         }
                     }
                 }
-            }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    state.isLoading -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            IntermediateProgressIndicator()
-                        }
-                    }
-
-                    state.errorMessage != null -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(state.errorMessage!!)
+                homeState.listingUiModels.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("No listings found")
                             Spacer(Modifier.height(16.dp))
                             PrimaryButton(
                                 onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListings) }
                             ) {
-                                Text("Retry")
+                                Text("Refresh")
                             }
                         }
                     }
+                }
 
-                    state.listingUiModels.isEmpty() -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("No listings found")
-                                Spacer(Modifier.height(16.dp))
-                                PrimaryButton(
-                                    onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListings) }
-                                ) {
-                                    Text("Refresh")
-                                }
-                            }
-                        }
-                    }
-
-                    else -> {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(state.listingUiModels, key = { it.id.value }) { listing ->
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp)
-                                ) {
-                                    Text(listing.title.value)
-                                    Text(listing.price)
-                                }
+                else -> {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(homeState.listingUiModels, key = { it.id.value }) { listingUiModel ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                Text(listingUiModel.title.value)
+                                Text(listingUiModel.price)
                             }
                         }
                     }
