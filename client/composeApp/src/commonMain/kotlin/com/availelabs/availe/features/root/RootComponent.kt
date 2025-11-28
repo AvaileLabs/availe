@@ -111,7 +111,7 @@ sealed interface Configuration {
     @Serializable
     data object Home : Configuration {
         @Transient
-        override val displayName: String = "Home"
+        override val displayName: String = "Availe"
 
         @Transient
         override val navigationIcon: NavIcon = NavIcon(Lucide.House, "Home Screen")

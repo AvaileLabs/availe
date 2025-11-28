@@ -14,8 +14,12 @@ import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.root.ChildComponent
 import com.availelabs.availe.features.root.Configuration
 import com.availelabs.availe.features.root.IRootComponent
-import com.composables.uikit.components.*
+import com.composables.uikit.components.AppScaffold
+import com.composables.uikit.components.Icon
+import com.composables.uikit.components.IconButton
+import com.composables.uikit.components.TopAppBar
 import com.composables.uikit.styling.UiKitTheme
+import com.composeunstyled.Text
 
 @Composable
 fun App(root: IRootComponent) {

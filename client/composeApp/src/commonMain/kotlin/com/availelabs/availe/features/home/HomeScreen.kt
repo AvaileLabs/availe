@@ -16,9 +16,6 @@ import com.composables.icons.lucide.LogIn
 import com.composables.icons.lucide.LogOut
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.*
-import com.composables.uikit.styling.textStyles
-import com.composables.uikit.styling.title
-import com.composeunstyled.theme.Theme
 import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
@@ -38,11 +35,6 @@ internal fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Availe",
-                    style = Theme[textStyles][title]
-                )
-
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (state.isAuthenticated) {
                         IconButton(
