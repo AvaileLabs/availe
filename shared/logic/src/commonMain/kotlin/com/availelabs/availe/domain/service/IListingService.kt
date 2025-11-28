@@ -14,14 +14,14 @@ import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import kotlin.uuid.ExperimentalUuidApi
 
 interface IListingService {
-    fun createListing(newListing: NewListing): InsertResult<Listing>
-    fun getListingById(id: ListingId): FindResult<Listing>
-    fun getAllListings(): List<Listing>
-    fun updateListing(
+    suspend fun createListing(newListing: NewListing): InsertResult<Listing>
+    suspend fun getListingById(id: ListingId): FindResult<Listing>
+    suspend fun getAllListings(): List<Listing>
+    suspend fun updateListing(
         listingId: ListingId,
         patch: TypeV1ListingDtoPatchRequest,
         requestingPublisherId: UserId
     ): UpdateResult<Listing>
 
-    fun deleteListing(listingId: ListingId, requestingPublisherId: UserId): DeleteResult
+    suspend fun deleteListing(listingId: ListingId, requestingPublisherId: UserId): DeleteResult
 }

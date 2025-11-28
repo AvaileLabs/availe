@@ -57,7 +57,8 @@ internal fun HomeScreen(
                         }
                     } else {
                         PrimaryButton(
-                            onClick = { homeComponent.onIntent(HomeStore.Intent.LoginClicked) }
+                            onClick = { homeComponent.onIntent(HomeStore.Intent.LoginClicked) },
+                            enabled = state.isAuthServiceAvailable
                         ) {
                             Icon(Lucide.LogIn, null)
                             Text("Log In")

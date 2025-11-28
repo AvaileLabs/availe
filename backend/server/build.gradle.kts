@@ -34,6 +34,7 @@ kotlin {
 
 dependencies {
     implementation(projects.shared.logic)
+    implementation(projects.shared.configuration)
     implementation(libs.logback)
 
     implementation(libs.kotlin.reflect)
@@ -44,11 +45,16 @@ dependencies {
     implementation(libs.http4k.api.openapi)
     implementation(libs.http4k.format.kotlinx.serialization)
     implementation(libs.http4k.format.jackson)
+    implementation(libs.http4k.security.oauth)
+
+    implementation(libs.java.jwt)
+    implementation(libs.jwks.rsa)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.money.api)
     implementation(libs.moneta.core)
     implementation(libs.moneta.convert.ecb)
+    implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)

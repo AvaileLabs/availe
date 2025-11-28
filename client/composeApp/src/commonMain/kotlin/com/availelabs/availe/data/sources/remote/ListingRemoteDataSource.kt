@@ -3,14 +3,12 @@
 package com.availelabs.availe.data.sources.remote
 
 import com.availelabs.availe.ApiMediaTypes
-import com.availelabs.availe.ApiParameters
 import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.data.network.toCreateRequestDto
 import com.availelabs.availe.data.network.toDomainListing
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
@@ -26,16 +24,15 @@ import kotlinx.serialization.json.Json
 import kotlin.uuid.ExperimentalUuidApi
 
 interface IListingRemoteDataSource {
-    suspend fun getListings(): List<Listing>
+    suspend fun getAllListings(): List<Listing>
     suspend fun getListingById(id: ListingId): FindResult<Listing>
-    suspend fun createListing(listing: NewListing, publisherId: UserId): InsertResult<Listing>
+    suspend fun createListing(listing: NewListing): InsertResult<Listing>
     suspend fun updateListing(
         listingId: ListingId,
-        patch: TypeV1ListingDtoPatchRequest,
-        publisherId: UserId
+        patch: TypeV1ListingDtoPatchRequest
     ): UpdateResult<Listing>
 
-    suspend fun deleteListing(listingId: ListingId, publisherId: UserId): DeleteResult
+    suspend fun deleteListing(listingId: ListingId): DeleteResult
 }
 
 class ListingRemoteDataSource(
@@ -43,7 +40,7 @@ class ListingRemoteDataSource(
     private val json: Json
 ) : IListingRemoteDataSource {
 
-    override suspend fun getListings(): List<Listing> {
+    override suspend fun getAllListings(): List<Listing> {
         val response = httpClient.get(ApiRoutes.LISTINGS)
         ensureSuccess(response)
         val jsonString = response.bodyAsText()
@@ -69,12 +66,11 @@ class ListingRemoteDataSource(
         }
     }
 
-    override suspend fun createListing(listing: NewListing, publisherId: UserId): InsertResult<Listing> {
+    override suspend fun createListing(listing: NewListing): InsertResult<Listing> {
         val dto = listing.toCreateRequestDto()
         val response = httpClient.post(ApiRoutes.LISTINGS) {
             header(HttpHeaders.ContentType, ApiMediaTypes.LISTINGS_V1_JSON)
             header(HttpHeaders.Accept, ApiMediaTypes.LISTINGS_V1_JSON)
-            setPublisherId(publisherId)
             setBody(dto)
         }
 
@@ -95,13 +91,11 @@ class ListingRemoteDataSource(
 
     override suspend fun updateListing(
         listingId: ListingId,
-        patch: TypeV1ListingDtoPatchRequest,
-        publisherId: UserId
+        patch: TypeV1ListingDtoPatchRequest
     ): UpdateResult<Listing> {
         val response = httpClient.patch("${ApiRoutes.LISTINGS}/${listingId.value}") {
             header(HttpHeaders.ContentType, ApiMediaTypes.LISTINGS_V1_JSON)
             header(HttpHeaders.Accept, ApiMediaTypes.LISTINGS_V1_JSON)
-            setPublisherId(publisherId)
             setBody(patch)
         }
 
@@ -121,10 +115,8 @@ class ListingRemoteDataSource(
         }
     }
 
-    override suspend fun deleteListing(listingId: ListingId, publisherId: UserId): DeleteResult {
-        val response = httpClient.delete("${ApiRoutes.LISTINGS}/${listingId.value}") {
-            setPublisherId(publisherId)
-        }
+    override suspend fun deleteListing(listingId: ListingId): DeleteResult {
+        val response = httpClient.delete("${ApiRoutes.LISTINGS}/${listingId.value}")
 
         return when (response.status) {
             HttpStatusCode.NoContent, HttpStatusCode.OK -> DeleteResult.Deleted
@@ -135,10 +127,6 @@ class ListingRemoteDataSource(
                 throw IllegalStateException("Unexpected status code: ${response.status}")
             }
         }
-    }
-
-    private fun HttpRequestBuilder.setPublisherId(publisherId: UserId) {
-        parameter(ApiParameters.PUBLISHER_ID, publisherId.value.toString())
     }
 
     private suspend fun ensureSuccess(response: HttpResponse) {

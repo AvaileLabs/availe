@@ -47,9 +47,9 @@ class SessionManager(
                         authRemoteDataSource.saveTokens(newTokens)
                         _authenticationState.update { AuthenticationState.LoggedIn(newTokens.access_token) }
                     } catch (_: OpenIdConnectException) {
-                        clearLocalTokens()
+                        handleExpiredSession()
                     } catch (_: Exception) {
-                        clearLocalTokens()
+                        handleExpiredSession()
                     }
                 } else {
                     _authenticationState.update { AuthenticationState.LoggedOut }
@@ -72,19 +72,19 @@ class SessionManager(
 
     override suspend fun onSessionInvalidated() {
         authRemoteDataSource.removeTokens()
-        _authenticationState.update { AuthenticationState.LoggedOut }
+        _authenticationState.update { AuthenticationState.SessionExpired }
     }
 
     override fun updateState(newState: AuthenticationState) {
         _authenticationState.update { newState }
     }
 
-    private suspend fun clearLocalTokens() {
+    private suspend fun handleExpiredSession() {
         try {
             authRemoteDataSource.removeTokens()
-            _authenticationState.update { AuthenticationState.LoggedOut }
         } catch (_: Exception) {
-            _authenticationState.update { AuthenticationState.LoggedOut }
+            // Ignore storage errors during cleanup
         }
+        _authenticationState.update { AuthenticationState.SessionExpired }
     }
 }

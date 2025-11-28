@@ -13,6 +13,7 @@ dependencies {
     implementation(libs.postgresql)
     implementation(libs.logback)
     implementation(projects.shared.logic)
+    implementation(projects.shared.configuration)
     testImplementation(kotlin("test"))
 }
 

@@ -1,5 +1,7 @@
 package com.availelabs.availe
 
+import com.availelabs.availe.auth.AuthenticationFilter
+import com.availelabs.availe.auth.KeycloakTokenVerifier
 import com.availelabs.availe.controllers.ListingController
 import com.availelabs.availe.domain.service.ListingService
 import com.availelabs.availe.observability.catchLensFailure
@@ -50,7 +52,11 @@ internal fun main() {
         serviceCreator = serviceCreator
     )
     val listingService = ListingService(listingRepository)
-    val listingController = ListingController(listingService, events)
+
+    val tokenVerifier = KeycloakTokenVerifier()
+    val authenticationFilter = AuthenticationFilter(tokenVerifier)
+
+    val listingController = ListingController(listingService, events, authenticationFilter)
 
     val apiContract = contract {
         routes += listingController.listOfRoutes

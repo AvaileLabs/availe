@@ -5,24 +5,22 @@ package com.availelabs.availe.domain.repository
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.UserId
-import com.availelabs.availe.domain.types.DbDeleteResult
-import com.availelabs.availe.domain.types.DbFindResult
-import com.availelabs.availe.domain.types.DbInsertResult
-import com.availelabs.availe.domain.types.DbUpdateResult
+import com.availelabs.availe.domain.types.DeleteResult
+import com.availelabs.availe.domain.types.FindResult
+import com.availelabs.availe.domain.types.InsertResult
+import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import kotlin.uuid.ExperimentalUuidApi
 
 interface IListingRepository {
-    fun createListing(newListing: NewListing): DbInsertResult<Listing>
-    fun getListingById(id: ListingId): DbFindResult<Listing>
-    fun existsById(id: ListingId): Boolean
-    fun getAllListings(): List<Listing>
-    fun updateListing(
+    suspend fun createListing(newListing: NewListing): InsertResult<Listing>
+    suspend fun getListingById(id: ListingId): FindResult<Listing>
+    suspend fun existsById(id: ListingId): Boolean
+    suspend fun getAllListings(): List<Listing>
+    suspend fun updateListing(
         id: ListingId,
-        patch: TypeV1ListingDtoPatchRequest,
-        requestingPublisherId: UserId
-    ): DbUpdateResult<Listing>
+        patch: TypeV1ListingDtoPatchRequest
+    ): UpdateResult<Listing>
 
-    fun deleteListing(id: ListingId, requestingPublisherId: UserId): DbDeleteResult
+    suspend fun deleteListing(id: ListingId): DeleteResult
 }

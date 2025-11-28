@@ -35,6 +35,7 @@ kotlin {
             isStatic = true
 
             export(projects.shared.logic)
+            export(projects.shared.configuration)
             export(libs.decompose)
             export(libs.decompose.extensions.compose)
             export(libs.essenty.lifecycle)
@@ -72,9 +73,17 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             api(projects.shared.logic)
             api(projects.shared.client)
-            implementation(libs.ktor.utils)
+            api(projects.shared.configuration)
             implementation(libs.okio)
             implementation(libs.multiplatform.settings.no.arg)
+
+            // Ktor
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.auth)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.utils)
 
             // Compose Design System
             implementation(libs.composables.unstyled)
@@ -108,8 +117,8 @@ kotlin {
             implementation(libs.oidc.preferences)
 
             // coil3
-            implementation("io.coil-kt.coil3:coil-compose:3.3.0")
-            implementation("io.coil-kt.coil3:coil-network-ktor3:3.3.0")
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

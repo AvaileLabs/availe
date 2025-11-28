@@ -9,6 +9,8 @@ androidx-core = "1.17.0"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.9.6"
 androidx-testExt = "1.3.0"
+coilCompose = "3.3.0"
+coilNetworkKtor3 = "3.3.0"
 composeBom = "2025.11.01"
 composeHotReload = "1.0.0-rc04"
 composeMultiplatform = "1.9.3"
@@ -18,6 +20,7 @@ junitBom = "6.0.1"
 kotlin = "2.3.0-RC"
 kotlinBrowser = "2025.11.12"
 kotlinx-coroutines = "1.10.2"
+kotlinxCoroutinesCore = "1.10.2"
 ktor = "3.3.2"
 logback = "1.5.21"
 kotlinx-serialization = "1.9.0"
@@ -53,11 +56,14 @@ androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = 
 androidx-ui = { module = "androidx.compose.ui:ui" }
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coilNetworkKtor3" }
 http4k-api-openapi = { module = "org.http4k:http4k-api-openapi" }
 http4k-bom = { module = "org.http4k:http4k-bom", version.ref = "http4kBom" }
 http4k-core = { module = "org.http4k:http4k-core" }
 http4k-format-jackson = { module = "org.http4k:http4k-format-jackson" }
 http4k-format-kotlinx-serialization = { module = "org.http4k:http4k-format-kotlinx-serialization" }
+http4k-security-oauth = { module = "org.http4k:http4k-security-oauth" }
 http4k-server-helidon = { module = "org.http4k:http4k-server-helidon" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junitBom" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
@@ -74,6 +80,7 @@ androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "a
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
@@ -118,6 +125,7 @@ ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "russhwolf-multiplatformSettings" }
 mvikotlin = { module = "com.arkivanov.mvikotlin:mvikotlin", version.ref = "mvikotlin" }

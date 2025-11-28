@@ -8,10 +8,10 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.data.repositories.IAuthRepository
-import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.domain.repository.IListingRepository
 import com.availelabs.availe.domain.toDisplayString
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.features.home.HomeStore.*
@@ -45,7 +45,8 @@ interface HomeStore : Store<Intent, State, Label> {
         val isLoading: Boolean = false,
         val isRefreshing: Boolean = false,
         val errorMessage: String? = null,
-        val isAuthenticated: Boolean = false
+        val isAuthenticated: Boolean = false,
+        val isAuthServiceAvailable: Boolean = true
     )
 
     sealed interface Label {
@@ -81,6 +82,7 @@ class HomeStoreFactory(
         data class ListingsLoaded(val listingUiModels: List<ListingUiModel>) : Message
         data class SetError(val message: String?) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
+        data class SetAuthServiceAvailable(val isAvailable: Boolean) : Message
         data class UpdateListingFavorite(val listingId: ListingId, val isFavorited: Boolean) : Message
     }
 
@@ -157,7 +159,7 @@ class HomeStoreFactory(
                         )
                     )
 
-                    when (listingRepository.createListing(newListing, userProfile.id)) {
+                    when (listingRepository.createListing(newListing)) {
                         is InsertResult.Inserted -> fetchListings(isRefresh = true)
                         is InsertResult.AlreadyExists -> {
                             val msg = "Listing already exists"
@@ -185,7 +187,7 @@ class HomeStoreFactory(
 
             scope.launch {
                 try {
-                    val domainListings = listingRepository.getListings()
+                    val domainListings = listingRepository.getAllListings()
                     val uiModels = domainListings.map { it.toListingUiModel() }
                     dispatch(Message.ListingsLoaded(uiModels))
                 } catch (exception: Exception) {
@@ -212,8 +214,36 @@ class HomeStoreFactory(
                 }
 
                 authFlow.collectLatest { authState ->
-                    val isLoggedIn = authState is AuthenticationState.LoggedIn
-                    dispatch(Message.SetAuthenticated(isLoggedIn))
+                    when (authState) {
+                        is AuthenticationState.LoggedIn -> {
+                            dispatch(Message.SetAuthenticated(true))
+                            dispatch(Message.SetAuthServiceAvailable(true))
+                        }
+
+                        is AuthenticationState.LoggedOut -> {
+                            dispatch(Message.SetAuthenticated(false))
+                            dispatch(Message.SetAuthServiceAvailable(true))
+                        }
+
+                        is AuthenticationState.SessionExpired -> {
+                            dispatch(Message.SetAuthenticated(false))
+                            dispatch(Message.SetAuthServiceAvailable(true))
+                            val msg = "Session expired. Please log in again."
+                            dispatch(Message.SetError(msg))
+                            publish(Label.DisplayError(msg))
+                        }
+
+                        is AuthenticationState.InitializationFailed -> {
+                            dispatch(Message.SetAuthenticated(false))
+                            dispatch(Message.SetAuthServiceAvailable(false))
+                            val msg = "Authentication service unavailable."
+                            dispatch(Message.SetError(msg))
+                        }
+
+                        AuthenticationState.Unknown -> {
+                            // No-op or loading state
+                        }
+                    }
                 }
             }
         }
@@ -235,6 +265,7 @@ class HomeStoreFactory(
                 is Message.ListingsLoaded -> copy(listingUiModels = msg.listingUiModels)
                 is Message.SetError -> copy(errorMessage = msg.message)
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
+                is Message.SetAuthServiceAvailable -> copy(isAuthServiceAvailable = msg.isAvailable)
                 is Message.UpdateListingFavorite -> {
                     val updatedListings = listingUiModels.map { listing ->
                         if (listing.id == msg.listingId) {

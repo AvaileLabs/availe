@@ -7,56 +7,55 @@ import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.repository.IListingRepository
-import com.availelabs.availe.domain.types.*
+import com.availelabs.availe.domain.types.DeleteResult
+import com.availelabs.availe.domain.types.FindResult
+import com.availelabs.availe.domain.types.InsertResult
+import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import kotlin.uuid.ExperimentalUuidApi
 
 class ListingService(
     private val listingRepository: IListingRepository
 ) : IListingService {
-    override fun createListing(newListing: NewListing): InsertResult<Listing> {
-        return when (val result = listingRepository.createListing(newListing)) {
-            is DbInsertResult.AlreadyExists -> InsertResult.AlreadyExists
-            is DbInsertResult.Inserted -> InsertResult.Inserted(result.value)
-        }
+    override suspend fun createListing(newListing: NewListing): InsertResult<Listing> {
+        // Since we unified types, we just pass through.
+        // If repo returned DbInsertResult, we would map here.
+        return listingRepository.createListing(newListing)
     }
 
-    override fun getListingById(id: ListingId): FindResult<Listing> {
-        return when (val result = listingRepository.getListingById(id)) {
-            is DbFindResult.Found -> FindResult.Found(result.value)
-            is DbFindResult.NotFound -> FindResult.NotFound
-        }
+    override suspend fun getListingById(id: ListingId): FindResult<Listing> {
+        return listingRepository.getListingById(id)
     }
 
-    override fun getAllListings(): List<Listing> = listingRepository.getAllListings()
+    override suspend fun getAllListings(): List<Listing> = listingRepository.getAllListings()
 
-    override fun updateListing(
+    override suspend fun updateListing(
         listingId: ListingId,
         patch: TypeV1ListingDtoPatchRequest,
         requestingPublisherId: UserId
     ): UpdateResult<Listing> {
-        return when (val result = listingRepository.updateListing(listingId, patch, requestingPublisherId)) {
-            is DbUpdateResult.Updated -> UpdateResult.Updated(result.value)
-            is DbUpdateResult.NotFound -> {
-                if (listingRepository.existsById(listingId)) {
-                    UpdateResult.Forbidden
-                } else {
-                    UpdateResult.NotFound
-                }
-            }
+        val listing = when (val result = listingRepository.getListingById(listingId)) {
+            is FindResult.Found -> result.value
+            is FindResult.NotFound -> return UpdateResult.NotFound
         }
+
+        if (listing.publisherId != requestingPublisherId) {
+            return UpdateResult.Forbidden
+        }
+
+        return listingRepository.updateListing(listingId, patch)
     }
 
-    override fun deleteListing(listingId: ListingId, requestingPublisherId: UserId): DeleteResult {
-        return when (listingRepository.deleteListing(listingId, requestingPublisherId)) {
-            is DbDeleteResult.Deleted -> DeleteResult.Deleted
-            is DbDeleteResult.NotFound -> {
-                if (listingRepository.existsById(listingId)) {
-                    DeleteResult.Forbidden
-                } else {
-                    DeleteResult.NotFound
-                }
-            }
+    override suspend fun deleteListing(listingId: ListingId, requestingPublisherId: UserId): DeleteResult {
+        val listing = when (val result = listingRepository.getListingById(listingId)) {
+            is FindResult.Found -> result.value
+            is FindResult.NotFound -> return DeleteResult.NotFound
         }
+
+        if (listing.publisherId != requestingPublisherId) {
+            return DeleteResult.Forbidden
+        }
+
+        return listingRepository.deleteListing(listingId)
     }
 }

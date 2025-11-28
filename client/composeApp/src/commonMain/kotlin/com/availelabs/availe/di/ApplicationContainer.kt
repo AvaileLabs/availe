@@ -7,8 +7,11 @@ import com.availelabs.availe.data.auth.*
 import com.availelabs.availe.data.repositories.*
 import com.availelabs.availe.data.sources.local.createTokenStore
 import com.availelabs.availe.data.sources.remote.ListingRemoteDataSource
+import com.availelabs.availe.domain.repository.IListingRepository
 import io.ktor.client.*
 import io.ktor.client.plugins.*
+import io.ktor.client.plugins.auth.*
+import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -70,6 +73,34 @@ fun createApplicationContainer(
     val httpClient = HttpClient {
         install(ContentNegotiation) {
             json(json)
+        }
+
+        install(Auth) {
+            bearer {
+                loadTokens {
+                    val tokens = authRemoteDataSource.getTokens()
+                    if (tokens?.accessToken != null && tokens.refreshToken != null) {
+                        BearerTokens(tokens.accessToken!!, tokens.refreshToken!!)
+                    } else {
+                        null
+                    }
+                }
+
+                refreshTokens {
+                    val oldRefreshToken = oldTokens?.refreshToken
+                    if (oldRefreshToken != null) {
+                        try {
+                            val newTokens = authRemoteDataSource.refreshTokens(oldRefreshToken)
+                            authRemoteDataSource.saveTokens(newTokens)
+                            BearerTokens(newTokens.access_token, newTokens.refresh_token ?: oldRefreshToken)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                }
+            }
         }
 
         HttpResponseValidator {
