@@ -1,12 +1,12 @@
 package com.availelabs.availe.dto.kreplica
 
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.dto.PriceDto
 import io.availe.Replicate
 import io.availe.models.DtoVariant
 import io.availe.models.DtoVisibility
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 @Serializable
 sealed interface TypeV1ListingDto
@@ -18,14 +18,14 @@ private interface ListingDto {
     )
     interface V1 : ListingDto {
         @Replicate.Property(include = [DtoVariant.DATA])
-        val id: Uuid
-        val title: String
-        val description: String?
+        val id: ListingId
+        val title: ListingTitle
+        val description: ListingDescription?
         val price: PriceDto.V1
-        val imageLinks: List<String>
+        val imageLinks: List<ImageUrl>
 
         @Replicate.Property(include = [DtoVariant.DATA])
-        val publisherId: Uuid
+        val publisherId: UserId
     }
 }
 

@@ -17,7 +17,8 @@ class RootHolder: ObservableObject {
 
         root = RootComponent(
             componentContext: context,
-            appContainer: appContainer
+            appContainer: appContainer,
+            deepLinkUrl: nil
         )
 
         LifecycleRegistryExtKt.create(lifecycle)

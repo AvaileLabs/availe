@@ -1,92 +1,132 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.availelabs.availe.features.home
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.availelabs.availe.features.home.components.ListingCard
-import com.availelabs.availe.ui.RefreshableScreenScaffold
-import com.availelabs.availe.ui.components.RefreshIcon
-import com.composables.icons.lucide.Bell
 import com.composables.icons.lucide.CirclePlus
+import com.composables.icons.lucide.LogIn
+import com.composables.icons.lucide.LogOut
 import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Search
 import com.composables.uikit.components.*
+import com.composables.uikit.styling.textStyles
+import com.composables.uikit.styling.title
+import com.composeunstyled.theme.Theme
+import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 internal fun HomeScreen(
-    homeScreenComponent: IHomeComponent,
+    homeComponent: IHomeComponent,
     onSearchClick: () -> Unit,
-    onNotificationClick: () -> Unit,
-    onPostClick: () -> Unit
+    onNotificationClick: () -> Unit
 ) {
-    val uiState by homeScreenComponent.uiState.subscribeAsState()
+    val state by homeComponent.state.collectAsState()
 
-    RefreshableScreenScaffold(
-        state = uiState.listingsState,
-        onRefresh = { homeScreenComponent.onEvent(HomeEvents.Refresh) },
-        appBar = {
-            TopAppBar(
-                title = { Text("Availe") },
-                actions = {
-                    IconButton(onClick = onNotificationClick) {
-                        Icon(Lucide.Bell, "Notifications")
-                    }
-                    IconButton(onClick = onSearchClick) {
-                        Icon(Lucide.Search, "Search")
-                    }
-                    IconButton(onClick = onPostClick) {
-                        Icon(Lucide.CirclePlus, "Post")
-                    }
-                }
-            )
-        }
-    ) { listings, refreshState ->
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 300.dp),
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(16.dp)
-        ) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        items(listOf("For Sale", "Services", "Housing")) { category ->
-                            Chip {
-                                Text(category)
-                            }
+    AppScaffold {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Availe",
+                    style = Theme[textStyles][title]
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (state.isAuthenticated) {
+                        IconButton(
+                            onClick = { homeComponent.onIntent(HomeStore.Intent.QuickCreateListing) }
+                        ) {
+                            Icon(Lucide.CirclePlus, "Add")
                         }
-                    }
-
-                    IconButton(onClick = { homeScreenComponent.onEvent(HomeEvents.Refresh) }) {
-                        RefreshIcon(refreshState)
+                        IconButton(
+                            onClick = { homeComponent.onIntent(HomeStore.Intent.LogoutClicked) }
+                        ) {
+                            Icon(Lucide.LogOut, "Logout")
+                        }
+                    } else {
+                        PrimaryButton(
+                            onClick = { homeComponent.onIntent(HomeStore.Intent.LoginClicked) }
+                        ) {
+                            Icon(Lucide.LogIn, null)
+                            Text("Log In")
+                        }
                     }
                 }
             }
 
-            items(listings) { item ->
-                ListingCard(
-                    item = item,
-                    onItemClick = { homeScreenComponent.onEvent(HomeEvents.ItemClicked(it)) },
-                    onFavoriteClick = { homeScreenComponent.onEvent(HomeEvents.FavoriteClicked(it)) }
-                )
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    state.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            IntermediateProgressIndicator()
+                        }
+                    }
+
+                    state.errorMessage != null -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(state.errorMessage!!)
+                            Spacer(Modifier.height(16.dp))
+                            PrimaryButton(
+                                onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListings) }
+                            ) {
+                                Text("Retry")
+                            }
+                        }
+                    }
+
+                    state.listingUiModels.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("No listings found")
+                                Spacer(Modifier.height(16.dp))
+                                PrimaryButton(
+                                    onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListings) }
+                                ) {
+                                    Text("Refresh")
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(state.listingUiModels, key = { it.id.value }) { listing ->
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                ) {
+                                    Text(listing.title.value)
+                                    Text(listing.price)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

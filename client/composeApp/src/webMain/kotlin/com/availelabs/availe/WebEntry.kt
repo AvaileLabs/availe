@@ -58,10 +58,6 @@ fun startWebApp(deepLink: String?, stateKeeper: StateKeeper): RootComponent {
         deepLinkUrl = deepLink
     )
 
-    root.urlOpener = { url ->
-        window.location.href = url
-    }
-
     lifecycle.attachToDocument()
 
     ComposeViewport {

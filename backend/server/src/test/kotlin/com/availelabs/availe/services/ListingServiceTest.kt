@@ -2,10 +2,7 @@
 
 package com.availelabs.availe.services
 
-import com.availelabs.availe.domain.model.CommonListingData
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.Price
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.repository.IListingRepository
 import com.availelabs.availe.domain.service.ListingService
 import com.availelabs.availe.domain.types.*
@@ -27,7 +24,7 @@ private class FakeListingRepository(private val willInsert: Boolean) : IListingR
 
         if (!willInsert) return DbInsertResult.AlreadyExists
 
-        val fakeId = Uuid.random()
+        val fakeId = ListingId(Uuid.random())
         val fakeCreatedAt = Instant.now().toKotlinInstant()
 
         val fakeDomainListing: Listing = when (newListing) {
@@ -39,11 +36,11 @@ private class FakeListingRepository(private val willInsert: Boolean) : IListingR
         return DbInsertResult.Inserted(fakeDomainListing)
     }
 
-    override fun getListingById(id: Uuid): DbFindResult<Listing> {
+    override fun getListingById(id: ListingId): DbFindResult<Listing> {
         TODO("Not yet implemented")
     }
 
-    override fun existsById(id: Uuid): Boolean {
+    override fun existsById(id: ListingId): Boolean {
         TODO("Not yet implemented")
     }
 
@@ -52,14 +49,14 @@ private class FakeListingRepository(private val willInsert: Boolean) : IListingR
     }
 
     override fun updateListing(
-        id: Uuid,
+        id: ListingId,
         patch: TypeV1ListingDtoPatchRequest,
-        requestingPublisherId: Uuid
+        requestingPublisherId: UserId
     ): DbUpdateResult<Listing> {
         TODO("Not yet implemented")
     }
 
-    override fun deleteListing(id: Uuid, requestingPublisherId: Uuid): DbDeleteResult {
+    override fun deleteListing(id: ListingId, requestingPublisherId: UserId): DbDeleteResult {
         TODO("Not yet implemented")
     }
 }
@@ -67,11 +64,11 @@ private class FakeListingRepository(private val willInsert: Boolean) : IListingR
 private fun aNewItem(): NewListing.Item =
     NewListing.Item(
         CommonListingData(
-            title = "Bike",
-            description = "Blue road bike",
-            price = Price("100.00", "USD"),
+            title = ListingTitle("Bike"),
+            description = ListingDescription("Blue road bike"),
+            price = Price(PriceAmount("100.00"), CurrencyCode("USD")),
             imageLinks = emptyList(),
-            publisherId = Uuid.random()
+            publisherId = UserId(Uuid.random())
         )
     )
 

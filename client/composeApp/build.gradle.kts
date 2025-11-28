@@ -87,6 +87,11 @@ kotlin {
             api(libs.essenty.lifecycle.coroutines)
             implementation(libs.decompose.extensions.compose.experimental)
 
+            // MVIKotlin
+            implementation(libs.mvikotlin)
+            implementation(libs.mvikotlin.main)
+            implementation(libs.mvikotlin.coroutines)
+
             // Ktor common
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)

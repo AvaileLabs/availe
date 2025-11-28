@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
 
-package com.availelabs.availe.adapters
+package com.availelabs.availe.mappers
 
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.dto.PriceDto
@@ -20,12 +20,12 @@ import com.example.jooq.tables.ListingServiceDetails as ServiceDetailsTable
 import com.example.jooq.tables.Listings as ListingsTable
 
 private fun Price.toPriceDtoV1(): PriceDto.V1 = PriceDto.V1(
-    amount = this.amount.value,
+    amount = this.amount,
     currency = this.currency
 )
 
 internal fun PriceDto.V1.toDomainPrice(): Price = Price(
-    amount = PriceAmount(this.amount),
+    amount = this.amount,
     currency = this.currency
 )
 
@@ -98,32 +98,32 @@ internal fun Listing.toDataDto(): TypeV1ListingDtoData {
     val priceDto = this.price.toPriceDtoV1()
     return when (this) {
         is Listing.Event -> ListingEventDtoSchema.V1.Data(
-            id = this.id.value,
-            title = this.title.value,
-            description = this.description?.value,
+            id = this.id,
+            title = this.title,
+            description = this.description,
             price = priceDto,
-            imageLinks = this.imageLinks.map { it.value },
-            publisherId = this.publisherId.value,
+            imageLinks = this.imageLinks,
+            publisherId = this.publisherId,
             schemaVersion = 1
         )
 
         is Listing.Item -> ListingItemDtoSchema.V1.Data(
-            id = this.id.value,
-            title = this.title.value,
-            description = this.description?.value,
+            id = this.id,
+            title = this.title,
+            description = this.description,
             price = priceDto,
-            imageLinks = this.imageLinks.map { it.value },
-            publisherId = this.publisherId.value,
+            imageLinks = this.imageLinks,
+            publisherId = this.publisherId,
             schemaVersion = 1
         )
 
         is Listing.Service -> ListingServiceDtoSchema.V1.Data(
-            id = this.id.value,
-            title = this.title.value,
-            description = this.description?.value,
+            id = this.id,
+            title = this.title,
+            description = this.description,
             price = priceDto,
-            imageLinks = this.imageLinks.map { it.value },
-            publisherId = this.publisherId.value,
+            imageLinks = this.imageLinks,
+            publisherId = this.publisherId,
             schemaVersion = 1
         )
     }
@@ -133,30 +133,30 @@ internal fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId): NewLis
     return when (this) {
         is ListingEventDtoSchema.V1.CreateRequest -> NewListing.Event(
             CommonListingData(
-                title = ListingTitle(title),
-                description = description?.let { ListingDescription(it) },
+                title = title,
+                description = description,
                 price = price.toDomainPrice(),
-                imageLinks = imageLinks.map { ImageUrl(it) },
+                imageLinks = imageLinks,
                 publisherId = publisherId
             )
         )
 
         is ListingItemDtoSchema.V1.CreateRequest -> NewListing.Item(
             CommonListingData(
-                title = ListingTitle(title),
-                description = description?.let { ListingDescription(it) },
+                title = title,
+                description = description,
                 price = price.toDomainPrice(),
-                imageLinks = imageLinks.map { ImageUrl(it) },
+                imageLinks = imageLinks,
                 publisherId = publisherId
             )
         )
 
         is ListingServiceDtoSchema.V1.CreateRequest -> NewListing.Service(
             CommonListingData(
-                title = ListingTitle(title),
-                description = description?.let { ListingDescription(it) },
+                title = title,
+                description = description,
                 price = price.toDomainPrice(),
-                imageLinks = imageLinks.map { ImageUrl(it) },
+                imageLinks = imageLinks,
                 publisherId = publisherId
             )
         )

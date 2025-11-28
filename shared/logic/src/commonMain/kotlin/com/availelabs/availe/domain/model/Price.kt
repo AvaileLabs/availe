@@ -5,5 +5,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Price(
     val amount: PriceAmount,
-    val currency: String
+    val currency: CurrencyCode
 )

@@ -14,7 +14,6 @@ import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.ImageUrl
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.model.UserName
-import com.availelabs.availe.features.profile.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

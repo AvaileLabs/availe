@@ -1,4 +1,4 @@
-package com.availelabs.availe.features.profile
+package com.availelabs.availe.domain.auth
 
 import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.ImageUrl

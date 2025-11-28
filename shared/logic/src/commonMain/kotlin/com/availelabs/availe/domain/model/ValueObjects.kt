@@ -21,6 +21,10 @@ value class PriceAmount(val value: String)
 
 @Serializable
 @JvmInline
+value class CurrencyCode(val value: String)
+
+@Serializable
+@JvmInline
 value class ImageUrl(val value: String)
 
 @Serializable

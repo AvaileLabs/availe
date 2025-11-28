@@ -2,13 +2,7 @@
 
 package com.availelabs.availe.repositories.listing
 
-import com.availelabs.availe.adapters.toDomainListing
-import com.availelabs.availe.adapters.toDomainPrice
-import com.availelabs.availe.adapters.toMoneta
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.repository.IListingRepository
 import com.availelabs.availe.domain.types.DbDeleteResult
 import com.availelabs.availe.domain.types.DbFindResult
@@ -19,6 +13,9 @@ import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingServiceDtoSchema
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import com.availelabs.availe.mappers.toDomainListing
+import com.availelabs.availe.mappers.toDomainPrice
+import com.availelabs.availe.mappers.toMoneta
 import com.availelabs.availe.repositories.listing.helpers.creators.IListingCreator
 import com.example.jooq.tables.references.LISTINGS
 import com.example.jooq.tables.references.LISTING_EVENT_DETAILS
@@ -99,19 +96,19 @@ internal class ListingRepository(
 
     private fun addCommonPatchUpdates(
         updates: MutableMap<Field<*>, Any?>,
-        title: Patchable<String>,
-        description: Patchable<String?>,
+        title: Patchable<ListingTitle>,
+        description: Patchable<ListingDescription?>,
         price: Patchable<PriceDto.V1>,
-        imageLinks: Patchable<List<String>>
+        imageLinks: Patchable<List<ImageUrl>>
     ) {
         if (title is Patchable.Set) {
-            updates[LISTINGS.TITLE] = title.value
+            updates[LISTINGS.TITLE] = title.value.value
         }
         if (description is Patchable.Set) {
-            updates[LISTINGS.DESCRIPTION] = description.value
+            updates[LISTINGS.DESCRIPTION] = description.value?.value
         }
         if (imageLinks is Patchable.Set) {
-            updates[LISTINGS.IMAGE_LINKS] = imageLinks.value.toTypedArray()
+            updates[LISTINGS.IMAGE_LINKS] = imageLinks.value.map { it.value }.toTypedArray()
         }
         if (price is Patchable.Set) {
             val money = price.value.toDomainPrice().toMoneta()

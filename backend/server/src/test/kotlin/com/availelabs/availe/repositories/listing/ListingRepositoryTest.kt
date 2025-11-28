@@ -2,10 +2,7 @@
 
 package com.availelabs.availe.repositories.listing
 
-import com.availelabs.availe.domain.model.CommonListingData
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.Price
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.DbDeleteResult
 import com.availelabs.availe.domain.types.DbFindResult
 import com.availelabs.availe.domain.types.DbInsertResult
@@ -28,14 +25,14 @@ import kotlin.uuid.Uuid
 class ListingRepositoryTest : PostgresTestBase() {
 
     private lateinit var repository: ListingRepository
-    private val testPublisherId = Uuid.random()
-    private val otherPublisherId = Uuid.random()
+    private val testPublisherId = UserId(Uuid.random())
+    private val otherPublisherId = UserId(Uuid.random())
 
     private fun aNewItemListing(
-        price: Price = Price("100.50", "USD"),
-        description: String? = "Initial description",
-        title: String = "Initial Title",
-        imageLinks: List<String> = listOf("initial.png", "header.jpg", "thumbnail.jpg")
+        price: Price = Price(PriceAmount("100.50"), CurrencyCode("USD")),
+        description: ListingDescription? = ListingDescription("Initial description"),
+        title: ListingTitle = ListingTitle("Initial Title"),
+        imageLinks: List<ImageUrl> = listOf(ImageUrl("initial.png"), ImageUrl("header.jpg"), ImageUrl("thumbnail.jpg"))
     ): NewListing.Item {
         return NewListing.Item(
             CommonListingData(
@@ -51,9 +48,9 @@ class ListingRepositoryTest : PostgresTestBase() {
     private fun aNewEventListing(): NewListing.Event {
         return NewListing.Event(
             CommonListingData(
-                title = "Initial Event",
-                description = "Initial event description",
-                price = Price("25.00", "USD"),
+                title = ListingTitle("Initial Event"),
+                description = ListingDescription("Initial event description"),
+                price = Price(PriceAmount("25.00"), CurrencyCode("USD")),
                 imageLinks = emptyList(),
                 publisherId = testPublisherId
             )
@@ -82,8 +79,8 @@ class ListingRepositoryTest : PostgresTestBase() {
 
     @Test
     fun `updateListing updates a single title field`() {
-        val initialListing = insertListing(aNewItemListing(title = "Old Title"))
-        val newTitle = "New Title"
+        val initialListing = insertListing(aNewItemListing(title = ListingTitle("Old Title")))
+        val newTitle = ListingTitle("New Title")
         val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
 
         val result = repository.updateListing(initialListing.id, patch, testPublisherId)
@@ -97,9 +94,9 @@ class ListingRepositoryTest : PostgresTestBase() {
 
     @Test
     fun `updateListing updates price field`() {
-        val initialListing = insertListing(aNewItemListing(price = Price("100.00", "USD")))
-        val newPriceDto = PriceDto.V1("99.99", "EUR")
-        val expectedPrice = Price("99.99", "EUR")
+        val initialListing = insertListing(aNewItemListing(price = Price(PriceAmount("100.00"), CurrencyCode("USD"))))
+        val newPriceDto = PriceDto.V1(PriceAmount("99.99"), CurrencyCode("EUR"))
+        val expectedPrice = Price(PriceAmount("99.99"), CurrencyCode("EUR"))
         val patch = ListingItemDtoSchema.V1.PatchRequest(price = Patchable.Set(newPriceDto))
 
         val result = repository.updateListing(initialListing.id, patch, testPublisherId)
@@ -113,7 +110,7 @@ class ListingRepositoryTest : PostgresTestBase() {
 
     @Test
     fun `updateListing updates description to null`() {
-        val initialListing = insertListing(aNewItemListing(description = "Not null"))
+        val initialListing = insertListing(aNewItemListing(description = ListingDescription("Not null")))
         val patch = ListingItemDtoSchema.V1.PatchRequest(description = Patchable.Set(null))
 
         val result = repository.updateListing(initialListing.id, patch, testPublisherId)
@@ -128,12 +125,12 @@ class ListingRepositoryTest : PostgresTestBase() {
     fun `updateListing updates multiple fields at once`() {
         val initialListing = insertListing(
             aNewItemListing(
-                title = "Old Title",
-                imageLinks = listOf("old.png")
+                title = ListingTitle("Old Title"),
+                imageLinks = listOf(ImageUrl("old.png"))
             )
         )
-        val newTitle = "New Title"
-        val newImageLinks = listOf("new1.png", "new2.png")
+        val newTitle = ListingTitle("New Title")
+        val newImageLinks = listOf(ImageUrl("new1.png"), ImageUrl("new2.png"))
 
         val patch = ListingItemDtoSchema.V1.PatchRequest(
             title = Patchable.Set(newTitle),
@@ -163,8 +160,8 @@ class ListingRepositoryTest : PostgresTestBase() {
 
     @Test
     fun `updateListing on non-existent ID returns NotFound`() {
-        val randomId = Uuid.random()
-        val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set("New Title"))
+        val randomId = ListingId(Uuid.random())
+        val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
 
         val result = repository.updateListing(randomId, patch, testPublisherId)
 
@@ -174,7 +171,7 @@ class ListingRepositoryTest : PostgresTestBase() {
     @Test
     fun `updateListing works for Event listing type`() {
         val initialEvent = insertListing(aNewEventListing())
-        val newTitle = "Updated Event Title"
+        val newTitle = ListingTitle("Updated Event Title")
         val patch = ListingEventDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
 
         val result = repository.updateListing(initialEvent.id, patch, testPublisherId)
@@ -188,7 +185,7 @@ class ListingRepositoryTest : PostgresTestBase() {
     @Test
     fun `updateListing returns NotFound when publisherId does not match`() {
         val initialListing = insertListing(aNewItemListing())
-        val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set("New Title"))
+        val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
 
         val result = repository.updateListing(initialListing.id, patch, otherPublisherId)
 
@@ -240,7 +237,7 @@ class ListingRepositoryTest : PostgresTestBase() {
 
     @Test
     fun `getListingById returns NotFound for non-existent ID`() {
-        val findResult = repository.getListingById(Uuid.random())
+        val findResult = repository.getListingById(ListingId(Uuid.random()))
         assertTrue(findResult is DbFindResult.NotFound)
     }
 }

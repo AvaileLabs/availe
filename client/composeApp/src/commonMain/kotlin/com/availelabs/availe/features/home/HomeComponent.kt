@@ -1,89 +1,57 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.availelabs.availe.features.home
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.update
-import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.arkivanov.essenty.lifecycle.doOnDestroy
+import com.arkivanov.mvikotlin.core.instancekeeper.getStore
+import com.arkivanov.mvikotlin.extensions.coroutines.labels
+import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import com.availelabs.availe.data.auth.IAuthenticationService
 import com.availelabs.availe.data.network.IApiClient
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.toDisplayString
-import com.availelabs.availe.ui.ContentLoader
-import com.availelabs.availe.ui.ContentState
-import kotlinx.coroutines.Dispatchers
-import kotlin.uuid.ExperimentalUuidApi
+import com.availelabs.availe.domain.model.ListingId
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.StateFlow
 
 interface IHomeComponent {
-    val uiState: Value<HomeState>
-    fun onEvent(event: HomeEvents)
+    val state: StateFlow<HomeStore.State>
+    fun onIntent(intent: HomeStore.Intent)
 }
 
 class HomeComponent(
     componentContext: ComponentContext,
     private val apiClient: IApiClient,
-    private val onLogout: () -> Unit
+    private val authenticationService: IAuthenticationService,
+    private val onNavigateToListingDetails: (ListingId) -> Unit
 ) : IHomeComponent, ComponentContext by componentContext {
 
-    private val scope = componentContext.coroutineScope(Dispatchers.Main.immediate)
+    private val store = instanceKeeper.getStore {
+        HomeStoreFactory(
+            storeFactory = DefaultStoreFactory(),
+            apiClient = apiClient,
+            authenticationService = authenticationService
+        ).create()
+    }
 
-    private val listingsLoader = ContentLoader(
-        scope = scope,
-        fetcher = { fetchListings() }
-    )
-
-    private val _uiState = MutableValue(HomeState())
-    override val uiState: Value<HomeState> = _uiState
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override val state: StateFlow<HomeStore.State> = store.stateFlow
 
     init {
-        listingsLoader.state.subscribe { newListingsState ->
-            _uiState.update { it.copy(listingsState = newListingsState) }
-        }
+        val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+        lifecycle.doOnDestroy { scope.cancel() }
 
-        listingsLoader.load()
-    }
-
-    override fun onEvent(event: HomeEvents) {
-        when (event) {
-            is HomeEvents.Refresh -> listingsLoader.refresh()
-            is HomeEvents.ItemClicked -> {
-                println("Item clicked: ${event.itemId}")
-            }
-
-            is HomeEvents.FavoriteClicked -> toggleFavorite(event.itemId)
-            is HomeEvents.LogoutClicked -> onLogout()
-        }
-    }
-
-    private suspend fun fetchListings(): List<ListingItem> {
-        val domainListings = apiClient.getListings()
-        return domainListings.map { it.toListingItem() }
-    }
-
-    private fun toggleFavorite(itemId: String) {
-        val currentListings = (uiState.value.listingsState as? ContentState.Content)?.data ?: return
-
-        val updatedListings = currentListings.map {
-            if (it.id == itemId) {
-                it.copy(isFavorited = !it.isFavorited)
-            } else {
-                it
+        scope.launch {
+            store.labels.collect { label ->
+                when (label) {
+                    is HomeStore.Label.NavigateToListingDetails -> onNavigateToListingDetails(label.listingId)
+                    is HomeStore.Label.DisplayError -> {
+                        println("Error: ${label.message}")
+                    }
+                }
             }
         }
-
-        _uiState.update {
-            it.copy(listingsState = ContentState.Content(updatedListings))
-        }
     }
-}
 
-private fun Listing.toListingItem(): ListingItem {
-    return ListingItem(
-        id = this.id.value.toString(),
-        title = this.title.value,
-        price = this.price.toDisplayString(),
-        imageUrl = this.imageLinks.firstOrNull()?.value ?: "",
-        isFavorited = false
-    )
+    override fun onIntent(intent: HomeStore.Intent) {
+        store.accept(intent)
+    }
 }

@@ -3,11 +3,7 @@
 package com.availelabs.availe.controllers
 
 import com.availelabs.availe.ApiRoutes
-import com.availelabs.availe.adapters.toDataDto
-import com.availelabs.availe.adapters.toDomain
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.service.IListingService
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
@@ -18,6 +14,8 @@ import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoCreateRequest
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import com.availelabs.availe.mappers.toDataDto
+import com.availelabs.availe.mappers.toDomain
 import com.availelabs.availe.observability.ListingCreated
 import io.availe.models.Patchable
 import org.http4k.contract.ContractRoute
@@ -32,32 +30,36 @@ import org.http4k.lens.uuid
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
-internal val publisherKey = Query.uuid().required("publisherId")
+internal val publisherKey =
+    Query.uuid().map({ UserId(it.toKotlinUuid()) }, { it.value.toJavaUuid() }).required("publisherId")
 
 internal class ListingController(
     private val listingService: IListingService,
     private val events: Events
 ) {
-    private val listingIdPath = Path.kUuid().of("listingId")
+    private val listingIdPath =
+        Path.uuid().map({ ListingId(it.toKotlinUuid()) }, { it.value.toJavaUuid() }).of("listingId")
     private val responseBodyLens = Body.auto<TypeV1ListingDtoData>().toLens()
     private val listResponseBodyLens = Body.auto<List<TypeV1ListingDtoData>>().toLens()
-    private val examplePrice = PriceDto.V1("10.00", "USD")
+    private val examplePrice = PriceDto.V1(PriceAmount("10.00"), CurrencyCode("USD"))
     private val exampleResponseItem = ListingItemDtoSchema.V1.Data(
-        id = Uuid.random(),
-        title = "Example Item",
+        id = ListingId(Uuid.random()),
+        title = ListingTitle("Example Item"),
         description = null,
         price = examplePrice,
         imageLinks = emptyList(),
-        publisherId = Uuid.random(),
+        publisherId = UserId(Uuid.random()),
     )
 
     val listOfRoutes = listOf(createListing(), getListingById(), listAllListings(), updateListing(), deleteListing())
 
     fun createListing(): ContractRoute {
         val bodyLens = Body.auto<TypeV1ListingDtoCreateRequest>().toLens()
-        val exampleItem = ListingItemDtoSchema.V1.CreateRequest("Example Item", null, examplePrice, emptyList())
+        val exampleItem =
+            ListingItemDtoSchema.V1.CreateRequest(ListingTitle("Example Item"), null, examplePrice, emptyList())
 
         return ApiRoutes.LISTINGS meta {
             summary = "Create a new listing."
@@ -68,7 +70,7 @@ internal class ListingController(
             returning(Status.CONFLICT)
             returning(Status.UNAUTHORIZED)
         } bindContract Method.POST to { req ->
-            val publisherId = UserId(publisherKey(req).toKotlinUuid())
+            val publisherId = publisherKey(req)
             val newListing = bodyLens(req).toDomain(publisherId)
 
             when (val result = listingService.createListing(newListing)) {
@@ -92,7 +94,7 @@ internal class ListingController(
             returning(Status.NOT_FOUND)
         } bindContract Method.GET to { listingId ->
             { _: Request ->
-                when (val result = listingService.getListingById(ListingId(listingId))) {
+                when (val result = listingService.getListingById(listingId)) {
                     is FindResult.Found -> {
                         val responseDto = result.value.toDataDto()
                         Response(Status.OK).with(responseBodyLens of responseDto)
@@ -118,7 +120,7 @@ internal class ListingController(
 
     fun updateListing(): ContractRoute {
         val patchBodyLens = Body.auto<TypeV1ListingDtoPatchRequest>().toLens()
-        val exampleRequest = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set("New Title"))
+        val exampleRequest = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
 
         return ApiRoutes.LISTINGS / listingIdPath meta {
             summary = "Update an existing listing."
@@ -131,9 +133,9 @@ internal class ListingController(
         } bindContract Method.PATCH to { listingId ->
             { req ->
                 val patchDto = patchBodyLens(req)
-                val publisherId = UserId(publisherKey(req).toKotlinUuid())
+                val publisherId = publisherKey(req)
 
-                when (val result = listingService.updateListing(ListingId(listingId), patchDto, publisherId)) {
+                when (val result = listingService.updateListing(listingId, patchDto, publisherId)) {
                     is UpdateResult.Updated -> {
                         val responseDto = result.value.toDataDto()
                         Response(Status.OK).with(responseBodyLens of responseDto)
@@ -156,9 +158,9 @@ internal class ListingController(
             returning(Status.UNAUTHORIZED)
         } bindContract Method.DELETE to { listingId ->
             { req ->
-                val publisherId = UserId(publisherKey(req).toKotlinUuid())
+                val publisherId = publisherKey(req)
 
-                when (listingService.deleteListing(ListingId(listingId), publisherId)) {
+                when (listingService.deleteListing(listingId, publisherId)) {
                     is DeleteResult.Deleted -> Response(Status.NO_CONTENT)
                     is DeleteResult.NotFound -> Response(Status.NOT_FOUND)
                     is DeleteResult.Forbidden -> Response(Status.FORBIDDEN)
@@ -167,5 +169,3 @@ internal class ListingController(
         }
     }
 }
-
-internal fun Path.kUuid() = map(Uuid::parse, Uuid::toString)
