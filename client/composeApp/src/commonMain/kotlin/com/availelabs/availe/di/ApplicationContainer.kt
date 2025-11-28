@@ -20,7 +20,7 @@ import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
 import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 
-interface ApplicationContainer {
+interface IApplicationContainer {
     val sessionManager: ISessionManager
     val authRepository: IAuthRepository
     val listingRepository: IListingRepository
@@ -30,7 +30,7 @@ interface ApplicationContainer {
 fun createApplicationContainer(
     lifecycle: Lifecycle,
     activity: PlatformActivity
-): ApplicationContainer {
+): IApplicationContainer {
     val authFactory = createPlatformAuthenticationFlowFactory(activity)
     val tokenStore = createTokenStore(activity)
     val platformAuthConfig = createPlatformAuthenticationConfig(activity)
@@ -119,15 +119,15 @@ fun createApplicationContainer(
 
     val listingRepository = ListingRepository(listingRemoteDataSource)
 
-    return DefaultApplicationContainer(
+    return ApplicationContainer(
         sessionManager = sessionManager,
         authRepository = authRepository,
         listingRepository = listingRepository
     )
 }
 
-private class DefaultApplicationContainer(
+private class ApplicationContainer(
     override val sessionManager: ISessionManager,
     override val authRepository: IAuthRepository,
     override val listingRepository: IListingRepository
-) : ApplicationContainer
+) : IApplicationContainer

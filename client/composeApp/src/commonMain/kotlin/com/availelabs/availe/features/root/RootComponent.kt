@@ -10,7 +10,7 @@ import com.arkivanov.decompose.router.stack.childStackWebNavigation
 import com.arkivanov.decompose.router.webhistory.WebNavigation
 import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
 import com.arkivanov.decompose.value.Value
-import com.availelabs.availe.di.ApplicationContainer
+import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.features.home.HomeComponent
 import com.availelabs.availe.features.home.IHomeComponent
 import com.composables.icons.lucide.House
@@ -27,13 +27,13 @@ interface IRootComponent : WebNavigationOwner {
 @OptIn(ExperimentalDecomposeApi::class)
 class RootComponent(
     componentContext: ComponentContext,
-    private val appContainer: ApplicationContainer,
+    private val appContainer: IApplicationContainer,
     private val deepLinkUrl: String? = null
 ) : IRootComponent, ComponentContext by componentContext {
 
     constructor(
         componentContext: ComponentContext,
-        appContainer: ApplicationContainer
+        appContainer: IApplicationContainer
     ) : this(componentContext, appContainer, null)
 
     private val navigation = StackNavigation<Configuration>()
