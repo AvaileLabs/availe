@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.androidLibrary
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -56,7 +57,27 @@ kotlin {
         binaries.executable()
     }
 
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    applyDefaultHierarchyTemplate()
+
     sourceSets {
+        val commonMain by getting
+        val commonTest by getting
+
+        val androidMain by getting
+        val jvmMain by getting
+        val iosMain by getting
+        val webMain by getting
+
+
+        val nonAndroidMain by creating {
+            dependsOn(commonMain)
+        }
+
+        jvmMain.dependsOn(nonAndroidMain)
+        iosMain.dependsOn(nonAndroidMain)
+        webMain.dependsOn(nonAndroidMain)
+
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.ktor.client.okhttp)

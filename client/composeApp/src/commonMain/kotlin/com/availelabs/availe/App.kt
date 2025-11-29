@@ -43,92 +43,86 @@ fun App(rootComponent: IRootComponent) {
     }
 
     UiKitTheme {
-        val content = @Composable {
-            AppScaffold {
-                TopAppBar(
-                    navigation = {
-                        val isBackStackEmpty = childComponentStack.backStack.isEmpty()
-                        if (isBackStackEmpty) {
-                            IconButton(onClick = { }) {
-                                Icon(
-                                    imageVector = Lucide.House,
-                                    contentDescription = "Home"
+        PredictiveBackGestureOverlay(
+            backDispatcher = rootComponent.backDispatcher,
+            backIcon = null,
+            modifier = Modifier.fillMaxSize(),
+            content = {
+                AppScaffold {
+                    TopAppBar(
+                        navigation = {
+                            val isBackStackEmpty = childComponentStack.backStack.isEmpty()
+                            if (isBackStackEmpty) {
+                                IconButton(onClick = { }) {
+                                    Icon(
+                                        imageVector = Lucide.House,
+                                        contentDescription = "Home"
+                                    )
+                                }
+                            } else {
+                                IconButton(onClick = { rootComponent.onBackClicked() }) {
+                                    Icon(
+                                        imageVector = Lucide.ArrowLeft,
+                                        contentDescription = "Back"
+                                    )
+                                }
+                            }
+                        },
+                        title = {
+                            Text(activeConfiguration.displayName)
+                        },
+                        actions = {
+                            when (val activeChildComponent = childComponentStack.active.instance) {
+                                is ChildComponent.Home -> {
+                                    HomeNavigationBarActions(homeComponent = activeChildComponent.component)
+                                }
+
+                                is ChildComponent.ListingDetails -> {}
+                            }
+
+                            if (authenticationState.isAuthenticated) {
+                                IconButton(
+                                    onClick = { rootComponent.onAuthenticationIntent(MainStore.Intent.LogoutRequested) }
+                                ) {
+                                    Icon(Lucide.LogOut, "Logout")
+                                }
+                            } else {
+                                PrimaryButton(
+                                    onClick = { rootComponent.onAuthenticationIntent(MainStore.Intent.LoginRequested) },
+                                    enabled = authenticationState.isAuthenticationServiceAvailable
+                                ) {
+                                    Icon(Lucide.LogIn, null)
+                                    Text("Log In")
+                                }
+                            }
+                        }
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column {
+                            Children(
+                                stack = rootComponent.childStack,
+                                modifier = Modifier.fillMaxSize(),
+                                animation = predictiveBackAnimation(
+                                    backHandler = rootComponent.backHandler,
+                                    fallbackAnimation = stackAnimation(fade() + scale()),
+                                    onBack = rootComponent::onBackClicked,
+                                )
+                            ) { childComponent ->
+                                childComponent.instance.Render(
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
-                        } else {
-                            IconButton(onClick = { rootComponent.onBackClicked() }) {
-                                Icon(
-                                    imageVector = Lucide.ArrowLeft,
-                                    contentDescription = "Back"
-                                )
-                            }
-                        }
-                    },
-                    title = {
-                        Text(activeConfiguration.displayName)
-                    },
-                    actions = {
-                        when (val activeChildComponent = childComponentStack.active.instance) {
-                            is ChildComponent.Home -> {
-                                HomeNavigationBarActions(homeComponent = activeChildComponent.component)
-                            }
-
-                            is ChildComponent.ListingDetails -> {}
-                        }
-
-                        if (authenticationState.isAuthenticated) {
-                            IconButton(
-                                onClick = { rootComponent.onAuthenticationIntent(MainStore.Intent.LogoutRequested) }
-                            ) {
-                                Icon(Lucide.LogOut, "Logout")
-                            }
-                        } else {
-                            PrimaryButton(
-                                onClick = { rootComponent.onAuthenticationIntent(MainStore.Intent.LoginRequested) },
-                                enabled = authenticationState.isAuthenticationServiceAvailable
-                            ) {
-                                Icon(Lucide.LogIn, null)
-                                Text("Log In")
-                            }
-                        }
-                    }
-                )
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column {
-                        Children(
-                            stack = rootComponent.childStack,
-                            modifier = Modifier.fillMaxSize(),
-                            animation = predictiveBackAnimation(
-                                backHandler = rootComponent.backHandler,
-                                fallbackAnimation = stackAnimation(fade() + scale()),
-                                onBack = rootComponent::onBackClicked,
-                            )
-                        ) { childComponent ->
-                            childComponent.instance.Render(
-                                modifier = Modifier.fillMaxSize()
-                            )
                         }
                     }
                 }
             }
-        }
-
-        if (rootComponent.backDispatcher != null) {
-            PredictiveBackGestureOverlay(
-                backDispatcher = rootComponent.backDispatcher!!,
-                backIcon = null,
-                modifier = Modifier.fillMaxSize(),
-                content = content
-            )
-        } else {
-            content()
-        }
+        )
     }
 }
 
