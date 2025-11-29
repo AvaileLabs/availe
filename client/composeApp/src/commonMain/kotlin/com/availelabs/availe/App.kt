@@ -9,22 +9,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
+import com.arkivanov.decompose.extensions.compose.stack.animation.scale
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.home.HomeStore
 import com.availelabs.availe.features.home.IHomeComponent
+import com.availelabs.availe.features.listingdetails.ListingDetailsScreen
 import com.availelabs.availe.features.main.MainStore
 import com.availelabs.availe.features.root.ChildComponent
 import com.availelabs.availe.features.root.Configuration
 import com.availelabs.availe.features.root.IRootComponent
-import com.composables.icons.lucide.CirclePlus
-import com.composables.icons.lucide.LogIn
-import com.composables.icons.lucide.LogOut
-import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.UiKitTheme
 
+@OptIn(ExperimentalDecomposeApi::class)
 @Composable
 fun App(rootComponent: IRootComponent) {
     val childComponentStack by rootComponent.childStack.subscribeAsState()
@@ -40,11 +45,21 @@ fun App(rootComponent: IRootComponent) {
         AppScaffold {
             TopAppBar(
                 navigation = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = activeConfiguration.navigationIcon.icon,
-                            contentDescription = activeConfiguration.navigationIcon.contentDescription
-                        )
+                    val isBackStackEmpty = childComponentStack.backStack.isEmpty()
+                    if (isBackStackEmpty) {
+                        IconButton(onClick = { }) {
+                            Icon(
+                                imageVector = Lucide.House,
+                                contentDescription = "Home"
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { rootComponent.onBackClicked() }) {
+                            Icon(
+                                imageVector = Lucide.ArrowLeft,
+                                contentDescription = "Back"
+                            )
+                        }
                     }
                 },
                 title = {
@@ -55,6 +70,8 @@ fun App(rootComponent: IRootComponent) {
                         is ChildComponent.Home -> {
                             HomeNavigationBarActions(homeComponent = activeChildComponent.component)
                         }
+
+                        is ChildComponent.ListingDetails -> {}
                     }
 
                     if (authenticationState.isAuthenticated) {
@@ -78,14 +95,18 @@ fun App(rootComponent: IRootComponent) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(16.dp)
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 Column {
                     Children(
                         stack = rootComponent.childStack,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        animation = predictiveBackAnimation(
+                            backHandler = rootComponent.backHandler,
+                            fallbackAnimation = stackAnimation(fade() + scale()),
+                            onBack = rootComponent::onBackClicked,
+                        )
                     ) { childComponent ->
                         childComponent.instance.Render(
                             modifier = Modifier.fillMaxSize()
@@ -104,6 +125,10 @@ fun ChildComponent.Render(modifier: Modifier) {
             homeComponent = this.component,
             onSearchClick = { },
             onNotificationClick = { }
+        )
+
+        is ChildComponent.ListingDetails -> ListingDetailsScreen(
+            listingDetailsComponent = this.component
         )
     }
 }

@@ -2,6 +2,7 @@
 
 package com.availelabs.availe.features.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -77,6 +78,9 @@ internal fun HomeScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clickable {
+                                        homeComponent.onIntent(HomeStore.Intent.ListingClicked(listingUiModel.id))
+                                    }
                                     .padding(16.dp)
                             ) {
                                 Text(listingUiModel.title.value)
