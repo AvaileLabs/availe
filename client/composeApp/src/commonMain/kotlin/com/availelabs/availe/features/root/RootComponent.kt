@@ -7,6 +7,7 @@ import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.router.webhistory.WebNavigation
 import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
@@ -34,6 +35,7 @@ import kotlin.uuid.Uuid
 interface IRootComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<Configuration, ChildComponent>>
     val authenticationState: StateFlow<MainStore.State>
+    val backDispatcher: BackDispatcher?
     fun onAuthenticationIntent(intent: MainStore.Intent)
     fun onBackClicked()
 }
@@ -49,6 +51,8 @@ class RootComponent(
         componentContext: ComponentContext,
         appContainer: IApplicationContainer
     ) : this(componentContext, appContainer, null)
+
+    override val backDispatcher: BackDispatcher? = backHandler as? BackDispatcher
 
     private val mainStore = instanceKeeper.getStore {
         MainStoreFactory(
