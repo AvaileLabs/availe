@@ -43,7 +43,6 @@ fun createApplicationContainer(
         OpenIdConnectClient(discoveryUri = com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI) {
             this.scope = setOf(
                 AuthScope.OPEN_ID,
-                AuthScope.PROFILE,
                 AuthScope.EMAIL,
                 AuthScope.OFFLINE_ACCESS
             ).toScopeString()

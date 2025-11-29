@@ -31,7 +31,6 @@ internal data class DesiredClient(
     val redirectUris: Set<String> = emptySet(),
     val webOrigins: Set<String> = emptySet(),
     val defaultClientScopes: List<String> = listOf(
-        KeycloakClientScopes.PROFILE,
         KeycloakClientScopes.EMAIL,
         KeycloakClientScopes.ROLES,
         KeycloakClientScopes.WEB_ORIGINS

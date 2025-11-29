@@ -56,6 +56,11 @@ internal object KeycloakDesiredState {
             isPublic = true,
             redirectUris = allRedirectUris,
             webOrigins = allWebOrigins,
+            defaultClientScopes = listOf(
+                KeycloakClientScopes.EMAIL,
+                KeycloakClientScopes.ROLES,
+                KeycloakClientScopes.WEB_ORIGINS
+            ),
             optionalClientScopes = listOf(
                 KeycloakClientScopes.OFFLINE_ACCESS
             ),

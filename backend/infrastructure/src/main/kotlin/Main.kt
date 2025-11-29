@@ -34,20 +34,20 @@ internal fun main(args: Array<String>) {
             dockerContainerManager = dockerContainerManager
         )
 
-        val pgConfig = loadPostgresConfig()
-        val kcConfig = loadKeycloakConfig()
+        val postgresConfiguration = loadPostgresConfig()
+        val keycloakConfiguration = loadKeycloakConfig()
 
         val postgresSpec = postgresRunSpec()
         val keycloakSpec = keycloakRunSpec()
 
-        val postgresProvisioner = PostgresProvisioner(pgConfig)
+        val postgresProvisioner = PostgresProvisioner(postgresConfiguration)
 
         val realmSettingsReconciler = RealmSettingsReconciler()
         val clientsReconciler = ClientsReconciler()
         val userProfileReconciler = UserProfileReconciler()
 
         val keycloakProvisioner = KeycloakProvisioner(
-            kcConfig,
+            keycloakConfiguration,
             realmSettingsReconciler,
             clientsReconciler,
             userProfileReconciler
@@ -58,7 +58,7 @@ internal fun main(args: Array<String>) {
             containerOrchestrator,
             postgresProvisioner,
             keycloakProvisioner,
-            pgConfig,
+            postgresConfiguration,
             postgresSpec,
             keycloakSpec
         )

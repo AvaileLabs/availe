@@ -13,7 +13,6 @@ internal object KeycloakClientIds {
 }
 
 internal object KeycloakClientScopes {
-    const val PROFILE = "profile"
     const val EMAIL = "email"
     const val ROLES = "roles"
     const val WEB_ORIGINS = "web-origins"
@@ -28,6 +27,4 @@ internal object KeycloakClientAttributes {
 internal object KeycloakUserAttributes {
     const val FIRST_NAME = "firstName"
     const val LAST_NAME = "lastName"
-    const val EMAIL = "email"
-    const val USERNAME = "username"
 }
