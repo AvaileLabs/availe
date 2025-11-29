@@ -11,11 +11,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
-import com.arkivanov.decompose.extensions.compose.stack.animation.fade
-import com.arkivanov.decompose.extensions.compose.stack.animation.plus
-import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.predictiveBackAnimation
-import com.arkivanov.decompose.extensions.compose.stack.animation.scale
-import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.home.HomeStore
@@ -25,6 +20,7 @@ import com.availelabs.availe.features.main.MainStore
 import com.availelabs.availe.features.root.ChildComponent
 import com.availelabs.availe.features.root.Configuration
 import com.availelabs.availe.features.root.IRootComponent
+import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.PredictiveBackGestureOverlay
 import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
@@ -108,10 +104,9 @@ fun App(rootComponent: IRootComponent) {
                             Children(
                                 stack = rootComponent.childStack,
                                 modifier = Modifier.fillMaxSize(),
-                                animation = predictiveBackAnimation(
+                                animation = appStackAnimation(
                                     backHandler = rootComponent.backHandler,
-                                    fallbackAnimation = stackAnimation(fade() + scale()),
-                                    onBack = rootComponent::onBackClicked,
+                                    onBack = rootComponent::onBackClicked
                                 )
                             ) { childComponent ->
                                 childComponent.instance.Render(

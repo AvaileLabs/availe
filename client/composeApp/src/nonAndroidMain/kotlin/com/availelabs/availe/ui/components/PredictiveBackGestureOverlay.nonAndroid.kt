@@ -3,6 +3,7 @@ package com.availelabs.availe.ui.components
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackEvent.SwipeEdge
@@ -29,7 +30,7 @@ actual fun PredictiveBackGestureOverlay(
             modifier = modifier,
             startEdgeEnabled = startEdgeEnabled,
             endEdgeEnabled = endEdgeEnabled,
-            edgeWidth = edgeWidth,
+            edgeWidth = 48.dp,
             activationOffsetThreshold = activationOffsetThreshold,
             confirmationProgressThreshold = confirmationProgressThreshold,
             onClose = onClose,
