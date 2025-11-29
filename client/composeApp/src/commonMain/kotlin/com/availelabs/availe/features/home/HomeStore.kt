@@ -7,7 +7,6 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.availelabs.availe.data.repositories.IAuthRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.model.*
@@ -31,10 +30,8 @@ data class ListingUiModel(
 interface HomeStore : Store<Intent, State, Label> {
 
     sealed interface Intent {
-        data object RefreshListings : Intent
-        data object QuickCreateListing : Intent
-        data object LoginClicked : Intent
-        data object LogoutClicked : Intent
+        data object RefreshListingsRequested : Intent
+        data object QuickCreateListingRequested : Intent
         data class ListingClicked(val listingId: ListingId) : Intent
     }
 
@@ -43,8 +40,7 @@ interface HomeStore : Store<Intent, State, Label> {
         val isLoading: Boolean = false,
         val isRefreshing: Boolean = false,
         val errorMessage: String? = null,
-        val isAuthenticated: Boolean = false,
-        val isAuthServiceAvailable: Boolean = true
+        val isAuthenticated: Boolean = false
     )
 
     sealed interface Label {
@@ -56,8 +52,7 @@ interface HomeStore : Store<Intent, State, Label> {
 class HomeStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
-    private val sessionManager: ISessionManager,
-    private val authRepository: IAuthRepository
+    private val sessionManager: ISessionManager
 ) {
 
     fun create(): HomeStore =
@@ -80,10 +75,9 @@ class HomeStoreFactory(
         data class ListingsLoaded(val listingUiModels: List<ListingUiModel>) : Message
         data class SetError(val message: String?) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
-        data class SetAuthServiceAvailable(val isAvailable: Boolean) : Message
     }
 
-    private inner class HomeBootstrapper : CoroutineBootstrapper<Action>() {
+    private class HomeBootstrapper : CoroutineBootstrapper<Action>() {
         override fun invoke() {
             dispatch(Action.ObserveAuthentication)
             dispatch(Action.FetchListings)
@@ -100,35 +94,9 @@ class HomeStoreFactory(
 
         override fun executeIntent(intent: Intent) {
             when (intent) {
-                Intent.RefreshListings -> fetchListings(isRefresh = true)
-                Intent.QuickCreateListing -> performQuickCreate()
-                Intent.LoginClicked -> performLogin()
-                Intent.LogoutClicked -> performLogout()
+                Intent.RefreshListingsRequested -> fetchListings(isRefresh = true)
+                Intent.QuickCreateListingRequested -> performQuickCreate()
                 is Intent.ListingClicked -> publish(Label.NavigateToListingDetails(intent.listingId))
-            }
-        }
-
-        private fun performLogin() {
-            scope.launch {
-                try {
-                    authRepository.login(sessionManager::updateState)
-                } catch (e: Exception) {
-                    val errorMessage = e.message ?: "Login failed"
-                    dispatch(Message.SetError(errorMessage))
-                    publish(Label.DisplayError(errorMessage))
-                }
-            }
-        }
-
-        private fun performLogout() {
-            scope.launch {
-                try {
-                    authRepository.logout()
-                } catch (e: Exception) {
-                    val errorMessage = e.message ?: "Logout failed"
-                    dispatch(Message.SetError(errorMessage))
-                    publish(Label.DisplayError(errorMessage))
-                }
             }
         }
 
@@ -184,8 +152,8 @@ class HomeStoreFactory(
             scope.launch {
                 try {
                     val domainListings = listingRepository.getAllListings()
-                    val uiModels = domainListings.map { it.toListingUiModel() }
-                    dispatch(Message.ListingsLoaded(uiModels))
+                    val listingUiModels = domainListings.map { it.toListingUiModel() }
+                    dispatch(Message.ListingsLoaded(listingUiModels))
                 } catch (exception: Exception) {
                     val errorMessage = exception.message ?: "Failed to load listings"
                     dispatch(Message.SetError(errorMessage))
@@ -202,38 +170,29 @@ class HomeStoreFactory(
 
         private fun observeAuthentication() {
             scope.launch {
-                val authFlow = callbackFlow {
+                val authenticationFlow = callbackFlow {
                     val subscription = sessionManager.authenticationState.subscribe { state ->
                         trySend(state)
                     }
                     awaitClose { subscription.cancel() }
                 }
 
-                authFlow.collectLatest { authState ->
-                    when (authState) {
+                authenticationFlow.collectLatest { authenticationState ->
+                    when (authenticationState) {
                         is AuthenticationState.LoggedIn -> {
                             dispatch(Message.SetAuthenticated(true))
-                            dispatch(Message.SetAuthServiceAvailable(true))
                         }
 
                         is AuthenticationState.LoggedOut -> {
                             dispatch(Message.SetAuthenticated(false))
-                            dispatch(Message.SetAuthServiceAvailable(true))
                         }
 
                         is AuthenticationState.SessionExpired -> {
                             dispatch(Message.SetAuthenticated(false))
-                            dispatch(Message.SetAuthServiceAvailable(true))
-                            val message = "Session expired. Please log in again."
-                            dispatch(Message.SetError(message))
-                            publish(Label.DisplayError(message))
                         }
 
                         is AuthenticationState.InitializationFailed -> {
                             dispatch(Message.SetAuthenticated(false))
-                            dispatch(Message.SetAuthServiceAvailable(false))
-                            val message = "Authentication service unavailable."
-                            dispatch(Message.SetError(message))
                         }
 
                         AuthenticationState.Unknown -> {
@@ -252,7 +211,6 @@ class HomeStoreFactory(
                 is Message.ListingsLoaded -> copy(listingUiModels = msg.listingUiModels)
                 is Message.SetError -> copy(errorMessage = msg.message)
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
-                is Message.SetAuthServiceAvailable -> copy(isAuthServiceAvailable = msg.isAvailable)
             }
     }
 

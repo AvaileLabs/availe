@@ -14,6 +14,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.home.HomeStore
 import com.availelabs.availe.features.home.IHomeComponent
+import com.availelabs.availe.features.main.MainStore
 import com.availelabs.availe.features.root.ChildComponent
 import com.availelabs.availe.features.root.Configuration
 import com.availelabs.availe.features.root.IRootComponent
@@ -27,6 +28,7 @@ import com.composables.uikit.styling.UiKitTheme
 @Composable
 fun App(rootComponent: IRootComponent) {
     val childComponentStack by rootComponent.childStack.subscribeAsState()
+    val authenticationState by rootComponent.authenticationState.collectAsState()
     val activeConfiguration = childComponentStack.active.configuration as Configuration
     val focusManager = LocalFocusManager.current
 
@@ -53,8 +55,21 @@ fun App(rootComponent: IRootComponent) {
                         is ChildComponent.Home -> {
                             HomeNavigationBarActions(homeComponent = activeChildComponent.component)
                         }
+                    }
 
-                        else -> {
+                    if (authenticationState.isAuthenticated) {
+                        IconButton(
+                            onClick = { rootComponent.onAuthenticationIntent(MainStore.Intent.LogoutRequested) }
+                        ) {
+                            Icon(Lucide.LogOut, "Logout")
+                        }
+                    } else {
+                        PrimaryButton(
+                            onClick = { rootComponent.onAuthenticationIntent(MainStore.Intent.LoginRequested) },
+                            enabled = authenticationState.isAuthenticationServiceAvailable
+                        ) {
+                            Icon(Lucide.LogIn, null)
+                            Text("Log In")
                         }
                     }
                 }
@@ -101,22 +116,9 @@ private fun HomeNavigationBarActions(homeComponent: IHomeComponent) {
     ) {
         if (homeState.isAuthenticated) {
             IconButton(
-                onClick = { homeComponent.onIntent(HomeStore.Intent.QuickCreateListing) }
+                onClick = { homeComponent.onIntent(HomeStore.Intent.QuickCreateListingRequested) }
             ) {
                 Icon(Lucide.CirclePlus, "Add")
-            }
-            IconButton(
-                onClick = { homeComponent.onIntent(HomeStore.Intent.LogoutClicked) }
-            ) {
-                Icon(Lucide.LogOut, "Logout")
-            }
-        } else {
-            PrimaryButton(
-                onClick = { homeComponent.onIntent(HomeStore.Intent.LoginClicked) },
-                enabled = homeState.isAuthServiceAvailable
-            ) {
-                Icon(Lucide.LogIn, null)
-                Text("Log In")
             }
         }
     }

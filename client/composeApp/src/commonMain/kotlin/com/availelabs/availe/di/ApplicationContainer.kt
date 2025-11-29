@@ -3,9 +3,13 @@ package com.availelabs.availe.di
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.core.platform.PlatformActivity
-import com.availelabs.availe.data.auth.*
+import com.availelabs.availe.data.auth.AuthScope
+import com.availelabs.availe.data.auth.createPlatformAuthenticationConfig
+import com.availelabs.availe.data.auth.createPlatformAuthenticationFlowFactory
+import com.availelabs.availe.data.auth.toScopeString
 import com.availelabs.availe.data.repositories.*
 import com.availelabs.availe.data.sources.local.createTokenStore
+import com.availelabs.availe.data.sources.remote.AuthenticationRemoteDataSource
 import com.availelabs.availe.data.sources.remote.ListingRemoteDataSource
 import com.availelabs.availe.domain.repository.IListingRepository
 import io.ktor.client.*
@@ -22,7 +26,7 @@ import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 
 interface IApplicationContainer {
     val sessionManager: ISessionManager
-    val authRepository: IAuthRepository
+    val authenticationRepository: IAuthenticationRepository
     val listingRepository: IListingRepository
 }
 
@@ -31,11 +35,11 @@ fun createApplicationContainer(
     lifecycle: Lifecycle,
     activity: PlatformActivity
 ): IApplicationContainer {
-    val authFactory = createPlatformAuthenticationFlowFactory(activity)
+    val codeAuthenticationFlowFactory = createPlatformAuthenticationFlowFactory(activity)
     val tokenStore = createTokenStore(activity)
-    val platformAuthConfig = createPlatformAuthenticationConfig(activity)
+    val platformAuthenticationConfiguration = createPlatformAuthenticationConfig(activity)
 
-    val client =
+    val openIdConnectClient =
         OpenIdConnectClient(discoveryUri = com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI) {
             this.scope = setOf(
                 AuthScope.OPEN_ID,
@@ -45,23 +49,26 @@ fun createApplicationContainer(
             ).toScopeString()
             this.clientId = com.availelabs.availe.domain.auth.AuthenticationConstants.CLIENT_ID
             this.codeChallengeMethod = CodeChallengeMethod.S256
-            this.redirectUri = platformAuthConfig.redirectUri
-            this.postLogoutRedirectUri = platformAuthConfig.postLogoutRedirectUri
+            this.redirectUri = platformAuthenticationConfiguration.redirectUri
+            this.postLogoutRedirectUri = platformAuthenticationConfiguration.postLogoutRedirectUri
         }
 
-    val authRemoteDataSource = AuthRemoteDataSource(
-        client = client,
-        authFactory = authFactory,
+    val authenticationRemoteDataSource = AuthenticationRemoteDataSource(
+        openIdConnectClient = openIdConnectClient,
+        codeAuthenticationFlowFactory = codeAuthenticationFlowFactory,
         tokenStore = tokenStore
     )
 
     val sessionManager = SessionManager(
-        authRemoteDataSource = authRemoteDataSource,
+        authenticationRemoteDataSource = authenticationRemoteDataSource,
         lifecycle = lifecycle,
         accountManagementUrl = "http://${NetworkConstants.HOST_IP}:8180/realms/availe/account"
     )
 
-    val authRepository = AuthRepository(authRemoteDataSource)
+    val authenticationRepository = AuthenticationRepository(
+        authenticationRemoteDataSource = authenticationRemoteDataSource,
+        sessionManager = sessionManager
+    )
 
     val json = Json {
         ignoreUnknownKeys = true
@@ -77,7 +84,7 @@ fun createApplicationContainer(
         install(Auth) {
             bearer {
                 loadTokens {
-                    val tokens = authRemoteDataSource.getTokens()
+                    val tokens = authenticationRemoteDataSource.getTokens()
                     if (tokens?.accessToken != null && tokens.refreshToken != null) {
                         BearerTokens(tokens.accessToken, tokens.refreshToken!!)
                     } else {
@@ -89,8 +96,8 @@ fun createApplicationContainer(
                     val oldRefreshToken = oldTokens?.refreshToken
                     if (oldRefreshToken != null) {
                         try {
-                            val newTokens = authRemoteDataSource.refreshTokens(oldRefreshToken)
-                            authRemoteDataSource.saveTokens(newTokens)
+                            val newTokens = authenticationRemoteDataSource.refreshTokens(oldRefreshToken)
+                            authenticationRemoteDataSource.saveTokens(newTokens)
                             BearerTokens(newTokens.access_token, newTokens.refresh_token ?: oldRefreshToken)
                         } catch (_: Exception) {
                             null
@@ -121,13 +128,13 @@ fun createApplicationContainer(
 
     return ApplicationContainer(
         sessionManager = sessionManager,
-        authRepository = authRepository,
+        authenticationRepository = authenticationRepository,
         listingRepository = listingRepository
     )
 }
 
 private class ApplicationContainer(
     override val sessionManager: ISessionManager,
-    override val authRepository: IAuthRepository,
+    override val authenticationRepository: IAuthenticationRepository,
     override val listingRepository: IListingRepository
 ) : IApplicationContainer

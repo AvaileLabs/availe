@@ -6,7 +6,6 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.availelabs.availe.data.repositories.IAuthRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.repository.IListingRepository
@@ -22,7 +21,6 @@ class HomeComponent(
     componentContext: ComponentContext,
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionManager,
-    private val authRepository: IAuthRepository,
     private val onNavigateToListingDetails: (ListingId) -> Unit
 ) : IHomeComponent, ComponentContext by componentContext {
 
@@ -30,8 +28,7 @@ class HomeComponent(
         HomeStoreFactory(
             storeFactory = DefaultStoreFactory(),
             listingRepository = listingRepository,
-            sessionManager = sessionManager,
-            authRepository = authRepository
+            sessionManager = sessionManager
         ).create()
     }
 

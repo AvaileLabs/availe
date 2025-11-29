@@ -47,7 +47,7 @@ fun startWebApp(deepLink: String?, stateKeeper: StateKeeper): RootComponent {
 
     if (code != null) {
         MainScope().launch {
-            appContainer.authRepository.resumeLogin(code, appContainer.sessionManager::updateState)
+            appContainer.authenticationRepository.resumeLogin(code, appContainer.sessionManager::updateState)
         }
     }
 

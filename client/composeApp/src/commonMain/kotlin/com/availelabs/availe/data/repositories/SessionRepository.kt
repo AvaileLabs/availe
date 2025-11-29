@@ -5,7 +5,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.coroutines.withLifecycle
-import com.availelabs.availe.data.auth.IAuthRemoteDataSource
+import com.availelabs.availe.data.sources.remote.IAuthenticationRemoteDataSource
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.auth.JwtUserProfileMapper
 import com.availelabs.availe.domain.auth.UserProfile
@@ -20,11 +20,12 @@ interface ISessionManager {
     fun getAccountManagementUrl(): String
     suspend fun getCurrentUserProfile(): UserProfile?
     suspend fun onSessionInvalidated()
-    fun updateState(newState: AuthenticationState)
+    fun onLogoutSuccess()
+    fun updateState(newAuthenticationState: AuthenticationState)
 }
 
 class SessionManager(
-    private val authRemoteDataSource: IAuthRemoteDataSource,
+    private val authenticationRemoteDataSource: IAuthenticationRemoteDataSource,
     lifecycle: Lifecycle,
     private val accountManagementUrl: String
 ) : ISessionManager {
@@ -38,13 +39,13 @@ class SessionManager(
     init {
         coroutineScope.launch {
             try {
-                authRemoteDataSource.discover()
-                val storedTokens = authRemoteDataSource.getTokens()
+                authenticationRemoteDataSource.discover()
+                val storedTokens = authenticationRemoteDataSource.getTokens()
 
                 if (storedTokens != null && storedTokens.refreshToken != null) {
                     try {
-                        val newTokens = authRemoteDataSource.refreshTokens(storedTokens.refreshToken!!)
-                        authRemoteDataSource.saveTokens(newTokens)
+                        val newTokens = authenticationRemoteDataSource.refreshTokens(storedTokens.refreshToken!!)
+                        authenticationRemoteDataSource.saveTokens(newTokens)
                         _authenticationState.update { AuthenticationState.LoggedIn(newTokens.access_token) }
                     } catch (_: OpenIdConnectException) {
                         handleExpiredSession()
@@ -54,8 +55,8 @@ class SessionManager(
                 } else {
                     _authenticationState.update { AuthenticationState.LoggedOut }
                 }
-            } catch (e: Exception) {
-                _authenticationState.update { AuthenticationState.InitializationFailed(e) }
+            } catch (exception: Exception) {
+                _authenticationState.update { AuthenticationState.InitializationFailed(exception) }
             }
         }
     }
@@ -65,25 +66,28 @@ class SessionManager(
     }
 
     override suspend fun getCurrentUserProfile(): UserProfile? {
-        val tokens = runCatching { authRemoteDataSource.getTokens() }.getOrNull() ?: return null
+        val tokens = runCatching { authenticationRemoteDataSource.getTokens() }.getOrNull() ?: return null
         val idToken = tokens.idToken ?: return null
         return JwtUserProfileMapper.decodeUserProfile(idToken)
     }
 
     override suspend fun onSessionInvalidated() {
-        authRemoteDataSource.removeTokens()
+        authenticationRemoteDataSource.removeTokens()
         _authenticationState.update { AuthenticationState.SessionExpired }
     }
 
-    override fun updateState(newState: AuthenticationState) {
-        _authenticationState.update { newState }
+    override fun onLogoutSuccess() {
+        _authenticationState.update { AuthenticationState.LoggedOut }
+    }
+
+    override fun updateState(newAuthenticationState: AuthenticationState) {
+        _authenticationState.update { newAuthenticationState }
     }
 
     private suspend fun handleExpiredSession() {
         try {
-            authRemoteDataSource.removeTokens()
+            authenticationRemoteDataSource.removeTokens()
         } catch (_: Exception) {
-            // Ignore storage errors during cleanup
         }
         _authenticationState.update { AuthenticationState.SessionExpired }
     }

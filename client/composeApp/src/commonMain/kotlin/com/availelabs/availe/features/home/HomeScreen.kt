@@ -47,7 +47,7 @@ internal fun HomeScreen(
                         Text(homeState.errorMessage!!)
                         Spacer(Modifier.height(16.dp))
                         PrimaryButton(
-                            onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListings) }
+                            onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
                         ) {
                             Text("Retry")
                         }
@@ -63,7 +63,7 @@ internal fun HomeScreen(
                             Text("No listings found")
                             Spacer(Modifier.height(16.dp))
                             PrimaryButton(
-                                onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListings) }
+                                onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
                             ) {
                                 Text("Refresh")
                             }

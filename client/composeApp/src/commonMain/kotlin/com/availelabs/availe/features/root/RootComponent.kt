@@ -10,18 +10,28 @@ import com.arkivanov.decompose.router.stack.childStackWebNavigation
 import com.arkivanov.decompose.router.webhistory.WebNavigation
 import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.lifecycle.doOnDestroy
+import com.arkivanov.mvikotlin.core.instancekeeper.getStore
+import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
+import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.features.home.HomeComponent
 import com.availelabs.availe.features.home.IHomeComponent
+import com.availelabs.availe.features.main.MainStore
+import com.availelabs.availe.features.main.MainStoreFactory
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
 import io.ktor.http.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 @OptIn(ExperimentalDecomposeApi::class)
 interface IRootComponent : WebNavigationOwner {
     val childStack: Value<ChildStack<*, ChildComponent>>
+    val authenticationState: StateFlow<MainStore.State>
+    fun onAuthenticationIntent(intent: MainStore.Intent)
 }
 
 @OptIn(ExperimentalDecomposeApi::class)
@@ -35,6 +45,17 @@ class RootComponent(
         componentContext: ComponentContext,
         appContainer: IApplicationContainer
     ) : this(componentContext, appContainer, null)
+
+    private val mainStore = instanceKeeper.getStore {
+        MainStoreFactory(
+            storeFactory = DefaultStoreFactory(),
+            authenticationRepository = appContainer.authenticationRepository,
+            sessionManager = appContainer.sessionManager
+        ).create()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override val authenticationState: StateFlow<MainStore.State> = mainStore.stateFlow
 
     private val navigation = StackNavigation<Configuration>()
 
@@ -67,6 +88,15 @@ class RootComponent(
         }
     )
 
+    init {
+        val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+        lifecycle.doOnDestroy { scope.cancel() }
+    }
+
+    override fun onAuthenticationIntent(intent: MainStore.Intent) {
+        mainStore.accept(intent)
+    }
+
     private fun createChildComponent(config: Configuration, context: ComponentContext): ChildComponent {
         return when (config) {
             Configuration.Home -> ChildComponent.Home(
@@ -74,7 +104,6 @@ class RootComponent(
                     componentContext = context,
                     listingRepository = appContainer.listingRepository,
                     sessionManager = appContainer.sessionManager,
-                    authRepository = appContainer.authRepository,
                     onNavigateToListingDetails = { /* TODO */ }
                 )
             )
