@@ -3,6 +3,7 @@ package com.availelabs.availe.auth
 import com.auth0.jwk.JwkProviderBuilder
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.availelabs.availe.configuration.SharedAuthenticationConstants
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.observability.TokenVerificationFailed
 import com.availelabs.availe.observability.TokenVerificationSuccess
@@ -52,12 +53,12 @@ class KeycloakTokenVerifier(
             val userIdString = if (!subjectClaim.isNullOrBlank()) {
                 subjectClaim
             } else {
-                val userIdClaim = verifiedToken.getClaim("user_id")
+                val userIdClaim = verifiedToken.getClaim(SharedAuthenticationConstants.Claims.USER_ID)
                 if (!userIdClaim.isNull) userIdClaim.asString() else null
             }
 
             if (userIdString == null) {
-                throw IllegalStateException("Token is missing both 'sub' and 'user_id' claims")
+                throw IllegalStateException("Token is missing both '${SharedAuthenticationConstants.Claims.SUBJECT}' and '${SharedAuthenticationConstants.Claims.USER_ID}' claims")
             }
 
             val userId = UserId(Uuid.parse(userIdString))

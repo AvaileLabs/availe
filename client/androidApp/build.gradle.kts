@@ -6,7 +6,8 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
-val useLocalIpForDebug = providers.gradleProperty("availe.dev.useLocalIp").getOrElse("false").toBoolean()
+val useLocalIpAddressForDebug = providers.gradleProperty("availe.dev.useLocalIp").getOrElse("false").toBoolean()
+val openIdConnectRedirectScheme = "com.availe.auth"
 
 kotlin {
     jvmToolchain(17)
@@ -15,38 +16,38 @@ kotlin {
 abstract class GenerateNetworkSecurityConfig : DefaultTask() {
 
     @get:InputFile
-    abstract val template: RegularFileProperty
+    abstract val templateFile: RegularFileProperty
 
     @get:Input
-    abstract val hostIp: Property<String>
+    abstract val hostIpAddress: Property<String>
 
     @get:OutputDirectory
-    abstract val outputDir: DirectoryProperty
+    abstract val outputDirectory: DirectoryProperty
 
     @TaskAction
     fun generate() {
-        val xml = template.get().asFile.readText()
-            .replace($$"${HOST_IP}", hostIp.get())
+        val xmlContent = templateFile.get().asFile.readText()
+            .replace($$"${HOST_IP}", hostIpAddress.get())
 
-        val outFile = outputDir.get().file("xml/network_security_config.xml").asFile
-        outFile.parentFile.mkdirs()
-        outFile.writeText(xml)
+        val outputFile = outputDirectory.get().file("xml/network_security_config.xml").asFile
+        outputFile.parentFile.mkdirs()
+        outputFile.writeText(xmlContent)
     }
 }
 
 val generateDebugNetworkSecurityConfig =
     tasks.register<GenerateNetworkSecurityConfig>("generateDebugNetworkSecurityConfig") {
-        template.set(layout.projectDirectory.file("src/main/res-templates/network_security_config.xml.tpl"))
-        hostIp.set(providers.provider { getHostIpAddress() })
-        outputDir.set(layout.buildDirectory.dir("generated/networkSecurity/debug/res"))
+        templateFile.set(layout.projectDirectory.file("src/main/res-templates/network_security_config.xml.tpl"))
+        hostIpAddress.set(providers.provider { getHostIpAddress() })
+        outputDirectory.set(layout.buildDirectory.dir("generated/networkSecurity/debug/res"))
     }
 
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
-        if (useLocalIpForDebug) {
+        if (useLocalIpAddressForDebug) {
             variant.sources.res?.addGeneratedSourceDirectory(
                 generateDebugNetworkSecurityConfig,
-                GenerateNetworkSecurityConfig::outputDir
+                GenerateNetworkSecurityConfig::outputDirectory
             )
         }
     }
@@ -64,7 +65,7 @@ android {
         versionName = "1.0"
 
         addManifestPlaceholders(
-            mapOf("oidcRedirectScheme" to "com.availe.auth")
+            mapOf("oidcRedirectScheme" to openIdConnectRedirectScheme)
         )
     }
 

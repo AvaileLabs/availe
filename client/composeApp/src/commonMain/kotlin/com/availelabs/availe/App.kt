@@ -18,7 +18,6 @@ import com.availelabs.availe.features.home.IHomeComponent
 import com.availelabs.availe.features.listingdetails.ListingDetailsScreen
 import com.availelabs.availe.features.main.MainStore
 import com.availelabs.availe.features.root.ChildComponent
-import com.availelabs.availe.features.root.Configuration
 import com.availelabs.availe.features.root.IRootComponent
 import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.PredictiveBackGestureOverlay
@@ -31,7 +30,7 @@ import com.composables.uikit.styling.UiKitTheme
 fun App(rootComponent: IRootComponent) {
     val childComponentStack by rootComponent.childStack.subscribeAsState()
     val authenticationState by rootComponent.authenticationState.collectAsState()
-    val activeConfiguration = childComponentStack.active.configuration as Configuration
+    val activeConfiguration = childComponentStack.active.configuration
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(activeConfiguration) {

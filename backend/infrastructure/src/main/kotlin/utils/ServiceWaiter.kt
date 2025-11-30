@@ -1,5 +1,6 @@
 package com.availelabs.utils
 
+import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.keycloak.KeycloakPortsList
 import com.availelabs.orchestration.postgres.PostgresConfig
 import org.slf4j.LoggerFactory
@@ -46,7 +47,7 @@ internal object ServiceWaiter {
             .build()
 
         val port = KeycloakPortsList.Management.hostPortNumber
-        val healthUri = URI.create("http://localhost:$port/health/ready")
+        val healthUri = URI.create("http://localhost:$port${SharedNetworkConstants.KEYCLOAK_HEALTH_ENDPOINT_PATH}")
         val deadline = System.currentTimeMillis() + timeoutSeconds * 1000
         var lastError: Throwable? = null
 

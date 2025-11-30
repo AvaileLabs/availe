@@ -2,6 +2,7 @@ package com.availelabs.availe
 
 import com.availelabs.availe.auth.AuthenticationFilter
 import com.availelabs.availe.auth.KeycloakTokenVerifier
+import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.controllers.ListingController
 import com.availelabs.availe.domain.service.ListingService
 import com.availelabs.availe.observability.catchLensFailure
@@ -73,5 +74,5 @@ internal fun main() {
         .then(lensFailureFilter)
         .then(api)
 
-    app.asServer(Helidon(9002)).start()
+    app.asServer(Helidon(SharedNetworkConstants.SERVER_API_PORT)).start()
 }

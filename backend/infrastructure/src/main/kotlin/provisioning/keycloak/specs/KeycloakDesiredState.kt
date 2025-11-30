@@ -1,6 +1,7 @@
 package com.availelabs.provisioning.keycloak.specs
 
 import com.availelabs.availe.NetworkConstants
+import com.availelabs.availe.configuration.SharedAuthenticationConstants
 import com.availelabs.availe.provisioning.keycloak.specs.DesiredClient
 import com.availelabs.availe.provisioning.keycloak.specs.DesiredRealmSettings
 import org.keycloak.representations.idm.ProtocolMapperRepresentation
@@ -20,7 +21,7 @@ internal object KeycloakDesiredState {
     )
 
     private val mobileAppRedirects = setOf(
-        "com.availe.auth://callback"
+        "${SharedAuthenticationConstants.REDIRECT_SCHEME}://callback"
     )
 
     private val serviceRedirects = setOf(
@@ -42,7 +43,7 @@ internal object KeycloakDesiredState {
         protocolMapper = "oidc-usermodel-property-mapper"
         config = mapOf(
             "user.attribute" to "id",
-            "claim.name" to "user_id",
+            "claim.name" to SharedAuthenticationConstants.Claims.USER_ID,
             "jsonType.label" to "String",
             "id.token.claim" to "true",
             "access.token.claim" to "true"

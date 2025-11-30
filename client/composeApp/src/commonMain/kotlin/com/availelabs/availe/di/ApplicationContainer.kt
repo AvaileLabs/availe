@@ -2,6 +2,7 @@ package com.availelabs.availe.di
 
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.availelabs.availe.NetworkConstants
+import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.core.platform.PlatformActivity
 import com.availelabs.availe.data.auth.AuthScope
 import com.availelabs.availe.data.auth.createPlatformAuthenticationConfig
@@ -112,7 +113,7 @@ fun createApplicationContainer(
             url {
                 protocol = URLProtocol.HTTP
                 host = NetworkConstants.HOST_IP
-                port = 9002
+                port = SharedNetworkConstants.SERVER_API_PORT
                 path("/api/")
             }
         }

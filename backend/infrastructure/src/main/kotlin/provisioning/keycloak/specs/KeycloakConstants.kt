@@ -1,22 +1,25 @@
 package com.availelabs.provisioning.keycloak.specs
 
+import com.availelabs.availe.configuration.SharedAuthenticationConstants
+import com.availelabs.availe.configuration.SharedNetworkConstants
+
 internal object KeycloakRealms {
-    const val AVAILE = "availe"
+    const val AVAILE = SharedAuthenticationConstants.REALM_NAME
 }
 
 internal object KeycloakDbSchemas {
-    const val KEYCLOAK = "keycloak"
+    const val KEYCLOAK = SharedNetworkConstants.DATABASE_SCHEMA_KEYCLOAK
 }
 
 internal object KeycloakClientIds {
-    const val APP = "availe-app"
+    const val APP = SharedAuthenticationConstants.CLIENT_ID
 }
 
 internal object KeycloakClientScopes {
-    const val EMAIL = "email"
-    const val ROLES = "roles"
-    const val WEB_ORIGINS = "web-origins"
-    const val OFFLINE_ACCESS = "offline_access"
+    const val EMAIL = SharedAuthenticationConstants.Scopes.EMAIL
+    const val ROLES = SharedAuthenticationConstants.Scopes.ROLES
+    const val WEB_ORIGINS = SharedAuthenticationConstants.Scopes.WEB_ORIGINS
+    const val OFFLINE_ACCESS = SharedAuthenticationConstants.Scopes.OFFLINE_ACCESS
 }
 
 internal object KeycloakClientAttributes {

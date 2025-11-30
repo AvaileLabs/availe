@@ -1,6 +1,7 @@
 package com.availelabs.orchestration.keycloak
 
 import com.availelabs.availe.NetworkConstants
+import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.availelabs.orchestration.postgres.loadPostgresConfig
 import com.availelabs.utils.loadGradleProperties
@@ -33,7 +34,7 @@ internal fun keycloakRunSpec(): ContainerRunSpecification<KeycloakPortsList, Key
         "KC_DB_URL_DATABASE=$dbName",
         "KC_DB_USERNAME=${postgresConfig.dbUser}",
         "KC_DB_PASSWORD=${postgresConfig.dbPassword}",
-        "KC_DB_SCHEMA=keycloak",
+        "KC_DB_SCHEMA=${SharedNetworkConstants.DATABASE_SCHEMA_KEYCLOAK}",
         "KC_HOSTNAME=${NetworkConstants.HOST_IP}",
         "KC_HEALTH_ENABLED=true",
         "KC_HTTP_PORT=${KeycloakPortsList.Http.containerPortNumber}",
