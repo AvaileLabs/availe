@@ -71,11 +71,21 @@ class HomeStoreFactory(
     }
 
     private sealed interface Message {
-        data class SetLoading(val isLoading: Boolean) : Message
-        data class SetRefreshing(val isRefreshing: Boolean) : Message
+        data class LoadingStateChanged(val loadingIndicator: LoadingIndicator, val isActive: Boolean) : Message
         data class ListingsLoaded(val listingUiModels: List<ListingUiModel>) : Message
         data class SetError(val message: String?) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
+    }
+
+    private sealed interface FetchTrigger {
+        data object InitialLoad : FetchTrigger
+        data object UserPullToRefresh : FetchTrigger
+        data object DataChanged : FetchTrigger
+    }
+
+    private sealed interface LoadingIndicator {
+        data object Fullscreen : LoadingIndicator
+        data object Overlay : LoadingIndicator
     }
 
     private class HomeBootstrapper : CoroutineBootstrapper<Action>() {
@@ -88,14 +98,14 @@ class HomeStoreFactory(
     private inner class HomeExecutor : CoroutineExecutor<Intent, Action, State, Message, Label>() {
         override fun executeAction(action: Action) {
             when (action) {
-                Action.FetchListings -> fetchListings(isRefresh = false)
+                Action.FetchListings -> fetchListings(FetchTrigger.InitialLoad)
                 Action.ObserveAuthentication -> observeAuthentication()
             }
         }
 
         override fun executeIntent(intent: Intent) {
             when (intent) {
-                Intent.RefreshListingsRequested -> fetchListings(isRefresh = true)
+                Intent.RefreshListingsRequested -> fetchListings(FetchTrigger.UserPullToRefresh)
                 Intent.QuickCreateListingRequested -> performQuickCreate()
                 is Intent.ListingClicked -> publish(Label.NavigateToListingDetails(intent.listingId))
             }
@@ -111,7 +121,7 @@ class HomeStoreFactory(
                     return@launch
                 }
 
-                dispatch(Message.SetRefreshing(true))
+                dispatch(Message.LoadingStateChanged(loadingIndicator = LoadingIndicator.Overlay, isActive = true))
 
                 val randomId = Random.nextInt(1000, 9999)
                 val newListing = NewListing.Item(
@@ -127,12 +137,17 @@ class HomeStoreFactory(
                 when (val result = listingRepository.createListing(newListing)) {
                     is RepositoryOperationResult.Success -> {
                         when (result.value) {
-                            is InsertResult.Inserted -> fetchListings(isRefresh = true)
+                            is InsertResult.Inserted -> fetchListings(FetchTrigger.DataChanged)
                             is InsertResult.AlreadyExists -> {
                                 val errorMessage = "Listing already exists"
                                 dispatch(Message.SetError(errorMessage))
                                 publish(Label.DisplayError(errorMessage))
-                                dispatch(Message.SetRefreshing(false))
+                                dispatch(
+                                    Message.LoadingStateChanged(
+                                        loadingIndicator = LoadingIndicator.Overlay,
+                                        isActive = false
+                                    )
+                                )
                             }
                         }
                     }
@@ -141,18 +156,22 @@ class HomeStoreFactory(
                         val errorMessage = result.error.value
                         dispatch(Message.SetError(errorMessage))
                         publish(Label.DisplayError(errorMessage))
-                        dispatch(Message.SetRefreshing(false))
+                        dispatch(
+                            Message.LoadingStateChanged(
+                                loadingIndicator = LoadingIndicator.Overlay,
+                                isActive = false
+                            )
+                        )
                     }
                 }
             }
         }
 
-        private fun fetchListings(isRefresh: Boolean) {
-            if (isRefresh) {
-                dispatch(Message.SetRefreshing(true))
-            } else {
-                dispatch(Message.SetLoading(true))
-            }
+        private fun fetchListings(trigger: FetchTrigger) {
+            val currentListingUiModels = state().listingUiModels
+            val loadingIndicator = resolveLoadingIndicator(trigger, currentListingUiModels)
+
+            dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = true))
             dispatch(Message.SetError(null))
 
             scope.launch {
@@ -171,11 +190,18 @@ class HomeStoreFactory(
                     }
                 }
 
-                if (isRefresh) {
-                    dispatch(Message.SetRefreshing(false))
-                } else {
-                    dispatch(Message.SetLoading(false))
-                }
+                dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
+            }
+        }
+
+        private fun resolveLoadingIndicator(
+            trigger: FetchTrigger,
+            currentListingUiModels: List<ListingUiModel>
+        ): LoadingIndicator {
+            return if (currentListingUiModels.isEmpty()) {
+                LoadingIndicator.Fullscreen
+            } else {
+                LoadingIndicator.Overlay
             }
         }
 
@@ -217,8 +243,13 @@ class HomeStoreFactory(
     private object HomeReducer : Reducer<State, Message> {
         override fun State.reduce(msg: Message): State =
             when (msg) {
-                is Message.SetLoading -> copy(isLoading = msg.isLoading)
-                is Message.SetRefreshing -> copy(isRefreshing = msg.isRefreshing)
+                is Message.LoadingStateChanged -> {
+                    when (msg.loadingIndicator) {
+                        LoadingIndicator.Fullscreen -> copy(isLoading = msg.isActive)
+                        LoadingIndicator.Overlay -> copy(isRefreshing = msg.isActive)
+                    }
+                }
+
                 is Message.ListingsLoaded -> copy(listingUiModels = msg.listingUiModels)
                 is Message.SetError -> copy(errorMessage = msg.message)
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
