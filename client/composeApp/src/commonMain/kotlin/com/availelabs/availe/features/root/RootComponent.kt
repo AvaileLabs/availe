@@ -2,6 +2,7 @@ package com.availelabs.availe.features.root
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.router.webhistory.WebNavigation
@@ -23,13 +24,11 @@ import com.availelabs.availe.features.main.MainStore
 import com.availelabs.availe.features.main.MainStoreFactory
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
-import io.ktor.http.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalDecomposeApi::class)
 interface IRootComponent : WebNavigationOwner, BackHandlerOwner {
@@ -71,21 +70,7 @@ class RootComponent(
         source = navigation,
         serializer = Configuration.serializer(),
         initialStack = {
-            var initialStack: List<Configuration> = listOf(Configuration.Home)
-            if (deepLinkUrl != null) {
-                try {
-                    val uniformResourceLocator = Url(deepLinkUrl)
-                    val deepLink = parseDeepLink(uniformResourceLocator)
-                    val configuration = deepLink.toConfiguration()
-
-                    if (configuration is Configuration.ListingDetails) {
-                        initialStack = listOf(Configuration.Home, configuration)
-                    }
-                } catch (_: Exception) {
-                    // Ignore invalid URLs and fallback to default stack
-                }
-            }
-            initialStack
+            RootNavigationMapper.getStackForDeepLink(deepLinkUrl)
         },
         childFactory = ::createChildComponent
     )
@@ -94,7 +79,7 @@ class RootComponent(
         navigator = navigation,
         stack = childStack,
         serializer = Configuration.serializer(),
-        pathMapper = { child -> getPathForConfiguration(child.configuration) },
+        pathMapper = { child -> RootNavigationMapper.getPathForConfiguration(child.configuration) },
         childSelector = {
             null
         }
@@ -113,6 +98,7 @@ class RootComponent(
         navigation.pop()
     }
 
+    @OptIn(DelicateDecomposeApi::class)
     private fun createChildComponent(configuration: Configuration, componentContext: ComponentContext): ChildComponent {
         return when (configuration) {
             Configuration.Home -> ChildComponent.Home(
@@ -134,42 +120,6 @@ class RootComponent(
                     onNavigateBack = { navigation.pop() }
                 )
             )
-        }
-    }
-
-    private sealed interface DeepLink {
-        data object Home : DeepLink
-        data class Listing(val id: ListingId) : DeepLink
-    }
-
-    private fun parseDeepLink(uniformResourceLocator: Url): DeepLink {
-        val pathSegments = uniformResourceLocator.segments
-
-        return if (pathSegments.isEmpty()) {
-            DeepLink.Home
-        } else if (pathSegments.size == 2 && pathSegments[0] == Configuration.ListingDetails.ROUTE_SEGMENT_NAME) {
-            try {
-                val uuid = Uuid.parse(pathSegments[1])
-                DeepLink.Listing(ListingId(uuid))
-            } catch (_: IllegalArgumentException) {
-                DeepLink.Home
-            }
-        } else {
-            DeepLink.Home
-        }
-    }
-
-    private fun DeepLink.toConfiguration(): Configuration {
-        return when (this) {
-            DeepLink.Home -> Configuration.Home
-            is DeepLink.Listing -> Configuration.ListingDetails(this.id)
-        }
-    }
-
-    private fun getPathForConfiguration(configuration: Configuration): String {
-        return when (configuration) {
-            Configuration.Home -> "/"
-            is Configuration.ListingDetails -> "/${Configuration.ListingDetails.ROUTE_SEGMENT_NAME}/${configuration.listingId.value}"
         }
     }
 }
