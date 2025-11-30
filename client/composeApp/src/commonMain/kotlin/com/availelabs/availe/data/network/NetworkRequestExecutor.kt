@@ -2,11 +2,7 @@ package com.availelabs.availe.data.network
 
 import com.availelabs.availe.domain.model.UserFriendlyErrorMessage
 import com.availelabs.availe.domain.types.RepositoryOperationResult
-import io.ktor.client.network.sockets.*
-import io.ktor.client.plugins.*
-import io.ktor.util.network.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.serialization.SerializationException
 
 suspend fun <T> executeSafeNetworkRequest(
     operation: suspend () -> T
@@ -16,20 +12,20 @@ suspend fun <T> executeSafeNetworkRequest(
     } catch (cancellationException: CancellationException) {
         throw cancellationException
     } catch (throwable: Throwable) {
-        if (!throwable.isRecoverableNetworkError()) {
+        val networkErrorType = throwable.classifyNetworkError()
+
+        if (networkErrorType is NetworkErrorType.Unrecoverable) {
             throw throwable
         }
 
-        val errorMessage = when (throwable) {
-            is UnresolvedAddressException -> "No internet connection. Please check your network."
-            is HttpRequestTimeoutException -> "The request timed out. Please try again."
-            is ConnectTimeoutException -> "The server is taking too long to respond."
-            is SocketTimeoutException -> "The connection was interrupted. Please try again."
-            is ClientRequestException -> "Unable to load this data. It may have been removed."
-            is ServerResponseException -> "The server is experiencing issues. Please try again later."
-            is SerializationException -> "Data error. Please ensure you have the latest version of the app."
-            else -> "Unable to connect to the server."
+        val errorMessageString = when (networkErrorType) {
+            is NetworkErrorType.Recoverable.Connectivity -> "No internet connection. Please check your network."
+            is NetworkErrorType.Recoverable.ConnectionTimeout -> "The connection timed out. Please try again."
+            is NetworkErrorType.Recoverable.ServerSide -> "The server is experiencing issues. Please try again later."
+            is NetworkErrorType.Recoverable.ClientSide -> "Unable to load this data. It may have been removed."
+            is NetworkErrorType.Recoverable.DataSerialization -> "Data error. Please ensure you have the latest version of the app."
         }
-        RepositoryOperationResult.Failure(UserFriendlyErrorMessage(errorMessage))
+
+        RepositoryOperationResult.Failure(UserFriendlyErrorMessage(errorMessageString))
     }
 }

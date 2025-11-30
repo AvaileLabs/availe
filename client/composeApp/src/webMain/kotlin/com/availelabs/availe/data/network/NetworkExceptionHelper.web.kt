@@ -1,5 +1,5 @@
 package com.availelabs.availe.data.network
 
-actual fun Throwable.isRecoverableNetworkError(): Boolean {
+actual fun Throwable.isPlatformSpecificNetworkError(): Boolean {
     return true
 }
