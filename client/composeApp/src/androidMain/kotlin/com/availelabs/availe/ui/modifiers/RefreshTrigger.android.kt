@@ -17,6 +17,8 @@ actual fun Modifier.refreshTrigger(
     val connection = remember(state, onRefresh) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source != NestedScrollSource.Drag) return Offset.Zero
+
                 return if (available.y < 0 && state.pullProgress > 0) {
                     val consumed = state.onPull(available.y)
                     Offset(0f, consumed)
@@ -30,6 +32,8 @@ actual fun Modifier.refreshTrigger(
                 available: Offset,
                 source: NestedScrollSource
             ): Offset {
+                if (source != NestedScrollSource.Drag) return Offset.Zero
+
                 return if (available.y > 0) {
                     val consumedY = state.onPull(available.y)
                     Offset(0f, consumedY)
