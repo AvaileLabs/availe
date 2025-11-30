@@ -33,6 +33,8 @@ import com.composables.uikit.components.PrimaryButton
 import com.composables.uikit.components.Text
 import com.composables.uikit.styling.card
 import com.composables.uikit.styling.colors
+import com.composables.uikit.styling.outline
+import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -46,85 +48,81 @@ internal fun HomeScreen(
     val refreshState = remember { RefreshStateHolder() }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            when {
-                homeState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        IntermediateProgressIndicator()
-                    }
-                }
-
-                homeState.errorMessage != null -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(homeState.errorMessage!!)
-                        Spacer(Modifier.height(16.dp))
-                        PrimaryButton(
-                            onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .refreshTrigger(
+                    state = refreshState,
+                    onRefresh = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
+                )
+        ) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                if (homeState.isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillParentMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("Retry")
+                            IntermediateProgressIndicator()
                         }
                     }
-                }
-
-                homeState.listingUiModels.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("No listings found")
+                } else if (homeState.errorMessage != null) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillParentMaxSize()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(homeState.errorMessage!!)
                             Spacer(Modifier.height(16.dp))
                             PrimaryButton(
                                 onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
                             ) {
-                                Text("Refresh")
+                                Text("Retry")
                             }
                         }
                     }
-                }
-
-                else -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .refreshTrigger(
-                                state = refreshState,
-                                onRefresh = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
-                            )
-                    ) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(homeState.listingUiModels, key = { it.id.value }) { listingUiModel ->
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            homeComponent.onIntent(HomeStore.Intent.ListingClicked(listingUiModel.id))
-                                        }
-                                        .padding(16.dp)
+                } else if (homeState.listingUiModels.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillParentMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("No listings found")
+                                Spacer(Modifier.height(16.dp))
+                                PrimaryButton(
+                                    onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
                                 ) {
-                                    Text(listingUiModel.title.value)
-                                    Text(listingUiModel.price)
+                                    Text("Refresh")
                                 }
                             }
                         }
-
-                        PullToRefreshIndicator(
-                            isRefreshing = homeState.isRefreshing,
-                            pullProgress = refreshState.pullProgress,
-                            modifier = Modifier.align(Alignment.TopCenter)
-                        )
+                    }
+                } else {
+                    items(homeState.listingUiModels, key = { it.id.value }) { listingUiModel ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    homeComponent.onIntent(HomeStore.Intent.ListingClicked(listingUiModel.id))
+                                }
+                                .padding(16.dp)
+                        ) {
+                            Text(listingUiModel.title.value)
+                            Text(listingUiModel.price)
+                        }
                     }
                 }
             }
+
+            PullToRefreshIndicator(
+                isRefreshing = homeState.isRefreshing,
+                pullProgress = refreshState.pullProgress,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
@@ -150,6 +148,7 @@ private fun PullToRefreshIndicator(
                 .offset { IntOffset(0, yOffset.roundToPx()) }
                 .shadow(4.dp, CircleShape)
                 .background(Theme[colors][card], CircleShape)
+                .outline(1.dp, Theme[colors][outline], CircleShape)
                 .padding(8.dp)
                 .size(24.dp),
             contentAlignment = Alignment.Center

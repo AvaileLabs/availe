@@ -16,10 +16,12 @@ import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.home.HomeStore.*
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.random.Random
+import kotlin.time.Clock
 
 data class ListingUiModel(
     val id: ListingId,
@@ -170,6 +172,8 @@ class HomeStoreFactory(
         private fun fetchListings(trigger: FetchTrigger) {
             val currentListingUiModels = state().listingUiModels
             val loadingIndicator = resolveLoadingIndicator(trigger, currentListingUiModels)
+            val startTimeMilliseconds = Clock.System.now().toEpochMilliseconds()
+            val minimumRefreshDurationMilliseconds = 750L
 
             dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = true))
             dispatch(Message.SetError(null))
@@ -187,6 +191,13 @@ class HomeStoreFactory(
                         val errorMessage = result.error.value
                         dispatch(Message.SetError(errorMessage))
                         publish(Label.DisplayError(errorMessage))
+                    }
+                }
+
+                if (trigger is FetchTrigger.UserPullToRefresh) {
+                    val elapsedTimeMilliseconds = Clock.System.now().toEpochMilliseconds() - startTimeMilliseconds
+                    if (elapsedTimeMilliseconds < minimumRefreshDurationMilliseconds) {
+                        delay(minimumRefreshDurationMilliseconds - elapsedTimeMilliseconds)
                     }
                 }
 
