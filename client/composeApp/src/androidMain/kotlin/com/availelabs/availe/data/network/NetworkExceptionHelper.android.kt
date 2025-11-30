@@ -1,14 +1,16 @@
 package com.availelabs.availe.data.network
 
+import java.net.ConnectException
 import java.net.SocketException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLException
 
-actual fun Throwable.isPlatformSpecificNetworkError(): Boolean {
+actual fun Throwable.classifyPlatformError(): NetworkErrorType? {
     return when (this) {
-        is UnknownHostException -> true
-        is SocketException -> true
-        is SSLException -> true
-        else -> false
+        is UnknownHostException -> NetworkErrorType.Recoverable.Connectivity
+        is ConnectException -> NetworkErrorType.Recoverable.ServerSide
+        is SocketException -> NetworkErrorType.Recoverable.Connectivity
+        is SSLException -> NetworkErrorType.Recoverable.Connectivity
+        else -> null
     }
 }

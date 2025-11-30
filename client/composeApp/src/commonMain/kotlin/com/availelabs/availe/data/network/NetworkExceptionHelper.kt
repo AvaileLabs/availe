@@ -31,12 +31,8 @@ fun Throwable.classifyNetworkError(): NetworkErrorType {
         is ServerResponseException -> NetworkErrorType.Recoverable.ServerSide
         is SerializationException -> NetworkErrorType.Recoverable.DataSerialization
 
-        else -> if (isPlatformSpecificNetworkError()) {
-            NetworkErrorType.Recoverable.Connectivity
-        } else {
-            NetworkErrorType.Unrecoverable
-        }
+        else -> classifyPlatformError() ?: NetworkErrorType.Unrecoverable
     }
 }
 
-expect fun Throwable.isPlatformSpecificNetworkError(): Boolean
+expect fun Throwable.classifyPlatformError(): NetworkErrorType?
