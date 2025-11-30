@@ -173,15 +173,13 @@ class HomeStoreFactory(
             val currentListingUiModels = state().listingUiModels
             val loadingIndicator = resolveLoadingIndicator(trigger, currentListingUiModels)
             val startTimeMilliseconds = Clock.System.now().toEpochMilliseconds()
-            val minimumRefreshDurationMilliseconds = 750L
+            val minimumRefreshDurationMilliseconds = 375L
 
             dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = true))
             dispatch(Message.SetError(null))
 
             scope.launch {
-                val result = listingRepository.getAllListings()
-
-                when (result) {
+                when (val result = listingRepository.getAllListings()) {
                     is RepositoryOperationResult.Success -> {
                         val listingUiModels = result.value.map { it.toListingUiModel() }
                         dispatch(Message.ListingsLoaded(listingUiModels))
