@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.availelabs.availe.features.root
 
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalDecomposeApi::class)
 interface IRootComponent : WebNavigationOwner, BackHandlerOwner {
@@ -79,7 +82,7 @@ class RootComponent(
         navigator = navigation,
         stack = childStack,
         serializer = Configuration.serializer(),
-        pathMapper = { child -> RootNavigationMapper.getPathForConfiguration(child.configuration) },
+        pathMapper = { child -> child.configuration.toUrlPath() },
         childSelector = {
             null
         }
@@ -138,6 +141,13 @@ data class NavIcon(
 sealed interface Configuration {
     val displayName: String
     val navigationIcon: NavIcon
+    val canonicalParent: Configuration? get() = null
+
+    fun toUrlPath(): String
+
+    interface RouteParser<out C : Configuration> {
+        fun parse(segments: List<String>): C?
+    }
 
     @Serializable
     data object Home : Configuration {
@@ -146,6 +156,8 @@ sealed interface Configuration {
 
         @Transient
         override val navigationIcon: NavIcon = NavIcon(Lucide.House, "Home Screen")
+
+        override fun toUrlPath(): String = "/"
     }
 
     @Serializable
@@ -156,8 +168,24 @@ sealed interface Configuration {
         @Transient
         override val navigationIcon: NavIcon = NavIcon(Lucide.House, "Details Screen")
 
-        companion object {
+        override val canonicalParent: Configuration = Home
+
+        override fun toUrlPath(): String = "/$ROUTE_SEGMENT_NAME/${listingId.value}"
+
+        @OptIn(ExperimentalUuidApi::class)
+        companion object : RouteParser<ListingDetails> {
             const val ROUTE_SEGMENT_NAME = "listing"
+
+            override fun parse(segments: List<String>): ListingDetails? {
+                if (segments.isEmpty()) return null
+                return try {
+                    val uuidString = segments.first()
+                    val uuid = Uuid.parse(uuidString)
+                    ListingDetails(ListingId(uuid))
+                } catch (_: IllegalArgumentException) {
+                    null
+                }
+            }
         }
     }
 }
