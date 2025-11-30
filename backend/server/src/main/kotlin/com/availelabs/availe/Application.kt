@@ -12,11 +12,14 @@ import com.availelabs.availe.repositories.listing.helpers.creators.implementatio
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
 import com.availelabs.availe.setup.hikariSetup
 import org.http4k.contract.contract
+import org.http4k.core.Method
 import org.http4k.core.then
 import org.http4k.events.AutoMarshallingEvents
 import org.http4k.events.EventFilters
 import org.http4k.events.then
+import org.http4k.filter.AllowAll
 import org.http4k.filter.CorsPolicy
+import org.http4k.filter.OriginPolicy
 import org.http4k.filter.ServerFilters
 import org.http4k.format.Jackson
 import org.http4k.routing.bind
@@ -30,49 +33,56 @@ import org.jooq.impl.DSL
 import org.jooq.impl.DefaultConfiguration
 
 internal fun main() {
-    val dataSource = hikariSetup()
-    val dsl: DSLContext = DSL.using(
+    val hikariDataSource = hikariSetup()
+    val databaseContext: DSLContext = DSL.using(
         DefaultConfiguration()
-            .set(dataSource)
+            .set(hikariDataSource)
             .set(SQLDialect.POSTGRES)
             .set(Settings().withReturnDefaultOnUpdatableRecord(true))
     )
 
-    val events = EventFilters.AddTimestamp()
+    val applicationEvents = EventFilters.AddTimestamp()
         .then(EventFilters.AddEventName())
         .then(AutoMarshallingEvents(Jackson, ::println))
 
-    val itemCreator = ItemListingCreator(dsl)
-    val eventCreator = EventListingCreator(dsl)
-    val serviceCreator = ServiceListingCreator(dsl)
+    val itemListingCreator = ItemListingCreator(databaseContext)
+    val eventListingCreator = EventListingCreator(databaseContext)
+    val serviceListingCreator = ServiceListingCreator(databaseContext)
 
     val listingRepository = ListingRepository(
-        dsl = dsl,
-        itemCreator = itemCreator,
-        eventCreator = eventCreator,
-        serviceCreator = serviceCreator
+        dsl = databaseContext,
+        itemCreator = itemListingCreator,
+        eventCreator = eventListingCreator,
+        serviceCreator = serviceListingCreator
     )
     val listingService = ListingService(listingRepository)
 
-    val tokenVerifier = KeycloakTokenVerifier(events)
-    val authenticationFilter = AuthenticationFilter(tokenVerifier, events)
+    val keycloakTokenVerifier = KeycloakTokenVerifier(applicationEvents)
+    val authenticationFilter = AuthenticationFilter(keycloakTokenVerifier, applicationEvents)
 
-    val listingController = ListingController(listingService, events, authenticationFilter)
+    val listingController = ListingController(listingService, applicationEvents, authenticationFilter)
 
-    val apiContract = contract {
+    val apiContractRoutingHandler = contract {
         routes += listingController.listOfRoutes
     }
 
-    val corsFilter = ServerFilters.Cors(CorsPolicy.UnsafeGlobalPermissive)
-    val lensFailureFilter = catchLensFailure(events)
-
-    val api = routes(
-        "/api" bind apiContract,
+    val crossOriginResourceSharingPolicy = CorsPolicy(
+        originPolicy = OriginPolicy.AllowAll(),
+        headers = listOf("Authorization", "Content-Type", "Accept"),
+        methods = Method.entries,
+        credentials = true
     )
 
-    val app = corsFilter
-        .then(lensFailureFilter)
-        .then(api)
+    val crossOriginResourceSharingFilter = ServerFilters.Cors(crossOriginResourceSharingPolicy)
+    val lensFailureFilter = catchLensFailure(applicationEvents)
 
-    app.asServer(Helidon(SharedNetworkConstants.SERVER_API_PORT)).start()
+    val apiHandler = routes(
+        "/api" bind apiContractRoutingHandler,
+    )
+
+    val applicationHttpHandler = crossOriginResourceSharingFilter
+        .then(lensFailureFilter)
+        .then(apiHandler)
+
+    applicationHttpHandler.asServer(Helidon(SharedNetworkConstants.SERVER_API_PORT)).start()
 }
