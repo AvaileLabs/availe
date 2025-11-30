@@ -5,7 +5,6 @@ import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.auth.AuthenticationFilter
 import com.availelabs.availe.auth.SecurityContexts
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.domain.service.IListingService
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
@@ -17,6 +16,7 @@ import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.mappers.toDataDto
 import com.availelabs.availe.mappers.toDomain
 import com.availelabs.availe.observability.ListingCreated
+import com.availelabs.availe.service.IListingService
 import io.availe.models.Patchable
 import kotlinx.coroutines.runBlocking
 import org.http4k.contract.ContractRoute
@@ -173,17 +173,16 @@ internal class ListingController(
                 val patchDto = patchBodyLens(request)
                 val authenticatedUser = SecurityContexts.authenticatedUserLens(request)
 
-                runBlocking {
-                    when (val result = listingService.updateListing(listingId, patchDto, authenticatedUser.id)) {
-                        is UpdateResult.Updated -> {
-                            val responseDto = result.value.toDataDto()
-                            Response(Status.OK).with(responseBodyLens of responseDto)
-                        }
-
-                        is UpdateResult.NotFound -> Response(Status.NOT_FOUND)
-                        is UpdateResult.Forbidden -> Response(Status.FORBIDDEN)
+                when (val result = listingService.updateListing(listingId, patchDto, authenticatedUser.id)) {
+                    is UpdateResult.Updated -> {
+                        val responseDto = result.value.toDataDto()
+                        Response(Status.OK).with(responseBodyLens of responseDto)
                     }
+
+                    is UpdateResult.NotFound -> Response(Status.NOT_FOUND)
+                    is UpdateResult.Forbidden -> Response(Status.FORBIDDEN)
                 }
+
             }
         }
     }
@@ -200,13 +199,12 @@ internal class ListingController(
             authenticationFilter.then { request ->
                 val authenticatedUser = SecurityContexts.authenticatedUserLens(request)
 
-                runBlocking {
-                    when (listingService.deleteListing(listingId, authenticatedUser.id)) {
-                        is DeleteResult.Deleted -> Response(Status.NO_CONTENT)
-                        is DeleteResult.NotFound -> Response(Status.NOT_FOUND)
-                        is DeleteResult.Forbidden -> Response(Status.FORBIDDEN)
-                    }
+                when (listingService.deleteListing(listingId, authenticatedUser.id)) {
+                    is DeleteResult.Deleted -> Response(Status.NO_CONTENT)
+                    is DeleteResult.NotFound -> Response(Status.NOT_FOUND)
+                    is DeleteResult.Forbidden -> Response(Status.FORBIDDEN)
                 }
+
             }
         }
     }

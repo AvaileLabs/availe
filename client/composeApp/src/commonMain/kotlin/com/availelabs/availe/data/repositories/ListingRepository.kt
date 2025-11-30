@@ -1,47 +1,54 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.availelabs.availe.data.repositories
 
+import com.availelabs.availe.data.network.executeSafeNetworkRequest
 import com.availelabs.availe.data.sources.remote.IListingRemoteDataSource
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.repository.IListingRepository
-import com.availelabs.availe.domain.types.DeleteResult
-import com.availelabs.availe.domain.types.FindResult
-import com.availelabs.availe.domain.types.InsertResult
-import com.availelabs.availe.domain.types.UpdateResult
+import com.availelabs.availe.domain.repository.IClientListingRepository
+import com.availelabs.availe.domain.types.*
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
-import kotlin.uuid.ExperimentalUuidApi
 
 class ListingRepository(
     private val remoteDataSource: IListingRemoteDataSource
-) : IListingRepository {
+) : IClientListingRepository {
 
-    override suspend fun getAllListings(): List<Listing> {
-        return remoteDataSource.getAllListings()
+    override suspend fun getAllListings(): RepositoryOperationResult<List<Listing>> {
+        return executeSafeNetworkRequest {
+            remoteDataSource.getAllListings()
+        }
     }
 
-    override suspend fun getListingById(id: ListingId): FindResult<Listing> {
-        return remoteDataSource.getListingById(id)
+    override suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>> {
+        return executeSafeNetworkRequest {
+            remoteDataSource.getListingById(id)
+        }
     }
 
-    override suspend fun createListing(newListing: NewListing): InsertResult<Listing> {
-        return remoteDataSource.createListing(newListing)
+    override suspend fun createListing(newListing: NewListing): RepositoryOperationResult<InsertResult<Listing>> {
+        return executeSafeNetworkRequest {
+            remoteDataSource.createListing(newListing)
+        }
     }
 
-    override suspend fun existsById(id: ListingId): Boolean {
-        return remoteDataSource.existsById(id)
+    override suspend fun existsById(id: ListingId): RepositoryOperationResult<Boolean> {
+        return executeSafeNetworkRequest {
+            remoteDataSource.existsById(id)
+        }
     }
 
     override suspend fun updateListing(
         id: ListingId,
         patch: TypeV1ListingDtoPatchRequest
-    ): UpdateResult<Listing> {
-        return remoteDataSource.updateListing(id, patch)
+    ): RepositoryOperationResult<UpdateResult<Listing>> {
+        return executeSafeNetworkRequest {
+            remoteDataSource.updateListing(id, patch)
+        }
     }
 
-    override suspend fun deleteListing(id: ListingId): DeleteResult {
-        return remoteDataSource.deleteListing(id)
+    override suspend fun deleteListing(id: ListingId): RepositoryOperationResult<DeleteResult> {
+        return executeSafeNetworkRequest {
+            remoteDataSource.deleteListing(id)
+        }
     }
 }

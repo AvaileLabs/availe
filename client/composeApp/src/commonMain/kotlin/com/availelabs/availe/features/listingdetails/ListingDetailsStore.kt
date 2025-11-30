@@ -9,8 +9,9 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.repository.IListingRepository
+import com.availelabs.availe.domain.repository.IClientListingRepository
 import com.availelabs.availe.domain.types.FindResult
+import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.listingdetails.ListingDetailsStore.*
 import kotlinx.coroutines.launch
 
@@ -31,7 +32,7 @@ interface ListingDetailsStore : Store<Intent, State, Label> {
 
 class ListingDetailsStoreFactory(
     private val storeFactory: StoreFactory,
-    private val listingRepository: IListingRepository,
+    private val listingRepository: IClientListingRepository,
     private val listingId: ListingId
 ) {
 
@@ -80,21 +81,27 @@ class ListingDetailsStoreFactory(
             dispatch(Message.SetError(null))
 
             scope.launch {
-                try {
-                    when (val result = listingRepository.getListingById(id)) {
-                        is FindResult.Found -> {
-                            dispatch(Message.ListingLoaded(result.value))
-                        }
+                val result = listingRepository.getListingById(id)
 
-                        is FindResult.NotFound -> {
-                            dispatch(Message.SetError("Listing not found"))
+                when (result) {
+                    is RepositoryOperationResult.Success -> {
+                        when (val findResult = result.value) {
+                            is FindResult.Found -> {
+                                dispatch(Message.ListingLoaded(findResult.value))
+                            }
+
+                            is FindResult.NotFound -> {
+                                dispatch(Message.SetError("Listing not found"))
+                            }
                         }
                     }
-                } catch (exception: Exception) {
-                    dispatch(Message.SetError(exception.message ?: "Failed to load listing"))
-                } finally {
-                    dispatch(Message.SetLoading(false))
+
+                    is RepositoryOperationResult.Failure -> {
+                        dispatch(Message.SetError(result.error.value))
+                    }
                 }
+
+                dispatch(Message.SetLoading(false))
             }
         }
     }

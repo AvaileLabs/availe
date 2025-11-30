@@ -69,7 +69,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         )
     }
 
-    private suspend fun insertListing(newListing: NewListing): Listing {
+    private fun insertListing(newListing: NewListing): Listing {
         val result = repository.createListing(newListing)
         assertTrue(result is InsertResult.Inserted, "Setup failed: Could not insert listing")
         return (result as InsertResult.Inserted).value
@@ -77,167 +77,154 @@ class ListingRepositoryTest : PostgresTestBase() {
 
     @Test
     fun `updateListing updates a single title field`() {
-        runBlockingTest {
-            val initialListing = insertListing(aNewItemListing(title = ListingTitle("Old Title")))
-            val newTitle = ListingTitle("New Title")
-            val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
+        val initialListing = insertListing(aNewItemListing(title = ListingTitle("Old Title")))
+        val newTitle = ListingTitle("New Title")
+        val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
 
-            val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch)
 
-            assertTrue(result is UpdateResult.Updated)
-            val updatedListing = (result as UpdateResult.Updated).value
-            assertEquals(newTitle, updatedListing.title)
-            assertEquals(initialListing.description, updatedListing.description)
-            assertEquals(initialListing.price, updatedListing.price)
-        }
+        assertTrue(result is UpdateResult.Updated)
+        val updatedListing = (result as UpdateResult.Updated).value
+        assertEquals(newTitle, updatedListing.title)
+        assertEquals(initialListing.description, updatedListing.description)
+        assertEquals(initialListing.price, updatedListing.price)
+
     }
 
     @Test
     fun `updateListing updates price field`() {
-        runBlockingTest {
-            val initialListing =
-                insertListing(aNewItemListing(price = Price(PriceAmount("100.00"), CurrencyCode("USD"))))
-            val newPrice = Price(PriceAmount("99.99"), CurrencyCode("EUR"))
-            val patch = ListingItemDtoSchema.V1.PatchRequest(price = Patchable.Set(newPrice))
+        val initialListing =
+            insertListing(aNewItemListing(price = Price(PriceAmount("100.00"), CurrencyCode("USD"))))
+        val newPrice = Price(PriceAmount("99.99"), CurrencyCode("EUR"))
+        val patch = ListingItemDtoSchema.V1.PatchRequest(price = Patchable.Set(newPrice))
 
-            val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch)
 
-            assertTrue(result is UpdateResult.Updated)
-            val updatedListing = (result as UpdateResult.Updated).value
-            assertEquals(newPrice, updatedListing.price)
-            assertNotEquals(initialListing.price, updatedListing.price)
-            assertEquals(initialListing.title, updatedListing.title)
-        }
+        assertTrue(result is UpdateResult.Updated)
+        val updatedListing = (result as UpdateResult.Updated).value
+        assertEquals(newPrice, updatedListing.price)
+        assertNotEquals(initialListing.price, updatedListing.price)
+        assertEquals(initialListing.title, updatedListing.title)
+
     }
 
     @Test
     fun `updateListing updates description to null`() {
-        runBlockingTest {
-            val initialListing = insertListing(aNewItemListing(description = ListingDescription("Not null")))
-            val patch = ListingItemDtoSchema.V1.PatchRequest(description = Patchable.Set(null))
+        val initialListing = insertListing(aNewItemListing(description = ListingDescription("Not null")))
+        val patch = ListingItemDtoSchema.V1.PatchRequest(description = Patchable.Set(null))
 
-            val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch)
 
-            assertTrue(result is UpdateResult.Updated)
-            val updatedListing = (result as UpdateResult.Updated).value
-            assertNull(updatedListing.description)
-            assertNotEquals(initialListing.description, updatedListing.description)
-        }
+        assertTrue(result is UpdateResult.Updated)
+        val updatedListing = (result as UpdateResult.Updated).value
+        assertNull(updatedListing.description)
+        assertNotEquals(initialListing.description, updatedListing.description)
+
     }
 
     @Test
     fun `updateListing updates multiple fields at once`() {
-        runBlockingTest {
-            val initialListing = insertListing(
-                aNewItemListing(
-                    title = ListingTitle("Old Title"),
-                    imageLinks = listOf(ImageUrl("old.png"))
-                )
+        val initialListing = insertListing(
+            aNewItemListing(
+                title = ListingTitle("Old Title"),
+                imageLinks = listOf(ImageUrl("old.png"))
             )
-            val newTitle = ListingTitle("New Title")
-            val newImageLinks = listOf(ImageUrl("new1.png"), ImageUrl("new2.png"))
+        )
+        val newTitle = ListingTitle("New Title")
+        val newImageLinks = listOf(ImageUrl("new1.png"), ImageUrl("new2.png"))
 
-            val patch = ListingItemDtoSchema.V1.PatchRequest(
-                title = Patchable.Set(newTitle),
-                imageLinks = Patchable.Set(newImageLinks)
-            )
+        val patch = ListingItemDtoSchema.V1.PatchRequest(
+            title = Patchable.Set(newTitle),
+            imageLinks = Patchable.Set(newImageLinks)
+        )
 
-            val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch)
 
-            assertTrue(result is UpdateResult.Updated)
-            val updatedListing = (result as UpdateResult.Updated).value
-            assertEquals(newTitle, updatedListing.title)
-            assertEquals(newImageLinks, updatedListing.imageLinks)
-            assertEquals(initialListing.description, updatedListing.description)
-        }
+        assertTrue(result is UpdateResult.Updated)
+        val updatedListing = (result as UpdateResult.Updated).value
+        assertEquals(newTitle, updatedListing.title)
+        assertEquals(newImageLinks, updatedListing.imageLinks)
+        assertEquals(initialListing.description, updatedListing.description)
+
     }
 
     @Test
     fun `updateListing with empty patch returns Updated and changes nothing`() {
-        runBlockingTest {
-            val initialListing = insertListing(aNewItemListing())
-            val emptyPatch = ListingItemDtoSchema.V1.PatchRequest()
+        val initialListing = insertListing(aNewItemListing())
+        val emptyPatch = ListingItemDtoSchema.V1.PatchRequest()
 
-            val result = repository.updateListing(initialListing.id, emptyPatch)
+        val result = repository.updateListing(initialListing.id, emptyPatch)
 
-            assertTrue(result is UpdateResult.Updated)
-            val updatedListing = (result as UpdateResult.Updated).value
-            assertEquals(initialListing, updatedListing)
-        }
+        assertTrue(result is UpdateResult.Updated)
+        val updatedListing = (result as UpdateResult.Updated).value
+        assertEquals(initialListing, updatedListing)
+
     }
 
     @Test
     fun `updateListing on non-existent ID returns NotFound`() {
-        runBlockingTest {
-            val randomId = ListingId(Uuid.random())
-            val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
+        val randomId = ListingId(Uuid.random())
+        val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
 
-            val result = repository.updateListing(randomId, patch)
+        val result = repository.updateListing(randomId, patch)
 
-            assertTrue(result is UpdateResult.NotFound)
-        }
+        assertTrue(result is UpdateResult.NotFound)
+
     }
 
     @Test
     fun `updateListing works for Event listing type`() {
-        runBlockingTest {
-            val initialEvent = insertListing(aNewEventListing())
-            val newTitle = ListingTitle("Updated Event Title")
-            val patch = ListingEventDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
+        val initialEvent = insertListing(aNewEventListing())
+        val newTitle = ListingTitle("Updated Event Title")
+        val patch = ListingEventDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
 
-            val result = repository.updateListing(initialEvent.id, patch)
+        val result = repository.updateListing(initialEvent.id, patch)
 
-            assertTrue(result is UpdateResult.Updated)
-            val updatedEvent = (result as UpdateResult.Updated).value
-            assertEquals(newTitle, updatedEvent.title)
-            assertEquals(initialEvent.description, updatedEvent.description)
-        }
+        assertTrue(result is UpdateResult.Updated)
+        val updatedEvent = (result as UpdateResult.Updated).value
+        assertEquals(newTitle, updatedEvent.title)
+        assertEquals(initialEvent.description, updatedEvent.description)
+
     }
 
     @Test
     fun `deleteListing returns Deleted when listing exists`() {
-        runBlockingTest {
-            val initialListing = insertListing(aNewItemListing())
+        val initialListing = insertListing(aNewItemListing())
 
-            val result = repository.deleteListing(initialListing.id)
+        val result = repository.deleteListing(initialListing.id)
 
-            assertTrue(result is DeleteResult.Deleted)
-            val findResult = repository.getListingById(initialListing.id)
-            assertTrue(findResult is FindResult.NotFound)
-        }
+        assertTrue(result is DeleteResult.Deleted)
+        val findResult = repository.getListingById(initialListing.id)
+        assertTrue(findResult is FindResult.NotFound)
+
     }
 
     @Test
     fun `deleteListing returns NotFound when listing does not exist`() {
-        runBlockingTest {
-            val randomId = ListingId(Uuid.random())
+        val randomId = ListingId(Uuid.random())
 
-            val result = repository.deleteListing(randomId)
+        val result = repository.deleteListing(randomId)
 
-            assertTrue(result is DeleteResult.NotFound)
-        }
+        assertTrue(result is DeleteResult.NotFound)
+
     }
 
     @Test
     fun `getListingById fetches correctly after creation`() {
-        runBlockingTest {
-            val initialListing = insertListing(aNewItemListing())
+        val initialListing = insertListing(aNewItemListing())
 
-            val findResult = repository.getListingById(initialListing.id)
+        val findResult = repository.getListingById(initialListing.id)
 
-            assertTrue(findResult is FindResult.Found)
-            val foundListing = (findResult as FindResult.Found).value
-            assertEquals(initialListing, foundListing)
-        }
+        assertTrue(findResult is FindResult.Found)
+        val foundListing = (findResult as FindResult.Found).value
+        assertEquals(initialListing, foundListing)
+
     }
 
     @Test
     fun `getListingById returns NotFound for non-existent ID`() {
-        runBlockingTest {
-            val findResult = repository.getListingById(ListingId(Uuid.random()))
-            assertTrue(findResult is FindResult.NotFound)
-        }
-    }
+        val findResult = repository.getListingById(ListingId(Uuid.random()))
+        assertTrue(findResult is FindResult.NotFound)
 
-    private fun runBlockingTest(block: suspend () -> Unit) = kotlinx.coroutines.runBlocking { block() }
+    }
 }

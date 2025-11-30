@@ -8,7 +8,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.repository.IListingRepository
+import com.availelabs.availe.domain.repository.IClientListingRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 
@@ -19,7 +19,7 @@ interface IHomeComponent {
 
 class HomeComponent(
     componentContext: ComponentContext,
-    private val listingRepository: IListingRepository,
+    private val listingRepository: IClientListingRepository,
     private val sessionManager: ISessionManager,
     private val onNavigateToListingDetails: (ListingId) -> Unit
 ) : IHomeComponent, ComponentContext by componentContext {

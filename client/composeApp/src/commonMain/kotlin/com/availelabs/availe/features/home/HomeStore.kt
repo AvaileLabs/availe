@@ -10,9 +10,10 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.domain.repository.IListingRepository
+import com.availelabs.availe.domain.repository.IClientListingRepository
 import com.availelabs.availe.domain.toDisplayString
 import com.availelabs.availe.domain.types.InsertResult
+import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.home.HomeStore.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
@@ -51,7 +52,7 @@ interface HomeStore : Store<Intent, State, Label> {
 
 class HomeStoreFactory(
     private val storeFactory: StoreFactory,
-    private val listingRepository: IListingRepository,
+    private val listingRepository: IClientListingRepository,
     private val sessionManager: ISessionManager
 ) {
 
@@ -111,32 +112,37 @@ class HomeStoreFactory(
                 }
 
                 dispatch(Message.SetRefreshing(true))
-                try {
-                    val randomId = Random.nextInt(1000, 9999)
-                    val newListing = NewListing.Item(
-                        commonData = CommonListingData(
-                            title = ListingTitle("Quick Item $randomId"),
-                            description = ListingDescription("This item was created via quick add action."),
-                            price = Price(PriceAmount("10.00"), SupportedCurrency.USD.code),
-                            imageLinks = emptyList(),
-                            publisherId = userProfile.id
-                        )
-                    )
 
-                    when (listingRepository.createListing(newListing)) {
-                        is InsertResult.Inserted -> fetchListings(isRefresh = true)
-                        is InsertResult.AlreadyExists -> {
-                            val errorMessage = "Listing already exists"
-                            dispatch(Message.SetError(errorMessage))
-                            publish(Label.DisplayError(errorMessage))
-                            dispatch(Message.SetRefreshing(false))
+                val randomId = Random.nextInt(1000, 9999)
+                val newListing = NewListing.Item(
+                    commonData = CommonListingData(
+                        title = ListingTitle("Quick Item $randomId"),
+                        description = ListingDescription("This item was created via quick add action."),
+                        price = Price(PriceAmount("10.00"), SupportedCurrency.USD.code),
+                        imageLinks = emptyList(),
+                        publisherId = userProfile.id
+                    )
+                )
+
+                when (val result = listingRepository.createListing(newListing)) {
+                    is RepositoryOperationResult.Success -> {
+                        when (result.value) {
+                            is InsertResult.Inserted -> fetchListings(isRefresh = true)
+                            is InsertResult.AlreadyExists -> {
+                                val errorMessage = "Listing already exists"
+                                dispatch(Message.SetError(errorMessage))
+                                publish(Label.DisplayError(errorMessage))
+                                dispatch(Message.SetRefreshing(false))
+                            }
                         }
                     }
-                } catch (exception: Exception) {
-                    val errorMessage = exception.message ?: "Failed to create listing"
-                    dispatch(Message.SetError(errorMessage))
-                    publish(Label.DisplayError(errorMessage))
-                    dispatch(Message.SetRefreshing(false))
+
+                    is RepositoryOperationResult.Failure -> {
+                        val errorMessage = result.error.value
+                        dispatch(Message.SetError(errorMessage))
+                        publish(Label.DisplayError(errorMessage))
+                        dispatch(Message.SetRefreshing(false))
+                    }
                 }
             }
         }
@@ -150,20 +156,25 @@ class HomeStoreFactory(
             dispatch(Message.SetError(null))
 
             scope.launch {
-                try {
-                    val domainListings = listingRepository.getAllListings()
-                    val listingUiModels = domainListings.map { it.toListingUiModel() }
-                    dispatch(Message.ListingsLoaded(listingUiModels))
-                } catch (exception: Exception) {
-                    val errorMessage = exception.message ?: "Failed to load listings"
-                    dispatch(Message.SetError(errorMessage))
-                    publish(Label.DisplayError(errorMessage))
-                } finally {
-                    if (isRefresh) {
-                        dispatch(Message.SetRefreshing(false))
-                    } else {
-                        dispatch(Message.SetLoading(false))
+                val result = listingRepository.getAllListings()
+
+                when (result) {
+                    is RepositoryOperationResult.Success -> {
+                        val listingUiModels = result.value.map { it.toListingUiModel() }
+                        dispatch(Message.ListingsLoaded(listingUiModels))
                     }
+
+                    is RepositoryOperationResult.Failure -> {
+                        val errorMessage = result.error.value
+                        dispatch(Message.SetError(errorMessage))
+                        publish(Label.DisplayError(errorMessage))
+                    }
+                }
+
+                if (isRefresh) {
+                    dispatch(Message.SetRefreshing(false))
+                } else {
+                    dispatch(Message.SetLoading(false))
                 }
             }
         }

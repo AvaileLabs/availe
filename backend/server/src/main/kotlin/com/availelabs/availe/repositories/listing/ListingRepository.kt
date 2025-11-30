@@ -3,7 +3,6 @@
 package com.availelabs.availe.repositories.listing
 
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.domain.repository.IListingRepository
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
@@ -27,6 +26,19 @@ import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.toJavaUuid
 
+interface IListingRepository {
+    fun createListing(newListing: NewListing): InsertResult<Listing>
+    fun getListingById(id: ListingId): FindResult<Listing>
+    fun existsById(id: ListingId): Boolean
+    fun getAllListings(): List<Listing>
+    fun updateListing(
+        id: ListingId,
+        patch: TypeV1ListingDtoPatchRequest
+    ): UpdateResult<Listing>
+
+    fun deleteListing(id: ListingId): DeleteResult
+}
+
 internal class ListingRepository(
     private val dsl: DSLContext,
     private val itemCreator: IListingCreator<NewListing.Item>,
@@ -41,7 +53,7 @@ internal class ListingRepository(
         .leftJoin(LISTING_EVENT_DETAILS).on(LISTINGS.ID.eq(LISTING_EVENT_DETAILS.LISTING_ID))
         .leftJoin(LISTING_SERVICE_DETAILS).on(LISTINGS.ID.eq(LISTING_SERVICE_DETAILS.LISTING_ID))
 
-    override suspend fun createListing(newListing: NewListing): InsertResult<Listing> {
+    override fun createListing(newListing: NewListing): InsertResult<Listing> {
         val newListingId: ListingId = when (newListing) {
             is NewListing.Event -> ListingId(eventCreator.create(newListing))
             is NewListing.Item -> ListingId(itemCreator.create(newListing))
@@ -54,7 +66,7 @@ internal class ListingRepository(
         }
     }
 
-    override suspend fun getListingById(id: ListingId): FindResult<Listing> {
+    override fun getListingById(id: ListingId): FindResult<Listing> {
         return baseQuery()
             .where(LISTINGS.ID.eq(id.value.toJavaUuid()))
             .fetchOne()
@@ -71,7 +83,7 @@ internal class ListingRepository(
             ?: FindResult.NotFound
     }
 
-    override suspend fun existsById(id: ListingId): Boolean {
+    override fun existsById(id: ListingId): Boolean {
         return dsl.fetchExists(
             dsl.selectOne()
                 .from(LISTINGS)
@@ -79,7 +91,7 @@ internal class ListingRepository(
         )
     }
 
-    override suspend fun getAllListings(): List<Listing> {
+    override fun getAllListings(): List<Listing> {
         return baseQuery()
             .fetch()
             .map {
@@ -115,7 +127,7 @@ internal class ListingRepository(
         }
     }
 
-    override suspend fun updateListing(
+    override fun updateListing(
         id: ListingId,
         patch: TypeV1ListingDtoPatchRequest
     ): UpdateResult<Listing> {
@@ -155,7 +167,7 @@ internal class ListingRepository(
         }
     }
 
-    override suspend fun deleteListing(id: ListingId): DeleteResult {
+    override fun deleteListing(id: ListingId): DeleteResult {
         val rowsAffected = dsl.deleteFrom(LISTINGS)
             .where(LISTINGS.ID.eq(id.value.toJavaUuid()))
             .execute()
