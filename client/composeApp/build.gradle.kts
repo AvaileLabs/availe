@@ -1,4 +1,6 @@
+import app.cash.sqldelight.gradle.SqlDelightDatabase
 import com.android.build.api.dsl.androidLibrary
+import org.gradle.declarative.dsl.schema.FqName.Empty.packageName
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -13,7 +15,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kreplica)
-}
+    alias(libs.plugins.sqldelight)}
 
 kotlin {
     jvmToolchain(21)
@@ -141,6 +143,10 @@ kotlin {
             // coil3
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
+
+            // sqldelight
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines.extensions)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -155,15 +161,37 @@ kotlin {
             implementation(libs.ktor.server.core)
             implementation(libs.ktor.server.netty)
             implementation(libs.logback)
+            implementation(libs.sqldelight.sqlite.driver)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.native.driver)
         }
         webMain.dependencies {
             implementation(libs.ktor.client.js)
             implementation(libs.kotlinx.browser)
             implementation(libs.kotlin.browser)
         }
+        jsMain.dependencies {
+            implementation(libs.sqldelight.web.worker.driver)
+
+            implementation(npm("@cashapp/sqldelight-sqljs-worker", libs.versions.sqldelight.get()))
+            implementation(npm("sql.js", "1.8.0"))
+            implementation(devNpm("copy-webpack-plugin", "9.1.0"))
+        }
+
+        wasmJsMain.dependencies {
+            implementation(libs.sqldelight.web.worker.driver.wasm.js)
+        }
+    }
+}
+
+sqldelight {
+    databases {
+        create("ClientDatabase", Action<SqlDelightDatabase> {
+            packageName.set("com.availelabs.availe.db")
+            generateAsync.set(true)
+        })
     }
 }
 
