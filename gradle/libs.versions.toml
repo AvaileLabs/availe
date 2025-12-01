@@ -36,6 +36,7 @@ ksp = "2.3.3"
 kreplica = "6.0.0-alpha2"
 dockerJavaBom = "3.7.0"
 keycloakAdminClient = "26.0.7"
+store5 = "5.1.0-alpha07"
 testcontainers = "2.0.2"
 decompose = "3.4.0"
 essenty = "2.5.0"
@@ -98,6 +99,7 @@ docker-java = { module = "com.github.docker-java:docker-java" }
 docker-java-bom = { module = "com.github.docker-java:docker-java-bom", version.ref = "dockerJavaBom" }
 docker-java-transport-httpclient5 = { module = "com.github.docker-java:docker-java-transport-httpclient5" }
 keycloak-admin-client = { module = "org.keycloak:keycloak-admin-client", version.ref = "keycloakAdminClient" }
+store5 = { module = "org.mobilenativefoundation.store:store5", version.ref = "store5" }
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }

@@ -97,6 +97,7 @@ kotlin {
             api(projects.shared.configuration)
             implementation(libs.okio)
             implementation(libs.multiplatform.settings.no.arg)
+            implementation(libs.store5)
 
             // Ktor
             implementation(libs.ktor.client.core)
