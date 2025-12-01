@@ -1,0 +1,75 @@
+import com.availelabs.availe.domain.model.CurrencyCode;
+import com.availelabs.availe.domain.model.ImageUrl;
+import com.availelabs.availe.domain.model.ListingDescription;
+import com.availelabs.availe.domain.model.ListingId;
+import com.availelabs.availe.domain.model.ListingTitle;
+import com.availelabs.availe.domain.model.PriceAmount;
+import com.availelabs.availe.domain.model.UserId;
+import kotlin.collections.List;
+import kotlin.time.Instant;
+
+CREATE TABLE listings (
+    id TEXT AS ListingId NOT NULL PRIMARY KEY,
+    created_at TEXT AS Instant NOT NULL,
+    publisher_id TEXT AS UserId NOT NULL,
+    listing_type TEXT NOT NULL,
+    title TEXT AS ListingTitle NOT NULL,
+    description TEXT AS ListingDescription,
+    price_amount TEXT AS PriceAmount NOT NULL,
+    price_currency TEXT AS CurrencyCode NOT NULL,
+    image_links TEXT AS List<ImageUrl> NOT NULL
+);
+
+CREATE TABLE listing_item_details (
+    listing_id TEXT AS ListingId NOT NULL PRIMARY KEY,
+    FOREIGN KEY(listing_id) REFERENCES listings(id) ON DELETE CASCADE
+);
+
+CREATE TABLE listing_event_details (
+    listing_id TEXT AS ListingId NOT NULL PRIMARY KEY,
+    FOREIGN KEY(listing_id) REFERENCES listings(id) ON DELETE CASCADE
+);
+
+CREATE TABLE listing_service_details (
+    listing_id TEXT AS ListingId NOT NULL PRIMARY KEY,
+    FOREIGN KEY(listing_id) REFERENCES listings(id) ON DELETE CASCADE
+);
+
+upsertListing:
+INSERT OR REPLACE INTO listings(id, created_at, publisher_id, listing_type, title, description, price_amount, price_currency, image_links)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+upsertItemDetails:
+INSERT OR REPLACE INTO listing_item_details(listing_id)
+VALUES (?);
+
+upsertEventDetails:
+INSERT OR REPLACE INTO listing_event_details(listing_id)
+VALUES (?);
+
+upsertServiceDetails:
+INSERT OR REPLACE INTO listing_service_details(listing_id)
+VALUES (?);
+
+selectPage:
+SELECT *
+FROM listings
+LEFT JOIN listing_item_details ON listings.id = listing_item_details.listing_id
+LEFT JOIN listing_event_details ON listings.id = listing_event_details.listing_id
+LEFT JOIN listing_service_details ON listings.id = listing_service_details.listing_id
+LIMIT :limit OFFSET :offset;
+
+selectById:
+SELECT *
+FROM listings
+LEFT JOIN listing_item_details ON listings.id = listing_item_details.listing_id
+LEFT JOIN listing_event_details ON listings.id = listing_event_details.listing_id
+LEFT JOIN listing_service_details ON listings.id = listing_service_details.listing_id
+WHERE listings.id = ?;
+
+deleteById:
+DELETE FROM listings
+WHERE id = ?;
+
+deleteAll:
+DELETE FROM listings;
