@@ -19,7 +19,6 @@ import com.availelabs.availe.mappers.toDomain
 import com.availelabs.availe.observability.ListingCreated
 import com.availelabs.availe.service.IListingService
 import io.availe.models.Patchable
-import kotlinx.coroutines.runBlocking
 import org.http4k.contract.ContractRoute
 import org.http4k.contract.div
 import org.http4k.contract.meta
@@ -93,17 +92,16 @@ internal class ListingController(
                 return@then Response(Status.BAD_REQUEST).body("Invalid Price")
             }
 
-            runBlocking {
-                when (val result = listingService.createListing(newListing)) {
-                    is InsertResult.Inserted<Listing> -> {
-                        val listing = result.value
-                        events(ListingCreated(listing.id.value.toString(), authenticatedUser.id.value.toString()))
-                        val responseDto = listing.toDataDto()
-                        Response(Status.CREATED).with(responseBodyLens of responseDto)
-                    }
-
-                    is InsertResult.AlreadyExists -> Response(Status.CONFLICT)
+            when (val result = listingService.createListing(newListing)) {
+                is InsertResult.Inserted<Listing> -> {
+                    val listing = result.value
+                    events(ListingCreated(listing.id.value.toString(), authenticatedUser.id.value.toString()))
+                    val responseDto = listing.toDataDto()
+                    Response(Status.CREATED).with(responseBodyLens of responseDto)
                 }
+
+                is InsertResult.AlreadyExists -> Response(Status.CONFLICT)
+
             }
         }
     }
@@ -116,15 +114,14 @@ internal class ListingController(
             returning(Status.NOT_FOUND)
         } bindContract Method.GET to { listingId ->
             { _: Request ->
-                runBlocking {
-                    when (val result = listingService.getListingById(listingId)) {
-                        is FindResult.Found -> {
-                            val responseDto = result.value.toDataDto()
-                            Response(Status.OK).with(responseBodyLens of responseDto)
-                        }
-
-                        is FindResult.NotFound -> Response(Status.NOT_FOUND)
+                when (val result = listingService.getListingById(listingId)) {
+                    is FindResult.Found -> {
+                        val responseDto = result.value.toDataDto()
+                        Response(Status.OK).with(responseBodyLens of responseDto)
                     }
+
+                    is FindResult.NotFound -> Response(Status.NOT_FOUND)
+
                 }
             }
         }
@@ -138,19 +135,17 @@ internal class ListingController(
             returning(Status.NOT_FOUND)
         } bindContract Method.HEAD to { listingId ->
             { _: Request ->
-                runBlocking {
-                    val exists = try {
-                        val result = listingService.getListingById(listingId)
-                        result is FindResult.Found
-                    } catch (_: Exception) {
-                        false
-                    }
+                val exists = try {
+                    val result = listingService.getListingById(listingId)
+                    result is FindResult.Found
+                } catch (_: Exception) {
+                    false
+                }
 
-                    if (exists) {
-                        Response(Status.OK)
-                    } else {
-                        Response(Status.NOT_FOUND)
-                    }
+                if (exists) {
+                    Response(Status.OK)
+                } else {
+                    Response(Status.NOT_FOUND)
                 }
             }
         }
@@ -164,13 +159,12 @@ internal class ListingController(
             queries += pageSizeQueryLens
             returning(Status.OK, listResponseBodyLens to listOf(exampleResponseItem))
         } bindContract Method.GET to { request: Request ->
-            runBlocking {
-                val pageNumber = pageNumberQueryLens(request)
-                val pageSize = pageSizeQueryLens(request)
-                val listings = listingService.getListingsPage(pageNumber, pageSize)
-                val responseDto = listings.map { it.toDataDto() }
-                Response(Status.OK).with(listResponseBodyLens of responseDto)
-            }
+            val pageNumber = pageNumberQueryLens(request)
+            val pageSize = pageSizeQueryLens(request)
+            val listings = listingService.getListingsPage(pageNumber, pageSize)
+            val responseDto = listings.map { it.toDataDto() }
+            Response(Status.OK).with(listResponseBodyLens of responseDto)
+
         }
     }
 
