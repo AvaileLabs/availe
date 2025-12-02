@@ -9,7 +9,7 @@ import kotlin.collections.List;
 import kotlin.time.Instant;
 
 CREATE TABLE listings (
-    id TEXT AS ListingId NOT NULL PRIMARY KEY,
+    primary_key_id TEXT AS ListingId NOT NULL PRIMARY KEY,
     created_at TEXT AS Instant NOT NULL,
     publisher_id TEXT AS UserId NOT NULL,
     listing_type TEXT NOT NULL,
@@ -22,21 +22,21 @@ CREATE TABLE listings (
 
 CREATE TABLE listing_item_details (
     listing_id TEXT AS ListingId NOT NULL PRIMARY KEY,
-    FOREIGN KEY(listing_id) REFERENCES listings(id) ON DELETE CASCADE
+    FOREIGN KEY(listing_id) REFERENCES listings(primary_key_id) ON DELETE CASCADE
 );
 
 CREATE TABLE listing_event_details (
     listing_id TEXT AS ListingId NOT NULL PRIMARY KEY,
-    FOREIGN KEY(listing_id) REFERENCES listings(id) ON DELETE CASCADE
+    FOREIGN KEY(listing_id) REFERENCES listings(primary_key_id) ON DELETE CASCADE
 );
 
 CREATE TABLE listing_service_details (
     listing_id TEXT AS ListingId NOT NULL PRIMARY KEY,
-    FOREIGN KEY(listing_id) REFERENCES listings(id) ON DELETE CASCADE
+    FOREIGN KEY(listing_id) REFERENCES listings(primary_key_id) ON DELETE CASCADE
 );
 
 upsertListing:
-INSERT OR REPLACE INTO listings(id, created_at, publisher_id, listing_type, title, description, price_amount, price_currency, image_links)
+INSERT OR REPLACE INTO listings(primary_key_id, created_at, publisher_id, listing_type, title, description, price_amount, price_currency, image_links)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 upsertItemDetails:
@@ -54,22 +54,22 @@ VALUES (?);
 selectPage:
 SELECT *
 FROM listings
-LEFT JOIN listing_item_details ON listings.id = listing_item_details.listing_id
-LEFT JOIN listing_event_details ON listings.id = listing_event_details.listing_id
-LEFT JOIN listing_service_details ON listings.id = listing_service_details.listing_id
+LEFT JOIN listing_item_details ON listings.primary_key_id = listing_item_details.listing_id
+LEFT JOIN listing_event_details ON listings.primary_key_id = listing_event_details.listing_id
+LEFT JOIN listing_service_details ON listings.primary_key_id = listing_service_details.listing_id
 LIMIT :limit OFFSET :offset;
 
 selectById:
 SELECT *
 FROM listings
-LEFT JOIN listing_item_details ON listings.id = listing_item_details.listing_id
-LEFT JOIN listing_event_details ON listings.id = listing_event_details.listing_id
-LEFT JOIN listing_service_details ON listings.id = listing_service_details.listing_id
-WHERE listings.id = ?;
+LEFT JOIN listing_item_details ON listings.primary_key_id = listing_item_details.listing_id
+LEFT JOIN listing_event_details ON listings.primary_key_id = listing_event_details.listing_id
+LEFT JOIN listing_service_details ON listings.primary_key_id = listing_service_details.listing_id
+WHERE listings.primary_key_id = ?;
 
 deleteById:
 DELETE FROM listings
-WHERE id = ?;
+WHERE primary_key_id = ?;
 
 deleteAll:
 DELETE FROM listings;
