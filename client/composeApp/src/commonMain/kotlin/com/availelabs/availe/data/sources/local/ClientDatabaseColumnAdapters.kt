@@ -37,7 +37,7 @@ private fun mapRawDataToListing(
     id: ListingId,
     createdAt: Instant,
     publisherId: UserId,
-    listingType: String,
+    listingType: ListingCategory,
     title: ListingTitle,
     description: ListingDescription?,
     priceAmount: PriceAmount,
@@ -58,9 +58,8 @@ private fun mapRawDataToListing(
     )
 
     return when (listingType) {
-        "item" -> Listing.Item(commonData, id, createdAt)
-        "event" -> Listing.Event(commonData, id, createdAt)
-        "service" -> Listing.Service(commonData, id, createdAt)
-        else -> throw IllegalStateException("Unknown listing type: $listingType")
+        ListingCategory.Item -> Listing.Item(commonData, id, createdAt)
+        ListingCategory.Event -> Listing.Event(commonData, id, createdAt)
+        ListingCategory.Service -> Listing.Service(commonData, id, createdAt)
     }
 }
