@@ -12,7 +12,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.availelabs.availe.domain.toDisplayString
+import com.availelabs.availe.domain.extensions.toDisplayString
 import com.composables.uikit.components.AppScaffold
 import com.composables.uikit.components.IntermediateProgressIndicator
 import com.composables.uikit.components.PrimaryButton

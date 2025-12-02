@@ -4,8 +4,6 @@ package com.availelabs.availe.data.sources.remote
 
 import com.availelabs.availe.ApiMediaTypes
 import com.availelabs.availe.ApiRoutes
-import com.availelabs.availe.data.network.toCreateRequestDto
-import com.availelabs.availe.data.network.toDomainListing
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
@@ -15,6 +13,8 @@ import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import com.availelabs.availe.mappers.toCreateRequestDto
+import com.availelabs.availe.mappers.toDomainListing
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*

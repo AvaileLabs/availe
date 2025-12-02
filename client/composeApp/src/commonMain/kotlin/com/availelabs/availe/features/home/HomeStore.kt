@@ -9,9 +9,9 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.domain.extensions.toDisplayString
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.repository.IClientListingRepository
-import com.availelabs.availe.domain.toDisplayString
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.home.HomeStore.*

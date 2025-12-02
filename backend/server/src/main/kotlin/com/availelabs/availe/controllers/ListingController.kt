@@ -4,6 +4,7 @@ import com.availelabs.availe.ApiParameters
 import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.auth.AuthenticationFilter
 import com.availelabs.availe.auth.SecurityContexts
+import com.availelabs.availe.domain.logic.InputValidator
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
@@ -80,9 +81,17 @@ internal class ListingController(
             returning(Status.CREATED, responseBodyLens to exampleResponseItem)
             returning(Status.CONFLICT)
             returning(Status.UNAUTHORIZED)
+            returning(Status.BAD_REQUEST)
         } bindContract Method.POST to authenticationFilter.then { request ->
             val authenticatedUser = SecurityContexts.authenticatedUserLens(request)
             val newListing = bodyLens(request).toDomain(authenticatedUser.id)
+
+            if (!InputValidator.isValidTitle(newListing.title)) {
+                return@then Response(Status.BAD_REQUEST).body("Invalid Title")
+            }
+            if (!InputValidator.isValidPrice(newListing.price.amount)) {
+                return@then Response(Status.BAD_REQUEST).body("Invalid Price")
+            }
 
             runBlocking {
                 when (val result = listingService.createListing(newListing)) {

@@ -3,7 +3,6 @@
 package com.availelabs.availe.mappers
 
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.dto.kreplica.*
 import com.example.jooq.enums.ListingTypeEnum
 import com.example.jooq.tables.records.ListingsRecord
 import org.jooq.Record
@@ -80,73 +79,5 @@ internal fun Record.toDomainListing(
         }
 
         null -> throw IllegalStateException("Listing type from DB was null")
-    }
-}
-
-internal fun Listing.toDataDto(): TypeV1ListingDtoData {
-    return when (this) {
-        is Listing.Event -> ListingEventDtoSchema.V1.Data(
-            id = this.id,
-            title = this.title,
-            description = this.description,
-            price = this.price,
-            imageLinks = this.imageLinks,
-            publisherId = this.publisherId,
-            schemaVersion = 1
-        )
-
-        is Listing.Item -> ListingItemDtoSchema.V1.Data(
-            id = this.id,
-            title = this.title,
-            description = this.description,
-            price = this.price,
-            imageLinks = this.imageLinks,
-            publisherId = this.publisherId,
-            schemaVersion = 1
-        )
-
-        is Listing.Service -> ListingServiceDtoSchema.V1.Data(
-            id = this.id,
-            title = this.title,
-            description = this.description,
-            price = this.price,
-            imageLinks = this.imageLinks,
-            publisherId = this.publisherId,
-            schemaVersion = 1
-        )
-    }
-}
-
-internal fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId): NewListing {
-    return when (this) {
-        is ListingEventDtoSchema.V1.CreateRequest -> NewListing.Event(
-            CommonListingData(
-                title = title,
-                description = description,
-                price = price,
-                imageLinks = imageLinks,
-                publisherId = publisherId
-            )
-        )
-
-        is ListingItemDtoSchema.V1.CreateRequest -> NewListing.Item(
-            CommonListingData(
-                title = title,
-                description = description,
-                price = price,
-                imageLinks = imageLinks,
-                publisherId = publisherId
-            )
-        )
-
-        is ListingServiceDtoSchema.V1.CreateRequest -> NewListing.Service(
-            CommonListingData(
-                title = title,
-                description = description,
-                price = price,
-                imageLinks = imageLinks,
-                publisherId = publisherId
-            )
-        )
     }
 }

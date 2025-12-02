@@ -2,6 +2,7 @@
 
 package com.availelabs.availe.service
 
+import com.availelabs.availe.domain.extensions.canBeModifiedBy
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
@@ -55,7 +56,7 @@ class ListingService(
             is FindResult.NotFound -> return UpdateResult.NotFound
         }
 
-        if (listing.publisherId != requestingPublisherId) {
+        if (!listing.canBeModifiedBy(requestingPublisherId)) {
             return UpdateResult.Forbidden
         }
 
@@ -68,7 +69,7 @@ class ListingService(
             is FindResult.NotFound -> return DeleteResult.NotFound
         }
 
-        if (listing.publisherId != requestingPublisherId) {
+        if (!listing.canBeModifiedBy(requestingPublisherId)) {
             return DeleteResult.Forbidden
         }
 
