@@ -172,13 +172,12 @@ kotlin {
             implementation(libs.ktor.client.js)
             implementation(libs.kotlinx.browser)
             implementation(libs.kotlin.browser)
-        }
-        jsMain.dependencies {
-            implementation(libs.sqldelight.web.worker.driver)
-
             implementation(npm("@cashapp/sqldelight-sqljs-worker", libs.versions.sqldelight.get()))
             implementation(npm("sql.js", libs.versions.sqljs.get()))
             implementation(devNpm("copy-webpack-plugin", libs.versions.copyWebpackPlugin.get()))
+        }
+        jsMain.dependencies {
+            implementation(libs.sqldelight.web.worker.driver)
         }
 
         wasmJsMain.dependencies {
