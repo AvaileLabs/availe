@@ -24,13 +24,10 @@ fun Throwable.classifyNetworkError(): NetworkErrorType {
         is ConnectTimeoutException -> NetworkErrorType.Recoverable.ConnectionTimeout
         is SocketTimeoutException -> NetworkErrorType.Recoverable.ConnectionTimeout
         is TimeoutCancellationException -> NetworkErrorType.Recoverable.ConnectionTimeout
-
         is UnresolvedAddressException -> NetworkErrorType.Recoverable.Connectivity
-
         is ClientRequestException -> NetworkErrorType.Recoverable.ClientSide
         is ServerResponseException -> NetworkErrorType.Recoverable.ServerSide
         is SerializationException -> NetworkErrorType.Recoverable.DataSerialization
-
         else -> classifyPlatformError() ?: NetworkErrorType.Unrecoverable
     }
 }

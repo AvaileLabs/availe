@@ -1,19 +1,29 @@
 package com.availelabs.availe.data.network
 
 import io.ktor.client.engine.darwin.*
-import platform.Foundation.NSURLErrorCannotConnectToHost
-import platform.Foundation.NSURLErrorDomain
-import platform.Foundation.NSURLErrorNotConnectedToInternet
-import platform.Foundation.NSURLErrorTimedOut
+import platform.Foundation.*
 
 actual fun Throwable.classifyPlatformError(): NetworkErrorType? {
     if (this is DarwinHttpRequestException) {
-        val error = this.origin
-        if (error.domain == NSURLErrorDomain) {
-            return when (error.code) {
+        val underlyingError = this.origin
+        if (underlyingError.domain == NSURLErrorDomain) {
+            return when (underlyingError.code) {
                 NSURLErrorNotConnectedToInternet -> NetworkErrorType.Recoverable.Connectivity
-                NSURLErrorCannotConnectToHost -> NetworkErrorType.Recoverable.ServerSide
+                NSURLErrorDataNotAllowed -> NetworkErrorType.Recoverable.Connectivity
+                NSURLErrorInternationalRoamingOff -> NetworkErrorType.Recoverable.Connectivity
+                NSURLErrorNetworkConnectionLost -> NetworkErrorType.Recoverable.Connectivity
+                NSURLErrorCallIsActive -> NetworkErrorType.Recoverable.Connectivity
+
                 NSURLErrorTimedOut -> NetworkErrorType.Recoverable.ConnectionTimeout
+
+                NSURLErrorCannotFindHost -> NetworkErrorType.Recoverable.ServerSide
+                NSURLErrorCannotConnectToHost -> NetworkErrorType.Recoverable.ServerSide
+
+                NSURLErrorSecureConnectionFailed -> NetworkErrorType.Recoverable.ServerSide
+                NSURLErrorServerCertificateHasBadDate -> NetworkErrorType.Recoverable.ServerSide
+                NSURLErrorServerCertificateUntrusted -> NetworkErrorType.Recoverable.ServerSide
+                NSURLErrorServerCertificateNotYetValid -> NetworkErrorType.Recoverable.ServerSide
+
                 else -> NetworkErrorType.Recoverable.Connectivity
             }
         }
