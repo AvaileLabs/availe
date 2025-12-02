@@ -9,7 +9,11 @@ import com.availelabs.availe.db.ClientDatabase
 
 class AndroidSqlDriverFactory(private val context: Context) : SqlDriverFactory {
     override suspend fun createDriver(): SqlDriver {
-        return AndroidSqliteDriver(ClientDatabase.Schema.synchronous(), context, "availe.db")
+        return AndroidSqliteDriver(
+            schema = ClientDatabase.Schema.synchronous(),
+            context = context,
+            name = ClientDatabaseConfiguration.databaseName.value
+        )
     }
 }
 

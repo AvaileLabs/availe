@@ -8,7 +8,10 @@ import com.availelabs.availe.db.ClientDatabase
 
 class NativeSqlDriverFactory : SqlDriverFactory {
     override suspend fun createDriver(): SqlDriver {
-        return NativeSqliteDriver(ClientDatabase.Schema.synchronous(), "availe.db")
+        return NativeSqliteDriver(
+            schema = ClientDatabase.Schema.synchronous(),
+            name = ClientDatabaseConfiguration.databaseName.value
+        )
     }
 }
 

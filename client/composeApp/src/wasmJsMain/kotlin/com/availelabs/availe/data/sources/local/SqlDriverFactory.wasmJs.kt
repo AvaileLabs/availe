@@ -15,8 +15,9 @@ class WasmSqlDriverFactory : SqlDriverFactory {
     }
 }
 
+@OptIn(ExperimentalWasmJsInterop::class)
 private fun createWorker(): Worker =
-    js("""new Worker(new URL("@cashapp/sqldelight-sqljs-worker/sqljs.worker.js", import.meta.url))""")
+    js("""new Worker(new URL("${ClientDatabaseConfiguration.workerModulePath.value}", import.meta.url))""")
 
 actual fun createSqlDriverFactory(activity: PlatformActivity): SqlDriverFactory {
     return WasmSqlDriverFactory()

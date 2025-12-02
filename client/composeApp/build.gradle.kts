@@ -1,6 +1,5 @@
 import app.cash.sqldelight.gradle.SqlDelightDatabase
 import com.android.build.api.dsl.androidLibrary
-import org.gradle.declarative.dsl.schema.FqName.Empty.packageName
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -15,7 +14,8 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kreplica)
-    alias(libs.plugins.sqldelight)}
+    alias(libs.plugins.sqldelight)
+}
 
 kotlin {
     jvmToolchain(21)

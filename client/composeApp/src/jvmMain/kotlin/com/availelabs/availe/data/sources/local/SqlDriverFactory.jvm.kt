@@ -8,7 +8,7 @@ import com.availelabs.availe.db.ClientDatabase
 
 class JvmSqlDriverFactory : SqlDriverFactory {
     override suspend fun createDriver(): SqlDriver {
-        val driver = JdbcSqliteDriver("jdbc:sqlite:availe.db")
+        val driver = JdbcSqliteDriver(ClientDatabaseConfiguration.databaseConnectionUrl.value)
         ClientDatabase.Schema.synchronous().create(driver)
         return driver
     }
