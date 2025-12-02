@@ -4,7 +4,7 @@ import com.availelabs.availe.ApiParameters
 import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.auth.AuthenticationFilter
 import com.availelabs.availe.auth.SecurityContexts
-import com.availelabs.availe.domain.logic.InputValidator
+import com.availelabs.availe.domain.extensions.isValid
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
@@ -85,10 +85,10 @@ internal class ListingController(
             val authenticatedUser = SecurityContexts.authenticatedUserLens(request)
             val newListing = bodyLens(request).toDomain(authenticatedUser.id)
 
-            if (!InputValidator.isValidTitle(newListing.title)) {
+            if (!newListing.title.isValid()) {
                 return@then Response(Status.BAD_REQUEST).body("Invalid Title")
             }
-            if (!InputValidator.isValidPrice(newListing.price.amount)) {
+            if (!newListing.price.amount.isValid()) {
                 return@then Response(Status.BAD_REQUEST).body("Invalid Price")
             }
 
@@ -101,6 +101,7 @@ internal class ListingController(
                 }
 
                 is InsertResult.AlreadyExists -> Response(Status.CONFLICT)
+
 
             }
         }
@@ -121,7 +122,6 @@ internal class ListingController(
                     }
 
                     is FindResult.NotFound -> Response(Status.NOT_FOUND)
-
                 }
             }
         }
@@ -164,7 +164,6 @@ internal class ListingController(
             val listings = listingService.getListingsPage(pageNumber, pageSize)
             val responseDto = listings.map { it.toDataDto() }
             Response(Status.OK).with(listResponseBodyLens of responseDto)
-
         }
     }
 
@@ -216,7 +215,6 @@ internal class ListingController(
                     is DeleteResult.NotFound -> Response(Status.NOT_FOUND)
                     is DeleteResult.Forbidden -> Response(Status.FORBIDDEN)
                 }
-
             }
         }
     }

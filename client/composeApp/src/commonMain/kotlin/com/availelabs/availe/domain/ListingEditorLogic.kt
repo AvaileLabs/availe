@@ -1,6 +1,6 @@
 package com.availelabs.availe.domain
 
-import com.availelabs.availe.domain.logic.InputValidator
+import com.availelabs.availe.domain.extensions.isValid
 import com.availelabs.availe.domain.model.*
 
 data class ListingEditorState(
@@ -32,7 +32,7 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
         is ListingEditorIntent.ChangeTitle -> state.copy(title = intent.title)
         is ListingEditorIntent.ChangeDescription -> state.copy(description = intent.value)
         is ListingEditorIntent.ChangePrice -> {
-            if (InputValidator.isValidPrice(intent.amount)) {
+            if (intent.amount.isValid()) {
                 state.copy(priceAmount = intent.amount)
             } else {
                 state
@@ -50,7 +50,7 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
 
         is ListingEditorIntent.ChangeImage -> state.copy(imageUrl = intent.url)
         is ListingEditorIntent.Submit -> {
-            if (!InputValidator.isValidTitle(state.title)) {
+            if (!state.title.isValid()) {
                 state.copy(error = "Title is invalid")
             } else if (state.priceAmount.value.isBlank()) {
                 state.copy(error = "Price is required")
