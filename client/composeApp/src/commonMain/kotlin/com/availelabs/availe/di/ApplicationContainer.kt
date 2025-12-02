@@ -12,7 +12,6 @@ import com.availelabs.availe.data.repositories.*
 import com.availelabs.availe.data.sources.local.createTokenStore
 import com.availelabs.availe.data.sources.remote.AuthenticationRemoteDataSource
 import com.availelabs.availe.data.sources.remote.ListingRemoteDataSource
-import com.availelabs.availe.domain.repository.IClientListingRepository
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
@@ -28,7 +27,7 @@ import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
 interface IApplicationContainer {
     val sessionManager: ISessionManager
     val authenticationRepository: IAuthenticationRepository
-    val listingRepository: IClientListingRepository
+    val listingRepository: IListingRepository
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
@@ -142,5 +141,5 @@ fun createApplicationContainer(
 private class ApplicationContainer(
     override val sessionManager: ISessionManager,
     override val authenticationRepository: IAuthenticationRepository,
-    override val listingRepository: IClientListingRepository
+    override val listingRepository: IListingRepository
 ) : IApplicationContainer

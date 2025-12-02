@@ -5,13 +5,25 @@ import com.availelabs.availe.data.sources.remote.IListingRemoteDataSource
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.repository.IClientListingRepository
 import com.availelabs.availe.domain.types.*
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 
+interface IListingRepository {
+    suspend fun getAllListings(): RepositoryOperationResult<List<Listing>>
+    suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>>
+    suspend fun existsById(id: ListingId): RepositoryOperationResult<Boolean>
+    suspend fun createListing(newListing: NewListing): RepositoryOperationResult<InsertResult<Listing>>
+    suspend fun updateListing(
+        id: ListingId,
+        patch: TypeV1ListingDtoPatchRequest
+    ): RepositoryOperationResult<UpdateResult<Listing>>
+
+    suspend fun deleteListing(id: ListingId): RepositoryOperationResult<DeleteResult>
+}
+
 class ListingRepository(
     private val remoteDataSource: IListingRemoteDataSource
-) : IClientListingRepository {
+) : IListingRepository {
 
     override suspend fun getAllListings(): RepositoryOperationResult<List<Listing>> {
         return executeSafeNetworkRequest {
