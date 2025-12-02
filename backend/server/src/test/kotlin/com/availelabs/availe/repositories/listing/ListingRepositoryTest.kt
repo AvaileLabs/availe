@@ -13,6 +13,7 @@ import com.availelabs.availe.repositories.listing.helpers.creators.implementatio
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ItemListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
 import com.availelabs.availe.testutils.PostgresTestBase
+import com.example.jooq.tables.references.LISTINGS
 import io.availe.models.Patchable
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -57,6 +58,8 @@ class ListingRepositoryTest : PostgresTestBase() {
 
     @BeforeEach
     fun setupRepository() {
+        dsl.deleteFrom(LISTINGS).execute()
+
         val itemCreator = ItemListingCreator(dsl)
         val eventCreator = EventListingCreator(dsl)
         val serviceCreator = ServiceListingCreator(dsl)
@@ -226,5 +229,31 @@ class ListingRepositoryTest : PostgresTestBase() {
         val findResult = repository.getListingById(ListingId(Uuid.random()))
         assertTrue(findResult is FindResult.NotFound)
 
+    }
+
+    @Test
+    fun `getListingsPage returns correct page size and offset with sorting`() {
+        val listing1 = insertListing(aNewItemListing(title = ListingTitle("1")))
+        val listing2 = insertListing(aNewItemListing(title = ListingTitle("2")))
+        val listing3 = insertListing(aNewItemListing(title = ListingTitle("3")))
+        val listing4 = insertListing(aNewItemListing(title = ListingTitle("4")))
+        val listing5 = insertListing(aNewItemListing(title = ListingTitle("5")))
+
+        val page0 = repository.getListingsPage(pageNumber = 0, pageSize = 2)
+        assertEquals(2, page0.size)
+        assertEquals(listing5.id, page0[0].id)
+        assertEquals(listing4.id, page0[1].id)
+
+        val page1 = repository.getListingsPage(pageNumber = 1, pageSize = 2)
+        assertEquals(2, page1.size)
+        assertEquals(listing3.id, page1[0].id)
+        assertEquals(listing2.id, page1[1].id)
+
+        val page2 = repository.getListingsPage(pageNumber = 2, pageSize = 2)
+        assertEquals(1, page2.size)
+        assertEquals(listing1.id, page2[0].id)
+
+        val page3 = repository.getListingsPage(pageNumber = 3, pageSize = 2)
+        assertEquals(0, page3.size)
     }
 }

@@ -31,6 +31,7 @@ interface IListingRepository {
     fun getListingById(id: ListingId): FindResult<Listing>
     fun existsById(id: ListingId): Boolean
     fun getAllListings(): List<Listing>
+    fun getListingsPage(pageNumber: Int, pageSize: Int): List<Listing>
     fun updateListing(
         id: ListingId,
         patch: TypeV1ListingDtoPatchRequest
@@ -93,6 +94,23 @@ internal class ListingRepository(
 
     override fun getAllListings(): List<Listing> {
         return baseQuery()
+            .fetch()
+            .map {
+                it.toDomainListing(
+                    LISTINGS,
+                    LISTING_ITEM_DETAILS,
+                    LISTING_EVENT_DETAILS,
+                    LISTING_SERVICE_DETAILS
+                )
+            }
+    }
+
+    override fun getListingsPage(pageNumber: Int, pageSize: Int): List<Listing> {
+        val offset = pageNumber * pageSize
+        return baseQuery()
+            .orderBy(LISTINGS.CREATED_AT.desc())
+            .limit(pageSize)
+            .offset(offset)
             .fetch()
             .map {
                 it.toDomainListing(

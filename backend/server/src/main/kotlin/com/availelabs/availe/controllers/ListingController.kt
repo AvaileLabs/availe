@@ -26,6 +26,8 @@ import org.http4k.core.*
 import org.http4k.events.Events
 import org.http4k.format.KotlinxSerialization.auto
 import org.http4k.lens.Path
+import org.http4k.lens.Query
+import org.http4k.lens.int
 import org.http4k.lens.uuid
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
@@ -43,6 +45,9 @@ internal class ListingController(
         Path.uuid().map({ ListingId(it.toKotlinUuid()) }, { it.value.toJavaUuid() }).of(ApiParameters.LISTING_ID)
     private val responseBodyLens = Body.auto<TypeV1ListingDtoData>().toLens()
     private val listResponseBodyLens = Body.auto<List<TypeV1ListingDtoData>>().toLens()
+    private val pageNumberQueryLens = Query.int().defaulted("page", 0)
+    private val pageSizeQueryLens = Query.int().defaulted("size", 20)
+
     private val examplePrice = Price(PriceAmount("10.00"), CurrencyCode("USD"))
     private val exampleResponseItem = ListingItemDtoSchema.V1.Data(
         id = ListingId(Uuid.random()),
@@ -145,11 +150,15 @@ internal class ListingController(
     fun listAllListings(): ContractRoute {
         return ApiRoutes.LISTINGS meta {
             summary = "Get all listings."
-            description = "Returns a list of all listings."
+            description = "Returns a paginated list of all listings."
+            queries += pageNumberQueryLens
+            queries += pageSizeQueryLens
             returning(Status.OK, listResponseBodyLens to listOf(exampleResponseItem))
-        } bindContract Method.GET to { _: Request ->
+        } bindContract Method.GET to { request: Request ->
             runBlocking {
-                val listings = listingService.getAllListings()
+                val pageNumber = pageNumberQueryLens(request)
+                val pageSize = pageSizeQueryLens(request)
+                val listings = listingService.getListingsPage(pageNumber, pageSize)
                 val responseDto = listings.map { it.toDataDto() }
                 Response(Status.OK).with(listResponseBodyLens of responseDto)
             }

@@ -20,7 +20,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalTime::class)
-private class FakeListingRepositoryA(private val willInsert: Boolean) : IListingRepository {
+private class FakeListingRepository(private val willInsert: Boolean) : IListingRepository {
     var received: NewListing? = null
     override fun createListing(newListing: NewListing): InsertResult<Listing> {
         received = newListing
@@ -51,6 +51,10 @@ private class FakeListingRepositoryA(private val willInsert: Boolean) : IListing
         TODO("Not yet implemented")
     }
 
+    override fun getListingsPage(pageNumber: Int, pageSize: Int): List<Listing> {
+        TODO("Not yet implemented")
+    }
+
     override fun updateListing(
         id: ListingId,
         patch: TypeV1ListingDtoPatchRequest
@@ -77,7 +81,7 @@ private fun aNewItem(): NewListing.Item =
 class ListingServiceTest {
     @Test
     fun `returns inserted when repository inserts`() {
-        val fakeRepo = FakeListingRepositoryA(willInsert = true)
+        val fakeRepo = FakeListingRepository(willInsert = true)
         val service = ListingService(fakeRepo)
         val newItem = aNewItem()
 
@@ -89,7 +93,7 @@ class ListingServiceTest {
 
     @Test
     fun `returns already exists when repository returns already exists`() {
-        val fakeRepo = FakeListingRepositoryA(willInsert = false)
+        val fakeRepo = FakeListingRepository(willInsert = false)
         val service = ListingService(fakeRepo)
         val newItem = aNewItem()
 

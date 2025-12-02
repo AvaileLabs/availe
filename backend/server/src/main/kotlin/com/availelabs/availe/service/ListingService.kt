@@ -14,6 +14,20 @@ import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.repositories.listing.IListingRepository
 import kotlin.uuid.ExperimentalUuidApi
 
+interface IListingService {
+    fun createListing(newListing: NewListing): InsertResult<Listing>
+    fun getListingById(id: ListingId): FindResult<Listing>
+    fun getAllListings(): List<Listing>
+    fun getListingsPage(pageNumber: Int, pageSize: Int): List<Listing>
+    fun updateListing(
+        listingId: ListingId,
+        patch: TypeV1ListingDtoPatchRequest,
+        requestingPublisherId: UserId
+    ): UpdateResult<Listing>
+
+    fun deleteListing(listingId: ListingId, requestingPublisherId: UserId): DeleteResult
+}
+
 class ListingService(
     private val listingRepository: IListingRepository
 ) : IListingService {
@@ -26,6 +40,10 @@ class ListingService(
     }
 
     override fun getAllListings(): List<Listing> = listingRepository.getAllListings()
+
+    override fun getListingsPage(pageNumber: Int, pageSize: Int): List<Listing> {
+        return listingRepository.getListingsPage(pageNumber, pageSize)
+    }
 
     override fun updateListing(
         listingId: ListingId,
