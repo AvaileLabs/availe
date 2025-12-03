@@ -101,6 +101,7 @@ kotlin {
             implementation(libs.okio)
             implementation(libs.multiplatform.settings.no.arg)
             implementation(libs.store5)
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
             // Ktor
             implementation(libs.ktor.client.core)

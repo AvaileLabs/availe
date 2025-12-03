@@ -1,4 +1,4 @@
-@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class, org.mobilenativefoundation.store.core5.ExperimentalStoreApi::class)
 
 package com.availelabs.availe.features.home
 
@@ -7,11 +7,11 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.extensions.toDisplayString
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.domain.repository.IClientListingRepository
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.home.HomeStore.*
@@ -20,6 +20,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.mobilenativefoundation.store.store5.StoreReadRequest
+import org.mobilenativefoundation.store.store5.StoreReadResponse
 import kotlin.random.Random
 import kotlin.time.Clock
 
@@ -36,6 +38,7 @@ interface HomeStore : Store<Intent, State, Label> {
         data object RefreshListingsRequested : Intent
         data object QuickCreateListingRequested : Intent
         data class ListingClicked(val listingId: ListingId) : Intent
+        data object LoadNextPage : Intent
     }
 
     data class State(
@@ -43,7 +46,9 @@ interface HomeStore : Store<Intent, State, Label> {
         val isLoading: Boolean = false,
         val isRefreshing: Boolean = false,
         val errorMessage: String? = null,
-        val isAuthenticated: Boolean = false
+        val isAuthenticated: Boolean = false,
+        val currentPage: Int = 0,
+        val endReached: Boolean = false
     )
 
     sealed interface Label {
@@ -54,7 +59,7 @@ interface HomeStore : Store<Intent, State, Label> {
 
 class HomeStoreFactory(
     private val storeFactory: StoreFactory,
-    private val listingRepository: IClientListingRepository,
+    private val listingRepository: IListingRepository,
     private val sessionManager: ISessionManager
 ) {
 
@@ -68,48 +73,79 @@ class HomeStoreFactory(
         ) {}
 
     private sealed interface Action {
-        data object FetchListings : Action
+        data class ListingsLoaded(val listings: List<Listing>, val page: Int) : Action
+        data class ListingsError(val message: String) : Action
         data object ObserveAuthentication : Action
+        data object LoadInitialPage : Action
     }
 
     private sealed interface Message {
         data class LoadingStateChanged(val loadingIndicator: LoadingIndicator, val isActive: Boolean) : Message
-        data class ListingsLoaded(val listingUiModels: List<ListingUiModel>) : Message
+        data class AppendListings(val listingUiModels: List<ListingUiModel>, val page: Int) : Message
+        data class ReplaceListings(val listingUiModels: List<ListingUiModel>) : Message
         data class SetError(val message: String?) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
+        data class SetEndReached(val endReached: Boolean) : Message
     }
 
     private sealed interface FetchTrigger {
         data object InitialLoad : FetchTrigger
         data object UserPullToRefresh : FetchTrigger
+        data object LoadMore : FetchTrigger
         data object DataChanged : FetchTrigger
     }
 
     private sealed interface LoadingIndicator {
         data object Fullscreen : LoadingIndicator
         data object Overlay : LoadingIndicator
+        data object Pagination : LoadingIndicator
     }
 
     private class HomeBootstrapper : CoroutineBootstrapper<Action>() {
         override fun invoke() {
             dispatch(Action.ObserveAuthentication)
-            dispatch(Action.FetchListings)
+            dispatch(Action.LoadInitialPage)
         }
     }
 
     private inner class HomeExecutor : CoroutineExecutor<Intent, Action, State, Message, Label>() {
+        private val pageSize = 20
+
         override fun executeAction(action: Action) {
             when (action) {
-                Action.FetchListings -> fetchListings(FetchTrigger.InitialLoad)
+                is Action.ListingsLoaded -> {
+                    val uiModels = action.listings.map { it.toListingUiModel() }
+                    if (action.page == 0) {
+                        dispatch(Message.ReplaceListings(uiModels))
+                    } else {
+                        dispatch(Message.AppendListings(uiModels, action.page))
+                    }
+                    if (action.listings.isEmpty()) {
+                        dispatch(Message.SetEndReached(true))
+                    }
+                }
+
+                is Action.ListingsError -> {
+                    dispatch(Message.SetError(action.message))
+                    publish(Label.DisplayError(action.message))
+                }
+
                 Action.ObserveAuthentication -> observeAuthentication()
+                Action.LoadInitialPage -> fetchListingsPage(0, FetchTrigger.InitialLoad)
             }
         }
 
         override fun executeIntent(intent: Intent) {
             when (intent) {
-                Intent.RefreshListingsRequested -> fetchListings(FetchTrigger.UserPullToRefresh)
+                Intent.RefreshListingsRequested -> fetchListingsPage(0, FetchTrigger.UserPullToRefresh)
                 Intent.QuickCreateListingRequested -> performQuickCreate()
                 is Intent.ListingClicked -> publish(Label.NavigateToListingDetails(intent.listingId))
+                Intent.LoadNextPage -> {
+                    val state = state()
+                    if (!state.isLoading && !state.endReached) {
+                        fetchListingsPage(state.currentPage + 1, FetchTrigger.LoadMore)
+                    }
+                }
             }
         }
 
@@ -137,9 +173,9 @@ class HomeStoreFactory(
                 )
 
                 when (val result = listingRepository.createListing(newListing)) {
-                    is RepositoryOperationResult.Success -> {
+                    is RepositoryOperationResult.Success<*> -> {
                         when (result.value) {
-                            is InsertResult.Inserted -> fetchListings(FetchTrigger.DataChanged)
+                            is InsertResult.Inserted<*> -> fetchListingsPage(0, FetchTrigger.DataChanged)
                             is InsertResult.AlreadyExists -> {
                                 val errorMessage = "Listing already exists"
                                 dispatch(Message.SetError(errorMessage))
@@ -169,7 +205,7 @@ class HomeStoreFactory(
             }
         }
 
-        private fun fetchListings(trigger: FetchTrigger) {
+        private fun fetchListingsPage(page: Int, trigger: FetchTrigger) {
             val currentListingUiModels = state().listingUiModels
             val loadingIndicator = resolveLoadingIndicator(trigger, currentListingUiModels)
             val startTimeMilliseconds = Clock.System.now().toEpochMilliseconds()
@@ -178,17 +214,62 @@ class HomeStoreFactory(
             dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = true))
             dispatch(Message.SetError(null))
 
-            scope.launch {
-                when (val result = listingRepository.getAllListings()) {
-                    is RepositoryOperationResult.Success -> {
-                        val listingUiModels = result.value.map { it.toListingUiModel() }
-                        dispatch(Message.ListingsLoaded(listingUiModels))
-                    }
+            if (page == 0) {
+                dispatch(Message.SetEndReached(false))
+            }
 
-                    is RepositoryOperationResult.Failure -> {
-                        val errorMessage = result.error.value
-                        dispatch(Message.SetError(errorMessage))
-                        publish(Label.DisplayError(errorMessage))
+            scope.launch {
+                val request = if (trigger == FetchTrigger.UserPullToRefresh || trigger == FetchTrigger.DataChanged) {
+                    StoreReadRequest.fresh(ListingStoreKey(page, pageSize))
+                } else {
+                    StoreReadRequest.cached(ListingStoreKey(page, pageSize), refresh = false)
+                }
+
+                listingRepository.getListingsPageStream(request).collect { response ->
+                    when (response) {
+                        is StoreReadResponse.Data -> {
+                            val data = response.requireData()
+                            // Dispatch Action, not Message here. The reducer handles Messages.
+                            // But since we are in the Executor scope, we can dispatch Messages directly if needed,
+                            // or better, define an Action for loaded data if we want to process it.
+                            // Here we use the Action defined earlier.
+                            // We need to call `dispatch` which accepts `Message` inside `Reducer` or `Action` inside `Executor`?
+                            // Wait, `dispatch` in `Executor` sends `Message` to `Reducer`.
+                            // `Action` is input to `Executor`.
+                            // So here we should create a Message.
+                            // But previously I defined Action.ListingsLoaded.
+                            // The logic was: `executeAction` handles `Action.ListingsLoaded`.
+                            // But here we are IN `fetchListingsPage` which is called by `executeAction` or `executeIntent`.
+                            // So we are already inside the processing logic. We should dispatch Messages.
+
+                            val uiModels = data.map { it.toListingUiModel() }
+                            if (page == 0) {
+                                dispatch(Message.ReplaceListings(uiModels))
+                            } else {
+                                dispatch(Message.AppendListings(uiModels, page))
+                            }
+                            if (data.isEmpty()) {
+                                dispatch(Message.SetEndReached(true))
+                            }
+                            dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
+                        }
+
+                        is StoreReadResponse.Error -> {
+                            val errorMessage = response.errorMessageOrNull() ?: "Unknown error"
+                            dispatch(Message.SetError(errorMessage))
+                            publish(Label.DisplayError(errorMessage))
+                            dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
+                        }
+
+                        is StoreReadResponse.Loading -> {
+                            // Handled by initial dispatch
+                        }
+
+                        is StoreReadResponse.NoNewData -> {
+                            dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
+                        }
+
+                        is StoreReadResponse.Initial -> {}
                     }
                 }
 
@@ -198,8 +279,6 @@ class HomeStoreFactory(
                         delay(minimumRefreshDurationMilliseconds - elapsedTimeMilliseconds)
                     }
                 }
-
-                dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
             }
         }
 
@@ -207,7 +286,9 @@ class HomeStoreFactory(
             trigger: FetchTrigger,
             currentListingUiModels: List<ListingUiModel>
         ): LoadingIndicator {
-            return if (currentListingUiModels.isEmpty()) {
+            return if (trigger == FetchTrigger.LoadMore) {
+                LoadingIndicator.Pagination
+            } else if (currentListingUiModels.isEmpty()) {
                 LoadingIndicator.Fullscreen
             } else {
                 LoadingIndicator.Overlay
@@ -256,12 +337,19 @@ class HomeStoreFactory(
                     when (msg.loadingIndicator) {
                         LoadingIndicator.Fullscreen -> copy(isLoading = msg.isActive)
                         LoadingIndicator.Overlay -> copy(isRefreshing = msg.isActive)
+                        LoadingIndicator.Pagination -> copy(isLoading = msg.isActive) // Or a specific pagination loading field
                     }
                 }
 
-                is Message.ListingsLoaded -> copy(listingUiModels = msg.listingUiModels)
+                is Message.ReplaceListings -> copy(listingUiModels = msg.listingUiModels, currentPage = 0)
+                is Message.AppendListings -> copy(
+                    listingUiModels = listingUiModels + msg.listingUiModels,
+                    currentPage = msg.page
+                )
+
                 is Message.SetError -> copy(errorMessage = msg.message)
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
+                is Message.SetEndReached -> copy(endReached = msg.endReached)
             }
     }
 

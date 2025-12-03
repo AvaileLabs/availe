@@ -7,9 +7,9 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.repository.IClientListingRepository
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.listingdetails.ListingDetailsStore.*
@@ -32,7 +32,7 @@ interface ListingDetailsStore : Store<Intent, State, Label> {
 
 class ListingDetailsStoreFactory(
     private val storeFactory: StoreFactory,
-    private val listingRepository: IClientListingRepository,
+    private val listingRepository: IListingRepository,
     private val listingId: ListingId
 ) {
 
@@ -84,10 +84,10 @@ class ListingDetailsStoreFactory(
                 val result = listingRepository.getListingById(id)
 
                 when (result) {
-                    is RepositoryOperationResult.Success -> {
+                    is RepositoryOperationResult.Success<*> -> {
                         when (val findResult = result.value) {
-                            is FindResult.Found -> {
-                                dispatch(Message.ListingLoaded(findResult.value))
+                            is FindResult.Found<*> -> {
+                                dispatch(Message.ListingLoaded(findResult.value as Listing))
                             }
 
                             is FindResult.NotFound -> {

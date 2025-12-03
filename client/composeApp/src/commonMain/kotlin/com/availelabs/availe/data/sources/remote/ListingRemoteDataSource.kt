@@ -24,7 +24,7 @@ import kotlinx.serialization.json.Json
 import kotlin.uuid.ExperimentalUuidApi
 
 interface IListingRemoteDataSource {
-    suspend fun getAllListings(): List<Listing>
+    suspend fun getListingsPage(page: Int, size: Int): List<Listing>
     suspend fun getListingById(id: ListingId): FindResult<Listing>
     suspend fun existsById(id: ListingId): Boolean
     suspend fun createListing(listing: NewListing): InsertResult<Listing>
@@ -41,8 +41,11 @@ class ListingRemoteDataSource(
     private val json: Json
 ) : IListingRemoteDataSource {
 
-    override suspend fun getAllListings(): List<Listing> {
-        val response = httpClient.get(ApiRoutes.LISTINGS)
+    override suspend fun getListingsPage(page: Int, size: Int): List<Listing> {
+        val response = httpClient.get(ApiRoutes.LISTINGS) {
+            parameter("page", page)
+            parameter("size", size)
+        }
         ensureSuccess(response)
         val jsonString = response.bodyAsText()
         val dtos = json.decodeFromString(ListSerializer(TypeV1ListingDtoData.serializer()), jsonString)

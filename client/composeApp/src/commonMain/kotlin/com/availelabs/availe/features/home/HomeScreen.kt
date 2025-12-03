@@ -11,11 +11,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -46,6 +44,23 @@ internal fun HomeScreen(
 ) {
     val homeState by homeComponent.state.collectAsState()
     val refreshState = remember { RefreshStateHolder() }
+    val listState = rememberLazyListState()
+
+    val shouldLoadNextPage by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItemsNumber = layoutInfo.totalItemsCount
+            val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
+
+            lastVisibleItemIndex > (totalItemsNumber - 5)
+        }
+    }
+
+    LaunchedEffect(shouldLoadNextPage) {
+        if (shouldLoadNextPage && !homeState.isLoading && !homeState.endReached) {
+            homeComponent.onIntent(HomeStore.Intent.LoadNextPage)
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -56,8 +71,11 @@ internal fun HomeScreen(
                     onRefresh = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
                 )
         ) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                if (homeState.isLoading) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listState
+            ) {
+                if (homeState.isLoading && homeState.listingUiModels.isEmpty()) {
                     item {
                         Box(
                             modifier = Modifier.fillParentMaxSize(),
@@ -66,7 +84,7 @@ internal fun HomeScreen(
                             IntermediateProgressIndicator()
                         }
                     }
-                } else if (homeState.errorMessage != null) {
+                } else if (homeState.errorMessage != null && homeState.listingUiModels.isEmpty()) {
                     item {
                         Column(
                             modifier = Modifier
@@ -84,7 +102,7 @@ internal fun HomeScreen(
                             }
                         }
                     }
-                } else if (homeState.listingUiModels.isEmpty()) {
+                } else if (homeState.listingUiModels.isEmpty() && !homeState.isLoading) {
                     item {
                         Box(
                             modifier = Modifier.fillParentMaxSize(),
@@ -113,6 +131,18 @@ internal fun HomeScreen(
                         ) {
                             Text(listingUiModel.title.value)
                             Text(listingUiModel.price)
+                        }
+                    }
+                    if (homeState.isLoading && homeState.listingUiModels.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                IntermediateProgressIndicator()
+                            }
                         }
                     }
                 }

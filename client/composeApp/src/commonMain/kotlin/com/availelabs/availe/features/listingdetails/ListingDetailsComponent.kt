@@ -5,8 +5,8 @@ import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.repository.IClientListingRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 
@@ -19,7 +19,7 @@ interface IListingDetailsComponent {
 class ListingDetailsComponent(
     componentContext: ComponentContext,
     private val listingId: ListingId,
-    private val listingRepository: IClientListingRepository,
+    private val listingRepository: IListingRepository,
     private val onNavigateBack: () -> Unit
 ) : IListingDetailsComponent, ComponentContext by componentContext {
 

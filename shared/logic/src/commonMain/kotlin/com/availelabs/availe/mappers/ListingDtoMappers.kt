@@ -5,11 +5,11 @@ import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.NewListing
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.dto.kreplica.*
-import kotlin.time.Instant
+import kotlin.time.Clock
 
 fun TypeV1ListingDtoData.toDomainListing(): Listing {
-    val createdAt = Instant.DISTANT_PAST
-
+    val createdAt = Clock.System.now()
+    
     return when (this) {
         is ListingEventDtoSchema.V1.Data -> {
             val common = CommonListingData(

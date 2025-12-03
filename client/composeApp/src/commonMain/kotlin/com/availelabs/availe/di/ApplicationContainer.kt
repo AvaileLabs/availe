@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalOpenIdConnect::class)
+
 package com.availelabs.availe.di
 
 import com.arkivanov.essenty.lifecycle.Lifecycle
@@ -9,6 +11,9 @@ import com.availelabs.availe.data.auth.createPlatformAuthenticationConfig
 import com.availelabs.availe.data.auth.createPlatformAuthenticationFlowFactory
 import com.availelabs.availe.data.auth.toScopeString
 import com.availelabs.availe.data.repositories.*
+import com.availelabs.availe.data.sources.local.ClientDatabaseFactory
+import com.availelabs.availe.data.sources.local.ListingLocalDataSource
+import com.availelabs.availe.data.sources.local.createSqlDriverFactory
 import com.availelabs.availe.data.sources.local.createTokenStore
 import com.availelabs.availe.data.sources.remote.AuthenticationRemoteDataSource
 import com.availelabs.availe.data.sources.remote.ListingRemoteDataSource
@@ -19,6 +24,10 @@ import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.serialization.json.Json
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
@@ -30,14 +39,28 @@ interface IApplicationContainer {
     val listingRepository: IListingRepository
 }
 
-@OptIn(ExperimentalOpenIdConnect::class)
 fun createApplicationContainer(
     lifecycle: Lifecycle,
     activity: PlatformActivity
 ): IApplicationContainer {
+    val applicationCoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    val sqlDriverFactory = createSqlDriverFactory(activity)
     val codeAuthenticationFlowFactory = createPlatformAuthenticationFlowFactory(activity)
     val tokenStore = createTokenStore(activity)
     val platformAuthenticationConfiguration = createPlatformAuthenticationConfig(activity)
+
+    val json = Json {
+        ignoreUnknownKeys = true
+        prettyPrint = true
+        isLenient = true
+    }
+
+    val clientDatabaseDeferred = applicationCoroutineScope.async {
+        val sqlDriver = sqlDriverFactory.createDriver()
+        ClientDatabaseFactory.createClientDatabase(sqlDriver, json)
+    }
+
+    val listingLocalDataSource = ListingLocalDataSource(clientDatabaseDeferred)
 
     val openIdConnectClient =
         OpenIdConnectClient(discoveryUri = com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI) {
@@ -68,12 +91,6 @@ fun createApplicationContainer(
         authenticationRemoteDataSource = authenticationRemoteDataSource,
         sessionManager = sessionManager
     )
-
-    val json = Json {
-        ignoreUnknownKeys = true
-        prettyPrint = true
-        isLenient = true
-    }
 
     val httpClient = HttpClient {
         install(HttpTimeout) {
@@ -129,7 +146,16 @@ fun createApplicationContainer(
         json = json
     )
 
-    val listingRepository = ListingRepository(listingRemoteDataSource)
+    val listingStoreFactory = ListingStoreFactory(
+        remoteDataSource = listingRemoteDataSource,
+        localDataSource = listingLocalDataSource
+    )
+
+    val listingRepository = ListingRepository(
+        remoteDataSource = listingRemoteDataSource,
+        localDataSource = listingLocalDataSource,
+        storeFactory = listingStoreFactory
+    )
 
     return ApplicationContainer(
         sessionManager = sessionManager,
