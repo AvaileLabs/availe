@@ -7,7 +7,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +21,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.availelabs.availe.ui.RefreshStateHolder
+import com.availelabs.availe.ui.components.ListingCard
 import com.availelabs.availe.ui.modifiers.refreshTrigger
 import com.composables.icons.lucide.ArrowDown
 import com.composables.icons.lucide.Lucide
@@ -121,17 +121,13 @@ internal fun HomeScreen(
                     }
                 } else {
                     items(homeState.listingUiModels, key = { it.id.value }) { listingUiModel ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    homeComponent.onIntent(HomeStore.Intent.ListingClicked(listingUiModel.id))
-                                }
-                                .padding(16.dp)
-                        ) {
-                            Text(listingUiModel.title.value)
-                            Text(listingUiModel.price)
-                        }
+                        ListingCard(
+                            title = listingUiModel.title.value,
+                            price = listingUiModel.price,
+                            onClick = {
+                                homeComponent.onIntent(HomeStore.Intent.ListingClicked(listingUiModel.id))
+                            }
+                        )
                     }
                     if (homeState.isLoading && homeState.listingUiModels.isNotEmpty()) {
                         item {
