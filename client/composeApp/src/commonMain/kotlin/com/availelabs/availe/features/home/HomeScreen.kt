@@ -124,6 +124,9 @@ internal fun HomeScreen(
                         ListingCard(
                             title = listingUiModel.title.value,
                             price = listingUiModel.price,
+                            imageUrl = listingUiModel.imageUrl.value,
+                            type = listingUiModel.type,
+                            description = listingUiModel.description,
                             onClick = {
                                 homeComponent.onIntent(HomeStore.Intent.ListingClicked(listingUiModel.id))
                             }

@@ -30,7 +30,9 @@ data class ListingUiModel(
     val id: ListingId,
     val title: ListingTitle,
     val price: String,
-    val imageUrl: ImageUrl
+    val imageUrl: ImageUrl,
+    val type: String,
+    val description: String?
 )
 
 interface HomeStore : Store<Intent, State, Label> {
@@ -354,7 +356,13 @@ class HomeStoreFactory(
             id = this.id,
             title = this.title,
             price = this.price.toDisplayString(),
-            imageUrl = this.imageLinks.firstOrNull() ?: ImageUrl("")
+            imageUrl = this.imageLinks.firstOrNull() ?: ImageUrl(""),
+            type = when (this) {
+                is Listing.Item -> "Item"
+                is Listing.Event -> "Event"
+                is Listing.Service -> "Service"
+            },
+            description = this.description?.value
         )
     }
 }
