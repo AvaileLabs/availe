@@ -53,6 +53,7 @@ class ListingRepository(
             val findResult = remoteDataSource.getListingById(id)
             if (findResult is FindResult.NotFound) {
                 localDataSource.deleteListingById(id)
+                listingPreferences.clear()
             }
             findResult
         }
