@@ -1,17 +1,17 @@
 import com.availelabs.availe.domain.model.CurrencyCode;
 import com.availelabs.availe.domain.model.ImageUrl;
 import com.availelabs.availe.domain.model.ListingCategory;
+import com.availelabs.availe.domain.model.ListingCreationTime;
 import com.availelabs.availe.domain.model.ListingDescription;
 import com.availelabs.availe.domain.model.ListingId;
 import com.availelabs.availe.domain.model.ListingTitle;
 import com.availelabs.availe.domain.model.PriceAmount;
 import com.availelabs.availe.domain.model.UserId;
 import kotlin.collections.List;
-import kotlin.time.Instant;
 
 CREATE TABLE listings (
     primary_key_id TEXT AS ListingId NOT NULL PRIMARY KEY,
-    created_at TEXT AS Instant NOT NULL,
+    created_at TEXT AS ListingCreationTime NOT NULL,
     publisher_id TEXT AS UserId NOT NULL,
     listing_type TEXT AS ListingCategory NOT NULL,
     title TEXT AS ListingTitle NOT NULL,

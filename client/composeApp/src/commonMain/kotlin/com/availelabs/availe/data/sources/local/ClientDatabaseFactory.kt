@@ -23,9 +23,11 @@ object ClientDatabaseFactory {
             override fun encode(value: UserId): String = value.value.toString()
         }
 
-        val instantColumnAdapter = object : ColumnAdapter<Instant, String> {
-            override fun decode(databaseValue: String): Instant = Instant.parse(databaseValue)
-            override fun encode(value: Instant): String = value.toString()
+        val listingCreationTimeColumnAdapter = object : ColumnAdapter<ListingCreationTime, String> {
+            override fun decode(databaseValue: String): ListingCreationTime =
+                ListingCreationTime(Instant.parse(databaseValue))
+
+            override fun encode(value: ListingCreationTime): String = value.value.toString()
         }
 
         val listingCategoryColumnAdapter = object : ColumnAdapter<ListingCategory, String> {
@@ -74,7 +76,7 @@ object ClientDatabaseFactory {
             ),
             listingsAdapter = Listings.Adapter(
                 primary_key_idAdapter = listingIdColumnAdapter,
-                created_atAdapter = instantColumnAdapter,
+                created_atAdapter = listingCreationTimeColumnAdapter,
                 publisher_idAdapter = userIdColumnAdapter,
                 listing_typeAdapter = listingCategoryColumnAdapter,
                 titleAdapter = listingTitleColumnAdapter,

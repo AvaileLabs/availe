@@ -3,6 +3,7 @@
 package com.availelabs.availe.data.sources.remote
 
 import com.availelabs.availe.ApiMediaTypes
+import com.availelabs.availe.ApiParameters
 import com.availelabs.availe.ApiRoutes
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
@@ -43,8 +44,8 @@ class ListingRemoteDataSource(
 
     override suspend fun getListingsPage(page: Int, size: Int): List<Listing> {
         val response = httpClient.get(ApiRoutes.LISTINGS) {
-            parameter("page", page)
-            parameter("size", size)
+            parameter(ApiParameters.PAGE_NUMBER, page)
+            parameter(ApiParameters.PAGE_SIZE, size)
         }
         ensureSuccess(response)
         val jsonString = response.bodyAsText()
@@ -71,7 +72,7 @@ class ListingRemoteDataSource(
     }
 
     override suspend fun existsById(id: ListingId): Boolean {
-        val response = httpClient.head("${ApiRoutes.LISTINGS}/${id.value}")
+        val response = httpClient.get("${ApiRoutes.LISTINGS}/${id.value}")
 
         return when (response.status) {
             HttpStatusCode.OK -> true

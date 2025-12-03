@@ -3,7 +3,6 @@ package com.availelabs.availe.data.sources.local
 import com.availelabs.availe.db.SelectById
 import com.availelabs.availe.db.SelectPage
 import com.availelabs.availe.domain.model.*
-import kotlin.time.Instant
 
 fun SelectById.toDomain(): Listing {
     return mapRawDataToListing(
@@ -35,7 +34,7 @@ fun SelectPage.toDomain(): Listing {
 
 private fun mapRawDataToListing(
     id: ListingId,
-    createdAt: Instant,
+    createdAt: ListingCreationTime,
     publisherId: UserId,
     listingType: ListingCategory,
     title: ListingTitle,
