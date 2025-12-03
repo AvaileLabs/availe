@@ -74,3 +74,6 @@ WHERE primary_key_id = ?;
 
 deleteAll:
 DELETE FROM listings;
+
+countListings:
+SELECT count(*) FROM listings;

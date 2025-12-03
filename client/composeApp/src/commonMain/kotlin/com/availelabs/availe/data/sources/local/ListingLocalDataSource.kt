@@ -1,6 +1,7 @@
 package com.availelabs.availe.data.sources.local
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import com.availelabs.availe.db.ClientDatabase
 import com.availelabs.availe.domain.model.Listing
@@ -14,6 +15,7 @@ interface IListingLocalDataSource {
     suspend fun getListingById(id: ListingId): Listing?
     suspend fun deleteListingById(id: ListingId)
     suspend fun deleteAllListings()
+    suspend fun isListingDatabaseEmpty(): Boolean
 }
 
 class ListingLocalDataSource(
@@ -69,5 +71,11 @@ class ListingLocalDataSource(
     override suspend fun deleteAllListings() {
         val database = databaseDeferred.await()
         database.listingsQueries.deleteAll()
+    }
+
+    override suspend fun isListingDatabaseEmpty(): Boolean {
+        val database = databaseDeferred.await()
+        val count = database.listingsQueries.countListings().awaitAsOne()
+        return count == 0L
     }
 }

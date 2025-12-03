@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.mobilenativefoundation.store.store5.StoreReadRequest
 import org.mobilenativefoundation.store.store5.StoreReadResponse
+import org.mobilenativefoundation.store.store5.StoreReadResponseOrigin
 import kotlin.random.Random
 import kotlin.time.Clock
 
@@ -221,6 +222,9 @@ class HomeStoreFactory(
             scope.launch {
                 val request = if (trigger == FetchTrigger.UserPullToRefresh || trigger == FetchTrigger.DataChanged) {
                     StoreReadRequest.fresh(ListingStoreKey(page, pageSize))
+                } else if (trigger == FetchTrigger.InitialLoad) {
+                    val isStale = listingRepository.isListingCacheStale()
+                    StoreReadRequest.cached(ListingStoreKey(page, pageSize), refresh = isStale)
                 } else {
                     StoreReadRequest.cached(ListingStoreKey(page, pageSize), refresh = false)
                 }
@@ -229,19 +233,6 @@ class HomeStoreFactory(
                     when (response) {
                         is StoreReadResponse.Data -> {
                             val data = response.requireData()
-                            // Dispatch Action, not Message here. The reducer handles Messages.
-                            // But since we are in the Executor scope, we can dispatch Messages directly if needed,
-                            // or better, define an Action for loaded data if we want to process it.
-                            // Here we use the Action defined earlier.
-                            // We need to call `dispatch` which accepts `Message` inside `Reducer` or `Action` inside `Executor`?
-                            // Wait, `dispatch` in `Executor` sends `Message` to `Reducer`.
-                            // `Action` is input to `Executor`.
-                            // So here we should create a Message.
-                            // But previously I defined Action.ListingsLoaded.
-                            // The logic was: `executeAction` handles `Action.ListingsLoaded`.
-                            // But here we are IN `fetchListingsPage` which is called by `executeAction` or `executeIntent`.
-                            // So we are already inside the processing logic. We should dispatch Messages.
-
                             val uiModels = data.map { it.toListingUiModel() }
                             if (page == 0) {
                                 dispatch(Message.ReplaceListings(uiModels))
@@ -251,7 +242,13 @@ class HomeStoreFactory(
                             if (data.isEmpty()) {
                                 dispatch(Message.SetEndReached(true))
                             }
-                            dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
+
+                            val isFetcherResponse = response.origin is StoreReadResponseOrigin.Fetcher
+                            val shouldStopLoading = isFetcherResponse || !request.refresh
+
+                            if (shouldStopLoading) {
+                                dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
+                            }
                         }
 
                         is StoreReadResponse.Error -> {
@@ -262,7 +259,6 @@ class HomeStoreFactory(
                         }
 
                         is StoreReadResponse.Loading -> {
-                            // Handled by initial dispatch
                         }
 
                         is StoreReadResponse.NoNewData -> {
@@ -337,7 +333,7 @@ class HomeStoreFactory(
                     when (msg.loadingIndicator) {
                         LoadingIndicator.Fullscreen -> copy(isLoading = msg.isActive)
                         LoadingIndicator.Overlay -> copy(isRefreshing = msg.isActive)
-                        LoadingIndicator.Pagination -> copy(isLoading = msg.isActive) // Or a specific pagination loading field
+                        LoadingIndicator.Pagination -> copy(isLoading = msg.isActive)
                     }
                 }
 

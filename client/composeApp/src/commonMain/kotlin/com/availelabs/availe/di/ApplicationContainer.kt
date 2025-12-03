@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalOpenIdConnect::class)
-
 package com.availelabs.availe.di
 
 import com.arkivanov.essenty.lifecycle.Lifecycle
@@ -11,12 +9,10 @@ import com.availelabs.availe.data.auth.createPlatformAuthenticationConfig
 import com.availelabs.availe.data.auth.createPlatformAuthenticationFlowFactory
 import com.availelabs.availe.data.auth.toScopeString
 import com.availelabs.availe.data.repositories.*
-import com.availelabs.availe.data.sources.local.ClientDatabaseFactory
-import com.availelabs.availe.data.sources.local.ListingLocalDataSource
-import com.availelabs.availe.data.sources.local.createSqlDriverFactory
-import com.availelabs.availe.data.sources.local.createTokenStore
+import com.availelabs.availe.data.sources.local.*
 import com.availelabs.availe.data.sources.remote.AuthenticationRemoteDataSource
 import com.availelabs.availe.data.sources.remote.ListingRemoteDataSource
+import com.russhwolf.settings.Settings
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
@@ -39,6 +35,7 @@ interface IApplicationContainer {
     val listingRepository: IListingRepository
 }
 
+@OptIn(ExperimentalOpenIdConnect::class)
 fun createApplicationContainer(
     lifecycle: Lifecycle,
     activity: PlatformActivity
@@ -48,6 +45,8 @@ fun createApplicationContainer(
     val codeAuthenticationFlowFactory = createPlatformAuthenticationFlowFactory(activity)
     val tokenStore = createTokenStore(activity)
     val platformAuthenticationConfiguration = createPlatformAuthenticationConfig(activity)
+    val settings = Settings()
+    val listingPreferences = ListingPreferences(settings)
 
     val json = Json {
         ignoreUnknownKeys = true
@@ -154,7 +153,8 @@ fun createApplicationContainer(
     val listingRepository = ListingRepository(
         remoteDataSource = listingRemoteDataSource,
         localDataSource = listingLocalDataSource,
-        storeFactory = listingStoreFactory
+        storeFactory = listingStoreFactory,
+        listingPreferences = listingPreferences
     )
 
     return ApplicationContainer(
