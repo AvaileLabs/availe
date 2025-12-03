@@ -1,10 +1,11 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.availelabs.availe.features.listingdetails
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,6 +30,8 @@ import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
 import com.composeunstyled.Text
 import com.composeunstyled.theme.Theme
+import kotlin.math.absoluteValue
+import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 fun ListingDetailsScreen(
@@ -37,42 +41,35 @@ fun ListingDetailsScreen(
 
     AppScaffold {
         Box(modifier = Modifier.fillMaxSize()) {
-            when {
-                state.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        IntermediateProgressIndicator()
-                    }
+            if (state.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    IntermediateProgressIndicator()
                 }
-
-                state.errorMessage != null -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(state.errorMessage!!)
-                        Spacer(Modifier.height(16.dp))
-                        PrimaryButton(
-                            onClick = {
-                                listingDetailsComponent.onIntent(ListingDetailsStore.Intent.RetryRequested)
-                            }
-                        ) {
-                            Text("Retry")
+            } else if (state.errorMessage != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(state.errorMessage!!)
+                    Spacer(Modifier.height(16.dp))
+                    PrimaryButton(
+                        onClick = {
+                            listingDetailsComponent.onIntent(ListingDetailsStore.Intent.RetryRequested)
                         }
+                    ) {
+                        Text("Retry")
                     }
                 }
-
-                state.listing != null -> {
-                    ListingDetailsContent(
-                        listing = state.listing!!,
-                        onBack = listingDetailsComponent::onBackClicked
-                    )
-                }
+            } else if (state.listing != null) {
+                ListingDetailsContent(
+                    listing = state.listing!!
+                )
             }
         }
     }
@@ -80,79 +77,64 @@ fun ListingDetailsScreen(
 
 @Composable
 private fun ListingDetailsContent(
-    listing: Listing,
-    onBack: () -> Unit
+    listing: Listing
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isDesktop = maxWidth > 800.dp
         if (isDesktop) {
-            DesktopListingLayout(listing, onBack)
+            DesktopListingLayout(listing)
         } else {
-            MobileListingLayout(listing, onBack)
+            MobileListingLayout(listing)
         }
     }
 }
 
 @Composable
 private fun MobileListingLayout(
-    listing: Listing,
-    onBack: () -> Unit
+    listing: Listing
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 80.dp) // Space for bottom bar
+                .padding(bottom = 80.dp)
         ) {
-            // Hero Image
             Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
                 ListingImageGallery(
                     images = listing.imageLinks,
                     category = listing.category,
                     modifier = Modifier.fillMaxSize()
                 )
-
-                // Top Actions Overlay
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .padding(
-                            top = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                        ), // Safe area
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(
-                        onClick = onBack,
-                        backgroundColor = Theme[colors][card].copy(alpha = 0.8f),
-                        shape = CircleShape
-                    ) {
-                        Icon(Lucide.ArrowLeft, "Back")
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        IconButton(
-                            onClick = {},
-                            backgroundColor = Theme[colors][card].copy(alpha = 0.8f),
-                            shape = CircleShape
-                        ) {
-                            Icon(Lucide.Share, "Share")
-                        }
-                        IconButton(
-                            onClick = {},
-                            backgroundColor = Theme[colors][card].copy(alpha = 0.8f),
-                            shape = CircleShape
-                        ) {
-                            Icon(Lucide.Heart, "Favorite")
-                        }
-                    }
-                }
             }
 
             Column(modifier = Modifier.padding(16.dp)) {
-                Spacer(Modifier.height(8.dp))
-                CategoryChip(listing.category)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CategoryChip(listing.category)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Lucide.MapPin,
+                            contentDescription = "Location",
+                            modifier = Modifier.size(16.dp),
+                            tint = Theme[colors][onBackground].copy(alpha = 0.6f)
+                        )
+                        Text(
+                            text = listing.mockLocation,
+                            style = Theme[textStyles][body].copy(
+                                fontSize = Theme[textStyles][body].fontSize * 0.9,
+                                color = Theme[colors][onBackground].copy(alpha = 0.6f)
+                            )
+                        )
+                    }
+                }
+
                 Spacer(Modifier.height(12.dp))
 
                 Text(
@@ -167,7 +149,7 @@ private fun MobileListingLayout(
                 )
 
                 Spacer(Modifier.height(24.dp))
-                SellerInfoCard(modifier = Modifier.fillMaxWidth())
+                SellerInfoCard(listing = listing, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(24.dp))
 
                 Section("Description") {
@@ -179,7 +161,6 @@ private fun MobileListingLayout(
             }
         }
 
-        // Sticky Bottom Bar
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -214,33 +195,65 @@ private fun MobileListingLayout(
 
 @Composable
 private fun DesktopListingLayout(
-    listing: Listing,
-    onBack: () -> Unit
+    listing: Listing
 ) {
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-        // Desktop Header
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .widthIn(max = 1200.dp)
+                .padding(vertical = 32.dp, horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(32.dp)
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Lucide.ArrowLeft, "Back")
-            }
-            Spacer(Modifier.width(16.dp))
-            Text("Back to listings", style = Theme[textStyles][body].copy(fontWeight = FontWeight.Medium))
-        }
-
-        Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(40.dp)) {
-            // Left Column: Gallery & Description
             Column(
                 modifier = Modifier
-                    .weight(0.6f)
+                    .weight(0.65f)
                     .verticalScroll(rememberScrollState())
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CategoryChip(listing.category)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Lucide.MapPin,
+                            contentDescription = "Location",
+                            modifier = Modifier.size(18.dp),
+                            tint = Theme[colors][onBackground].copy(alpha = 0.6f)
+                        )
+                        Text(
+                            text = listing.mockLocation,
+                            style = Theme[textStyles][body].copy(
+                                fontWeight = FontWeight.Medium,
+                                color = Theme[colors][onBackground].copy(alpha = 0.6f)
+                            )
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Text(
+                    text = listing.title.value,
+                    style = Theme[textStyles][title].copy(
+                        fontSize = Theme[textStyles][title].fontSize * 1.5,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+
+                Spacer(Modifier.height(24.dp))
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(1.5f)
+                        .height(400.dp)
                         .clip(Theme[shapes][medium])
                 ) {
                     ListingImageGallery(
@@ -252,54 +265,139 @@ private fun DesktopListingLayout(
 
                 Spacer(Modifier.height(32.dp))
 
-                Section("Description") {
+                Section("About this item") {
                     Text(
                         text = listing.description?.value ?: "No description provided.",
-                        style = Theme[textStyles][body].copy(lineHeight = Theme[textStyles][body].fontSize * 1.5)
+                        style = Theme[textStyles][body].copy(
+                            lineHeight = Theme[textStyles][body].fontSize * 1.6,
+                            color = Theme[colors][onBackground].copy(alpha = 0.9f)
+                        )
                     )
-                }
-
-                Spacer(Modifier.height(32.dp))
-                Section("Seller") {
-                    SellerInfoCard(modifier = Modifier.widthIn(max = 400.dp))
                 }
             }
 
-            // Right Column: Sticky Action Card
-            Column(modifier = Modifier.weight(0.4f)) {
+            Column(modifier = Modifier.weight(0.35f)) {
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        CategoryChip(listing.category)
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = listing.title.value,
-                            style = Theme[textStyles][title].copy(fontWeight = FontWeight.Bold)
-                        )
-                        Spacer(Modifier.height(8.dp))
+                    Column(modifier = Modifier.padding(24.dp)) {
                         Text(
                             text = listing.price.toDisplayString(),
                             style = Theme[textStyles][title].copy(
-                                fontWeight = FontWeight.Normal,
+                                fontSize = Theme[textStyles][title].fontSize * 1.4,
+                                fontWeight = FontWeight.Bold,
                                 color = Theme[colors][primary]
                             )
                         )
+
+                        Spacer(Modifier.height(24.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Theme[colors][outline].copy(alpha = 0.2f))
+                        )
+
+                        Spacer(Modifier.height(24.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Avatar(
+                                painter = ColorPainter(Theme[colors][primary]),
+                                initials = "AS",
+                                modifier = Modifier.size(56.dp)
+                            )
+                            Spacer(Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = "Alice Seller",
+                                    style = Theme[textStyles][title].copy(
+                                        fontSize = Theme[textStyles][title].fontSize * 0.9,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                                Text(
+                                    text = "Joined 2024",
+                                    style = Theme[textStyles][body].copy(
+                                        fontSize = Theme[textStyles][body].fontSize * 0.85,
+                                        color = Theme[colors][onBackground].copy(alpha = 0.7f)
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(20.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Badge(
+                                icon = Lucide.Star,
+                                text = "${listing.mockRating} Rating",
+                                tint = Color(0xFFEAB308)
+                            )
+                            Badge(
+                                icon = Lucide.MessageCircle,
+                                text = "${listing.mockReviewCount} Reviews",
+                                tint = Theme[colors][primary]
+                            )
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Row {
+                            Badge(
+                                icon = Lucide.BadgeCheck,
+                                text = "Identity Verified",
+                                tint = Color(0xFF10B981)
+                            )
+                        }
+
                         Spacer(Modifier.height(32.dp))
+
                         PrimaryButton(
                             onClick = {},
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(if (listing.category == ListingCategory.Event) "Book Now" else "Contact Seller")
                         }
+
                         Spacer(Modifier.height(16.dp))
+
                         Text(
                             text = "Secure transaction protected by Availe Guarantee.",
-                            style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.8),
+                            style = Theme[textStyles][body].copy(
+                                fontSize = Theme[textStyles][body].fontSize * 0.75,
+                                color = Theme[colors][onBackground].copy(alpha = 0.6f)
+                            ),
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun Badge(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    tint: Color
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = tint
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = text,
+            style = Theme[textStyles][body].copy(
+                fontSize = Theme[textStyles][body].fontSize * 0.85,
+                fontWeight = FontWeight.Medium
+            )
+        )
     }
 }
 
@@ -342,7 +440,6 @@ private fun CategoryPlaceholder(
         modifier = modifier.background(backgroundColor),
         contentAlignment = Alignment.Center
     ) {
-        // Pattern overlay effect
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -374,7 +471,10 @@ private fun CategoryChip(category: ListingCategory) {
 }
 
 @Composable
-private fun SellerInfoCard(modifier: Modifier = Modifier) {
+private fun SellerInfoCard(
+    listing: Listing,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier
             .border(1.dp, Theme[colors][outline].copy(alpha = 0.5f), RoundedCornerShape(12.dp))
@@ -382,17 +482,26 @@ private fun SellerInfoCard(modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Avatar(
-            painter = androidx.compose.ui.graphics.painter.ColorPainter(Theme[colors][primary]),
+            painter = ColorPainter(Theme[colors][primary]),
             initials = "AS",
             modifier = Modifier.size(48.dp)
         )
         Spacer(Modifier.width(16.dp))
         Column {
             Text("Alice Seller", fontWeight = FontWeight.Bold)
-            Text(
-                "Joined 2024",
-                style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.85)
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Lucide.Star,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = Color(0xFFEAB308)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "${listing.mockRating} (${listing.mockReviewCount})",
+                    style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.85)
+                )
+            }
         }
         Spacer(Modifier.weight(1f))
         PrimaryButton(
@@ -425,3 +534,28 @@ private val Listing.category: ListingCategory
         is Listing.Event -> ListingCategory.Event
         is Listing.Service -> ListingCategory.Service
     }
+
+private val Listing.mockLocation: String
+    get() {
+        val locations = listOf(
+            "New York, NY",
+            "San Francisco, CA",
+            "Austin, TX",
+            "London, UK",
+            "Remote",
+            "Chicago, IL",
+            "Seattle, WA",
+            "Toronto, Canada"
+        )
+        return locations[this.id.value.hashCode().absoluteValue % locations.size]
+    }
+
+private val Listing.mockRating: String
+    get() {
+        val baseRating = 4.0
+        val variance = (this.id.value.hashCode().absoluteValue % 10) / 10.0
+        return (baseRating + variance).toString().take(3)
+    }
+
+private val Listing.mockReviewCount: Int
+    get() = (this.id.value.hashCode().absoluteValue % 200) + 12
