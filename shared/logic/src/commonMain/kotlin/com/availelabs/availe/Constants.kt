@@ -6,6 +6,8 @@ object ApiRoutes {
 
 object ApiParameters {
     const val LISTING_ID = "listingId"
+    const val PAGE_NUMBER = "page"
+    const val PAGE_SIZE = "size"
 }
 
 object ApiMediaTypes {

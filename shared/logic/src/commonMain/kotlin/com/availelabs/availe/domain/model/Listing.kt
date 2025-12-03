@@ -3,7 +3,6 @@
 package com.availelabs.availe.domain.model
 
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 
 sealed interface CommonListingProperties {
@@ -24,19 +23,25 @@ data class CommonListingData(
 
 sealed interface Listing : CommonListingProperties {
     val id: ListingId
-    val createdAt: Instant
+    val createdAt: ListingCreationTime
     val commonData: CommonListingData
 
     data class Item(
-        override val commonData: CommonListingData, override val id: ListingId, override val createdAt: Instant
+        override val commonData: CommonListingData,
+        override val id: ListingId,
+        override val createdAt: ListingCreationTime
     ) : CommonListingProperties by commonData, Listing
 
     data class Event(
-        override val commonData: CommonListingData, override val id: ListingId, override val createdAt: Instant
+        override val commonData: CommonListingData,
+        override val id: ListingId,
+        override val createdAt: ListingCreationTime
     ) : CommonListingProperties by commonData, Listing
 
     data class Service(
-        override val commonData: CommonListingData, override val id: ListingId, override val createdAt: Instant
+        override val commonData: CommonListingData,
+        override val id: ListingId,
+        override val createdAt: ListingCreationTime
     ) : CommonListingProperties by commonData, Listing
 }
 

@@ -4,6 +4,7 @@ package com.availelabs.availe.domain.model
 
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmInline
+import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -42,3 +43,7 @@ value class UserId(val value: Uuid)
 @Serializable
 @JvmInline
 value class ListingId(val value: Uuid)
+
+@Serializable
+@JvmInline
+value class ListingCreationTime(val value: Instant)

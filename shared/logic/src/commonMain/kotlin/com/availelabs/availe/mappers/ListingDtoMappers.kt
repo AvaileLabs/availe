@@ -1,15 +1,12 @@
 package com.availelabs.availe.mappers
 
-import com.availelabs.availe.domain.model.CommonListingData
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.dto.kreplica.*
 import kotlin.time.Clock
 
 fun TypeV1ListingDtoData.toDomainListing(): Listing {
-    val createdAt = Clock.System.now()
-    
+    val createdAt = ListingCreationTime(Clock.System.now())
+
     return when (this) {
         is ListingEventDtoSchema.V1.Data -> {
             val common = CommonListingData(

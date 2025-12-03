@@ -37,7 +37,7 @@ internal fun ListingsRecord.toDomainListing(): Listing {
     )
 
     val domainId = ListingId(this.id!!.toKotlinUuid())
-    val domainCreatedAt = this.createdAt!!.toInstant().toKotlinInstant()
+    val domainCreatedAt = ListingCreationTime(this.createdAt!!.toInstant().toKotlinInstant())
 
     return when (this.listingType) {
         ListingTypeEnum.item -> Listing.Item(common, domainId, domainCreatedAt)
@@ -63,7 +63,7 @@ internal fun Record.toDomainListing(
     )
 
     val domainId = ListingId(this[listingsTable.ID]!!.toKotlinUuid())
-    val domainCreatedAt = this[listingsTable.CREATED_AT]!!.toInstant().toKotlinInstant()
+    val domainCreatedAt = ListingCreationTime(this[listingsTable.CREATED_AT]!!.toInstant().toKotlinInstant())
 
     return when (this[listingsTable.LISTING_TYPE]) {
         ListingTypeEnum.item -> {
