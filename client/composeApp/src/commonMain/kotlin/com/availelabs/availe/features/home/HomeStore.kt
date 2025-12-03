@@ -1,5 +1,3 @@
-@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class, org.mobilenativefoundation.store.core5.ExperimentalStoreApi::class)
-
 package com.availelabs.availe.features.home
 
 import com.arkivanov.mvikotlin.core.store.Reducer
@@ -10,8 +8,18 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
-import com.availelabs.availe.domain.extensions.toDisplayString
-import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.domain.model.CommonListingData
+import com.availelabs.availe.domain.model.ImageUrl
+import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.domain.model.ListingDescription
+import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.domain.model.ListingStoreKey
+import com.availelabs.availe.domain.model.ListingTitle
+import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.model.Price
+import com.availelabs.availe.domain.model.PriceAmount
+import com.availelabs.availe.domain.model.SupportedCurrency
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.home.HomeStore.*
@@ -25,14 +33,15 @@ import org.mobilenativefoundation.store.store5.StoreReadResponse
 import org.mobilenativefoundation.store.store5.StoreReadResponseOrigin
 import kotlin.random.Random
 import kotlin.time.Clock
+import kotlin.uuid.ExperimentalUuidApi
 
 data class ListingUiModel(
     val id: ListingId,
     val title: ListingTitle,
-    val price: String,
-    val imageUrl: ImageUrl,
-    val type: String,
-    val description: String?
+    val price: Price,
+    val imageUrl: ImageUrl?,
+    val category: ListingCategory,
+    val description: ListingDescription?
 )
 
 interface HomeStore : Store<Intent, State, Label> {
@@ -60,6 +69,7 @@ interface HomeStore : Store<Intent, State, Label> {
     }
 }
 
+@OptIn(ExperimentalUuidApi::class, org.mobilenativefoundation.store.core5.ExperimentalStoreApi::class)
 class HomeStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
@@ -352,17 +362,18 @@ class HomeStoreFactory(
     }
 
     private fun Listing.toListingUiModel(): ListingUiModel {
+        val category = when (this) {
+            is Listing.Item -> ListingCategory.Item
+            is Listing.Event -> ListingCategory.Event
+            is Listing.Service -> ListingCategory.Service
+        }
         return ListingUiModel(
             id = this.id,
             title = this.title,
-            price = this.price.toDisplayString(),
-            imageUrl = this.imageLinks.firstOrNull() ?: ImageUrl(""),
-            type = when (this) {
-                is Listing.Item -> "Item"
-                is Listing.Event -> "Event"
-                is Listing.Service -> "Service"
-            },
-            description = this.description?.value
+            price = this.price,
+            imageUrl = this.imageLinks.firstOrNull(),
+            category = category,
+            description = this.description
         )
     }
 }

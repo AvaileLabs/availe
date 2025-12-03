@@ -12,6 +12,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.availelabs.availe.domain.model.*
 import com.composables.icons.lucide.*
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.Text
@@ -22,11 +23,11 @@ import com.composeunstyled.theme.Theme
 
 @Composable
 fun ListingCard(
-    title: String,
-    price: String,
-    imageUrl: String?,
-    type: String,
-    description: String?,
+    title: ListingTitle,
+    price: Price,
+    imageUrl: ImageUrl?,
+    category: ListingCategory,
+    description: ListingDescription?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -43,44 +44,44 @@ fun ListingCard(
 
         if (isCompact) {
             Column {
-                ListingImage(imageUrl, type, Modifier.fillMaxWidth().height(200.dp))
-                ListingContent(title, price, type, description, Modifier.padding(16.dp))
+                ListingImage(imageUrl, category, Modifier.fillMaxWidth().height(200.dp))
+                ListingContent(title, price, category, description, Modifier.padding(16.dp))
             }
         } else {
             Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-                ListingImage(imageUrl, type, Modifier.width(250.dp).fillMaxHeight())
-                ListingContent(title, price, type, description, Modifier.padding(16.dp).weight(1f))
+                ListingImage(imageUrl, category, Modifier.width(250.dp).fillMaxHeight())
+                ListingContent(title, price, category, description, Modifier.padding(16.dp).weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun ListingImage(url: String?, type: String, modifier: Modifier) {
+private fun ListingImage(url: ImageUrl?, category: ListingCategory, modifier: Modifier) {
     Box(modifier = modifier) {
-        if (!url.isNullOrBlank()) {
+        if (url != null && url.value.isNotBlank()) {
             AsyncImage(
-                model = url,
+                model = url.value,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
         } else {
-            MockImagePlaceholder(type, Modifier.fillMaxSize())
+            MockImagePlaceholder(category, Modifier.fillMaxSize())
         }
     }
 }
 
 @Composable
-private fun MockImagePlaceholder(type: String, modifier: Modifier) {
+private fun MockImagePlaceholder(category: ListingCategory, modifier: Modifier) {
     Box(
         modifier = modifier.background(Theme[colors][outline].copy(alpha = 0.1f)),
         contentAlignment = Alignment.Center
     ) {
-        val icon = when (type) {
-            "Event" -> Lucide.Calendar
-            "Service" -> Lucide.User
-            else -> Lucide.Image
+        val icon = when (category) {
+            ListingCategory.Event -> Lucide.Calendar
+            ListingCategory.Service -> Lucide.User
+            ListingCategory.Item -> Lucide.Image
         }
         Icon(
             imageVector = icon,
@@ -92,32 +93,35 @@ private fun MockImagePlaceholder(type: String, modifier: Modifier) {
 
 @Composable
 private fun ListingContent(
-    title: String,
-    price: String,
-    type: String,
-    description: String?,
+    title: ListingTitle,
+    price: Price,
+    category: ListingCategory,
+    description: ListingDescription?,
     modifier: Modifier
 ) {
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val icon = when (type) {
-                "Event" -> Lucide.Calendar
-                "Service" -> Lucide.User
-                else -> Lucide.Box
+            val icon = when (category) {
+                ListingCategory.Event -> Lucide.Calendar
+                ListingCategory.Service -> Lucide.User
+                ListingCategory.Item -> Lucide.Box
             }
             Icon(icon, null, Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
-            Text(type.uppercase())
+            Text(category.name.uppercase())
             Spacer(Modifier.weight(1f))
             Icon(Lucide.Heart, "Favorite", Modifier.size(20.dp))
         }
         Spacer(Modifier.height(8.dp))
-        Text(title)
+        Text(title.value)
         Spacer(Modifier.height(4.dp))
-        Text(price)
+
+        val currencySymbol = SupportedCurrency.fromCode(price.currency)?.symbol ?: price.currency.value
+        Text("$currencySymbol${price.amount.value}")
+
         if (description != null) {
             Spacer(Modifier.height(8.dp))
-            Text(description, maxLines = 2)
+            Text(description.value, maxLines = 2)
         }
     }
 }

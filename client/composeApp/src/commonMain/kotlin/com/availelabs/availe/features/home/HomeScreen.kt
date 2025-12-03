@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.availelabs.availe.features.home
 
 import androidx.compose.animation.AnimatedVisibility
@@ -36,6 +34,7 @@ import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
 import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 internal fun HomeScreen(
     homeComponent: IHomeComponent,
@@ -122,10 +121,10 @@ internal fun HomeScreen(
                 } else {
                     items(homeState.listingUiModels, key = { it.id.value }) { listingUiModel ->
                         ListingCard(
-                            title = listingUiModel.title.value,
+                            title = listingUiModel.title,
                             price = listingUiModel.price,
-                            imageUrl = listingUiModel.imageUrl.value,
-                            type = listingUiModel.type,
+                            imageUrl = listingUiModel.imageUrl,
+                            category = listingUiModel.category,
                             description = listingUiModel.description,
                             onClick = {
                                 homeComponent.onIntent(HomeStore.Intent.ListingClicked(listingUiModel.id))
