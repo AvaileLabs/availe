@@ -40,7 +40,11 @@ class ListingRepository(
 
     override suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>> {
         return executeSafeNetworkRequest {
-            remoteDataSource.getListingById(id)
+            val findResult = remoteDataSource.getListingById(id)
+            if (findResult is FindResult.NotFound) {
+                localDataSource.deleteListingById(id)
+            }
+            findResult
         }
     }
 

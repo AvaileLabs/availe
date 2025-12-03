@@ -24,7 +24,10 @@ class ListingStoreFactory(
                     val limit = key.size.toLong()
                     localDataSource.getListingsPage(limit, offset)
                 },
-                writer = { _, listings ->
+                writer = { key, listings ->
+                    if (key.page == 0) {
+                        localDataSource.deleteAllListings()
+                    }
                     listings.forEach { listing ->
                         localDataSource.upsertListing(listing)
                     }
