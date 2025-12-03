@@ -5,13 +5,27 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.availelabs.availe.core.platform.PlatformActivity
 import com.availelabs.availe.db.ClientDatabase
+import java.io.File
 
 class JvmSqlDriverFactory : SqlDriverFactory {
     override suspend fun createDriver(): SqlDriver {
-        return JdbcSqliteDriver(
-            url = ClientDatabaseConfiguration.databaseConnectionUrl.value,
-            schema = ClientDatabase.Schema.synchronous()
-        )
+        val connectionUrl = ClientDatabaseConfiguration.databaseConnectionUrl.value
+        return try {
+            JdbcSqliteDriver(
+                url = connectionUrl,
+                schema = ClientDatabase.Schema.synchronous()
+            )
+        } catch (_: Exception) {
+            val filePath = connectionUrl.removePrefix("jdbc:sqlite:")
+            val databaseFile = File(filePath)
+            if (databaseFile.exists()) {
+                databaseFile.delete()
+            }
+            JdbcSqliteDriver(
+                url = connectionUrl,
+                schema = ClientDatabase.Schema.synchronous()
+            )
+        }
     }
 }
 
