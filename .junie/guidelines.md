@@ -20,3 +20,5 @@ Other instructions:
   shared/logic/src/commonMain/kotlin/com/availelabs/availe/domain/model/ValueObjects.kt
 * The shared/logic/src/commonMain/kotlin/com/availelabs/availe/domain directory is important in general.
 * Again, code is only to go in the shared directory if it's shared across multiple modules.
+* Always use value classes whenever possible to improve type safety.
+* Use sealed interfaces to enforce type safety and prevent invalid states.
