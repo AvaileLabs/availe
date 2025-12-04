@@ -86,7 +86,7 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         }
 
         val volumeBinds = runSpecification.volumes.all.map { volume ->
-            Bind(volume.volumeName, Volume(volume.containerPath))
+            Bind(volume.hostSource, Volume(volume.containerPath))
         }
 
         val hostConfiguration = HostConfig.newHostConfig()

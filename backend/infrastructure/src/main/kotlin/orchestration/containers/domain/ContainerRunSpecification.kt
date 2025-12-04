@@ -13,8 +13,9 @@ internal data class ContainerRunSpecification<P : ContainerRunSpecification.Port
     val command: List<String> = emptyList()
 ) {
     interface VolumeMount {
-        val volumeName: String
+        val hostSource: String
         val containerPath: String
+        val isBindMount: Boolean
     }
 
     interface VolumeList {

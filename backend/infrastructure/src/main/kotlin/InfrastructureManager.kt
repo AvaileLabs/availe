@@ -13,24 +13,34 @@ internal class InfrastructureManager(
     private val containerOrchestrator: ContainerOrchestrator,
     private val postgresProvisioner: PostgresProvisioner,
     private val keycloakProvisioner: KeycloakProvisioner,
-    private val pgConfig: PostgresConfig,
-    private val postgresSpec: ContainerRunSpecification<*, *>,
-    private val keycloakSpec: ContainerRunSpecification<*, *>
+    private val postgresConfiguration: PostgresConfig,
+    private val postgresRunSpecification: ContainerRunSpecification<*, *>,
+    private val keycloakRunSpecification: ContainerRunSpecification<*, *>,
+    private val ejabberdRunSpecification: ContainerRunSpecification<*, *>
 ) {
-    private val allSpecsForTeardown = listOf(postgresSpec, keycloakSpec)
+    private val allRunSpecificationsForTeardown = listOf(
+        postgresRunSpecification,
+        ejabberdRunSpecification,
+        keycloakRunSpecification
+    )
 
     fun setup() {
         logger.info("Starting Postgres container...")
-        containerOrchestrator.orchestrationSetup(listOf(postgresSpec))
+        containerOrchestrator.orchestrationSetup(listOf(postgresRunSpecification))
 
-        ServiceWaiter.waitForPostgres(pgConfig)
+        ServiceWaiter.waitForPostgres(postgresConfiguration)
         logger.info("Postgres is ready.")
 
         logger.info("Provisioning Postgres (creating schema)...")
         postgresProvisioner.provision()
 
+        logger.info("Starting Ejabberd container...")
+        containerOrchestrator.orchestrationSetup(listOf(ejabberdRunSpecification))
+        ServiceWaiter.waitForEjabberd()
+        logger.info("Ejabberd is ready.")
+
         logger.info("Starting Keycloak container...")
-        containerOrchestrator.orchestrationSetup(listOf(keycloakSpec))
+        containerOrchestrator.orchestrationSetup(listOf(keycloakRunSpecification))
 
         ServiceWaiter.waitForKeycloak()
         logger.info("Keycloak is ready.")
@@ -41,7 +51,7 @@ internal class InfrastructureManager(
 
     fun teardown() {
         logger.info("Starting infrastructure teardown...")
-        containerOrchestrator.orchestrationTeardown(allSpecsForTeardown)
+        containerOrchestrator.orchestrationTeardown(allRunSpecificationsForTeardown)
         logger.info("Infrastructure teardown complete.")
     }
 }

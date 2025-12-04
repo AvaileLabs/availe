@@ -2,6 +2,7 @@ package com.availelabs
 
 import com.availelabs.orchestration.containers.ContainerOrchestrator
 import com.availelabs.orchestration.containers.core.*
+import com.availelabs.orchestration.ejabberd.ejabberdRunSpec
 import com.availelabs.orchestration.keycloak.keycloakRunSpec
 import com.availelabs.orchestration.keycloak.loadKeycloakConfig
 import com.availelabs.orchestration.postgres.loadPostgresConfig
@@ -37,8 +38,9 @@ internal fun main(args: Array<String>) {
         val postgresConfiguration = loadPostgresConfig()
         val keycloakConfiguration = loadKeycloakConfig()
 
-        val postgresSpec = postgresRunSpec()
-        val keycloakSpec = keycloakRunSpec()
+        val postgresRunSpecification = postgresRunSpec()
+        val keycloakRunSpecification = keycloakRunSpec()
+        val ejabberdRunSpecification = ejabberdRunSpec()
 
         val postgresProvisioner = PostgresProvisioner(postgresConfiguration)
 
@@ -53,25 +55,26 @@ internal fun main(args: Array<String>) {
             userProfileReconciler
         )
 
-        val manager = InfrastructureManager(
+        val infrastructureManager = InfrastructureManager(
             logger,
             containerOrchestrator,
             postgresProvisioner,
             keycloakProvisioner,
             postgresConfiguration,
-            postgresSpec,
-            keycloakSpec
+            postgresRunSpecification,
+            keycloakRunSpecification,
+            ejabberdRunSpecification
         )
 
         if ("--destroyAll" in args) {
-            manager.teardown()
+            infrastructureManager.teardown()
         } else {
-            manager.setup()
+            infrastructureManager.setup()
             logger.info("System is fully provisioned and ready.")
         }
 
-    } catch (e: Exception) {
-        logger.error("An error occurred: ${e.message}", e)
+    } catch (exception: Exception) {
+        logger.error("An error occurred: ${exception.message}", exception)
         exitCode = 1
     } finally {
         logger.info("Closing Docker client.")

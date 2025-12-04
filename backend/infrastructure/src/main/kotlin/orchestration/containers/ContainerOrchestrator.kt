@@ -17,18 +17,19 @@ internal class ContainerOrchestrator(
 
         val namedVolumes = runSpecifications
             .flatMap { it.volumes.all }
-            .distinctBy(ContainerRunSpecification.VolumeMount::volumeName)
+            .filter { !it.isBindMount }
+            .distinctBy(ContainerRunSpecification.VolumeMount::hostSource)
 
         namedVolumes.forEach { volume ->
-            dockerVolumeManager.ensureVolumeExists(volume.volumeName)
+            dockerVolumeManager.ensureVolumeExists(volume.hostSource)
         }
 
-        runSpecifications.forEach { spec ->
-            dockerImageManager.ensureImageExists(spec.image, spec.tag).getOrThrow()
+        runSpecifications.forEach { runSpecification ->
+            dockerImageManager.ensureImageExists(runSpecification.image, runSpecification.tag).getOrThrow()
         }
 
-        runSpecifications.forEach { spec ->
-            dockerContainerManager.ensureContainerIsRunning(spec)
+        runSpecifications.forEach { runSpecification ->
+            dockerContainerManager.ensureContainerIsRunning(runSpecification)
         }
     }
 
@@ -40,7 +41,8 @@ internal class ContainerOrchestrator(
 
         val volumeNames = runSpecifications
             .flatMap { it.volumes.all }
-            .map(ContainerRunSpecification.VolumeMount::volumeName)
+            .filter { !it.isBindMount }
+            .map(ContainerRunSpecification.VolumeMount::hostSource)
             .distinct()
 
         volumeNames.forEach { volumeName ->

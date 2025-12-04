@@ -4,8 +4,9 @@ import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 
 internal sealed interface PostgresVolumes : ContainerRunSpecification.VolumeMount {
     data object Data : PostgresVolumes {
-        override val volumeName = "availe-postgres-data"
+        override val hostSource = "availe-postgres-data"
         override val containerPath = "/var/lib/postgresql"
+        override val isBindMount = false
     }
 }
 

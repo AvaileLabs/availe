@@ -4,8 +4,9 @@ import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 
 internal sealed interface KeycloakVolumes : ContainerRunSpecification.VolumeMount {
     data object Data : KeycloakVolumes {
-        override val volumeName = "availe-keycloak-data"
+        override val hostSource = "availe-keycloak-data"
         override val containerPath = "/opt/keycloak/data"
+        override val isBindMount = false
     }
 }
 
