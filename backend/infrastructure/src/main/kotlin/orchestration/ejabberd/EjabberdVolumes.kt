@@ -28,11 +28,11 @@ internal sealed interface EjabberdVolumes : ContainerRunSpecification.VolumeMoun
     }
 }
 
-internal class EjabberdVolumesList(private val configHostPath: String) : ContainerRunSpecification.VolumeList {
-    val Config = EjabberdVolumes.Config(configHostPath)
-    val Opt = EjabberdVolumes.Opt
-    val Data = EjabberdVolumes.Data
-    val Logs = EjabberdVolumes.Logs
+internal class EjabberdVolumesList(configHostPath: String) : ContainerRunSpecification.VolumeList {
+    val config = EjabberdVolumes.Config(configHostPath)
+    val opt = EjabberdVolumes.Opt
+    val data = EjabberdVolumes.Data
+    val logs = EjabberdVolumes.Logs
 
-    override val all = listOf(Config, Opt, Data, Logs)
+    override val all = listOf(config, opt, data, logs)
 }
