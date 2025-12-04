@@ -6,6 +6,7 @@ import com.availelabs.orchestration.keycloak.keycloakRunSpec
 import com.availelabs.orchestration.keycloak.loadKeycloakConfig
 import com.availelabs.orchestration.postgres.loadPostgresConfig
 import com.availelabs.orchestration.postgres.postgresRunSpec
+import com.availelabs.orchestration.redis.redisRunSpec
 import com.availelabs.provisioning.PostgresProvisioner
 import com.availelabs.provisioning.keycloak.KeycloakProvisioner
 import com.availelabs.provisioning.keycloak.reconcilers.ClientsReconciler
@@ -60,7 +61,8 @@ internal fun main(args: Array<String>) {
             keycloakProvisioner,
             postgresConfiguration,
             postgresSpec,
-            keycloakSpec
+            keycloakSpec,
+            redisRunSpec()
         )
 
         if ("--destroyAll" in args) {

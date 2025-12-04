@@ -15,7 +15,8 @@ internal class InfrastructureManager(
     private val keycloakProvisioner: KeycloakProvisioner,
     private val pgConfig: PostgresConfig,
     private val postgresSpec: ContainerRunSpecification<*, *>,
-    private val keycloakSpec: ContainerRunSpecification<*, *>
+    private val keycloakSpec: ContainerRunSpecification<*, *>,
+    private val redisSpec: ContainerRunSpecification<*, *>
 ) {
     private val allSpecsForTeardown = listOf(postgresSpec, keycloakSpec)
 
@@ -34,6 +35,10 @@ internal class InfrastructureManager(
 
         ServiceWaiter.waitForKeycloak()
         logger.info("Keycloak is ready.")
+
+        logger.info("Starting Redis container...")
+        containerOrchestrator.orchestrationSetup(listOf(redisSpec))
+        ServiceWaiter.waitForRedis()
 
         logger.info("All services are healthy. Starting Keycloak provisioning...")
         keycloakProvisioner.provision()

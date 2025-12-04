@@ -4,6 +4,7 @@ import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.keycloak.KeycloakPortsList
 import com.availelabs.orchestration.postgres.PostgresConfig
 import org.slf4j.LoggerFactory
+import java.net.Socket
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -69,5 +70,26 @@ internal object ServiceWaiter {
             Thread.sleep(1_000)
         }
         throw IllegalStateException("Keycloak not ready after ${timeoutSeconds}s: ${lastError?.message}", lastError)
+    }
+
+    fun waitForRedis(timeoutSeconds: Long = 30) {
+        val host = "localhost"
+        val port = SharedNetworkConstants.REDIS_PUBLIC_PORT
+        logger.info("Waiting for Redis at $host:$port...")
+        val deadline = System.currentTimeMillis() + timeoutSeconds * 1000
+        var lastError: Throwable? = null
+
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                Socket(host, port).use { _ ->
+                    logger.info("Redis is ready.")
+                    return
+                }
+            } catch (t: Throwable) {
+                lastError = t
+                Thread.sleep(500)
+            }
+        }
+        throw IllegalStateException("Redis not ready after ${timeoutSeconds}s: ${lastError?.message}", lastError)
     }
 }
