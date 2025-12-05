@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -17,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,7 +58,9 @@ fun ListingDetailsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(state.errorMessage!!)
+                    SelectionContainer {
+                        Text(state.errorMessage!!)
+                    }
                     Spacer(Modifier.height(16.dp))
                     PrimaryButton(
                         onClick = {
@@ -128,28 +132,34 @@ private fun MobileListingLayout(
                             modifier = Modifier.size(16.dp),
                             tint = Theme[colors][onBackground].copy(alpha = 0.6f)
                         )
-                        Text(
-                            text = listing.mockLocation,
-                            style = Theme[textStyles][body].copy(
-                                fontSize = Theme[textStyles][body].fontSize * 0.9,
-                                color = Theme[colors][onBackground].copy(alpha = 0.6f)
+                        SelectionContainer {
+                            Text(
+                                text = listing.mockLocation,
+                                style = Theme[textStyles][body].copy(
+                                    fontSize = Theme[textStyles][body].fontSize * 0.9,
+                                    color = Theme[colors][onBackground].copy(alpha = 0.6f)
+                                )
                             )
-                        )
+                        }
                     }
                 }
 
                 Spacer(Modifier.height(12.dp))
 
-                Text(
-                    text = listing.title.value,
-                    style = Theme[textStyles][title].copy(fontWeight = FontWeight.Bold)
-                )
+                SelectionContainer {
+                    Text(
+                        text = listing.title.value,
+                        style = Theme[textStyles][title].copy(fontWeight = FontWeight.Bold)
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
 
-                Text(
-                    text = listing.price.toDisplayString(),
-                    style = Theme[textStyles][title].copy(fontSize = Theme[textStyles][title].fontSize * 1.2)
-                )
+                SelectionContainer {
+                    Text(
+                        text = listing.price.toDisplayString(),
+                        style = Theme[textStyles][title].copy(fontSize = Theme[textStyles][title].fontSize * 1.2)
+                    )
+                }
 
                 Spacer(Modifier.height(24.dp))
                 SellerInfoCard(
@@ -187,10 +197,12 @@ private fun MobileListingLayout(
                         "Total Price",
                         style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.8)
                     )
-                    Text(
-                        text = listing.price.toDisplayString(),
-                        style = Theme[textStyles][title].copy(fontWeight = FontWeight.Bold)
-                    )
+                    SelectionContainer {
+                        Text(
+                            text = listing.price.toDisplayString(),
+                            style = Theme[textStyles][title].copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
                 }
                 PrimaryButton(onClick = { onContactSeller(listing.commonData.publisherId.value.toString()) }) {
                     Text(if (listing.category == ListingCategory.Event) "Book Ticket" else "Contact Seller")
@@ -236,25 +248,29 @@ private fun DesktopListingLayout(
                             modifier = Modifier.size(18.dp),
                             tint = Theme[colors][onBackground].copy(alpha = 0.6f)
                         )
-                        Text(
-                            text = listing.mockLocation,
-                            style = Theme[textStyles][body].copy(
-                                fontWeight = FontWeight.Medium,
-                                color = Theme[colors][onBackground].copy(alpha = 0.6f)
+                        SelectionContainer {
+                            Text(
+                                text = listing.mockLocation,
+                                style = Theme[textStyles][body].copy(
+                                    fontWeight = FontWeight.Medium,
+                                    color = Theme[colors][onBackground].copy(alpha = 0.6f)
+                                )
                             )
-                        )
+                        }
                     }
                 }
 
                 Spacer(Modifier.height(16.dp))
 
-                Text(
-                    text = listing.title.value,
-                    style = Theme[textStyles][title].copy(
-                        fontSize = Theme[textStyles][title].fontSize * 1.5,
-                        fontWeight = FontWeight.Bold
+                SelectionContainer {
+                    Text(
+                        text = listing.title.value,
+                        style = Theme[textStyles][title].copy(
+                            fontSize = Theme[textStyles][title].fontSize * 1.5,
+                            fontWeight = FontWeight.Bold
+                        )
                     )
-                )
+                }
 
                 Spacer(Modifier.height(24.dp))
 
@@ -287,14 +303,16 @@ private fun DesktopListingLayout(
             Column(modifier = Modifier.weight(0.35f)) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(24.dp)) {
-                        Text(
-                            text = listing.price.toDisplayString(),
-                            style = Theme[textStyles][title].copy(
-                                fontSize = Theme[textStyles][title].fontSize * 1.4,
-                                fontWeight = FontWeight.Bold,
-                                color = Theme[colors][primary]
+                        SelectionContainer {
+                            Text(
+                                text = listing.price.toDisplayString(),
+                                style = Theme[textStyles][title].copy(
+                                    fontSize = Theme[textStyles][title].fontSize * 1.4,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Theme[colors][primary]
+                                )
                             )
-                        )
+                        }
 
                         Spacer(Modifier.height(24.dp))
 
@@ -351,14 +369,16 @@ private fun DesktopListingLayout(
 
                         Spacer(Modifier.height(16.dp))
 
-                        Text(
-                            text = "Secure transaction protected by Availe Guarantee.",
-                            style = Theme[textStyles][body].copy(
-                                fontSize = Theme[textStyles][body].fontSize * 0.75,
-                                color = Theme[colors][onBackground].copy(alpha = 0.6f)
-                            ),
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                        )
+                        SelectionContainer {
+                            Text(
+                                text = "Secure transaction protected by Availe Guarantee.",
+                                style = Theme[textStyles][body].copy(
+                                    fontSize = Theme[textStyles][body].fontSize * 0.75,
+                                    color = Theme[colors][onBackground].copy(alpha = 0.6f)
+                                ),
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            )
+                        }
                     }
                 }
             }
@@ -368,7 +388,7 @@ private fun DesktopListingLayout(
 
 @Composable
 private fun Badge(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String,
     tint: Color
 ) {
@@ -380,13 +400,15 @@ private fun Badge(
             tint = tint
         )
         Spacer(Modifier.width(6.dp))
-        Text(
-            text = text,
-            style = Theme[textStyles][body].copy(
-                fontSize = Theme[textStyles][body].fontSize * 0.85,
-                fontWeight = FontWeight.Medium
+        SelectionContainer {
+            Text(
+                text = text,
+                style = Theme[textStyles][body].copy(
+                    fontSize = Theme[textStyles][body].fontSize * 0.85,
+                    fontWeight = FontWeight.Medium
+                )
             )
-        )
+        }
     }
 }
 
@@ -477,20 +499,22 @@ private fun SellerInfoCard(
             modifier = Modifier.size(48.dp)
         )
         Spacer(Modifier.width(16.dp))
-        Column {
-            Text("Alice Seller", fontWeight = FontWeight.Bold)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Lucide.Star,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = Color(0xFFEAB308)
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    "${listing.mockRating} (${listing.mockReviewCount})",
-                    style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.85)
-                )
+        SelectionContainer {
+            Column {
+                Text("Alice Seller", fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Lucide.Star,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = Color(0xFFEAB308)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "${listing.mockRating} (${listing.mockReviewCount})",
+                        style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.85)
+                    )
+                }
             }
         }
         Spacer(Modifier.weight(1f))
@@ -509,12 +533,16 @@ private fun SellerInfoCard(
 @Composable
 private fun Section(sectionTitle: String, content: @Composable () -> Unit) {
     Column {
-        Text(
-            text = sectionTitle,
-            style = Theme[textStyles][title].copy(fontSize = Theme[textStyles][title].fontSize * 0.9)
-        )
+        SelectionContainer {
+            Text(
+                text = sectionTitle,
+                style = Theme[textStyles][title].copy(fontSize = Theme[textStyles][title].fontSize * 0.9)
+            )
+        }
         Spacer(Modifier.height(12.dp))
-        content()
+        SelectionContainer {
+            content()
+        }
     }
 }
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -196,11 +197,13 @@ private fun MessageBubble(
                 .background(bubbleColor, bubbleShape)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Text(
-                text = message.content,
-                color = contentColor,
-                lineHeight = 20.sp
-            )
+            SelectionContainer {
+                Text(
+                    text = message.content,
+                    color = contentColor,
+                    lineHeight = 20.sp
+                )
+            }
         }
     }
 }
@@ -226,12 +229,12 @@ private fun ChatInput(
         ) {
             TextField(
                 value = messageInput,
-                onValueChange = { messageInput = it },
+                onValueChange = { newValue -> messageInput = newValue },
                 modifier = Modifier
                     .weight(1f)
-                    .onPreviewKeyEvent { event ->
-                        if (event.key == Key.Enter && event.type == KeyEventType.KeyDown) {
-                            if (event.isShiftPressed) {
+                    .onPreviewKeyEvent { keyEvent ->
+                        if (keyEvent.key == Key.Enter && keyEvent.type == KeyEventType.KeyDown) {
+                            if (keyEvent.isShiftPressed) {
                                 false
                             } else {
                                 if (messageInput.isNotBlank()) {

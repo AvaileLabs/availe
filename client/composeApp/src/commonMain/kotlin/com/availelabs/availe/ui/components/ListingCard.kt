@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -113,15 +114,21 @@ private fun ListingContent(
             Icon(Lucide.Heart, "Favorite", Modifier.size(20.dp))
         }
         Spacer(Modifier.height(8.dp))
-        Text(title.value)
+        SelectionContainer {
+            Text(title.value)
+        }
         Spacer(Modifier.height(4.dp))
 
-        val currencySymbol = SupportedCurrency.fromCode(price.currency)?.symbol ?: price.currency.value
-        Text("$currencySymbol${price.amount.value}")
+        SelectionContainer {
+            val currencySymbol = SupportedCurrency.fromCode(price.currency)?.symbol ?: price.currency.value
+            Text("$currencySymbol${price.amount.value}")
+        }
 
         if (description != null) {
             Spacer(Modifier.height(8.dp))
-            Text(description.value, maxLines = 2)
+            SelectionContainer {
+                Text(description.value, maxLines = 2)
+            }
         }
     }
 }

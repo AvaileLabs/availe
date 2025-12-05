@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,7 +93,9 @@ internal fun HomeScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Text(homeState.errorMessage!!)
+                            SelectionContainer {
+                                Text(homeState.errorMessage!!)
+                            }
                             Spacer(Modifier.height(16.dp))
                             PrimaryButton(
                                 onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
@@ -108,7 +111,9 @@ internal fun HomeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("No listings found")
+                                SelectionContainer {
+                                    Text("No listings found")
+                                }
                                 Spacer(Modifier.height(16.dp))
                                 PrimaryButton(
                                     onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
