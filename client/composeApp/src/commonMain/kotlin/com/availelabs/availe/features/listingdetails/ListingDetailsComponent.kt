@@ -14,13 +14,15 @@ interface IListingDetailsComponent {
     val state: StateFlow<ListingDetailsStore.State>
     fun onIntent(intent: ListingDetailsStore.Intent)
     fun onBackClicked()
+    fun onContactSellerClicked(sellerId: String)
 }
 
 class ListingDetailsComponent(
     componentContext: ComponentContext,
     private val listingId: ListingId,
     private val listingRepository: IListingRepository,
-    private val onNavigateBack: () -> Unit
+    private val onNavigateBack: () -> Unit,
+    private val onNavigateToChat: (String) -> Unit
 ) : IListingDetailsComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -45,5 +47,9 @@ class ListingDetailsComponent(
 
     override fun onBackClicked() {
         onNavigateBack()
+    }
+
+    override fun onContactSellerClicked(sellerId: String) {
+        onNavigateToChat(sellerId)
     }
 }

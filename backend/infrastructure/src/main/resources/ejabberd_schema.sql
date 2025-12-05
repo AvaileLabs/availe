@@ -231,3 +231,28 @@ CREATE TABLE IF NOT EXISTS archive_prefs
     created_at  timestamp DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (server_host, username)
 );
+
+CREATE TABLE IF NOT EXISTS privacy_list
+(
+    username    text NOT NULL,
+    server_host text NOT NULL,
+    name        text NOT NULL,
+    id          bigserial,
+    created_at  timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (server_host, username, name)
+);
+
+CREATE TABLE IF NOT EXISTS privacy_default_list
+(
+    username    text NOT NULL,
+    server_host text NOT NULL,
+    name        text NOT NULL,
+    created_at  timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (server_host, username)
+);
+
+-- Auto-create the test user for development purposes
+-- Don't forget to delete this later.
+INSERT INTO users (username, server_host, password)
+VALUES ('test', 'localhost', 'password')
+ON CONFLICT DO NOTHING;

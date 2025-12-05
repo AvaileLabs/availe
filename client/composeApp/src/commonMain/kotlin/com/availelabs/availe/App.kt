@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.availelabs.availe.features.chat.ChatScreen
 import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.home.HomeStore
 import com.availelabs.availe.features.home.IHomeComponent
@@ -73,6 +74,7 @@ fun App(rootComponent: IRootComponent) {
                                 }
 
                                 is ChildComponent.ListingDetails -> {}
+                                is ChildComponent.Chat -> {}
                             }
 
                             if (authenticationState.isAuthenticated) {
@@ -131,6 +133,10 @@ fun ChildComponent.Render(modifier: Modifier) {
 
         is ChildComponent.ListingDetails -> ListingDetailsScreen(
             listingDetailsComponent = this.component
+        )
+
+        is ChildComponent.Chat -> ChatScreen(
+            component = this.component
         )
     }
 }

@@ -18,6 +18,8 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.features.chat.ChatComponent
+import com.availelabs.availe.features.chat.IChatComponent
 import com.availelabs.availe.features.home.HomeComponent
 import com.availelabs.availe.features.home.IHomeComponent
 import com.availelabs.availe.features.listingdetails.IListingDetailsComponent
@@ -26,6 +28,7 @@ import com.availelabs.availe.features.main.MainStore
 import com.availelabs.availe.features.main.MainStoreFactory
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.MessageCircle
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
@@ -120,6 +123,19 @@ class RootComponent(
                     componentContext = componentContext,
                     listingId = configuration.listingId,
                     listingRepository = appContainer.listingRepository,
+                    onNavigateBack = { navigation.pop() },
+                    onNavigateToChat = { recipientId ->
+                        navigation.push(Configuration.Chat(recipientId))
+                    }
+                )
+            )
+
+            is Configuration.Chat -> ChildComponent.Chat(
+                ChatComponent(
+                    componentContext = componentContext,
+                    recipientId = configuration.recipientId,
+                    messagingRemoteDataSource = appContainer.messagingRemoteDataSource,
+                    sessionManager = appContainer.sessionManager,
                     onNavigateBack = { navigation.pop() }
                 )
             )
@@ -130,6 +146,7 @@ class RootComponent(
 sealed interface ChildComponent {
     data class Home(val component: IHomeComponent) : ChildComponent
     data class ListingDetails(val component: IListingDetailsComponent) : ChildComponent
+    data class Chat(val component: IChatComponent) : ChildComponent
 }
 
 data class NavIcon(
@@ -187,5 +204,18 @@ sealed interface Configuration {
                 }
             }
         }
+    }
+
+    @Serializable
+    data class Chat(val recipientId: String) : Configuration {
+        @Transient
+        override val displayName: String = "Chat"
+
+        @Transient
+        override val navigationIcon: NavIcon = NavIcon(Lucide.MessageCircle, "Chat Screen")
+
+        override val canonicalParent: Configuration = Home
+
+        override fun toUrlPath(): String = "/chat/$recipientId"
     }
 }

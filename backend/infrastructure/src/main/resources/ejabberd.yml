@@ -26,8 +26,10 @@ listen:
     request_handlers:
       "/admin": ejabberd_web_admin
       "/api": mod_http_api
+      "/ws": ejabberd_http_ws
 
 auth_method: [ sql ]
+auth_password_format: plain
 default_db: sql
 new_sql_schema: true
 

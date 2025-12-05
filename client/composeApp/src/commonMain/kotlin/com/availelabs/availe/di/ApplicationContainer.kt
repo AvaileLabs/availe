@@ -11,13 +11,16 @@ import com.availelabs.availe.data.auth.toScopeString
 import com.availelabs.availe.data.repositories.*
 import com.availelabs.availe.data.sources.local.*
 import com.availelabs.availe.data.sources.remote.AuthenticationRemoteDataSource
+import com.availelabs.availe.data.sources.remote.IMessagingRemoteDataSource
 import com.availelabs.availe.data.sources.remote.ListingRemoteDataSource
+import com.availelabs.availe.data.sources.remote.MessagingRemoteDataSource
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.CoroutineScope
@@ -28,11 +31,13 @@ import kotlinx.serialization.json.Json
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
 import org.publicvalue.multiplatform.oidc.types.CodeChallengeMethod
+import kotlin.time.Duration.Companion.milliseconds
 
 interface IApplicationContainer {
     val sessionManager: ISessionManager
     val authenticationRepository: IAuthenticationRepository
     val listingRepository: IListingRepository
+    val messagingRemoteDataSource: IMessagingRemoteDataSource
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
@@ -102,6 +107,10 @@ fun createApplicationContainer(
             json(json)
         }
 
+        install(WebSockets) {
+            pingInterval = 20_000.milliseconds
+        }
+
         install(Auth) {
             bearer {
                 loadTokens {
@@ -145,6 +154,10 @@ fun createApplicationContainer(
         json = json
     )
 
+    val messagingRemoteDataSource = MessagingRemoteDataSource(
+        httpClient = httpClient
+    )
+
     val listingStoreFactory = ListingStoreFactory(
         remoteDataSource = listingRemoteDataSource,
         localDataSource = listingLocalDataSource
@@ -160,12 +173,14 @@ fun createApplicationContainer(
     return ApplicationContainer(
         sessionManager = sessionManager,
         authenticationRepository = authenticationRepository,
-        listingRepository = listingRepository
+        listingRepository = listingRepository,
+        messagingRemoteDataSource = messagingRemoteDataSource
     )
 }
 
 private class ApplicationContainer(
     override val sessionManager: ISessionManager,
     override val authenticationRepository: IAuthenticationRepository,
-    override val listingRepository: IListingRepository
+    override val listingRepository: IListingRepository,
+    override val messagingRemoteDataSource: IMessagingRemoteDataSource
 ) : IApplicationContainer

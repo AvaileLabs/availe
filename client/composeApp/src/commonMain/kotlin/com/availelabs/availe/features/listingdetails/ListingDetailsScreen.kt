@@ -68,7 +68,8 @@ fun ListingDetailsScreen(
                 }
             } else if (state.listing != null) {
                 ListingDetailsContent(
-                    listing = state.listing!!
+                    listing = state.listing!!,
+                    onContactSeller = { sellerId -> listingDetailsComponent.onContactSellerClicked(sellerId) }
                 )
             }
         }
@@ -77,21 +78,23 @@ fun ListingDetailsScreen(
 
 @Composable
 private fun ListingDetailsContent(
-    listing: Listing
+    listing: Listing,
+    onContactSeller: (String) -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isDesktop = maxWidth > 800.dp
         if (isDesktop) {
-            DesktopListingLayout(listing)
+            DesktopListingLayout(listing, onContactSeller)
         } else {
-            MobileListingLayout(listing)
+            MobileListingLayout(listing, onContactSeller)
         }
     }
 }
 
 @Composable
 private fun MobileListingLayout(
-    listing: Listing
+    listing: Listing,
+    onContactSeller: (String) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -149,7 +152,11 @@ private fun MobileListingLayout(
                 )
 
                 Spacer(Modifier.height(24.dp))
-                SellerInfoCard(listing = listing, modifier = Modifier.fillMaxWidth())
+                SellerInfoCard(
+                    listing = listing,
+                    modifier = Modifier.fillMaxWidth(),
+                    onContactClicked = onContactSeller
+                )
                 Spacer(Modifier.height(24.dp))
 
                 Section("Description") {
@@ -185,7 +192,7 @@ private fun MobileListingLayout(
                         style = Theme[textStyles][title].copy(fontWeight = FontWeight.Bold)
                     )
                 }
-                PrimaryButton(onClick = {}) {
+                PrimaryButton(onClick = { onContactSeller(listing.commonData.publisherId.value.toString()) }) {
                     Text(if (listing.category == ListingCategory.Event) "Book Ticket" else "Contact Seller")
                 }
             }
@@ -195,7 +202,8 @@ private fun MobileListingLayout(
 
 @Composable
 private fun DesktopListingLayout(
-    listing: Listing
+    listing: Listing,
+    onContactSeller: (String) -> Unit
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -299,30 +307,11 @@ private fun DesktopListingLayout(
 
                         Spacer(Modifier.height(24.dp))
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Avatar(
-                                painter = ColorPainter(Theme[colors][primary]),
-                                initials = "AS",
-                                modifier = Modifier.size(56.dp)
-                            )
-                            Spacer(Modifier.width(16.dp))
-                            Column {
-                                Text(
-                                    text = "Alice Seller",
-                                    style = Theme[textStyles][title].copy(
-                                        fontSize = Theme[textStyles][title].fontSize * 0.9,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                )
-                                Text(
-                                    text = "Joined 2024",
-                                    style = Theme[textStyles][body].copy(
-                                        fontSize = Theme[textStyles][body].fontSize * 0.85,
-                                        color = Theme[colors][onBackground].copy(alpha = 0.7f)
-                                    )
-                                )
-                            }
-                        }
+                        SellerInfoCard(
+                            listing = listing,
+                            modifier = Modifier.fillMaxWidth(),
+                            onContactClicked = onContactSeller
+                        )
 
                         Spacer(Modifier.height(20.dp))
 
@@ -354,7 +343,7 @@ private fun DesktopListingLayout(
                         Spacer(Modifier.height(32.dp))
 
                         PrimaryButton(
-                            onClick = {},
+                            onClick = { onContactSeller(listing.commonData.publisherId.value.toString()) },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(if (listing.category == ListingCategory.Event) "Book Now" else "Contact Seller")
@@ -473,7 +462,8 @@ private fun CategoryChip(category: ListingCategory) {
 @Composable
 private fun SellerInfoCard(
     listing: Listing,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onContactClicked: (String) -> Unit
 ) {
     Row(
         modifier = modifier
@@ -505,7 +495,7 @@ private fun SellerInfoCard(
         }
         Spacer(Modifier.weight(1f))
         PrimaryButton(
-            onClick = {},
+            onClick = { onContactClicked(listing.commonData.publisherId.value.toString()) },
             backgroundColor = Theme[colors][card],
             contentColor = Theme[colors][onBackground],
             borderWidth = 1.dp,
