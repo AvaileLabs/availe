@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
@@ -192,7 +191,6 @@ private fun MessageBubble(
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
-                .dropShadow(shape = bubbleShape, shadow = Theme[shadows][subtle])
                 .background(bubbleColor, bubbleShape)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
