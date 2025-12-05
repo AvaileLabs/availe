@@ -102,7 +102,7 @@ kotlin {
             implementation(libs.multiplatform.settings.no.arg)
             implementation(libs.store5)
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.serialization)
+            implementation(libs.xmlutil)
 
             // Ktor
             implementation(libs.ktor.client.core)
