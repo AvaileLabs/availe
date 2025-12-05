@@ -134,8 +134,8 @@ class RootComponent(
                 ChatComponent(
                     componentContext = componentContext,
                     recipientId = configuration.recipientId,
-                    messagingRemoteDataSource = appContainer.messagingRemoteDataSource,
                     sessionManager = appContainer.sessionManager,
+                    messagingRepository = appContainer.messagingRepository,
                     onNavigateBack = { navigation.pop() }
                 )
             )

@@ -7,8 +7,10 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.availelabs.availe.data.repositories.IMessagingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
-import com.availelabs.availe.data.sources.remote.IMessagingRemoteDataSource
+import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.domain.model.ChatMessage
 import com.availelabs.availe.features.chat.ChatStore.*
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -23,7 +25,7 @@ interface ChatStore : Store<Intent, State, Label> {
 
     data class State(
         val connectionStatus: String = "Disconnected",
-        val messages: List<String> = emptyList()
+        val messages: List<ChatMessage> = emptyList()
     )
 
     sealed interface Label
@@ -31,7 +33,7 @@ interface ChatStore : Store<Intent, State, Label> {
 
 class ChatStoreFactory(
     private val storeFactory: StoreFactory,
-    private val messagingRemoteDataSource: IMessagingRemoteDataSource,
+    private val messagingRepository: IMessagingRepository,
     private val sessionManager: ISessionManager,
     private val recipientId: String
 ) {
@@ -46,23 +48,23 @@ class ChatStoreFactory(
 
     private sealed interface Action {
         data class UpdateStatus(val status: String) : Action
-        data class MessageReceived(val message: String) : Action
+        data class MessageReceived(val message: ChatMessage) : Action
     }
 
     private sealed interface Message {
         data class SetStatus(val status: String) : Message
-        data class AddMessage(val message: String) : Message
+        data class AddMessage(val message: ChatMessage) : Message
     }
 
     private inner class ChatBootstrapper : CoroutineBootstrapper<Action>() {
         override fun invoke() {
             scope.launch {
-                messagingRemoteDataSource.connectionStatus.collectLatest { status ->
+                messagingRepository.connectionStatus.collectLatest { status ->
                     dispatch(Action.UpdateStatus(status))
                 }
             }
             scope.launch {
-                messagingRemoteDataSource.messages.collectLatest { msg ->
+                messagingRepository.messages.collectLatest { msg ->
                     dispatch(Action.MessageReceived(msg))
                 }
             }
@@ -87,29 +89,25 @@ class ChatStoreFactory(
 
         private fun connect() {
             scope.launch {
-                messagingRemoteDataSource.connect("test", "password")
-
-                /*
                 val state = sessionManager.authenticationState.value
                 if (state is AuthenticationState.LoggedIn) {
                     val userProfile = sessionManager.getCurrentUserProfile()
                     if (userProfile != null) {
-                        messagingRemoteDataSource.connect(userProfile.id.value.toString(), state.accessToken)
+                        messagingRepository.connect("test", "password")
                     }
                 }
-                */
             }
         }
 
         private fun disconnect() {
             scope.launch {
-                messagingRemoteDataSource.disconnect()
+                messagingRepository.disconnect()
             }
         }
 
         private fun sendMessage(body: String) {
             scope.launch {
-                messagingRemoteDataSource.sendMessage("$recipientId@localhost", body)
+                messagingRepository.sendMessage("$recipientId@localhost", body)
             }
         }
     }

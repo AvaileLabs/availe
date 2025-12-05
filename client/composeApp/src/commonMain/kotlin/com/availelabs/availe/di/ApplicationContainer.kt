@@ -11,7 +11,6 @@ import com.availelabs.availe.data.auth.toScopeString
 import com.availelabs.availe.data.repositories.*
 import com.availelabs.availe.data.sources.local.*
 import com.availelabs.availe.data.sources.remote.AuthenticationRemoteDataSource
-import com.availelabs.availe.data.sources.remote.IMessagingRemoteDataSource
 import com.availelabs.availe.data.sources.remote.ListingRemoteDataSource
 import com.availelabs.availe.data.sources.remote.MessagingRemoteDataSource
 import com.russhwolf.settings.Settings
@@ -37,7 +36,7 @@ interface IApplicationContainer {
     val sessionManager: ISessionManager
     val authenticationRepository: IAuthenticationRepository
     val listingRepository: IListingRepository
-    val messagingRemoteDataSource: IMessagingRemoteDataSource
+    val messagingRepository: IMessagingRepository
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
@@ -158,6 +157,10 @@ fun createApplicationContainer(
         httpClient = httpClient
     )
 
+    val messagingRepository = MessagingRepository(
+        messagingRemoteDataSource = messagingRemoteDataSource
+    )
+
     val listingStoreFactory = ListingStoreFactory(
         remoteDataSource = listingRemoteDataSource,
         localDataSource = listingLocalDataSource
@@ -174,7 +177,7 @@ fun createApplicationContainer(
         sessionManager = sessionManager,
         authenticationRepository = authenticationRepository,
         listingRepository = listingRepository,
-        messagingRemoteDataSource = messagingRemoteDataSource
+        messagingRepository = messagingRepository
     )
 }
 
@@ -182,5 +185,5 @@ private class ApplicationContainer(
     override val sessionManager: ISessionManager,
     override val authenticationRepository: IAuthenticationRepository,
     override val listingRepository: IListingRepository,
-    override val messagingRemoteDataSource: IMessagingRemoteDataSource
+    override val messagingRepository: IMessagingRepository
 ) : IApplicationContainer

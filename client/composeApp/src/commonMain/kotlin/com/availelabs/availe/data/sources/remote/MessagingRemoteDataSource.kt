@@ -2,18 +2,20 @@ package com.availelabs.availe.data.sources.remote
 
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
+import com.availelabs.availe.data.dto.*
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
+import nl.adaptivity.xmlutil.serialization.XML
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 interface IMessagingRemoteDataSource {
     val connectionStatus: StateFlow<String>
-    val messages: SharedFlow<String>
+    val incomingMessages: SharedFlow<XmppMessageStanza>
     suspend fun connect(userId: String, token: String)
     suspend fun disconnect()
     suspend fun sendMessage(to: String, body: String)
@@ -26,12 +28,14 @@ class MessagingRemoteDataSource(
     private val mutableConnectionStatusStateFlow = MutableStateFlow("Disconnected")
     override val connectionStatus: StateFlow<String> = mutableConnectionStatusStateFlow.asStateFlow()
 
-    private val _messages = MutableSharedFlow<String>()
-    override val messages: SharedFlow<String> = _messages.asSharedFlow()
+    private val mutableIncomingMessagesSharedFlow = MutableSharedFlow<XmppMessageStanza>()
+    override val incomingMessages: SharedFlow<XmppMessageStanza> = mutableIncomingMessagesSharedFlow.asSharedFlow()
 
     private var defaultClientWebSocketSession: DefaultClientWebSocketSession? = null
 
-    private val bodyRegex = Regex("<body>(.*?)</body>")
+    private val xmlSerializer = XML {
+        autoPolymorphic = true
+    }
 
     @OptIn(ExperimentalEncodingApi::class)
     override suspend fun connect(userId: String, token: String) {
@@ -47,11 +51,13 @@ class MessagingRemoteDataSource(
                 mutableConnectionStatusStateFlow.value = "Connected (Handshaking)"
 
                 val domain = "localhost"
-                send(Frame.Text("<open xmlns='urn:ietf:params:xml:ns:xmpp-framing' to='$domain' version='1.0'/>"))
+                val openStanza = XmppOpenStanza(to = domain, version = "1.0")
+                send(Frame.Text(xmlSerializer.encodeToString(XmppOpenStanza.serializer(), openStanza)))
 
                 val authString = "\u0000$userId\u0000$token"
                 val authBase64 = Base64.encode(authString.encodeToByteArray())
-                send(Frame.Text("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>$authBase64</auth>"))
+                val authStanza = XmppAuthStanza(mechanism = "PLAIN", content = authBase64)
+                send(Frame.Text(xmlSerializer.encodeToString(XmppAuthStanza.serializer(), authStanza)))
 
                 for (frame in incoming) {
                     if (frame is Frame.Text) {
@@ -59,9 +65,24 @@ class MessagingRemoteDataSource(
                         if (text.contains("<success")) {
                             mutableConnectionStatusStateFlow.value = "Authenticated"
 
-                            send(Frame.Text("<open xmlns='urn:ietf:params:xml:ns:xmpp-framing' to='$domain' version='1.0'/>"))
-                            send(Frame.Text("<iq type='set' id='bind_1'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>availe-app</resource></bind></iq>"))
-                            send(Frame.Text("<presence/>"))
+                            send(Frame.Text(xmlSerializer.encodeToString(XmppOpenStanza.serializer(), openStanza)))
+
+                            val bindIqStanza = XmppIqStanza(
+                                type = "set",
+                                id = "bind_1",
+                                bind = XmppBindStanza()
+                            )
+                            send(Frame.Text(xmlSerializer.encodeToString(XmppIqStanza.serializer(), bindIqStanza)))
+
+                            val presenceStanza = XmppPresenceStanza()
+                            send(
+                                Frame.Text(
+                                    xmlSerializer.encodeToString(
+                                        XmppPresenceStanza.serializer(),
+                                        presenceStanza
+                                    )
+                                )
+                            )
 
                             break
                         } else if (text.contains("<failure")) {
@@ -76,17 +97,23 @@ class MessagingRemoteDataSource(
                     for (frame in incoming) {
                         if (frame is Frame.Text) {
                             val text = frame.readText()
-                            val match = bodyRegex.find(text)
-                            if (match != null) {
-                                val messageBody = match.groupValues[1]
-                                _messages.emit(messageBody)
+                            if (text.contains("<message")) {
+                                try {
+                                    val messageStanza =
+                                        xmlSerializer.decodeFromString(XmppMessageStanza.serializer(), text)
+                                    if (messageStanza.body != null) {
+                                        mutableIncomingMessagesSharedFlow.emit(messageStanza)
+                                    }
+                                } catch (exception: Exception) {
+                                    println("Failed to parse message: ${exception.message}")
+                                }
                             }
                         }
                     }
                 }
             }
-        } catch (e: Exception) {
-            mutableConnectionStatusStateFlow.value = "Error: ${e.message}"
+        } catch (exception: Exception) {
+            mutableConnectionStatusStateFlow.value = "Error: ${exception.message}"
         } finally {
             if (!mutableConnectionStatusStateFlow.value.startsWith("Error")) {
                 mutableConnectionStatusStateFlow.value = "Disconnected"
@@ -102,9 +129,14 @@ class MessagingRemoteDataSource(
     }
 
     override suspend fun sendMessage(to: String, body: String) {
-        val xml = "<message to='$to' type='chat'><body>$body</body></message>"
-        defaultClientWebSocketSession?.send(Frame.Text(xml))
-
-        _messages.emit("Me: $body")
+        val messageStanza = XmppMessageStanza(to = to, type = "chat", body = body)
+        defaultClientWebSocketSession?.send(
+            Frame.Text(
+                xmlSerializer.encodeToString(
+                    XmppMessageStanza.serializer(),
+                    messageStanza
+                )
+            )
+        )
     }
 }

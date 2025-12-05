@@ -5,9 +5,12 @@ import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import com.availelabs.availe.data.repositories.IMessagingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
-import com.availelabs.availe.data.sources.remote.IMessagingRemoteDataSource
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
 
 interface IChatComponent {
@@ -19,7 +22,7 @@ interface IChatComponent {
 class ChatComponent(
     componentContext: ComponentContext,
     private val recipientId: String,
-    private val messagingRemoteDataSource: IMessagingRemoteDataSource,
+    private val messagingRepository: IMessagingRepository,
     private val sessionManager: ISessionManager,
     private val onNavigateBack: () -> Unit
 ) : IChatComponent, ComponentContext by componentContext {
@@ -27,13 +30,12 @@ class ChatComponent(
     private val store = instanceKeeper.getStore {
         ChatStoreFactory(
             storeFactory = DefaultStoreFactory(),
-            messagingRemoteDataSource = messagingRemoteDataSource,
+            messagingRepository = messagingRepository,
             sessionManager = sessionManager,
             recipientId = recipientId
         ).create()
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override val state: StateFlow<ChatStore.State> = store.stateFlow
 
     init {
