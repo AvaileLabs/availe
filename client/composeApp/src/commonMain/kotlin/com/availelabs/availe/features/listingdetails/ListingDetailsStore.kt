@@ -81,9 +81,7 @@ class ListingDetailsStoreFactory(
             dispatch(Message.SetError(null))
 
             scope.launch {
-                val result = listingRepository.getListingById(id)
-
-                when (result) {
+                when (val result = listingRepository.getListingById(id)) {
                     is RepositoryOperationResult.Success<*> -> {
                         when (val findResult = result.value) {
                             is FindResult.Found<*> -> {

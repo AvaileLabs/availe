@@ -8,18 +8,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
-import com.availelabs.availe.domain.model.CommonListingData
-import com.availelabs.availe.domain.model.ImageUrl
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.ListingCategory
-import com.availelabs.availe.domain.model.ListingDescription
-import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.ListingStoreKey
-import com.availelabs.availe.domain.model.ListingTitle
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.Price
-import com.availelabs.availe.domain.model.PriceAmount
-import com.availelabs.availe.domain.model.SupportedCurrency
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.home.HomeStore.*
@@ -232,13 +221,19 @@ class HomeStoreFactory(
             }
 
             scope.launch {
-                val request = if (trigger == FetchTrigger.UserPullToRefresh || trigger == FetchTrigger.DataChanged) {
-                    StoreReadRequest.fresh(ListingStoreKey(page, pageSize))
-                } else if (trigger == FetchTrigger.InitialLoad) {
-                    val isStale = listingRepository.isListingCacheStale()
-                    StoreReadRequest.cached(ListingStoreKey(page, pageSize), refresh = isStale)
-                } else {
-                    StoreReadRequest.cached(ListingStoreKey(page, pageSize), refresh = false)
+                val request = when (trigger) {
+                    FetchTrigger.UserPullToRefresh, FetchTrigger.DataChanged -> {
+                        StoreReadRequest.fresh(ListingStoreKey(page, pageSize))
+                    }
+
+                    FetchTrigger.InitialLoad -> {
+                        val isStale = listingRepository.isListingCacheStale()
+                        StoreReadRequest.cached(ListingStoreKey(page, pageSize), refresh = isStale)
+                    }
+
+                    else -> {
+                        StoreReadRequest.cached(ListingStoreKey(page, pageSize), refresh = false)
+                    }
                 }
 
                 listingRepository.getListingsPageStream(request).collect { response ->

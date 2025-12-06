@@ -7,10 +7,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.data.repositories.IMessagingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 
 interface IChatComponent {
@@ -36,6 +33,7 @@ class ChatComponent(
         ).create()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override val state: StateFlow<ChatStore.State> = store.stateFlow
 
     init {
