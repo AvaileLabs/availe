@@ -1,7 +1,9 @@
 package com.availelabs.orchestration.ejabberd
 
+import com.availelabs.availe.configuration.SharedAuthenticationConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
+import com.availelabs.orchestration.keycloak.KeycloakPortsList
 import com.availelabs.orchestration.postgres.PostgresConfig
 import com.availelabs.orchestration.postgres.loadPostgresConfig
 import com.availelabs.utils.loadGradleProperties
@@ -13,11 +15,11 @@ internal data class EjabberdConfig(
 )
 
 internal fun loadEjabberdConfig(): EjabberdConfig {
-    val properties = loadGradleProperties()
+    val gradleProperties = loadGradleProperties()
     return EjabberdConfig(
-        adminUser = properties.getProperty("ejabberd.admin.user")
+        adminUser = gradleProperties.getProperty("ejabberd.admin.user")
             ?: error("No ejabberd.admin.user found in gradle.properties"),
-        adminPass = properties.getProperty("ejabberd.admin.password")
+        adminPass = gradleProperties.getProperty("ejabberd.admin.password")
             ?: error("No ejabberd.admin.password found in gradle.properties")
     )
 }
@@ -28,15 +30,11 @@ internal fun ejabberdRunSpec(): ContainerRunSpecification<EjabberdPortsList, Eja
 
     val configurationTemporaryFile = createEjabberdConfigFileOnHost(ejabberdConfiguration, postgresConfiguration)
 
-    val environmentVariables = listOf(
-        "CTL_ON_CREATE=register ${ejabberdConfiguration.adminUser} ${SharedNetworkConstants.EJABBERD_HOST} ${ejabberdConfiguration.adminPass}"
-    )
-
     return ContainerRunSpecification(
         name = "availe-ejabberd",
         image = "ghcr.io/processone/ejabberd",
-        tag = "24.12",
-        environmentVariables = environmentVariables,
+        tag = "25.10",
+        environmentVariables = emptyList(),
         portMappings = EjabberdPortsList,
         volumes = EjabberdVolumesList(configurationTemporaryFile.absolutePath)
     )
@@ -52,6 +50,10 @@ private fun createEjabberdConfigFileOnHost(
     val templateContent = resourceStream.bufferedReader().use { it.readText() }
 
     val databaseName = postgresConfiguration.dbUrl.substringAfterLast('/')
+    val internalKeycloakUrl = "http://availe-keycloak:${KeycloakPortsList.Http.containerPortNumber}"
+    val realmName = SharedAuthenticationConstants.REALM_NAME
+    val protocolPath = SharedAuthenticationConstants.Paths.OPENID_CONNECT_CERTIFICATES
+    val keycloakJwksUrl = "$internalKeycloakUrl/realms/$realmName$protocolPath"
 
     val substitutedContent = templateContent
         .replace("@HOST@", SharedNetworkConstants.EJABBERD_HOST)
@@ -60,6 +62,7 @@ private fun createEjabberdConfigFileOnHost(
         .replace("@DB_DATABASE@", databaseName)
         .replace("@DB_USERNAME@", postgresConfiguration.dbUser)
         .replace("@DB_PASSWORD@", postgresConfiguration.dbPassword)
+        .replace("@KEYCLOAK_URL@", keycloakJwksUrl)
 
     val temporaryFile = File.createTempFile("ejabberd-", ".yml")
     temporaryFile.deleteOnExit()

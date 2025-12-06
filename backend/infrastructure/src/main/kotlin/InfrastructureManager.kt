@@ -34,19 +34,21 @@ internal class InfrastructureManager(
         logger.info("Provisioning Postgres (creating schema)...")
         postgresProvisioner.provision()
 
-        logger.info("Starting Ejabberd container...")
-        containerOrchestrator.orchestrationSetup(listOf(ejabberdRunSpecification))
-        ServiceWaiter.waitForEjabberd()
-        logger.info("Ejabberd is ready.")
-
         logger.info("Starting Keycloak container...")
         containerOrchestrator.orchestrationSetup(listOf(keycloakRunSpecification))
 
         ServiceWaiter.waitForKeycloak()
         logger.info("Keycloak is ready.")
 
-        logger.info("All services are healthy. Starting Keycloak provisioning...")
+        logger.info("Provisioning Keycloak...")
         keycloakProvisioner.provision()
+
+        logger.info("Starting Ejabberd container...")
+        containerOrchestrator.orchestrationSetup(listOf(ejabberdRunSpecification))
+        ServiceWaiter.waitForEjabberd()
+        logger.info("Ejabberd is ready.")
+
+        logger.info("All services are healthy.")
     }
 
     fun teardown() {

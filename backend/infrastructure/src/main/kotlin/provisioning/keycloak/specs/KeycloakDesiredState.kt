@@ -37,13 +37,26 @@ internal object KeycloakDesiredState {
         "http://$HOST_IP:8080"
     )
 
-    private val userIdMapper = ProtocolMapperRepresentation().apply {
+    private val userIdProtocolMapper = ProtocolMapperRepresentation().apply {
         name = "user-id-mapper"
         protocol = "openid-connect"
         protocolMapper = "oidc-usermodel-property-mapper"
         config = mapOf(
             "user.attribute" to "id",
             "claim.name" to SharedAuthenticationConstants.Claims.USER_ID,
+            "jsonType.label" to "String",
+            "id.token.claim" to "true",
+            "access.token.claim" to "true"
+        )
+    }
+
+    private val jabberIdProtocolMapper = ProtocolMapperRepresentation().apply {
+        name = "user-jid-mapper"
+        protocol = "openid-connect"
+        protocolMapper = "oidc-usermodel-property-mapper"
+        config = mapOf(
+            "user.attribute" to "username",
+            "claim.name" to SharedAuthenticationConstants.Claims.JID,
             "jsonType.label" to "String",
             "id.token.claim" to "true",
             "access.token.claim" to "true"
@@ -65,7 +78,7 @@ internal object KeycloakDesiredState {
             optionalClientScopes = listOf(
                 KeycloakClientScopes.OFFLINE_ACCESS
             ),
-            protocolMappers = listOf(userIdMapper)
+            protocolMappers = listOf(userIdProtocolMapper, jabberIdProtocolMapper)
         )
     )
 

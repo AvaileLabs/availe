@@ -24,6 +24,7 @@ object SharedAuthenticationConstants {
         const val ISSUER = "iss"
         const val EMAIL = "email"
         const val USER_ID = "user_id"
+        const val JID = "jid"
     }
 
     object GrantTypes {
