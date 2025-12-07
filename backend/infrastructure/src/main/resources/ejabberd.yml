@@ -35,6 +35,7 @@ listen:
     request_handlers:
       "/admin": ejabberd_web_admin
       "/api": mod_http_api
+      "/ws": ejabberd_http_ws
 
 acl:
   local:
