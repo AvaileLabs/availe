@@ -3,7 +3,6 @@ package com.availelabs.availe.features.appshell
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +32,7 @@ fun AppShellScreen(
 ) {
     val childStack by appShellComponent.childStack.subscribeAsState()
     val chatOverlay by appShellComponent.chatOverlay.subscribeAsState()
-    val authenticationState by appShellComponent.authenticationState.collectAsState()
+    val authenticationState by appShellComponent.authenticationState.subscribeAsState()
     val activeConfiguration = childStack.active.configuration
     val focusManager = LocalFocusManager.current
     val backDispatcher = appShellComponent.backDispatcher
@@ -78,7 +77,6 @@ fun AppShellScreen(
                             Text(activeConfiguration.displayName)
                         },
                         actions = {
-                            // Add Listing Button (Only on Home)
                             when (val activeInstance = childStack.active.instance) {
                                 is AppShellChildComponent.Home -> {
                                     if (authenticationState is AuthenticationState.LoggedIn) {
@@ -93,7 +91,6 @@ fun AppShellScreen(
                                 else -> {}
                             }
 
-                            // Auth Buttons (Global)
                             if (authenticationState is AuthenticationState.LoggedIn) {
                                 IconButton(
                                     onClick = { appShellComponent.onLogoutClicked() }

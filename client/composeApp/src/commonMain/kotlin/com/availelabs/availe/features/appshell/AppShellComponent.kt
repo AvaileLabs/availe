@@ -28,9 +28,6 @@ import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.MessageCircle
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlin.uuid.ExperimentalUuidApi
@@ -38,7 +35,7 @@ import kotlin.uuid.ExperimentalUuidApi
 interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>>
     val chatOverlay: Value<ChildSlot<AppShellConfiguration.Chat, AppShellChildComponent.Chat>>
-    val authenticationState: StateFlow<AuthenticationState>
+    val authenticationState: Value<AuthenticationState>
     val backDispatcher: BackDispatcher?
 
     fun setChatOverlayMode(isActive: Boolean)
@@ -62,8 +59,7 @@ class AppShellComponent(
     private val chatOverlayNavigation = SlotNavigation<AppShellConfiguration.Chat>()
     private var isChatOverlayModeActive = false
 
-    private val _authenticationState = MutableStateFlow(appContainer.sessionManager.authenticationState.value)
-    override val authenticationState: StateFlow<AuthenticationState> = _authenticationState.asStateFlow()
+    override val authenticationState: Value<AuthenticationState> = appContainer.sessionManager.authenticationState
 
     override val childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>> = childStack(
         source = childStackNavigation,
@@ -94,15 +90,13 @@ class AppShellComponent(
         val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
         lifecycle.doOnDestroy { scope.cancel() }
 
-        val authObserver: (AuthenticationState) -> Unit = { state ->
-            _authenticationState.value = state
+        val dismissOverlayOnLogoutObserver: (AuthenticationState) -> Unit = { state ->
             if (state !is AuthenticationState.LoggedIn) {
                 dismissChatOverlay()
             }
         }
-
-        val cancellation = appContainer.sessionManager.authenticationState.subscribe(authObserver)
-        lifecycle.doOnDestroy { cancellation.cancel() }
+        val authenticationSubscription = authenticationState.subscribe(dismissOverlayOnLogoutObserver)
+        lifecycle.doOnDestroy { authenticationSubscription.cancel() }
     }
 
     override fun setChatOverlayMode(isActive: Boolean) {
