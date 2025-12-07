@@ -2,10 +2,9 @@
 
 package com.availelabs.availe.features.root
 
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.ExperimentalDecomposeApi
+import com.arkivanov.decompose.router.slot.*
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.router.webhistory.WebNavigation
 import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
@@ -14,36 +13,33 @@ import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
+import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.di.IApplicationContainer
-import com.availelabs.availe.domain.model.Jid
-import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.features.chat.ChatComponent
-import com.availelabs.availe.features.chat.IChatComponent
-import com.availelabs.availe.features.home.HomeComponent
-import com.availelabs.availe.features.home.IHomeComponent
-import com.availelabs.availe.features.listingdetails.IListingDetailsComponent
-import com.availelabs.availe.features.listingdetails.ListingDetailsComponent
-import com.availelabs.availe.features.main.MainStore
-import com.availelabs.availe.features.main.MainStoreFactory
-import com.composables.icons.lucide.House
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.MessageCircle
-import kotlinx.coroutines.*
+import com.availelabs.availe.features.login.ILoginComponent
+import com.availelabs.availe.features.login.LoginComponent
+import com.availelabs.availe.features.main.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalDecomposeApi::class)
 interface IRootComponent : WebNavigationOwner, BackHandlerOwner {
-    val childStack: Value<ChildStack<Configuration, ChildComponent>>
+    val childStack: Value<ChildStack<RootConfiguration, RootChildComponent>>
+    val loginOverlay: Value<ChildSlot<LoginConfiguration, RootChildComponent.Login>>
     val authenticationState: StateFlow<MainStore.State>
     val backDispatcher: BackDispatcher?
     fun onAuthenticationIntent(intent: MainStore.Intent)
     fun onBackClicked()
+    fun showLoginGuard()
+    fun dismissLoginOverlay()
 }
 
 @OptIn(ExperimentalDecomposeApi::class, ExperimentalUuidApi::class)
@@ -71,30 +67,62 @@ class RootComponent(
     @OptIn(ExperimentalCoroutinesApi::class)
     override val authenticationState: StateFlow<MainStore.State> = mainStore.stateFlow
 
-    private val navigation = StackNavigation<Configuration>()
+    private val childStackNavigation = StackNavigation<RootConfiguration>()
+    private val loginOverlayNavigation = SlotNavigation<LoginConfiguration>()
 
-    override val childStack: Value<ChildStack<Configuration, ChildComponent>> = childStack(
-        source = navigation,
-        serializer = Configuration.serializer(),
+    override val childStack: Value<ChildStack<RootConfiguration, RootChildComponent>> = childStack(
+        source = childStackNavigation,
+        serializer = RootConfiguration.serializer(),
         initialStack = {
-            RootNavigationMapper.getStackForDeepLink(deepLinkUrl)
+            listOf(RootNavigationMapper.getInitialIntent(deepLinkUrl))
         },
         childFactory = ::createChildComponent
     )
 
+    override val loginOverlay: Value<ChildSlot<LoginConfiguration, RootChildComponent.Login>> = childSlot(
+        source = loginOverlayNavigation,
+        serializer = LoginConfiguration.serializer(),
+        handleBackButton = true,
+        childFactory = { _, ctx ->
+            RootChildComponent.Login(
+                LoginComponent(
+                    componentContext = ctx,
+                    onDismiss = { loginOverlayNavigation.dismiss() }
+                )
+            )
+        }
+    )
+
     override val webNavigation: WebNavigation<*> = childStackWebNavigation(
-        navigator = navigation,
+        navigator = childStackNavigation,
         stack = childStack,
-        serializer = Configuration.serializer(),
-        pathMapper = { child -> child.configuration.toUrlPath() },
-        childSelector = {
-            null
+        serializer = RootConfiguration.serializer(),
+        pathMapper = { child ->
+            when (child.configuration) {
+                is RootConfiguration.AppShell -> ""
+            }
+        },
+        childSelector = { child ->
+            when (val instance = child.instance) {
+                is RootChildComponent.AppShell -> instance.component
+                is RootChildComponent.Login -> null
+            }
         }
     )
 
     init {
         val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
         lifecycle.doOnDestroy { scope.cancel() }
+
+        scope.launch {
+            mainStore.labels.collect { label ->
+                when (label) {
+                    is MainStore.Label.ErrorOccurred -> {
+                        // Could show a global error snackbar here or pass to children
+                    }
+                }
+            }
+        }
     }
 
     override fun onAuthenticationIntent(intent: MainStore.Intent) {
@@ -102,125 +130,48 @@ class RootComponent(
     }
 
     override fun onBackClicked() {
-        navigation.pop()
+        childStackNavigation.pop()
     }
 
-    @OptIn(DelicateDecomposeApi::class)
-    private fun createChildComponent(configuration: Configuration, componentContext: ComponentContext): ChildComponent {
+    override fun showLoginGuard() {
+        loginOverlayNavigation.activate(LoginConfiguration)
+    }
+
+    override fun dismissLoginOverlay() {
+        loginOverlayNavigation.dismiss()
+    }
+
+    private fun createChildComponent(
+        configuration: RootConfiguration,
+        componentContext: ComponentContext
+    ): RootChildComponent {
         return when (configuration) {
-            Configuration.Home -> ChildComponent.Home(
-                HomeComponent(
+            is RootConfiguration.AppShell -> RootChildComponent.AppShell(
+                AppShellComponent(
                     componentContext = componentContext,
-                    listingRepository = appContainer.listingRepository,
-                    sessionManager = appContainer.sessionManager,
-                    onNavigateToListingDetails = { listingId ->
-                        navigation.push(Configuration.ListingDetails(listingId))
-                    }
-                )
-            )
-
-            is Configuration.ListingDetails -> ChildComponent.ListingDetails(
-                ListingDetailsComponent(
-                    componentContext = componentContext,
-                    listingId = configuration.listingId,
-                    listingRepository = appContainer.listingRepository,
-                    onNavigateBack = { navigation.pop() },
-                    onNavigateToChat = { recipientJid ->
-                        navigation.push(Configuration.Chat(recipientJid))
-                    }
-                )
-            )
-
-            is Configuration.Chat -> ChildComponent.Chat(
-                ChatComponent(
-                    componentContext = componentContext,
-                    recipientJid = configuration.recipientJid,
-                    sessionManager = appContainer.sessionManager,
-                    messagingRepository = appContainer.messagingRepository,
-                    onNavigateBack = { navigation.pop() }
+                    appContainer = appContainer,
+                    initialIntent = configuration.intent,
+                    backDispatcher = backDispatcher,
+                    onExplicitLogin = { mainStore.accept(MainStore.Intent.LoginRequested) },
+                    onShowLoginGuard = { loginOverlayNavigation.activate(LoginConfiguration) }
                 )
             )
         }
     }
 }
 
-sealed interface ChildComponent {
-    data class Home(val component: IHomeComponent) : ChildComponent
-    data class ListingDetails(val component: IListingDetailsComponent) : ChildComponent
-    data class Chat(val component: IChatComponent) : ChildComponent
+sealed interface RootChildComponent {
+    data class AppShell(val component: IAppShellComponent) : RootChildComponent
+    data class Login(val component: ILoginComponent) : RootChildComponent
 }
-
-data class NavIcon(
-    val icon: ImageVector,
-    val contentDescription: String
-)
 
 @Serializable
-sealed interface Configuration {
-    val displayName: String
-    val navigationIcon: NavIcon
-    val canonicalParent: Configuration? get() = null
-
-    fun toUrlPath(): String
-
-    interface RouteParser<out C : Configuration> {
-        fun parse(segments: List<String>): C?
-    }
-
+sealed interface RootConfiguration {
     @Serializable
-    data object Home : Configuration {
-        @Transient
-        override val displayName: String = "Availe"
-
-        @Transient
-        override val navigationIcon: NavIcon = NavIcon(Lucide.House, "Home Screen")
-
-        override fun toUrlPath(): String = "/"
-    }
-
-    @Serializable
-    data class ListingDetails(val listingId: ListingId) : Configuration {
-        @Transient
-        override val displayName: String = "Details"
-
-        @Transient
-        override val navigationIcon: NavIcon = NavIcon(Lucide.House, "Details Screen")
-
-        override val canonicalParent: Configuration = Home
-
-        override fun toUrlPath(): String = "/$ROUTE_SEGMENT_NAME/${listingId.value}"
-
-        @OptIn(ExperimentalUuidApi::class)
-        companion object : RouteParser<ListingDetails> {
-            const val ROUTE_SEGMENT_NAME = "listing"
-
-            override fun parse(segments: List<String>): ListingDetails? {
-                if (segments.isEmpty()) return null
-                return try {
-                    val uuidString = segments.first()
-                    val uuid = Uuid.parse(uuidString)
-                    ListingDetails(ListingId(uuid))
-                } catch (_: IllegalArgumentException) {
-                    null
-                }
-            }
-        }
-    }
-
-    @Serializable
-    data class Chat(val recipientJid: Jid) : Configuration {
-        @Transient
-        override val displayName: String = "Chat"
-
-        @Transient
-        override val navigationIcon: NavIcon = NavIcon(Lucide.MessageCircle, "Chat Screen")
-
-        override val canonicalParent: Configuration = Home
-
-        override fun toUrlPath(): String = "/$ROUTE_SEGMENT_NAME/${recipientJid.value}"
-
-        companion object {
-            const val ROUTE_SEGMENT_NAME = "chat"
-        }
-    }
+    data class AppShell(
+        val intent: AppShellIntent
+    ) : RootConfiguration
 }
+
+@Serializable
+data object LoginConfiguration

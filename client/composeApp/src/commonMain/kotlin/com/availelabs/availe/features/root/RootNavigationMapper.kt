@@ -1,50 +1,74 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.availelabs.availe.features.root
 
 import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.features.main.AppShellConfiguration
+import com.availelabs.availe.features.main.AppShellIntent
 import io.ktor.http.*
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
-@OptIn(ExperimentalUuidApi::class)
 object RootNavigationMapper {
-    private val routeParsers: Map<String, Configuration.RouteParser<*>> = mapOf(
-        Configuration.ListingDetails.ROUTE_SEGMENT_NAME to Configuration.ListingDetails
-    )
+    private const val CHAT_QUERY_PARAMETER = "chat_jid"
 
-    fun getStackForDeepLink(deepLinkUrl: String?): List<Configuration> {
+    fun getInitialIntent(deepLinkUrl: String?): RootConfiguration {
         if (deepLinkUrl == null) {
-            return listOf(Configuration.Home)
+            return RootConfiguration.AppShell(AppShellIntent.Home)
         }
 
         return try {
-            val uniformResourceLocator = Url(deepLinkUrl)
-            val pathSegments = uniformResourceLocator.segments.filter { segment -> segment.isNotEmpty() }
+            val url = Url(deepLinkUrl)
+            val pathSegments = url.segments.filter { segment -> segment.isNotEmpty() }
+            val chatJidValue = url.parameters[CHAT_QUERY_PARAMETER]
 
-            if (pathSegments.isEmpty()) {
-                return listOf(Configuration.Home)
-            }
-
-            val rootSegment = pathSegments.first()
-            val parser = routeParsers[rootSegment]
-
-            if (parser != null) {
-                val configuration = parser.parse(pathSegments.drop(1))
-                if (configuration != null) {
-                    val stack = mutableListOf<Configuration>()
-                    var current: Configuration? = configuration
-                    while (current != null) {
-                        stack.add(0, current)
-                        current = current.canonicalParent
+            val intent = if (pathSegments.isEmpty()) {
+                AppShellIntent.Home
+            } else {
+                val rootSegment = pathSegments.first()
+                when (rootSegment) {
+                    AppShellConfiguration.ListingDetails.ROUTE_SEGMENT_NAME -> {
+                        parseListingIntent(pathSegments, chatJidValue)
                     }
-                    return stack
+
+                    AppShellConfiguration.Chat.ROUTE_SEGMENT_NAME -> {
+                        parseChatIntent(pathSegments)
+                    }
+
+                    else -> AppShellIntent.Home
                 }
-            } else if (rootSegment == Configuration.Chat.ROUTE_SEGMENT_NAME && pathSegments.size > 1) {
-                val jidValue = pathSegments[1]
-                return listOf(Configuration.Home, Configuration.Chat(Jid(jidValue)))
             }
 
-            listOf(Configuration.Home)
+            RootConfiguration.AppShell(intent)
         } catch (_: Exception) {
-            listOf(Configuration.Home)
+            RootConfiguration.AppShell(AppShellIntent.Home)
         }
+    }
+
+    private fun parseListingIntent(pathSegments: List<String>, chatJidValue: String?): AppShellIntent {
+        if (pathSegments.size < 2) return AppShellIntent.Home
+
+        val uuidString = pathSegments[1]
+        val listingId = try {
+            ListingId(Uuid.parse(uuidString))
+        } catch (_: IllegalArgumentException) {
+            return AppShellIntent.Home
+        }
+
+        return if (chatJidValue != null && chatJidValue.isNotBlank()) {
+            AppShellIntent.ViewingListingWithChat(
+                listingId = listingId,
+                recipientJid = Jid(chatJidValue)
+            )
+        } else {
+            AppShellIntent.ViewingListing(listingId)
+        }
+    }
+
+    private fun parseChatIntent(pathSegments: List<String>): AppShellIntent {
+        if (pathSegments.size < 2) return AppShellIntent.Home
+        val jidValue = pathSegments[1]
+        return AppShellIntent.Chatting(Jid(jidValue))
     }
 }

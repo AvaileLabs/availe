@@ -34,7 +34,10 @@ import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
 
 @Composable
-fun ChatScreen(component: IChatComponent) {
+fun ChatScreen(
+    component: IChatComponent,
+    isOverlay: Boolean = false
+) {
     val chatState by component.state.collectAsState()
     val lazyListState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
@@ -45,16 +48,14 @@ fun ChatScreen(component: IChatComponent) {
         }
     }
 
-    ScreenScaffold {
+    // If it's an overlay, we don't need the ScreenScaffold because the Window component handles the container
+    if (isOverlay) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Theme[colors][secondary].copy(alpha = 0.3f))
         ) {
-            UserInfoHeader(
-                connectionStatus = chatState.connectionStatus,
-                recipientName = chatState.recipientJid.value
-            )
+            // In overlay mode, the window header provides context, so we skip UserInfoHeader
 
             MessageList(
                 messages = chatState.messages,
@@ -68,6 +69,32 @@ fun ChatScreen(component: IChatComponent) {
                     component.onIntent(ChatStore.Intent.SendMessage(MessageContent(messageBody)))
                 }
             )
+        }
+    } else {
+        ScreenScaffold {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Theme[colors][secondary].copy(alpha = 0.3f))
+            ) {
+                UserInfoHeader(
+                    connectionStatus = chatState.connectionStatus,
+                    recipientName = chatState.recipientJid.value
+                )
+
+                MessageList(
+                    messages = chatState.messages,
+                    listState = lazyListState,
+                    onTapBackground = { focusManager.clearFocus() },
+                    modifier = Modifier.weight(1f)
+                )
+
+                ChatInput(
+                    onSendMessage = { messageBody ->
+                        component.onIntent(ChatStore.Intent.SendMessage(MessageContent(messageBody)))
+                    }
+                )
+            }
         }
     }
 }

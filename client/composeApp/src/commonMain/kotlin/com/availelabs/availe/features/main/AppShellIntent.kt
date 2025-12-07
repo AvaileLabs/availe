@@ -1,0 +1,27 @@
+package com.availelabs.availe.features.main
+
+import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.ListingId
+import kotlinx.serialization.Serializable
+
+@Serializable
+sealed interface AppShellIntent {
+    @Serializable
+    data object Home : AppShellIntent
+
+    @Serializable
+    data class ViewingListing(
+        val listingId: ListingId
+    ) : AppShellIntent
+
+    @Serializable
+    data class ViewingListingWithChat(
+        val listingId: ListingId,
+        val recipientJid: Jid
+    ) : AppShellIntent
+
+    @Serializable
+    data class Chatting(
+        val recipientJid: Jid
+    ) : AppShellIntent
+}
