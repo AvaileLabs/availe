@@ -34,10 +34,6 @@ value class Email(val value: String)
 
 @Serializable
 @JvmInline
-value class UserName(val value: String)
-
-@Serializable
-@JvmInline
 value class UserId(val value: Uuid)
 
 @Serializable

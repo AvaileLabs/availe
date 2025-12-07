@@ -130,7 +130,7 @@ class MainStoreFactory(
                 try {
                     authenticationRepository.login(sessionManager::updateState)
                 } catch (exception: Exception) {
-                    val errorMessage = exception.message ?: "Login failed"
+                    val errorMessage = "Cannot connect to authentication server. Please try again later."
                     dispatch(Message.SetError(errorMessage))
                     publish(Label.ErrorOccurred(errorMessage))
                 } finally {

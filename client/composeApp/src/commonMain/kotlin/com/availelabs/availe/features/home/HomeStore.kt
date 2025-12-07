@@ -78,6 +78,8 @@ class HomeStoreFactory(
         data class ListingsLoaded(val listings: List<Listing>, val page: Int) : Action
         data class ListingsError(val message: String) : Action
         data object ObserveAuthentication : Action
+        data object ObserveSessionInvalidation : Action
+        data object DataPurged : Action
         data object LoadInitialPage : Action
     }
 
@@ -88,6 +90,7 @@ class HomeStoreFactory(
         data class SetError(val message: String?) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
         data class SetEndReached(val endReached: Boolean) : Message
+        data object ResetState : Message
     }
 
     private sealed interface FetchTrigger {
@@ -106,6 +109,7 @@ class HomeStoreFactory(
     private class HomeBootstrapper : CoroutineBootstrapper<Action>() {
         override fun invoke() {
             dispatch(Action.ObserveAuthentication)
+            dispatch(Action.ObserveSessionInvalidation)
             dispatch(Action.LoadInitialPage)
         }
     }
@@ -133,6 +137,8 @@ class HomeStoreFactory(
                 }
 
                 Action.ObserveAuthentication -> observeAuthentication()
+                Action.ObserveSessionInvalidation -> observeSessionInvalidation()
+                Action.DataPurged -> dispatch(Message.ResetState)
                 Action.LoadInitialPage -> fetchListingsPage(0, FetchTrigger.InitialLoad)
             }
         }
@@ -332,6 +338,14 @@ class HomeStoreFactory(
                 }
             }
         }
+
+        private fun observeSessionInvalidation() {
+            scope.launch {
+                sessionManager.sessionInvalidated.collect {
+                    forward(Action.DataPurged)
+                }
+            }
+        }
     }
 
     private object HomeReducer : Reducer<State, Message> {
@@ -354,6 +368,13 @@ class HomeStoreFactory(
                 is Message.SetError -> copy(errorMessage = msg.message)
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
                 is Message.SetEndReached -> copy(endReached = msg.endReached)
+                Message.ResetState -> copy(
+                    listingUiModels = emptyList(),
+                    currentPage = 0,
+                    endReached = false,
+                    isLoading = false,
+                    isRefreshing = false
+                )
             }
     }
 

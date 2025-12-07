@@ -37,7 +37,7 @@ object RootNavigationMapper {
                     }
                     return stack
                 }
-            } else if (rootSegment == "chat" && pathSegments.size > 1) {
+            } else if (rootSegment == Configuration.Chat.ROUTE_SEGMENT_NAME && pathSegments.size > 1) {
                 val jidValue = pathSegments[1]
                 return listOf(Configuration.Home, Configuration.Chat(Jid(jidValue)))
             }
@@ -46,9 +46,5 @@ object RootNavigationMapper {
         } catch (_: Exception) {
             listOf(Configuration.Home)
         }
-    }
-
-    fun getPathForConfiguration(configuration: Configuration): String {
-        return configuration.toUrlPath()
     }
 }

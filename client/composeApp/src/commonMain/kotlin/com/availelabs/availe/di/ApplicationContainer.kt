@@ -22,10 +22,6 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.serialization.json.Json
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
@@ -44,8 +40,8 @@ fun createApplicationContainer(
     lifecycle: Lifecycle,
     activity: PlatformActivity
 ): IApplicationContainer {
-    val applicationCoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     val sqlDriverFactory = createSqlDriverFactory(activity)
+    val databaseFileController = createDatabaseFileController(activity)
     val codeAuthenticationFlowFactory = createPlatformAuthenticationFlowFactory(activity)
     val tokenStore = createTokenStore(activity)
     val platformAuthenticationConfiguration = createPlatformAuthenticationConfig(activity)
@@ -58,17 +54,18 @@ fun createApplicationContainer(
         isLenient = true
     }
 
-    val clientDatabaseDeferred = applicationCoroutineScope.async {
-        val sqlDriver = sqlDriverFactory.createDriver()
-        ClientDatabaseFactory.createClientDatabase(sqlDriver, json)
-    }
+    val databaseProvider = DatabaseProvider(
+        sqlDriverFactory = sqlDriverFactory,
+        json = json
+    )
 
-    val listingLocalDataSource = ListingLocalDataSource(clientDatabaseDeferred)
+    val listingLocalDataSource = ListingLocalDataSource(databaseProvider)
 
     val localDataCleaner = LocalDataCleaner(
         tokenStore = tokenStore,
         listingPreferences = listingPreferences,
-        listingLocalDataSource = listingLocalDataSource
+        databaseProvider = databaseProvider,
+        databaseFileController = databaseFileController
     )
 
     val openIdConnectClient =

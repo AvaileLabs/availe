@@ -11,11 +11,22 @@ interface ILocalDataCleaner {
 class LocalDataCleaner @OptIn(ExperimentalOpenIdConnect::class) constructor(
     private val tokenStore: TokenStore,
     private val listingPreferences: IListingPreferences,
-    private val listingLocalDataSource: IListingLocalDataSource
+    private val databaseProvider: IDatabaseProvider,
+    private val databaseFileController: IDatabaseFileController
 ) : ILocalDataCleaner {
 
     @OptIn(ExperimentalOpenIdConnect::class)
     override suspend fun clearAllData() {
+        try {
+            databaseProvider.closeAndClearDatabase()
+        } catch (_: Exception) {
+        }
+
+        try {
+            databaseFileController.deleteDatabaseFile()
+        } catch (_: Exception) {
+        }
+
         try {
             tokenStore.removeTokens()
         } catch (_: Exception) {
@@ -23,11 +34,6 @@ class LocalDataCleaner @OptIn(ExperimentalOpenIdConnect::class) constructor(
 
         try {
             listingPreferences.clear()
-        } catch (_: Exception) {
-        }
-
-        try {
-            listingLocalDataSource.deleteAllListings()
         } catch (_: Exception) {
         }
     }

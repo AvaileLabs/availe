@@ -3,11 +3,9 @@ package com.availelabs.availe.data.sources.local
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
-import com.availelabs.availe.db.ClientDatabase
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.ListingId
-import kotlinx.coroutines.Deferred
 
 interface IListingLocalDataSource {
     suspend fun upsertListing(listing: Listing)
@@ -19,11 +17,11 @@ interface IListingLocalDataSource {
 }
 
 class ListingLocalDataSource(
-    private val databaseDeferred: Deferred<ClientDatabase>
+    private val databaseProvider: IDatabaseProvider
 ) : IListingLocalDataSource {
 
     override suspend fun upsertListing(listing: Listing) {
-        val database = databaseDeferred.await()
+        val database = databaseProvider.getDatabase()
         database.transaction {
             database.listingsQueries.upsertListing(
                 primary_key_id = listing.id,
@@ -51,31 +49,31 @@ class ListingLocalDataSource(
     }
 
     override suspend fun getListingsPage(limit: Long, offset: Long): List<Listing> {
-        val database = databaseDeferred.await()
+        val database = databaseProvider.getDatabase()
         return database.listingsQueries.selectPage(limit, offset)
             .awaitAsList()
             .map { selectPage -> selectPage.toDomain() }
     }
 
     override suspend fun getListingById(id: ListingId): Listing? {
-        val database = databaseDeferred.await()
+        val database = databaseProvider.getDatabase()
         return database.listingsQueries.selectById(id)
             .awaitAsOneOrNull()
             ?.toDomain()
     }
 
     override suspend fun deleteListingById(id: ListingId) {
-        val database = databaseDeferred.await()
+        val database = databaseProvider.getDatabase()
         database.listingsQueries.deleteById(id)
     }
 
     override suspend fun deleteAllListings() {
-        val database = databaseDeferred.await()
+        val database = databaseProvider.getDatabase()
         database.listingsQueries.deleteAll()
     }
 
     override suspend fun isListingDatabaseEmpty(): Boolean {
-        val database = databaseDeferred.await()
+        val database = databaseProvider.getDatabase()
         val count = database.listingsQueries.countListings().awaitAsOne()
         return count == 0L
     }

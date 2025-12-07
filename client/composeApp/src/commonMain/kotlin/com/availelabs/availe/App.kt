@@ -86,10 +86,14 @@ fun App(rootComponent: IRootComponent) {
                             } else {
                                 PrimaryButton(
                                     onClick = { rootComponent.onAuthenticationIntent(MainStore.Intent.LoginRequested) },
-                                    enabled = authenticationState.isAuthenticationServiceAvailable
+                                    enabled = !authenticationState.isLoading
                                 ) {
-                                    Icon(Lucide.LogIn, null)
-                                    Text("Log In")
+                                    if (authenticationState.isLoading) {
+                                        IntermediateProgressIndicator(modifier = Modifier.size(20.dp))
+                                    } else {
+                                        Icon(Lucide.LogIn, null)
+                                        Text("Log In")
+                                    }
                                 }
                             }
                         }

@@ -217,6 +217,10 @@ sealed interface Configuration {
 
         override val canonicalParent: Configuration = Home
 
-        override fun toUrlPath(): String = "/chat/${recipientJid.value}"
+        override fun toUrlPath(): String = "/$ROUTE_SEGMENT_NAME/${recipientJid.value}"
+
+        companion object {
+            const val ROUTE_SEGMENT_NAME = "chat"
+        }
     }
 }

@@ -14,11 +14,15 @@ import com.availelabs.availe.domain.model.AuthToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import org.publicvalue.multiplatform.oidc.OpenIdConnectException
 
 interface ISessionManager {
     val authenticationState: Value<AuthenticationState>
+    val sessionInvalidated: SharedFlow<Unit>
     fun getAccountManagementUrl(): String
     suspend fun getCurrentUserProfile(): UserProfile?
     suspend fun onSessionInvalidated()
@@ -35,6 +39,9 @@ class SessionManager(
 
     private val _authenticationState = MutableValue<AuthenticationState>(AuthenticationState.Unknown)
     override val authenticationState: Value<AuthenticationState> = _authenticationState
+
+    private val _sessionInvalidated = MutableSharedFlow<Unit>()
+    override val sessionInvalidated: SharedFlow<Unit> = _sessionInvalidated.asSharedFlow()
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
         .withLifecycle(lifecycle)
@@ -78,6 +85,7 @@ class SessionManager(
     override suspend fun onSessionInvalidated() {
         localDataCleaner.clearAllData()
         _authenticationState.update { AuthenticationState.SessionExpired }
+        _sessionInvalidated.emit(Unit)
     }
 
     override fun onLogoutSuccess() {
@@ -91,5 +99,6 @@ class SessionManager(
     private suspend fun handleExpiredSession() {
         localDataCleaner.clearAllData()
         _authenticationState.update { AuthenticationState.SessionExpired }
+        _sessionInvalidated.emit(Unit)
     }
 }
