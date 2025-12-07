@@ -1,4 +1,4 @@
-package com.availelabs.availe.features.main
+package com.availelabs.availe.features.appshell
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable

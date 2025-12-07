@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalUuidApi::class, ExperimentalDecomposeApi::class)
 
-package com.availelabs.availe.features.main
+package com.availelabs.availe.features.appshell
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.arkivanov.decompose.ComponentContext

@@ -17,16 +17,11 @@ import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.di.IApplicationContainer
+import com.availelabs.availe.features.appshell.*
 import com.availelabs.availe.features.login.ILoginComponent
 import com.availelabs.availe.features.login.LoginComponent
-import com.availelabs.availe.features.main.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 

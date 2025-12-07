@@ -4,8 +4,8 @@ package com.availelabs.availe.features.root
 
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.features.main.AppShellConfiguration
-import com.availelabs.availe.features.main.AppShellIntent
+import com.availelabs.availe.features.appshell.AppShellConfiguration
+import com.availelabs.availe.features.appshell.AppShellIntent
 import io.ktor.http.*
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid

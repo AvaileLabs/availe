@@ -1,4 +1,4 @@
-package com.availelabs.availe.features.main
+package com.availelabs.availe.features.appshell
 
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
@@ -8,7 +8,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.data.repositories.IAuthenticationRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
-import com.availelabs.availe.features.main.MainStore.*
+import com.availelabs.availe.features.appshell.MainStore.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest

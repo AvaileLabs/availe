@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.availelabs.availe.features.main.AppShellScreen
-import com.availelabs.availe.features.main.MainStore
+import com.availelabs.availe.features.appshell.AppShellScreen
+import com.availelabs.availe.features.appshell.MainStore
 import com.availelabs.availe.features.root.IRootComponent
 import com.availelabs.availe.features.root.RootChildComponent
 import com.availelabs.availe.ui.animation.appStackAnimation
