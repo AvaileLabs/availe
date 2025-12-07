@@ -91,7 +91,7 @@ fun createApplicationContainer(
         authenticationRemoteDataSource = authenticationRemoteDataSource,
         localDataCleaner = localDataCleaner,
         lifecycle = lifecycle,
-        accountManagementUrl = "http://${NetworkConstants.HOST_IP}:8180/realms/availe/account"
+        accountManagementUrl = "http://${NetworkConstants.HOST_IP}:${SharedNetworkConstants.KEYCLOAK_PUBLIC_PORT}/realms/availe/account"
     )
 
     val authenticationRepository = AuthenticationRepository(
