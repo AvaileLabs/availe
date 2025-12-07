@@ -7,15 +7,33 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.serialization.SerializationException
 
 sealed interface NetworkErrorType {
+    val isSafeToPreserveLocalData: Boolean
+
     sealed interface Recoverable : NetworkErrorType {
-        data object ConnectionTimeout : Recoverable
-        data object Connectivity : Recoverable
-        data object ServerSide : Recoverable
-        data object ClientSide : Recoverable
-        data object DataSerialization : Recoverable
+        data object ConnectionTimeout : Recoverable {
+            override val isSafeToPreserveLocalData: Boolean = true
+        }
+
+        data object Connectivity : Recoverable {
+            override val isSafeToPreserveLocalData: Boolean = true
+        }
+
+        data object ServerSide : Recoverable {
+            override val isSafeToPreserveLocalData: Boolean = true
+        }
+
+        data object ClientSide : Recoverable {
+            override val isSafeToPreserveLocalData: Boolean = false
+        }
+
+        data object DataSerialization : Recoverable {
+            override val isSafeToPreserveLocalData: Boolean = false
+        }
     }
 
-    data object Unrecoverable : NetworkErrorType
+    data object Unrecoverable : NetworkErrorType {
+        override val isSafeToPreserveLocalData: Boolean = false
+    }
 }
 
 fun Throwable.classifyNetworkError(): NetworkErrorType {

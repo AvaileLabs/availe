@@ -17,6 +17,7 @@ import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.mappers.toCreateRequestDto
 import com.availelabs.availe.mappers.toDomainListing
 import io.ktor.client.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -148,8 +149,22 @@ class ListingRemoteDataSource(
     }
 
     private suspend fun ensureSuccess(response: HttpResponse) {
-        if (!response.status.isSuccess()) {
-            throw Exception("${response.status} - ${response.bodyAsText()}")
+        val statusCode = response.status.value
+        if (response.status.isSuccess()) {
+            return
+        }
+
+        val cachedBody = try {
+            response.bodyAsText()
+        } catch (_: Exception) {
+            "<no body>"
+        }
+
+        when (statusCode) {
+            in 300..399 -> throw RedirectResponseException(response, cachedBody)
+            in 400..499 -> throw ClientRequestException(response, cachedBody)
+            in 500..599 -> throw ServerResponseException(response, cachedBody)
+            else -> throw IllegalStateException("Unexpected status code: $statusCode - $cachedBody")
         }
     }
 }

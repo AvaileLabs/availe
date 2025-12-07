@@ -5,6 +5,7 @@ import com.availelabs.availe.domain.types.RepositoryOperationResult
 import kotlinx.coroutines.CancellationException
 
 suspend fun <T> executeSafeNetworkRequest(
+    onFatalError: suspend () -> Unit = {},
     operation: suspend () -> T
 ): RepositoryOperationResult<T> {
     return try {
@@ -13,6 +14,10 @@ suspend fun <T> executeSafeNetworkRequest(
         throw cancellationException
     } catch (throwable: Throwable) {
         val networkErrorType = throwable.classifyNetworkError()
+
+        if (!networkErrorType.isSafeToPreserveLocalData) {
+            onFatalError()
+        }
 
         if (networkErrorType is NetworkErrorType.Unrecoverable) {
             throw throwable
@@ -24,6 +29,7 @@ suspend fun <T> executeSafeNetworkRequest(
             is NetworkErrorType.Recoverable.ServerSide -> "The server is experiencing issues. Please try again later."
             is NetworkErrorType.Recoverable.ClientSide -> "Unable to load this data. It may have been removed."
             is NetworkErrorType.Recoverable.DataSerialization -> "Data error. Please ensure you have the latest version of the app."
+            is NetworkErrorType.Unrecoverable -> throw throwable
         }
 
         RepositoryOperationResult.Failure(UserFriendlyErrorMessage(errorMessageString))

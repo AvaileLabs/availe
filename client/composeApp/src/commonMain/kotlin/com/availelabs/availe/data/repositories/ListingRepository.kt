@@ -61,45 +61,28 @@ class ListingRepository(
     }
 
     override suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>> {
-        return executeSafeNetworkRequest {
-            try {
-                val findResult = remoteDataSource.getListingById(id)
-                if (findResult is FindResult.NotFound) {
-                    localDataCleaner.clearAllData()
-                }
-                findResult
-            } catch (exception: Exception) {
+        return executeSafeNetworkRequest(onFatalError = { localDataCleaner.clearAllData() }) {
+            val findResult = remoteDataSource.getListingById(id)
+            if (findResult is FindResult.NotFound) {
                 localDataCleaner.clearAllData()
-                throw exception
             }
+            findResult
         }
     }
 
     override suspend fun createListing(newListing: NewListing): RepositoryOperationResult<InsertResult<Listing>> {
-        return executeSafeNetworkRequest {
-            try {
-                remoteDataSource.createListing(newListing)
-            } catch (exception: Exception) {
-                if (exception.message?.contains("Conflict") == false) {
-                    localDataCleaner.clearAllData()
-                }
-                throw exception
-            }
+        return executeSafeNetworkRequest(onFatalError = { localDataCleaner.clearAllData() }) {
+            remoteDataSource.createListing(newListing)
         }
     }
 
     override suspend fun existsById(id: ListingId): RepositoryOperationResult<Boolean> {
-        return executeSafeNetworkRequest {
-            try {
-                val exists = remoteDataSource.existsById(id)
-                if (!exists) {
-                    localDataCleaner.clearAllData()
-                }
-                exists
-            } catch (exception: Exception) {
+        return executeSafeNetworkRequest(onFatalError = { localDataCleaner.clearAllData() }) {
+            val exists = remoteDataSource.existsById(id)
+            if (!exists) {
                 localDataCleaner.clearAllData()
-                throw exception
             }
+            exists
         }
     }
 
@@ -107,32 +90,22 @@ class ListingRepository(
         id: ListingId,
         patch: TypeV1ListingDtoPatchRequest
     ): RepositoryOperationResult<UpdateResult<Listing>> {
-        return executeSafeNetworkRequest {
-            try {
-                val result = remoteDataSource.updateListing(id, patch)
-                if (result is UpdateResult.NotFound) {
-                    localDataCleaner.clearAllData()
-                }
-                result
-            } catch (exception: Exception) {
+        return executeSafeNetworkRequest(onFatalError = { localDataCleaner.clearAllData() }) {
+            val updateResult = remoteDataSource.updateListing(id, patch)
+            if (updateResult is UpdateResult.NotFound) {
                 localDataCleaner.clearAllData()
-                throw exception
             }
+            updateResult
         }
     }
 
     override suspend fun deleteListing(id: ListingId): RepositoryOperationResult<DeleteResult> {
-        return executeSafeNetworkRequest {
-            try {
-                val result = remoteDataSource.deleteListing(id)
-                if (result is DeleteResult.NotFound) {
-                    localDataCleaner.clearAllData()
-                }
-                result
-            } catch (exception: Exception) {
+        return executeSafeNetworkRequest(onFatalError = { localDataCleaner.clearAllData() }) {
+            val deleteResult = remoteDataSource.deleteListing(id)
+            if (deleteResult is DeleteResult.NotFound) {
                 localDataCleaner.clearAllData()
-                throw exception
             }
+            deleteResult
         }
     }
 
