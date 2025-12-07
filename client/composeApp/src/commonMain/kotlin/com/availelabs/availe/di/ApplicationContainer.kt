@@ -168,7 +168,8 @@ fun createApplicationContainer(
 
     val listingStoreFactory = ListingStoreFactory(
         remoteDataSource = listingRemoteDataSource,
-        localDataSource = listingLocalDataSource
+        localDataSource = listingLocalDataSource,
+        localDataCleaner = localDataCleaner
     )
 
     val listingRepository = ListingRepository(
