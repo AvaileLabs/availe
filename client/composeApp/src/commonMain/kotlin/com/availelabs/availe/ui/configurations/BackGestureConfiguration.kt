@@ -4,4 +4,5 @@ import androidx.compose.ui.unit.Dp
 
 expect object BackGestureConfig {
     val edgeWidth: Dp
+    val isSwipeProgressRecalculationEnabled: Boolean
 }

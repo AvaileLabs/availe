@@ -6,8 +6,8 @@ import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackEvent.SwipeEdge
+import com.availelabs.availe.ui.animation.PredictiveBackGestureOverlayWithOptionForCalculationThreshold
 import com.availelabs.availe.ui.configurations.BackGestureConfig
-import com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.PredictiveBackGestureOverlay as DecomposePredictiveBackGestureOverlay
 
 @ExperimentalDecomposeApi
 @Composable
@@ -24,7 +24,7 @@ actual fun PredictiveBackGestureOverlay(
     content: @Composable () -> Unit
 ) {
     if (backDispatcher != null) {
-        DecomposePredictiveBackGestureOverlay(
+        PredictiveBackGestureOverlayWithOptionForCalculationThreshold(
             backDispatcher = backDispatcher,
             backIcon = backIcon,
             modifier = modifier,

@@ -7,4 +7,5 @@ actual object BackGestureConfig {
     // no-op operation
     private val NO_OP_GESTURE_EDGE_WIDTH: Dp = 0.dp
     actual val edgeWidth: Dp = NO_OP_GESTURE_EDGE_WIDTH
+    actual val isSwipeProgressRecalculationEnabled: Boolean = false
 }
