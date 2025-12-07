@@ -2,6 +2,7 @@ package com.availelabs.availe.data.auth
 
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.auth.LoginResult
+import com.availelabs.availe.domain.model.AuthToken
 import kotlinx.browser.window
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
@@ -66,7 +67,7 @@ actual suspend fun platformResumeLogin(
         val tokenResponse = client.exchangeToken(authenticationCodeRequest, code)
         tokenStore.saveTokens(tokenResponse)
         AuthStorage.clear()
-        onStateUpdate(AuthenticationState.LoggedIn(tokenResponse.access_token))
+        onStateUpdate(AuthenticationState.LoggedIn(AuthToken(tokenResponse.access_token)))
 
         window.history.replaceState(null, "", "/")
     } catch (exception: Exception) {

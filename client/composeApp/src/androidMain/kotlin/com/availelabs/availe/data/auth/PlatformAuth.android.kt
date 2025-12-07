@@ -3,6 +3,7 @@ package com.availelabs.availe.data.auth
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.auth.LoginError
 import com.availelabs.availe.domain.auth.LoginResult
+import com.availelabs.availe.domain.model.AuthToken
 import kotlinx.coroutines.CancellationException
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
@@ -39,7 +40,7 @@ actual suspend fun platformLogin(
         return LoginResult.Failed(LoginError.Storage(e))
     }
 
-    onStateUpdate(AuthenticationState.LoggedIn(response.access_token))
+    onStateUpdate(AuthenticationState.LoggedIn(AuthToken(response.access_token)))
     return LoginResult.Success
 }
 
