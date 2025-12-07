@@ -11,6 +11,7 @@ sealed interface CommonListingProperties {
     val price: Price
     val imageLinks: List<ImageUrl>
     val publisherId: UserId
+    val publisherEmail: Email
 }
 
 data class CommonListingData(
@@ -18,7 +19,8 @@ data class CommonListingData(
     override val description: ListingDescription?,
     override val price: Price,
     override val imageLinks: List<ImageUrl>,
-    override val publisherId: UserId
+    override val publisherId: UserId,
+    override val publisherEmail: Email
 ) : CommonListingProperties
 
 sealed interface Listing : CommonListingProperties {

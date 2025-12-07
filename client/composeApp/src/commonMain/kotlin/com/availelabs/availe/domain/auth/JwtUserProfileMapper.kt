@@ -1,6 +1,8 @@
 package com.availelabs.availe.domain.auth
 
+import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.data.dto.JwtPayloadDto
+import com.availelabs.availe.domain.model.Jid
 import kotlinx.serialization.json.Json
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -34,10 +36,12 @@ object JwtUserProfileMapper {
 
     private fun JwtPayloadDto.toUserProfile(): UserProfile {
         val email = this.email ?: throw IllegalArgumentException("Email claim is required")
+        val jid = this.jid ?: Jid("${email.value}@${SharedNetworkConstants.XMPP_DOMAIN}")
 
         return UserProfile(
             id = this.subject,
-            email = email
+            email = email,
+            jid = jid
         )
     }
 }

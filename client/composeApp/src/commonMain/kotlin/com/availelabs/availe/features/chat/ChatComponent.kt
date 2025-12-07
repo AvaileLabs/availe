@@ -7,6 +7,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.data.repositories.IMessagingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
+import com.availelabs.availe.domain.model.Jid
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 
@@ -18,7 +19,7 @@ interface IChatComponent {
 
 class ChatComponent(
     componentContext: ComponentContext,
-    private val recipientId: String,
+    private val recipientJid: Jid,
     private val messagingRepository: IMessagingRepository,
     private val sessionManager: ISessionManager,
     private val onNavigateBack: () -> Unit
@@ -29,7 +30,7 @@ class ChatComponent(
             storeFactory = DefaultStoreFactory(),
             messagingRepository = messagingRepository,
             sessionManager = sessionManager,
-            recipientId = recipientId
+            recipientJid = recipientJid
         ).create()
     }
 

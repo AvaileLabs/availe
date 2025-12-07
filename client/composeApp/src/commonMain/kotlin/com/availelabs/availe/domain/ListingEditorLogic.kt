@@ -64,7 +64,7 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
     }
 }
 
-fun ListingEditorState.toNewListing(publisherId: UserId): NewListing {
+fun ListingEditorState.toNewListing(publisherId: UserId, publisherEmail: Email): NewListing {
     val price = Price(this.priceAmount, this.priceCurrency.code)
     val imageLinks = if (this.imageUrl.value.isNotBlank()) listOf(this.imageUrl) else emptyList()
 
@@ -73,7 +73,8 @@ fun ListingEditorState.toNewListing(publisherId: UserId): NewListing {
         description = if (this.description.value.isBlank()) null else this.description,
         price = price,
         imageLinks = imageLinks,
-        publisherId = publisherId
+        publisherId = publisherId,
+        publisherEmail = publisherEmail
     )
 
     return when (this.type) {

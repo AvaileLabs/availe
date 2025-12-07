@@ -5,7 +5,10 @@ import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.data.repositories.IListingRepository
+import com.availelabs.availe.domain.model.Email
+import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +17,7 @@ interface IListingDetailsComponent {
     val state: StateFlow<ListingDetailsStore.State>
     fun onIntent(intent: ListingDetailsStore.Intent)
     fun onBackClicked()
-    fun onContactSellerClicked(sellerId: String)
+    fun onContactSellerClicked(sellerEmail: Email)
 }
 
 class ListingDetailsComponent(
@@ -22,7 +25,7 @@ class ListingDetailsComponent(
     private val listingId: ListingId,
     private val listingRepository: IListingRepository,
     private val onNavigateBack: () -> Unit,
-    private val onNavigateToChat: (String) -> Unit
+    private val onNavigateToChat: (Jid) -> Unit
 ) : IListingDetailsComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -49,7 +52,8 @@ class ListingDetailsComponent(
         onNavigateBack()
     }
 
-    override fun onContactSellerClicked(sellerId: String) {
-        onNavigateToChat(sellerId)
+    override fun onContactSellerClicked(sellerEmail: Email) {
+        val jid = Jid("${sellerEmail.value}@${SharedNetworkConstants.XMPP_DOMAIN}")
+        onNavigateToChat(jid)
     }
 }

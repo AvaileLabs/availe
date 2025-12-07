@@ -19,6 +19,7 @@ import com.example.jooq.tables.Listings as ListingsTable
 
 internal fun ListingsRecord.applyCommonData(commonData: CommonListingData) {
     this.publisherId = commonData.publisherId.value.toJavaUuid()
+    this.publisherEmail = commonData.publisherEmail.value
     this.title = commonData.title.value
     this.description = commonData.description?.value
     val monetaPrice = commonData.price.toMoneta()
@@ -33,7 +34,8 @@ internal fun ListingsRecord.toDomainListing(): Listing {
         description = this.description?.let { ListingDescription(it) },
         price = org.javamoney.moneta.Money.of(this.priceAmount, this.priceCurrency).toSharedPrice(),
         imageLinks = this.imageLinks?.filterNotNull()?.map { ImageUrl(it) } ?: emptyList(),
-        publisherId = UserId(this.publisherId!!.toKotlinUuid())
+        publisherId = UserId(this.publisherId!!.toKotlinUuid()),
+        publisherEmail = Email(this.publisherEmail!!)
     )
 
     val domainId = ListingId(this.id!!.toKotlinUuid())
@@ -59,7 +61,8 @@ internal fun Record.toDomainListing(
         price = org.javamoney.moneta.Money.of(this[listingsTable.PRICE_AMOUNT], this[listingsTable.PRICE_CURRENCY])
             .toSharedPrice(),
         imageLinks = this[listingsTable.IMAGE_LINKS]?.filterNotNull()?.map { ImageUrl(it) } ?: emptyList(),
-        publisherId = UserId(this[listingsTable.PUBLISHER_ID]!!.toKotlinUuid())
+        publisherId = UserId(this[listingsTable.PUBLISHER_ID]!!.toKotlinUuid()),
+        publisherEmail = Email(this[listingsTable.PUBLISHER_EMAIL]!!)
     )
 
     val domainId = ListingId(this[listingsTable.ID]!!.toKotlinUuid())

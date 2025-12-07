@@ -1,15 +1,18 @@
 package com.availelabs.availe.data.repositories
 
 import com.availelabs.availe.data.sources.remote.IMessagingRemoteDataSource
+import com.availelabs.availe.domain.model.AuthToken
 import com.availelabs.availe.domain.model.ChatMessage
+import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.MessageContent
 import kotlinx.coroutines.flow.*
 
 interface IMessagingRepository {
     val connectionStatus: StateFlow<String>
     val messages: Flow<ChatMessage>
-    suspend fun connect(userId: String, token: String)
+    suspend fun connect(jid: Jid, token: AuthToken)
     suspend fun disconnect()
-    suspend fun sendMessage(to: String, body: String)
+    suspend fun sendMessage(to: Jid, body: MessageContent, from: Jid)
 }
 
 class MessagingRepository(
@@ -21,30 +24,37 @@ class MessagingRepository(
     private val outgoingMessages = MutableSharedFlow<ChatMessage>()
 
     override val messages: Flow<ChatMessage> = merge(
-        messagingRemoteDataSource.incomingMessages.map { xmppMessageStanza ->
-            ChatMessage(
-                content = xmppMessageStanza.body ?: "",
-                senderId = xmppMessageStanza.from ?: "Unknown",
-                isMine = false
-            )
+        messagingRemoteDataSource.incomingMessages.mapNotNull { xmppMessageStanza ->
+            val from = xmppMessageStanza.from
+            val body = xmppMessageStanza.body
+
+            if (from != null && body != null) {
+                ChatMessage(
+                    content = MessageContent(body),
+                    senderJid = Jid(from),
+                    isMine = false
+                )
+            } else {
+                null
+            }
         },
         outgoingMessages
     )
 
-    override suspend fun connect(userId: String, token: String) {
-        messagingRemoteDataSource.connect(userId, token)
+    override suspend fun connect(jid: Jid, token: AuthToken) {
+        messagingRemoteDataSource.connect(jid, token)
     }
 
     override suspend fun disconnect() {
         messagingRemoteDataSource.disconnect()
     }
 
-    override suspend fun sendMessage(to: String, body: String) {
+    override suspend fun sendMessage(to: Jid, body: MessageContent, from: Jid) {
         messagingRemoteDataSource.sendMessage(to, body)
         outgoingMessages.emit(
             ChatMessage(
                 content = body,
-                senderId = "Me",
+                senderJid = from,
                 isMine = true
             )
         )

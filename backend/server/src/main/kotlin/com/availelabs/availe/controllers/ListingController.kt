@@ -22,20 +22,13 @@ import io.availe.models.Patchable
 import org.http4k.contract.ContractRoute
 import org.http4k.contract.div
 import org.http4k.contract.meta
-import org.http4k.core.Body
-import org.http4k.core.Method
-import org.http4k.core.Request
-import org.http4k.core.Response
-import org.http4k.core.Status
-import org.http4k.core.then
-import org.http4k.core.with
+import org.http4k.core.*
 import org.http4k.events.Events
 import org.http4k.format.KotlinxSerialization.auto
 import org.http4k.lens.Path
 import org.http4k.lens.Query
 import org.http4k.lens.int
 import org.http4k.lens.uuid
-import kotlin.comparisons.then
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -63,6 +56,7 @@ internal class ListingController(
         price = examplePrice,
         imageLinks = emptyList(),
         publisherId = UserId(Uuid.random()),
+        publisherEmail = Email("example@availe.com")
     )
 
     val listOfRoutes = listOf(
@@ -90,7 +84,7 @@ internal class ListingController(
             returning(Status.BAD_REQUEST)
         } bindContract Method.POST to authenticationFilter.then { request ->
             val authenticatedUser = SecurityContexts.authenticatedUserLens(request)
-            val newListing = bodyLens(request).toDomain(authenticatedUser.id)
+            val newListing = bodyLens(request).toDomain(authenticatedUser.id, authenticatedUser.email)
 
             if (!newListing.title.isValid()) {
                 return@then Response(Status.BAD_REQUEST).body("Invalid Title")

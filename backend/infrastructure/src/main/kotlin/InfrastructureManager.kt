@@ -2,6 +2,7 @@ package com.availelabs
 
 import com.availelabs.orchestration.containers.ContainerOrchestrator
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
+import com.availelabs.orchestration.ejabberd.generateEjabberdConfigurationFiles
 import com.availelabs.orchestration.postgres.PostgresConfig
 import com.availelabs.provisioning.PostgresProvisioner
 import com.availelabs.provisioning.keycloak.KeycloakProvisioner
@@ -43,8 +44,12 @@ internal class InfrastructureManager(
         logger.info("Provisioning Keycloak...")
         keycloakProvisioner.provision()
 
+        logger.info("Fetching Keycloak keys and generating Ejabberd configuration...")
+        generateEjabberdConfigurationFiles()
+
         logger.info("Starting Ejabberd container...")
         containerOrchestrator.orchestrationSetup(listOf(ejabberdRunSpecification))
+
         ServiceWaiter.waitForEjabberd()
         logger.info("Ejabberd is ready.")
 

@@ -170,7 +170,8 @@ class HomeStoreFactory(
                         description = ListingDescription("This item was created via quick add action."),
                         price = Price(PriceAmount("10.00"), SupportedCurrency.USD.code),
                         imageLinks = emptyList(),
-                        publisherId = userProfile.id
+                        publisherId = userProfile.id,
+                        publisherEmail = userProfile.email
                     )
                 )
 

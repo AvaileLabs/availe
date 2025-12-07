@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.availelabs.availe.domain.model.ChatMessage
+import com.availelabs.availe.domain.model.MessageContent
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Send
 import com.composables.icons.lucide.User
@@ -51,7 +52,8 @@ fun ChatScreen(component: IChatComponent) {
                 .background(Theme[colors][secondary].copy(alpha = 0.3f))
         ) {
             UserInfoHeader(
-                connectionStatus = chatState.connectionStatus
+                connectionStatus = chatState.connectionStatus,
+                recipientName = chatState.recipientJid.value
             )
 
             MessageList(
@@ -63,7 +65,7 @@ fun ChatScreen(component: IChatComponent) {
 
             ChatInput(
                 onSendMessage = { messageBody ->
-                    component.onIntent(ChatStore.Intent.SendMessage(messageBody))
+                    component.onIntent(ChatStore.Intent.SendMessage(MessageContent(messageBody)))
                 }
             )
         }
@@ -72,7 +74,8 @@ fun ChatScreen(component: IChatComponent) {
 
 @Composable
 private fun UserInfoHeader(
-    connectionStatus: String
+    connectionStatus: String,
+    recipientName: String
 ) {
     val isConnected = connectionStatus == "Authenticated"
     val statusColor = if (isConnected) Color(0xFF10B981) else Theme[colors][destructive]
@@ -91,7 +94,7 @@ private fun UserInfoHeader(
         ) {
             Avatar(
                 painter = rememberVectorPainter(Lucide.User),
-                initials = "T",
+                initials = recipientName.take(1).uppercase(),
                 modifier = Modifier.size(40.dp),
                 shape = CircleShape
             )
@@ -100,7 +103,7 @@ private fun UserInfoHeader(
 
             Column(verticalArrangement = Arrangement.Center) {
                 Text(
-                    text = "test",
+                    text = recipientName,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
@@ -199,7 +202,7 @@ private fun MessageBubble(
         ) {
             SelectionContainer {
                 Text(
-                    text = message.content,
+                    text = message.content.value,
                     color = contentColor,
                     lineHeight = 20.sp
                 )

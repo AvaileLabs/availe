@@ -29,6 +29,7 @@ class ListingLocalDataSource(
                 primary_key_id = listing.id,
                 created_at = listing.createdAt,
                 publisher_id = listing.commonData.publisherId,
+                publisher_email = listing.commonData.publisherEmail,
                 listing_type = when (listing) {
                     is Listing.Item -> ListingCategory.Item
                     is Listing.Event -> ListingCategory.Event

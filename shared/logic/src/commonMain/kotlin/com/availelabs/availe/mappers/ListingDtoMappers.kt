@@ -14,7 +14,8 @@ fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 description = this.description,
                 price = this.price,
                 imageLinks = this.imageLinks,
-                publisherId = this.publisherId
+                publisherId = this.publisherId,
+                publisherEmail = this.publisherEmail
             )
             Listing.Event(common, this.id, createdAt)
         }
@@ -25,7 +26,8 @@ fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 description = this.description,
                 price = this.price,
                 imageLinks = this.imageLinks,
-                publisherId = this.publisherId
+                publisherId = this.publisherId,
+                publisherEmail = this.publisherEmail
             )
             Listing.Item(common, this.id, createdAt)
         }
@@ -36,7 +38,8 @@ fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 description = this.description,
                 price = this.price,
                 imageLinks = this.imageLinks,
-                publisherId = this.publisherId
+                publisherId = this.publisherId,
+                publisherEmail = this.publisherEmail
             )
             Listing.Service(common, this.id, createdAt)
         }
@@ -52,6 +55,7 @@ fun Listing.toDataDto(): TypeV1ListingDtoData {
             price = this.price,
             imageLinks = this.imageLinks,
             publisherId = this.publisherId,
+            publisherEmail = this.publisherEmail,
             schemaVersion = 1
         )
 
@@ -62,6 +66,7 @@ fun Listing.toDataDto(): TypeV1ListingDtoData {
             price = this.price,
             imageLinks = this.imageLinks,
             publisherId = this.publisherId,
+            publisherEmail = this.publisherEmail,
             schemaVersion = 1
         )
 
@@ -72,6 +77,7 @@ fun Listing.toDataDto(): TypeV1ListingDtoData {
             price = this.price,
             imageLinks = this.imageLinks,
             publisherId = this.publisherId,
+            publisherEmail = this.publisherEmail,
             schemaVersion = 1
         )
     }
@@ -102,7 +108,7 @@ fun NewListing.toCreateRequestDto(): TypeV1ListingDtoCreateRequest {
     }
 }
 
-fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId): NewListing {
+fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId, publisherEmail: Email): NewListing {
     return when (this) {
         is ListingEventDtoSchema.V1.CreateRequest -> NewListing.Event(
             CommonListingData(
@@ -110,7 +116,8 @@ fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId): NewListing {
                 description = description,
                 price = price,
                 imageLinks = imageLinks,
-                publisherId = publisherId
+                publisherId = publisherId,
+                publisherEmail = publisherEmail
             )
         )
 
@@ -120,7 +127,8 @@ fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId): NewListing {
                 description = description,
                 price = price,
                 imageLinks = imageLinks,
-                publisherId = publisherId
+                publisherId = publisherId,
+                publisherEmail = publisherEmail
             )
         )
 
@@ -130,7 +138,8 @@ fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId): NewListing {
                 description = description,
                 price = price,
                 imageLinks = imageLinks,
-                publisherId = publisherId
+                publisherId = publisherId,
+                publisherEmail = publisherEmail
             )
         )
     }

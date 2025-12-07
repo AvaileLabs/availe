@@ -65,6 +65,12 @@ fun createApplicationContainer(
 
     val listingLocalDataSource = ListingLocalDataSource(clientDatabaseDeferred)
 
+    val localDataCleaner = LocalDataCleaner(
+        tokenStore = tokenStore,
+        listingPreferences = listingPreferences,
+        listingLocalDataSource = listingLocalDataSource
+    )
+
     val openIdConnectClient =
         OpenIdConnectClient(discoveryUri = com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI) {
             this.scope = setOf(
@@ -86,6 +92,7 @@ fun createApplicationContainer(
 
     val sessionManager = SessionManager(
         authenticationRemoteDataSource = authenticationRemoteDataSource,
+        localDataCleaner = localDataCleaner,
         lifecycle = lifecycle,
         accountManagementUrl = "http://${NetworkConstants.HOST_IP}:8180/realms/availe/account"
     )
@@ -129,6 +136,7 @@ fun createApplicationContainer(
                             authenticationRemoteDataSource.saveTokens(newTokens)
                             BearerTokens(newTokens.access_token, newTokens.refresh_token ?: oldRefreshToken)
                         } catch (_: Exception) {
+                            sessionManager.onSessionInvalidated()
                             null
                         }
                     } else {
@@ -170,7 +178,8 @@ fun createApplicationContainer(
         remoteDataSource = listingRemoteDataSource,
         localDataSource = listingLocalDataSource,
         storeFactory = listingStoreFactory,
-        listingPreferences = listingPreferences
+        listingPreferences = listingPreferences,
+        localDataCleaner = localDataCleaner
     )
 
     return ApplicationContainer(

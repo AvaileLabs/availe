@@ -1,5 +1,6 @@
 package com.availelabs.availe.features.root
 
+import com.availelabs.availe.domain.model.Jid
 import io.ktor.http.*
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -36,6 +37,9 @@ object RootNavigationMapper {
                     }
                     return stack
                 }
+            } else if (rootSegment == "chat" && pathSegments.size > 1) {
+                val jidValue = pathSegments[1]
+                return listOf(Configuration.Home, Configuration.Chat(Jid(jidValue)))
             }
 
             listOf(Configuration.Home)

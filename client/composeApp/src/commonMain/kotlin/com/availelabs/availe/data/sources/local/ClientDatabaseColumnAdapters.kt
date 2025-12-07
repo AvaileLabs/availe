@@ -9,6 +9,7 @@ fun SelectById.toDomain(): Listing {
         id = primary_key_id,
         createdAt = created_at,
         publisherId = publisher_id,
+        publisherEmail = publisher_email,
         listingType = listing_type,
         title = title,
         description = description,
@@ -23,6 +24,7 @@ fun SelectPage.toDomain(): Listing {
         id = primary_key_id,
         createdAt = created_at,
         publisherId = publisher_id,
+        publisherEmail = publisher_email,
         listingType = listing_type,
         title = title,
         description = description,
@@ -36,6 +38,7 @@ private fun mapRawDataToListing(
     id: ListingId,
     createdAt: ListingCreationTime,
     publisherId: UserId,
+    publisherEmail: Email,
     listingType: ListingCategory,
     title: ListingTitle,
     description: ListingDescription?,
@@ -53,7 +56,8 @@ private fun mapRawDataToListing(
         description = description,
         price = price,
         imageLinks = imageLinks,
-        publisherId = publisherId
+        publisherId = publisherId,
+        publisherEmail = publisherEmail
     )
 
     return when (listingType) {

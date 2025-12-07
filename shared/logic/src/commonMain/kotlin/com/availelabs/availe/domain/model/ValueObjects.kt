@@ -47,3 +47,19 @@ value class ListingId(val value: Uuid)
 @Serializable
 @JvmInline
 value class ListingCreationTime(val value: Instant)
+
+@Serializable
+@JvmInline
+value class Jid(val value: String)
+
+@Serializable
+@JvmInline
+value class AuthToken(val value: String)
+
+@Serializable
+@JvmInline
+value class ChatMessageId(val value: String)
+
+@Serializable
+@JvmInline
+value class MessageContent(val value: String)

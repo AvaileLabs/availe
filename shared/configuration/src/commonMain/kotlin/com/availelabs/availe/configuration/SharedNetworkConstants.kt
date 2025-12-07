@@ -9,6 +9,7 @@ object SharedNetworkConstants {
     const val EJABBERD_CLIENT_PORT = 5222
     const val EJABBERD_ADMIN_PORT = 5280
     const val EJABBERD_HOST = "localhost"
+    const val XMPP_DOMAIN = "localhost"
 
     const val DATABASE_SCHEMA_APPLICATION = "availe"
     const val DATABASE_SCHEMA_KEYCLOAK = "keycloak"

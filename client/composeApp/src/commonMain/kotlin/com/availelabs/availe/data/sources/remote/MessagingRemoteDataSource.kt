@@ -3,6 +3,9 @@ package com.availelabs.availe.data.sources.remote
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.data.dto.*
+import com.availelabs.availe.domain.model.AuthToken
+import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.MessageContent
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
@@ -16,9 +19,9 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 interface IMessagingRemoteDataSource {
     val connectionStatus: StateFlow<String>
     val incomingMessages: SharedFlow<XmppMessageStanza>
-    suspend fun connect(userId: String, token: String)
+    suspend fun connect(jid: Jid, token: AuthToken)
     suspend fun disconnect()
-    suspend fun sendMessage(to: String, body: String)
+    suspend fun sendMessage(to: Jid, body: MessageContent)
 }
 
 class MessagingRemoteDataSource(
@@ -38,7 +41,7 @@ class MessagingRemoteDataSource(
     }
 
     @OptIn(ExperimentalEncodingApi::class)
-    override suspend fun connect(userId: String, token: String) {
+    override suspend fun connect(jid: Jid, token: AuthToken) {
         try {
             mutableConnectionStatusStateFlow.value = "Connecting..."
             httpClient.ws(
@@ -50,11 +53,11 @@ class MessagingRemoteDataSource(
                 defaultClientWebSocketSession = this
                 mutableConnectionStatusStateFlow.value = "Connected (Handshaking)"
 
-                val domain = "localhost"
+                val domain = SharedNetworkConstants.XMPP_DOMAIN
                 val openStanza = XmppOpenStanza(to = domain, version = "1.0")
                 send(Frame.Text(xmlSerializer.encodeToString(XmppOpenStanza.serializer(), openStanza)))
 
-                val authString = "\u0000$userId\u0000$token"
+                val authString = "\u0000${jid.value}\u0000${token.value}"
                 val authBase64 = Base64.encode(authString.encodeToByteArray())
                 val authStanza = XmppAuthStanza(mechanism = "PLAIN", content = authBase64)
                 send(Frame.Text(xmlSerializer.encodeToString(XmppAuthStanza.serializer(), authStanza)))
@@ -101,9 +104,7 @@ class MessagingRemoteDataSource(
                                 try {
                                     val messageStanza =
                                         xmlSerializer.decodeFromString(XmppMessageStanza.serializer(), text)
-                                    if (messageStanza.body != null) {
-                                        mutableIncomingMessagesSharedFlow.emit(messageStanza)
-                                    }
+                                    mutableIncomingMessagesSharedFlow.emit(messageStanza)
                                 } catch (exception: Exception) {
                                     println("Failed to parse message: ${exception.message}")
                                 }
@@ -128,8 +129,8 @@ class MessagingRemoteDataSource(
         mutableConnectionStatusStateFlow.value = "Disconnected"
     }
 
-    override suspend fun sendMessage(to: String, body: String) {
-        val messageStanza = XmppMessageStanza(to = to, type = "chat", body = body)
+    override suspend fun sendMessage(to: Jid, body: MessageContent) {
+        val messageStanza = XmppMessageStanza(to = to.value, type = "chat", body = body.value)
         defaultClientWebSocketSession?.send(
             Frame.Text(
                 xmlSerializer.encodeToString(

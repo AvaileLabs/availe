@@ -17,6 +17,7 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.di.IApplicationContainer
+import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.features.chat.ChatComponent
 import com.availelabs.availe.features.chat.IChatComponent
@@ -124,8 +125,8 @@ class RootComponent(
                     listingId = configuration.listingId,
                     listingRepository = appContainer.listingRepository,
                     onNavigateBack = { navigation.pop() },
-                    onNavigateToChat = { recipientId ->
-                        navigation.push(Configuration.Chat(recipientId))
+                    onNavigateToChat = { recipientJid ->
+                        navigation.push(Configuration.Chat(recipientJid))
                     }
                 )
             )
@@ -133,7 +134,7 @@ class RootComponent(
             is Configuration.Chat -> ChildComponent.Chat(
                 ChatComponent(
                     componentContext = componentContext,
-                    recipientId = configuration.recipientId,
+                    recipientJid = configuration.recipientJid,
                     sessionManager = appContainer.sessionManager,
                     messagingRepository = appContainer.messagingRepository,
                     onNavigateBack = { navigation.pop() }
@@ -207,7 +208,7 @@ sealed interface Configuration {
     }
 
     @Serializable
-    data class Chat(val recipientId: String) : Configuration {
+    data class Chat(val recipientJid: Jid) : Configuration {
         @Transient
         override val displayName: String = "Chat"
 
@@ -216,6 +217,6 @@ sealed interface Configuration {
 
         override val canonicalParent: Configuration = Home
 
-        override fun toUrlPath(): String = "/chat/$recipientId"
+        override fun toUrlPath(): String = "/chat/${recipientJid.value}"
     }
 }

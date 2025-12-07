@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.availelabs.availe.domain.extensions.toDisplayString
+import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.ImageUrl
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingCategory
@@ -73,7 +74,7 @@ fun ListingDetailsScreen(
             } else if (state.listing != null) {
                 ListingDetailsContent(
                     listing = state.listing!!,
-                    onContactSeller = { sellerId -> listingDetailsComponent.onContactSellerClicked(sellerId) }
+                    onContactSeller = { sellerEmail -> listingDetailsComponent.onContactSellerClicked(sellerEmail) }
                 )
             }
         }
@@ -83,7 +84,7 @@ fun ListingDetailsScreen(
 @Composable
 private fun ListingDetailsContent(
     listing: Listing,
-    onContactSeller: (String) -> Unit
+    onContactSeller: (Email) -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isDesktop = maxWidth > 800.dp
@@ -98,7 +99,7 @@ private fun ListingDetailsContent(
 @Composable
 private fun MobileListingLayout(
     listing: Listing,
-    onContactSeller: (String) -> Unit
+    onContactSeller: (Email) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -204,7 +205,7 @@ private fun MobileListingLayout(
                         )
                     }
                 }
-                PrimaryButton(onClick = { onContactSeller(listing.commonData.publisherId.value.toString()) }) {
+                PrimaryButton(onClick = { onContactSeller(listing.commonData.publisherEmail) }) {
                     Text(if (listing.category == ListingCategory.Event) "Book Ticket" else "Contact Seller")
                 }
             }
@@ -215,7 +216,7 @@ private fun MobileListingLayout(
 @Composable
 private fun DesktopListingLayout(
     listing: Listing,
-    onContactSeller: (String) -> Unit
+    onContactSeller: (Email) -> Unit
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -361,7 +362,7 @@ private fun DesktopListingLayout(
                         Spacer(Modifier.height(32.dp))
 
                         PrimaryButton(
-                            onClick = { onContactSeller(listing.commonData.publisherId.value.toString()) },
+                            onClick = { onContactSeller(listing.commonData.publisherEmail) },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(if (listing.category == ListingCategory.Event) "Book Now" else "Contact Seller")
@@ -485,7 +486,7 @@ private fun CategoryChip(category: ListingCategory) {
 private fun SellerInfoCard(
     listing: Listing,
     modifier: Modifier = Modifier,
-    onContactClicked: (String) -> Unit
+    onContactClicked: (Email) -> Unit
 ) {
     Row(
         modifier = modifier
@@ -519,7 +520,7 @@ private fun SellerInfoCard(
         }
         Spacer(Modifier.weight(1f))
         PrimaryButton(
-            onClick = { onContactClicked(listing.commonData.publisherId.value.toString()) },
+            onClick = { onContactClicked(listing.commonData.publisherEmail) },
             backgroundColor = Theme[colors][card],
             contentColor = Theme[colors][onBackground],
             borderWidth = 1.dp,

@@ -5,10 +5,12 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.coroutines.withLifecycle
+import com.availelabs.availe.data.sources.local.ILocalDataCleaner
 import com.availelabs.availe.data.sources.remote.IAuthenticationRemoteDataSource
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.auth.JwtUserProfileMapper
 import com.availelabs.availe.domain.auth.UserProfile
+import com.availelabs.availe.domain.model.AuthToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,6 +28,7 @@ interface ISessionManager {
 
 class SessionManager(
     private val authenticationRemoteDataSource: IAuthenticationRemoteDataSource,
+    private val localDataCleaner: ILocalDataCleaner,
     lifecycle: Lifecycle,
     private val accountManagementUrl: String
 ) : ISessionManager {
@@ -46,7 +49,8 @@ class SessionManager(
                     try {
                         val newTokens = authenticationRemoteDataSource.refreshTokens(storedTokens.refreshToken!!)
                         authenticationRemoteDataSource.saveTokens(newTokens)
-                        _authenticationState.update { AuthenticationState.LoggedIn(newTokens.access_token) }
+                        val authToken = AuthToken(newTokens.access_token)
+                        _authenticationState.update { AuthenticationState.LoggedIn(authToken) }
                     } catch (_: OpenIdConnectException) {
                         handleExpiredSession()
                     } catch (_: Exception) {
@@ -72,7 +76,7 @@ class SessionManager(
     }
 
     override suspend fun onSessionInvalidated() {
-        authenticationRemoteDataSource.removeTokens()
+        localDataCleaner.clearAllData()
         _authenticationState.update { AuthenticationState.SessionExpired }
     }
 
@@ -85,10 +89,7 @@ class SessionManager(
     }
 
     private suspend fun handleExpiredSession() {
-        try {
-            authenticationRemoteDataSource.removeTokens()
-        } catch (_: Exception) {
-        }
+        localDataCleaner.clearAllData()
         _authenticationState.update { AuthenticationState.SessionExpired }
     }
 }

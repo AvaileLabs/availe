@@ -11,6 +11,8 @@ import com.availelabs.availe.data.repositories.IMessagingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.model.ChatMessage
+import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.MessageContent
 import com.availelabs.availe.features.chat.ChatStore.*
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -20,10 +22,11 @@ interface ChatStore : Store<Intent, State, Label> {
     sealed interface Intent {
         data object Connect : Intent
         data object Disconnect : Intent
-        data class SendMessage(val body: String) : Intent
+        data class SendMessage(val body: MessageContent) : Intent
     }
 
     data class State(
+        val recipientJid: Jid,
         val connectionStatus: String = "Disconnected",
         val messages: List<ChatMessage> = emptyList()
     )
@@ -35,12 +38,12 @@ class ChatStoreFactory(
     private val storeFactory: StoreFactory,
     private val messagingRepository: IMessagingRepository,
     private val sessionManager: ISessionManager,
-    private val recipientId: String
+    private val recipientJid: Jid
 ) {
     fun create(): ChatStore =
         object : ChatStore, Store<Intent, State, Label> by storeFactory.create(
             name = ChatStore::class.simpleName,
-            initialState = State(),
+            initialState = State(recipientJid = recipientJid),
             bootstrapper = ChatBootstrapper(),
             executorFactory = { ChatExecutor() },
             reducer = ChatReducer
@@ -93,7 +96,7 @@ class ChatStoreFactory(
                 if (state is AuthenticationState.LoggedIn) {
                     val userProfile = sessionManager.getCurrentUserProfile()
                     if (userProfile != null) {
-                        messagingRepository.connect("test", "password")
+                        messagingRepository.connect(userProfile.jid, state.accessToken)
                     }
                 }
             }
@@ -105,9 +108,10 @@ class ChatStoreFactory(
             }
         }
 
-        private fun sendMessage(body: String) {
+        private fun sendMessage(content: MessageContent) {
             scope.launch {
-                messagingRepository.sendMessage("$recipientId@localhost", body)
+                val userProfile = sessionManager.getCurrentUserProfile() ?: return@launch
+                messagingRepository.sendMessage(recipientJid, content, userProfile.jid)
             }
         }
     }

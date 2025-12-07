@@ -23,6 +23,11 @@ object ClientDatabaseFactory {
             override fun encode(value: UserId): String = value.value.toString()
         }
 
+        val emailColumnAdapter = object : ColumnAdapter<Email, String> {
+            override fun decode(databaseValue: String): Email = Email(databaseValue)
+            override fun encode(value: Email): String = value.value
+        }
+
         val listingCreationTimeColumnAdapter = object : ColumnAdapter<ListingCreationTime, String> {
             override fun decode(databaseValue: String): ListingCreationTime =
                 ListingCreationTime(Instant.parse(databaseValue))
@@ -78,6 +83,7 @@ object ClientDatabaseFactory {
                 primary_key_idAdapter = listingIdColumnAdapter,
                 created_atAdapter = listingCreationTimeColumnAdapter,
                 publisher_idAdapter = userIdColumnAdapter,
+                publisher_emailAdapter = emailColumnAdapter,
                 listing_typeAdapter = listingCategoryColumnAdapter,
                 titleAdapter = listingTitleColumnAdapter,
                 descriptionAdapter = listingDescriptionColumnAdapter,

@@ -4,6 +4,7 @@ import com.auth0.jwk.JwkProviderBuilder
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.availelabs.availe.configuration.SharedAuthenticationConstants
+import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.observability.TokenVerificationFailed
 import com.availelabs.availe.observability.TokenVerificationSuccess
@@ -61,7 +62,13 @@ class KeycloakTokenVerifier(
                 throw IllegalStateException("Token is missing both '${SharedAuthenticationConstants.Claims.SUBJECT}' and '${SharedAuthenticationConstants.Claims.USER_ID}' claims")
             }
 
+            val emailClaim = verifiedToken.getClaim(SharedAuthenticationConstants.Claims.EMAIL)
+            if (emailClaim.isNull || emailClaim.asString().isBlank()) {
+                throw IllegalStateException("Token is missing '${SharedAuthenticationConstants.Claims.EMAIL}' claim")
+            }
+
             val userId = UserId(Uuid.parse(userIdString))
+            val email = Email(emailClaim.asString())
 
             events(
                 TokenVerificationSuccess(
@@ -70,7 +77,7 @@ class KeycloakTokenVerifier(
                 )
             )
 
-            AuthenticatedUser(userId)
+            AuthenticatedUser(userId, email)
         } catch (exception: Exception) {
             val debugClaims = try {
                 JWT.decode(token).claims.mapValues { it.value.toString() }

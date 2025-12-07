@@ -25,6 +25,9 @@ private interface ListingDto {
 
         @Replicate.Property(include = [DtoVariant.DATA])
         val publisherId: UserId
+
+        @Replicate.Property(include = [DtoVariant.DATA])
+        val publisherEmail: Email
     }
 }
 

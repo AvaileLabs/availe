@@ -9,10 +9,16 @@ internal sealed interface EjabberdVolumes : ContainerRunSpecification.VolumeMoun
         override val isBindMount = true
     }
 
-    data object Opt : EjabberdVolumes {
-        override val hostSource = "availe-ejabberd-opt"
-        override val containerPath = "/opt/ejabberd"
-        override val isBindMount = false
+    data class ServerPem(val hostFilePath: String) : EjabberdVolumes {
+        override val hostSource = hostFilePath
+        override val containerPath = "/opt/ejabberd/conf/server.pem"
+        override val isBindMount = true
+    }
+
+    data class KeycloakJwk(val hostFilePath: String) : EjabberdVolumes {
+        override val hostSource = hostFilePath
+        override val containerPath = "/opt/ejabberd/conf/keycloak.jwk"
+        override val isBindMount = true
     }
 
     data object Data : EjabberdVolumes {
@@ -26,13 +32,32 @@ internal sealed interface EjabberdVolumes : ContainerRunSpecification.VolumeMoun
         override val containerPath = "/opt/ejabberd/logs"
         override val isBindMount = false
     }
+
+    data object Upload : EjabberdVolumes {
+        override val hostSource = "availe-ejabberd-upload"
+        override val containerPath = "/opt/ejabberd/upload"
+        override val isBindMount = false
+    }
+    
+    data object Root : EjabberdVolumes {
+        override val hostSource = "availe-ejabberd-root"
+        override val containerPath = "/opt/ejabberd"
+        override val isBindMount = false
+    }
 }
 
-internal class EjabberdVolumesList(configHostPath: String) : ContainerRunSpecification.VolumeList {
+internal class EjabberdVolumesList(
+    configHostPath: String,
+    pemHostPath: String,
+    jwkHostPath: String
+) : ContainerRunSpecification.VolumeList {
     val config = EjabberdVolumes.Config(configHostPath)
-    val opt = EjabberdVolumes.Opt
+    val pem = EjabberdVolumes.ServerPem(pemHostPath)
+    val jwk = EjabberdVolumes.KeycloakJwk(jwkHostPath)
     val data = EjabberdVolumes.Data
     val logs = EjabberdVolumes.Logs
+    val upload = EjabberdVolumes.Upload
+    val root = EjabberdVolumes.Root
 
-    override val all = listOf(config, opt, data, logs)
+    override val all = listOf(config, pem, jwk, data, logs, upload, root)
 }
