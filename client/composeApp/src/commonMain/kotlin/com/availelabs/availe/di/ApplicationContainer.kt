@@ -8,6 +8,7 @@ import com.availelabs.availe.data.auth.AuthScope
 import com.availelabs.availe.data.auth.createPlatformAuthenticationConfig
 import com.availelabs.availe.data.auth.createPlatformAuthenticationFlowFactory
 import com.availelabs.availe.data.auth.toScopeString
+import com.availelabs.availe.data.network.SafeNetworkCaller
 import com.availelabs.availe.data.repositories.*
 import com.availelabs.availe.data.sources.local.*
 import com.availelabs.availe.data.sources.remote.AuthenticationRemoteDataSource
@@ -67,6 +68,8 @@ fun createApplicationContainer(
         databaseProvider = databaseProvider,
         databaseFileController = databaseFileController
     )
+
+    val safeNetworkCaller = SafeNetworkCaller(localDataCleaner)
 
     val openIdConnectClient =
         OpenIdConnectClient(discoveryUri = com.availelabs.availe.domain.auth.AuthenticationConstants.DISCOVERY_URI) {
@@ -177,7 +180,8 @@ fun createApplicationContainer(
         localDataSource = listingLocalDataSource,
         storeFactory = listingStoreFactory,
         listingPreferences = listingPreferences,
-        localDataCleaner = localDataCleaner
+        localDataCleaner = localDataCleaner,
+        safeNetworkCaller = safeNetworkCaller
     )
 
     return ApplicationContainer(
