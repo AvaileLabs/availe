@@ -109,7 +109,8 @@ class AppShellComponent(
         if (currentSlot != null) {
             val configuration = currentSlot.configuration
             chatOverlayNavigation.dismiss()
-            childStackNavigation.push(configuration)
+            // Use pushToFront to prevent duplicate chat screens if one already exists in the stack
+            childStackNavigation.pushToFront(configuration)
         }
     }
 
@@ -171,7 +172,8 @@ class AppShellComponent(
                     listingRepository = appContainer.listingRepository,
                     sessionManager = appContainer.sessionManager,
                     onNavigateToListingDetails = { listingId ->
-                        childStackNavigation.push(AppShellConfiguration.ListingDetails(listingId))
+                        // Use pushNew to prevent "Configurations must be unique" crash on double-tap
+                        childStackNavigation.pushNew(AppShellConfiguration.ListingDetails(listingId))
                     }
                 )
             )
@@ -187,9 +189,11 @@ class AppShellComponent(
                             appContainer.sessionManager.authenticationState.value is AuthenticationState.LoggedIn
                         if (isAuthenticated) {
                             if (isChatOverlayModeActive) {
+                                // SlotNavigation.activate handles deduplication automatically
                                 chatOverlayNavigation.activate(AppShellConfiguration.Chat(recipientJid))
                             } else {
-                                childStackNavigation.push(AppShellConfiguration.Chat(recipientJid))
+                                // Use pushToFront to avoid stacking multiple chat screens for the same user
+                                childStackNavigation.pushToFront(AppShellConfiguration.Chat(recipientJid))
                             }
                         } else {
                             onShowLoginGuard()
