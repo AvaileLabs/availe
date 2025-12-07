@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -22,6 +23,28 @@ import com.arkivanov.essenty.backhandler.BackEvent.SwipeEdge
 import com.availelabs.availe.ui.animation.BackGestureHandler.Edge
 import com.availelabs.availe.ui.configurations.BackGestureConfig
 
+/**
+ * Handles back gestures on both edges of the screen and drives the provided [backDispatcher] accordingly,
+ * while showing the provided [backIcon].
+ *
+ * @param backDispatcher [BackDispatcher] where callbacks should be registered.
+ * @param backIcon an icon to be shown while the gesture is being performed. A default icon can be shown
+ * using [com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.PredictiveBackGestureIcon].
+ * @param modifier a [Modifier] to applied to the overlay.
+ * @param startEdgeEnabled controls whether the start edge is enabled or not,
+ * left in LTR mode and right in RTL mode.
+ * @param endEdgeEnabled controls whether the end edge is enabled or not,
+ * right in LTR mode and left in RTL mode.
+ * @param edgeWidth the width in [Dp] from the screen edge where the gesture first down touch is recognized.
+ * @param activationOffsetThreshold a distance threshold in [Dp] from the initial touch point in the direction
+ * of gesture. The gesture is initiated once this threshold is surpassed.
+ * @param confirmationProgressThreshold a threshold of progress that needs to be reached for the gesture
+ * to be confirmed once the touch is completed. The gesture is cancelled if the touch is completed without
+ * reaching the threshold.
+ * @param onClose if supplied, then the back gesture is also handled when there are no other enabled back
+ * callbacks registered in [backDispatcher], can be used to close the application.
+ * @param content a content to be shown under the overlay.
+ */
 @ExperimentalDecomposeApi
 @Composable
 fun PredictiveBackGestureOverlayWithOptionForCalculationThreshold(
@@ -125,6 +148,7 @@ private fun Modifier.handleBackGestures(
                     BackGestureHandler(
                         pointerId = down.id,
                         startPosition = startPosition,
+                        startTime = down.uptimeMillis,
                         size = size,
                         edge = edge,
                         ignoreOffsetThreshold = 16.dp.toPx(),
@@ -132,6 +156,7 @@ private fun Modifier.handleBackGestures(
                         progressConfirmationThreshold = confirmationProgressThreshold,
                         backDispatcher = backDispatcher,
                         onIconMoved = onIconMoved,
+                        density = density
                     )
 
                 with(handler) { handleGesture() }
@@ -166,6 +191,7 @@ private data class IconState(
 private class BackGestureHandler(
     private val pointerId: PointerId,
     private val startPosition: Offset,
+    private val startTime: Long,
     private val size: IntSize,
     private val edge: Edge,
     private val ignoreOffsetThreshold: Float,
@@ -173,9 +199,15 @@ private class BackGestureHandler(
     private val progressConfirmationThreshold: Float,
     private val backDispatcher: BackDispatcher,
     private val onIconMoved: (position: Offset, progress: Float, Edge) -> Unit,
+    private val density: Density
 ) {
 
     private var changesIterator: Iterator<PointerInputChange>? = null
+    private val velocityTracker = VelocityTracker()
+
+    init {
+        velocityTracker.addPosition(startTime, startPosition)
+    }
 
     private suspend fun AwaitPointerEventScope.awaitChange(): PointerInputChange {
         while (true) {
@@ -187,6 +219,7 @@ private class BackGestureHandler(
             }
 
             iterator.next().takeIf { it.id == pointerId }?.also {
+                velocityTracker.addPosition(it.uptimeMillis, it.position)
                 return it
             }
         }
@@ -259,7 +292,16 @@ private class BackGestureHandler(
             )
 
             if (!change.pressed) {
-                if (progress > progressConfirmationThreshold) {
+                val velocity = velocityTracker.calculateVelocity()
+                val velocityX = velocity.x
+                val minVelocityPx = with(density) { 100.dp.toPx() }
+
+                val isFling = when (edge) {
+                    Edge.LEFT -> velocityX >= minVelocityPx
+                    Edge.RIGHT -> velocityX <= -minVelocityPx
+                }
+
+                if (progress > progressConfirmationThreshold || (isFling && progress > 0.05f)) {
                     backDispatcher.back()
                 } else {
                     backDispatcher.cancelPredictiveBack()
