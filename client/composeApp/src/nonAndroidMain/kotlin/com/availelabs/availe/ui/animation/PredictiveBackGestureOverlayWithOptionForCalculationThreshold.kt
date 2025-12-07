@@ -11,11 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.arkivanov.essenty.backhandler.BackDispatcher
@@ -24,28 +22,6 @@ import com.arkivanov.essenty.backhandler.BackEvent.SwipeEdge
 import com.availelabs.availe.ui.animation.BackGestureHandler.Edge
 import com.availelabs.availe.ui.configurations.BackGestureConfig
 
-/**
- * Handles back gestures on both edges of the screen and drives the provided [backDispatcher] accordingly,
- * while showing the provided [backIcon].
- *
- * @param backDispatcher [BackDispatcher] where callbacks should be registered.
- * @param backIcon an icon to be shown while the gesture is being performed. A default icon can be shown
- * using [com.arkivanov.decompose.extensions.compose.stack.animation.predictiveback.PredictiveBackGestureIcon].
- * @param modifier a [Modifier] to applied to the overlay.
- * @param startEdgeEnabled controls whether the start edge is enabled or not,
- * left in LTR mode and right in RTL mode.
- * @param endEdgeEnabled controls whether the end edge is enabled or not,
- * right in LTR mode and left in RTL mode.
- * @param edgeWidth the width in [Dp] from the screen edge where the gesture first down touch is recognized.
- * @param activationOffsetThreshold a distance threshold in [Dp] from the initial touch point in the direction
- * of gesture. The gesture is initiated once this threshold is surpassed.
- * @param confirmationProgressThreshold a threshold of progress that needs to be reached for the gesture
- * to be confirmed once the touch is completed. The gesture is cancelled if the touch is completed without
- * reaching the threshold.
- * @param onClose if supplied, then the back gesture is also handled when there are no other enabled back
- * callbacks registered in [backDispatcher], can be used to close the application.
- * @param content a content to be shown under the overlay.
- */
 @ExperimentalDecomposeApi
 @Composable
 fun PredictiveBackGestureOverlayWithOptionForCalculationThreshold(
@@ -62,6 +38,7 @@ fun PredictiveBackGestureOverlayWithOptionForCalculationThreshold(
 ) {
     val iconState: MutableState<IconState> = remember { mutableStateOf(IconState()) }
     val layoutDirection = LocalLayoutDirection.current
+    val density = LocalDensity.current
 
     Box(
         modifier = modifier.handleBackGestures(
@@ -86,7 +63,8 @@ fun PredictiveBackGestureOverlayWithOptionForCalculationThreshold(
                         isVisible = true,
                     )
             },
-            onIconHidden = { iconState.value = iconState.value.copy(isVisible = false) }
+            onIconHidden = { iconState.value = iconState.value.copy(isVisible = false) },
+            density = density
         ),
     ) {
         content()
@@ -122,39 +100,42 @@ private fun Modifier.handleBackGestures(
     confirmationProgressThreshold: Float,
     onIconMoved: (position: Offset, progress: Float, Edge) -> Unit,
     onIconHidden: () -> Unit,
+    density: Density,
 ): Modifier =
-    pointerInput(backDispatcher, leftEdgeEnabled, rightEdgeEnabled) {
+    pointerInput(backDispatcher, leftEdgeEnabled, rightEdgeEnabled, density) {
         awaitEachGesture {
             onIconHidden()
 
             val down = awaitFirstDown(pass = PointerEventPass.Initial)
             val startPosition = down.position
 
-            val isLeftEdge = leftEdgeEnabled && (startPosition.x < edgeWidth.toPx())
-            val isRightEdge = rightEdgeEnabled && (startPosition.x > size.width - edgeWidth.toPx())
+            with(density) {
+                val isLeftEdge = leftEdgeEnabled && (startPosition.x < edgeWidth.toPx())
+                val isRightEdge = rightEdgeEnabled && (startPosition.x > size.width - edgeWidth.toPx())
 
-            val edge =
-                when {
-                    isLeftEdge && isRightEdge -> if (startPosition.x < size.width / 2F) Edge.LEFT else Edge.RIGHT
-                    isLeftEdge -> Edge.LEFT
-                    isRightEdge -> Edge.RIGHT
-                    else -> return@awaitEachGesture
-                }
+                val edge =
+                    when {
+                        isLeftEdge && isRightEdge -> if (startPosition.x < size.width / 2F) Edge.LEFT else Edge.RIGHT
+                        isLeftEdge -> Edge.LEFT
+                        isRightEdge -> Edge.RIGHT
+                        else -> return@awaitEachGesture
+                    }
 
-            val handler =
-                BackGestureHandler(
-                    pointerId = down.id,
-                    startPosition = startPosition,
-                    size = size,
-                    edge = edge,
-                    ignoreOffsetThreshold = 16.dp.toPx(),
-                    activationOffsetThreshold = activationOffsetThreshold.toPx(),
-                    progressConfirmationThreshold = confirmationProgressThreshold,
-                    backDispatcher = backDispatcher,
-                    onIconMoved = onIconMoved,
-                )
+                val handler =
+                    BackGestureHandler(
+                        pointerId = down.id,
+                        startPosition = startPosition,
+                        size = size,
+                        edge = edge,
+                        ignoreOffsetThreshold = 16.dp.toPx(),
+                        activationOffsetThreshold = activationOffsetThreshold.toPx(),
+                        progressConfirmationThreshold = confirmationProgressThreshold,
+                        backDispatcher = backDispatcher,
+                        onIconMoved = onIconMoved,
+                    )
 
-            with(handler) { handleGesture() }
+                with(handler) { handleGesture() }
+            }
         }
     }
 
@@ -293,19 +274,21 @@ private class BackGestureHandler(
 
     private fun getProgress(position: Offset): Float {
         val isRecalculationEnabled = BackGestureConfig.isSwipeProgressRecalculationEnabled
+        val totalWidth = size.width.toFloat()
+        val activationOffsetX = activationOffsetThreshold
 
         return when (edge) {
             Edge.LEFT -> {
                 val startX = if (isRecalculationEnabled) {
-                    startPosition.x + activationOffsetThreshold
+                    startPosition.x + activationOffsetX
                 } else {
-                    activationOffsetThreshold
+                    activationOffsetX
                 }
 
                 val totalTravel = if (isRecalculationEnabled) {
-                    size.width.toFloat() - startX
+                    totalWidth
                 } else {
-                    size.width.toFloat() - activationOffsetThreshold
+                    totalWidth - activationOffsetX
                 }
 
                 (position.x - startX) / totalTravel
@@ -313,15 +296,15 @@ private class BackGestureHandler(
 
             Edge.RIGHT -> {
                 val startX = if (isRecalculationEnabled) {
-                    startPosition.x - activationOffsetThreshold
+                    startPosition.x - activationOffsetX
                 } else {
-                    size.width.toFloat() - activationOffsetThreshold
+                    totalWidth - activationOffsetX
                 }
 
                 val totalTravel = if (isRecalculationEnabled) {
-                    startX
+                    totalWidth
                 } else {
-                    size.width.toFloat() - activationOffsetThreshold
+                    totalWidth - activationOffsetX
                 }
 
                 (startX - position.x) / totalTravel

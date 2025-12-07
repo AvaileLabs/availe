@@ -7,4 +7,5 @@ actual object BackGestureConfig {
     private val FULL_SCREEN_GESTURE_WIDTH: Dp = 9999.dp
     actual val edgeWidth: Dp = FULL_SCREEN_GESTURE_WIDTH
     actual val isSwipeProgressRecalculationEnabled: Boolean = true
+    actual val minimumDragProgressThreshold: Float = 0.25F
 }

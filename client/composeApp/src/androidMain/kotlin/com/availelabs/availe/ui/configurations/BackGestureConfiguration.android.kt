@@ -8,4 +8,5 @@ actual object BackGestureConfig {
     private val NO_OP_GESTURE_EDGE_WIDTH: Dp = 0.dp
     actual val edgeWidth: Dp = NO_OP_GESTURE_EDGE_WIDTH
     actual val isSwipeProgressRecalculationEnabled: Boolean = false
+    actual val minimumDragProgressThreshold: Float = 0.0F
 }
