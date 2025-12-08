@@ -1,4 +1,4 @@
-package com.availelabs.availe.data.sources.local
+package com.availelabs.availe.data.auth
 
 import com.availelabs.availe.core.platform.PlatformActivity
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
