@@ -1,4 +1,4 @@
-package com.availelabs.availe.data.sources.local
+package com.availelabs.availe.data.database
 
 import kotlin.jvm.JvmInline
 
