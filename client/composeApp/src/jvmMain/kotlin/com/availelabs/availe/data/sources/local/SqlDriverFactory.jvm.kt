@@ -4,6 +4,7 @@ import app.cash.sqldelight.async.coroutines.synchronous
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.availelabs.availe.core.platform.PlatformActivity
+import com.availelabs.availe.data.database.SqlDriverFactory
 import com.availelabs.availe.db.ClientDatabase
 import java.io.File
 

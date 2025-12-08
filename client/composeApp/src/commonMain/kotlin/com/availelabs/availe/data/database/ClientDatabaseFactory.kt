@@ -1,4 +1,4 @@
-package com.availelabs.availe.data.sources.local
+package com.availelabs.availe.data.database
 
 import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.db.SqlDriver
@@ -14,12 +14,12 @@ object ClientDatabaseFactory {
     @OptIn(ExperimentalUuidApi::class)
     fun createClientDatabase(sqlDriver: SqlDriver, json: Json): ClientDatabase {
         val listingIdColumnAdapter = object : ColumnAdapter<ListingId, String> {
-            override fun decode(databaseValue: String): ListingId = ListingId(Uuid.parse(databaseValue))
+            override fun decode(databaseValue: String): ListingId = ListingId(Uuid.Companion.parse(databaseValue))
             override fun encode(value: ListingId): String = value.value.toString()
         }
 
         val userIdColumnAdapter = object : ColumnAdapter<UserId, String> {
-            override fun decode(databaseValue: String): UserId = UserId(Uuid.parse(databaseValue))
+            override fun decode(databaseValue: String): UserId = UserId(Uuid.Companion.parse(databaseValue))
             override fun encode(value: UserId): String = value.value.toString()
         }
 
@@ -30,7 +30,7 @@ object ClientDatabaseFactory {
 
         val listingCreationTimeColumnAdapter = object : ColumnAdapter<ListingCreationTime, String> {
             override fun decode(databaseValue: String): ListingCreationTime =
-                ListingCreationTime(Instant.parse(databaseValue))
+                ListingCreationTime(Instant.Companion.parse(databaseValue))
 
             override fun encode(value: ListingCreationTime): String = value.value.toString()
         }
@@ -68,7 +68,7 @@ object ClientDatabaseFactory {
                 json.encodeToString(ListSerializer(ImageUrl.serializer()), value)
         }
 
-        return ClientDatabase(
+        return ClientDatabase.Companion(
             driver = sqlDriver,
             listing_event_detailsAdapter = Listing_event_details.Adapter(
                 listing_idAdapter = listingIdColumnAdapter

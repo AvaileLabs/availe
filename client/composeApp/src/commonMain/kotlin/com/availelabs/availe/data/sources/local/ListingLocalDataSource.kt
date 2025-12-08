@@ -3,6 +3,8 @@ package com.availelabs.availe.data.sources.local
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
+import com.availelabs.availe.data.database.IDatabaseProvider
+import com.availelabs.availe.data.database.toDomain
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.ListingId

@@ -1,4 +1,4 @@
-package com.availelabs.availe.data.sources.local
+package com.availelabs.availe.data.database
 
 import com.availelabs.availe.db.SelectById
 import com.availelabs.availe.db.SelectPage

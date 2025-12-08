@@ -1,6 +1,7 @@
 package com.availelabs.availe.data.sources.local
 
 import com.availelabs.availe.core.platform.PlatformActivity
+import com.availelabs.availe.data.database.IDatabaseFileController
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSApplicationSupportDirectory
 import platform.Foundation.NSFileManager
