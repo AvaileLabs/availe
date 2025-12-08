@@ -8,8 +8,8 @@ import com.arkivanov.decompose.router.slot.*
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.router.webhistory.WebNavigation
 import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.operator.map
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.lifecycle.doOnDestroy
@@ -17,14 +17,12 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import com.availelabs.availe.core.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.features.appshell.*
 import com.availelabs.availe.features.login.ILoginComponent
 import com.availelabs.availe.features.login.LoginComponent
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -32,7 +30,7 @@ import kotlin.uuid.ExperimentalUuidApi
 interface IRootComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<RootConfiguration, RootChildComponent>>
     val loginOverlay: Value<ChildSlot<LoginConfiguration, RootChildComponent.Login>>
-    val authenticationState: StateFlow<MainStore.State>
+    val authenticationState: Value<MainStore.State>
     val backDispatcher: BackDispatcher?
     fun onAuthenticationIntent(intent: MainStore.Intent)
     fun onBackClicked()
@@ -65,9 +63,9 @@ class RootComponent(
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    override val authenticationState: StateFlow<MainStore.State> = mainStore.stateFlow
+    override val authenticationState: Value<MainStore.State> = mainStore.stateFlow.asValue(lifecycle)
 
-    private val isAuthenticationLoading = MutableValue(false)
+    private val isAuthenticationLoading: Value<Boolean> = authenticationState.map { it.isLoading }
 
     private val childStackNavigation = StackNavigation<RootConfiguration>()
     private val loginOverlayNavigation = SlotNavigation<LoginConfiguration>()
@@ -123,14 +121,6 @@ class RootComponent(
                     }
                 }
             }
-        }
-
-        scope.launch {
-            mainStore.stateFlow
-                .map { it.isLoading }
-                .collectLatest { isLoading ->
-                    isAuthenticationLoading.value = isLoading
-                }
         }
     }
 
