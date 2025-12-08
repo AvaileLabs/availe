@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource
 import org.postgresql.PGProperty
 import java.io.File
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 internal fun hikariSetup(): HikariDataSource {
     val gradlePropertiesFilePath = File(System.getProperty("user.home"), ".gradle/gradle.properties")
@@ -13,16 +14,20 @@ internal fun hikariSetup(): HikariDataSource {
         "Gradle properties file not found at ${gradlePropertiesFilePath.absolutePath}"
     }
 
-    val props = Properties().apply {
+    val gradleProperties = Properties().apply {
         gradlePropertiesFilePath.reader().use { load(it) }
     }
 
-    val hikariConfig = HikariConfig().apply {
-        jdbcUrl = props.getProperty("db.url") ?: error("No db.url found in gradle.properties")
-        username = props.getProperty("db.user") ?: error("No db.user found in gradle.properties")
-        password = props.getProperty("db.password") ?: error("No db.password found in gradle.properties")
+    val hikariConfiguration = HikariConfig().apply {
+        jdbcUrl = gradleProperties.getProperty("db.url") ?: error("No db.url found in gradle.properties")
+        username = gradleProperties.getProperty("db.user") ?: error("No db.user found in gradle.properties")
+        password = gradleProperties.getProperty("db.password") ?: error("No db.password found in gradle.properties")
+
         addDataSourceProperty(PGProperty.TCP_KEEP_ALIVE.getName(), true)
+
+        keepaliveTime = TimeUnit.MINUTES.toMillis(3)
+        maxLifetime = TimeUnit.MINUTES.toMillis(30)
     }
 
-    return HikariDataSource(hikariConfig)
+    return HikariDataSource(hikariConfiguration)
 }
