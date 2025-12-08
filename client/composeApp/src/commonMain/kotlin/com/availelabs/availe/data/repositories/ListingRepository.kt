@@ -1,8 +1,9 @@
 package com.availelabs.availe.data.repositories
 
 import com.availelabs.availe.data.network.ISafeNetworkCaller
+import com.availelabs.availe.data.preferences.IListingPreferences
+import com.availelabs.availe.data.repositories.store.ListingStoreFactory
 import com.availelabs.availe.data.sources.local.IListingLocalDataSource
-import com.availelabs.availe.data.sources.local.IListingPreferences
 import com.availelabs.availe.data.sources.local.ILocalDataCleaner
 import com.availelabs.availe.data.sources.remote.IListingRemoteDataSource
 import com.availelabs.availe.domain.model.Listing

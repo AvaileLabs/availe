@@ -12,9 +12,10 @@ import com.availelabs.availe.data.database.DatabaseProvider
 import com.availelabs.availe.data.database.createDatabaseFileController
 import com.availelabs.availe.data.database.createSqlDriverFactory
 import com.availelabs.availe.data.network.SafeNetworkCaller
+import com.availelabs.availe.data.preferences.ListingPreferences
 import com.availelabs.availe.data.repositories.*
+import com.availelabs.availe.data.repositories.store.ListingStoreFactory
 import com.availelabs.availe.data.sources.local.ListingLocalDataSource
-import com.availelabs.availe.data.sources.local.ListingPreferences
 import com.availelabs.availe.data.sources.local.LocalDataCleaner
 import com.availelabs.availe.data.sources.local.createTokenStore
 import com.availelabs.availe.data.sources.remote.AuthenticationRemoteDataSource

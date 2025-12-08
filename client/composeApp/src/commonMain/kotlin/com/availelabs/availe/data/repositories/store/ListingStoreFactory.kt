@@ -1,4 +1,4 @@
-package com.availelabs.availe.data.repositories
+package com.availelabs.availe.data.repositories.store
 
 import com.availelabs.availe.data.sources.local.IListingLocalDataSource
 import com.availelabs.availe.data.sources.local.ILocalDataCleaner
@@ -16,11 +16,11 @@ class ListingStoreFactory(
     private val localDataCleaner: ILocalDataCleaner
 ) {
     fun create(): Store<ListingStoreKey, List<Listing>> {
-        return StoreBuilder.from<ListingStoreKey, List<Listing>, List<Listing>>(
-            fetcher = Fetcher.of { key ->
+        return StoreBuilder.Companion.from<ListingStoreKey, List<Listing>, List<Listing>>(
+            fetcher = Fetcher.Companion.of { key ->
                 remoteDataSource.getListingsPage(key.page, key.size)
             },
-            sourceOfTruth = SourceOfTruth.of(
+            sourceOfTruth = SourceOfTruth.Companion.of(
                 nonFlowReader = { key ->
                     try {
                         val offset = (key.page * key.size).toLong()
