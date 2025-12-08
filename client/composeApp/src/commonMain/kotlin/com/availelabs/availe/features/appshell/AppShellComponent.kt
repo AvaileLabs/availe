@@ -36,6 +36,7 @@ interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>>
     val chatOverlay: Value<ChildSlot<AppShellConfiguration.Chat, AppShellChildComponent.Chat>>
     val authenticationState: Value<AuthenticationState>
+    val isAuthenticationLoading: Value<Boolean>
     val backDispatcher: BackDispatcher?
 
     fun setChatOverlayMode(isActive: Boolean)
@@ -51,6 +52,7 @@ class AppShellComponent(
     private val appContainer: IApplicationContainer,
     private val initialIntent: AppShellIntent,
     override val backDispatcher: BackDispatcher?,
+    override val isAuthenticationLoading: Value<Boolean>,
     private val onExplicitLogin: () -> Unit,
     private val onShowLoginGuard: () -> Unit
 ) : IAppShellComponent, ComponentContext by componentContext {
@@ -109,7 +111,6 @@ class AppShellComponent(
         if (currentSlot != null) {
             val configuration = currentSlot.configuration
             chatOverlayNavigation.dismiss()
-            // Use pushToFront to prevent duplicate chat screens if one already exists in the stack
             childStackNavigation.pushToFront(configuration)
         }
     }
@@ -172,7 +173,6 @@ class AppShellComponent(
                     listingRepository = appContainer.listingRepository,
                     sessionManager = appContainer.sessionManager,
                     onNavigateToListingDetails = { listingId ->
-                        // Use pushNew to prevent "Configurations must be unique" crash on double-tap
                         childStackNavigation.pushNew(AppShellConfiguration.ListingDetails(listingId))
                     }
                 )
@@ -189,10 +189,8 @@ class AppShellComponent(
                             appContainer.sessionManager.authenticationState.value is AuthenticationState.LoggedIn
                         if (isAuthenticated) {
                             if (isChatOverlayModeActive) {
-                                // SlotNavigation.activate handles deduplication automatically
                                 chatOverlayNavigation.activate(AppShellConfiguration.Chat(recipientJid))
                             } else {
-                                // Use pushToFront to avoid stacking multiple chat screens for the same user
                                 childStackNavigation.pushToFront(AppShellConfiguration.Chat(recipientJid))
                             }
                         } else {

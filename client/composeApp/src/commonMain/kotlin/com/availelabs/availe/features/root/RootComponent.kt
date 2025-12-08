@@ -8,6 +8,7 @@ import com.arkivanov.decompose.router.slot.*
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.router.webhistory.WebNavigation
 import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
+import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
@@ -22,6 +23,8 @@ import com.availelabs.availe.features.login.ILoginComponent
 import com.availelabs.availe.features.login.LoginComponent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -51,6 +54,8 @@ class RootComponent(
 
     override val backDispatcher: BackDispatcher? = backHandler as? BackDispatcher
 
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+
     private val mainStore = instanceKeeper.getStore {
         MainStoreFactory(
             storeFactory = DefaultStoreFactory(),
@@ -61,6 +66,8 @@ class RootComponent(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override val authenticationState: StateFlow<MainStore.State> = mainStore.stateFlow
+
+    private val isAuthenticationLoading = MutableValue(false)
 
     private val childStackNavigation = StackNavigation<RootConfiguration>()
     private val loginOverlayNavigation = SlotNavigation<LoginConfiguration>()
@@ -106,7 +113,6 @@ class RootComponent(
     )
 
     init {
-        val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
         lifecycle.doOnDestroy { scope.cancel() }
 
         scope.launch {
@@ -117,6 +123,14 @@ class RootComponent(
                     }
                 }
             }
+        }
+
+        scope.launch {
+            mainStore.stateFlow
+                .map { it.isLoading }
+                .collectLatest { isLoading ->
+                    isAuthenticationLoading.value = isLoading
+                }
         }
     }
 
@@ -141,16 +155,19 @@ class RootComponent(
         componentContext: ComponentContext
     ): RootChildComponent {
         return when (configuration) {
-            is RootConfiguration.AppShell -> RootChildComponent.AppShell(
-                AppShellComponent(
-                    componentContext = componentContext,
-                    appContainer = appContainer,
-                    initialIntent = configuration.intent,
-                    backDispatcher = backDispatcher,
-                    onExplicitLogin = { mainStore.accept(MainStore.Intent.LoginRequested) },
-                    onShowLoginGuard = { loginOverlayNavigation.activate(LoginConfiguration) }
+            is RootConfiguration.AppShell -> {
+                RootChildComponent.AppShell(
+                    AppShellComponent(
+                        componentContext = componentContext,
+                        appContainer = appContainer,
+                        initialIntent = configuration.intent,
+                        backDispatcher = backDispatcher,
+                        isAuthenticationLoading = isAuthenticationLoading,
+                        onExplicitLogin = { mainStore.accept(MainStore.Intent.LoginRequested) },
+                        onShowLoginGuard = { loginOverlayNavigation.activate(LoginConfiguration) }
+                    )
                 )
-            )
+            }
         }
     }
 }

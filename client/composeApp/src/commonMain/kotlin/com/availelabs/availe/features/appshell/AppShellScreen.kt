@@ -33,6 +33,7 @@ fun AppShellScreen(
     val childStack by appShellComponent.childStack.subscribeAsState()
     val chatOverlay by appShellComponent.chatOverlay.subscribeAsState()
     val authenticationState by appShellComponent.authenticationState.subscribeAsState()
+    val isAuthenticationLoading by appShellComponent.isAuthenticationLoading.subscribeAsState()
     val activeConfiguration = childStack.active.configuration
     val focusManager = LocalFocusManager.current
     val backDispatcher = appShellComponent.backDispatcher
@@ -100,9 +101,11 @@ fun AppShellScreen(
                             } else {
                                 PrimaryButton(
                                     onClick = { appShellComponent.onLoginClicked() },
-                                    enabled = true
+                                    enabled = !isAuthenticationLoading
                                 ) {
-                                    if (authenticationState is AuthenticationState.InitializationFailed) {
+                                    if (isAuthenticationLoading) {
+                                        IntermediateProgressIndicator(modifier = Modifier.size(20.dp))
+                                    } else if (authenticationState is AuthenticationState.InitializationFailed) {
                                         Icon(com.composables.icons.lucide.Lucide.LogIn, null)
                                         Text("Retry")
                                     } else {
