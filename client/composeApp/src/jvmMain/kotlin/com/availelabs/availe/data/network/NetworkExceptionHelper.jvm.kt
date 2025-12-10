@@ -11,7 +11,14 @@ actual fun Throwable.classifyPlatformError(): NetworkErrorType? {
         is UnknownHostException -> NetworkErrorType.Recoverable.Connectivity
         is ConnectException -> NetworkErrorType.Recoverable.ServerSide
         is SocketTimeoutException -> NetworkErrorType.Recoverable.ConnectionTimeout
-        is SocketException -> NetworkErrorType.Recoverable.Connectivity
+        is SocketException -> {
+            if (message == "Socket closed") {
+                null
+            } else {
+                NetworkErrorType.Recoverable.Connectivity
+            }
+        }
+
         is SSLException -> NetworkErrorType.Recoverable.Connectivity
         else -> null
     }

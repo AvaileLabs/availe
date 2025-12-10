@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.availelabs.availe.features.root
 
 import com.arkivanov.decompose.ComponentContext
@@ -125,18 +123,25 @@ class RootComponent(
 
         scope.launch {
             mainStore.labels.collect { label ->
-                when (label) {
+                val toast = when (label) {
                     is MainStore.Label.ErrorOccurred -> {
-                        val toast = ToastMessage.Error(
+                        ToastMessage.Error(
                             text = DisplayMessage(label.message)
                         )
-                        _toastMessages.update { it + toast }
-
-                        scope.launch {
-                            delay(toast.durationMilliseconds)
-                            dismissToast(toast.id)
-                        }
                     }
+
+                    is MainStore.Label.InfoOccurred -> {
+                        ToastMessage.Info(
+                            text = DisplayMessage(label.message)
+                        )
+                    }
+                }
+
+                _toastMessages.update { it + toast }
+
+                scope.launch {
+                    delay(toast.durationMilliseconds)
+                    dismissToast(toast.id)
                 }
             }
         }

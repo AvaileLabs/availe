@@ -3,10 +3,9 @@ package com.availelabs.availe.data.sources.remote
 import com.availelabs.availe.core.coroutines.IoDispatcher
 import com.availelabs.availe.data.auth.platformLogin
 import com.availelabs.availe.data.auth.platformResumeLogin
-import com.availelabs.availe.domain.auth.AuthenticationState
-import com.availelabs.availe.domain.auth.LoginResult
-import com.availelabs.availe.domain.auth.LogoutError
-import com.availelabs.availe.domain.auth.LogoutResult
+import com.availelabs.availe.data.network.NetworkErrorType
+import com.availelabs.availe.data.network.classifyNetworkError
+import com.availelabs.availe.domain.auth.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
@@ -57,7 +56,30 @@ class AuthenticationRemoteDataSource(
 
     override suspend fun login(onStateUpdate: (AuthenticationState) -> Unit): LoginResult =
         withContext(IoDispatcher) {
-            platformLogin(openIdConnectClient, codeAuthenticationFlowFactory, tokenStore, onStateUpdate)
+            try {
+                platformLogin(openIdConnectClient, codeAuthenticationFlowFactory, tokenStore, onStateUpdate)
+            } catch (_: CancellationException) {
+                LoginResult.Cancelled
+            } catch (throwable: Throwable) {
+                val errorMessage = throwable.message ?: ""
+                if (errorMessage == "Socket closed" || errorMessage.contains("cancelled", ignoreCase = true)) {
+                    return@withContext LoginResult.Cancelled
+                }
+
+                val networkErrorType = throwable.classifyNetworkError()
+                val loginError = when (networkErrorType) {
+                    is NetworkErrorType.Recoverable.Connectivity -> LoginError.NoInternetConnection
+                    is NetworkErrorType.Recoverable.ConnectionTimeout -> LoginError.ServerUnreachable
+                    is NetworkErrorType.Recoverable.ServerSide -> LoginError.ServerUnreachable
+                    is NetworkErrorType.Recoverable.ClientSide -> LoginError.Unexpected(
+                        throwable.message ?: "Client side error"
+                    )
+
+                    is NetworkErrorType.Recoverable.DataSerialization -> LoginError.Unexpected("Data serialization error")
+                    is NetworkErrorType.Unrecoverable -> LoginError.Unexpected(throwable.message ?: "Unknown error")
+                }
+                LoginResult.Failed(loginError)
+            }
         }
 
     override suspend fun resumeLogin(code: String, onStateUpdate: (AuthenticationState) -> Unit) =

@@ -20,14 +20,23 @@ actual suspend fun platformLogin(
     tokenStore: TokenStore,
     onStateUpdate: (AuthenticationState) -> Unit
 ): LoginResult {
-    val response = try {
-        val flow = authFactory.createAuthFlow(client)
-        flow.getAccessToken()
+    val accessTokenResponse = try {
+        val authFlow = authFactory.createAuthFlow(client)
+        authFlow.getAccessToken()
     } catch (_: CancellationException) {
         onStateUpdate(AuthenticationState.LoggedOut)
         return LoginResult.Cancelled
     } catch (exception: Exception) {
         onStateUpdate(AuthenticationState.LoggedOut)
+
+        val errorMessage = exception.message ?: ""
+        if (errorMessage.contains("canceled", ignoreCase = true) || errorMessage.contains(
+                "cancelled",
+                ignoreCase = true
+            )
+        ) {
+            return LoginResult.Cancelled
+        }
 
         val networkErrorType = exception.classifyNetworkError()
         val loginError = when (networkErrorType) {
@@ -41,13 +50,13 @@ actual suspend fun platformLogin(
     }
 
     try {
-        tokenStore.saveTokens(response)
+        tokenStore.saveTokens(accessTokenResponse)
     } catch (exception: Exception) {
         onStateUpdate(AuthenticationState.LoggedOut)
         return LoginResult.Failed(LoginError.Unexpected("Token storage failed: ${exception.message}"))
     }
 
-    onStateUpdate(AuthenticationState.LoggedIn(AuthToken(response.access_token)))
+    onStateUpdate(AuthenticationState.LoggedIn(AuthToken(accessTokenResponse.access_token)))
     return LoginResult.Success
 }
 

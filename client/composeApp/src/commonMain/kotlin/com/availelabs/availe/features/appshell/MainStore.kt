@@ -34,6 +34,7 @@ interface MainStore : Store<Intent, State, Label> {
 
     sealed interface Label {
         data class ErrorOccurred(val message: String) : Label
+        data class InfoOccurred(val message: String) : Label
     }
 }
 
@@ -131,31 +132,26 @@ class MainStoreFactory(
         private fun performLogin() {
             scope.launch {
                 dispatch(Message.SetLoading(true))
-                try {
-                    when (val loginResult = authenticationRepository.login(sessionManager::updateState)) {
-                        is LoginResult.Success -> {
-                            // State update handled by sessionManager callback
-                        }
-                        is LoginResult.Cancelled -> {
-                            // User cancelled, simply stop loading
-                        }
-                        is LoginResult.Failed -> {
-                            val errorMessage = when (loginResult.error) {
-                                LoginError.NoInternetConnection -> "No internet connection. Please check your network."
-                                LoginError.ServerUnreachable -> "Unable to reach the server. Please try again later."
-                                LoginError.InvalidCredentials -> "Invalid credentials. Please check your login details."
-                                is LoginError.Unexpected -> "An unexpected error occurred."
-                            }
-                            dispatch(Message.SetError(errorMessage))
-                            publish(Label.ErrorOccurred(errorMessage))
-                        }
+                when (val loginResult = authenticationRepository.login(sessionManager::updateState)) {
+                    is LoginResult.Success -> {
                     }
-                } catch (_: Exception) {
-                    val errorMessage = "An unexpected error occurred."
-                    dispatch(Message.SetError(errorMessage))
-                    publish(Label.ErrorOccurred(errorMessage))
-                } finally {
-                    dispatch(Message.SetLoading(false))
+
+                    is LoginResult.Cancelled -> {
+                        dispatch(Message.SetLoading(false))
+                        publish(Label.InfoOccurred("Login cancelled"))
+                    }
+
+                    is LoginResult.Failed -> {
+                        dispatch(Message.SetLoading(false))
+                        val errorMessage = when (loginResult.error) {
+                            LoginError.NoInternetConnection -> "No internet connection. Please check your network."
+                            LoginError.ServerUnreachable -> "Unable to reach the server. Please try again later."
+                            LoginError.InvalidCredentials -> "Invalid credentials. Please check your login details."
+                            is LoginError.Unexpected -> loginResult.error.debugMessage
+                        }
+                        dispatch(Message.SetError(errorMessage))
+                        publish(Label.ErrorOccurred(errorMessage))
+                    }
                 }
             }
         }
