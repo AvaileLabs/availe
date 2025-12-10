@@ -28,6 +28,7 @@ import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.ImageUrl
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.ui.model.asString
 import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
@@ -60,7 +61,7 @@ fun ListingDetailsScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     SelectionContainer {
-                        Text(state.errorMessage!!)
+                        Text(state.errorMessage!!.asString())
                     }
                     Spacer(Modifier.height(16.dp))
                     PrimaryButton(

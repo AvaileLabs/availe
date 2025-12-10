@@ -9,6 +9,7 @@ import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 
@@ -21,7 +22,8 @@ class HomeComponent(
     componentContext: ComponentContext,
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionManager,
-    private val onNavigateToListingDetails: (ListingId) -> Unit
+    private val onNavigateToListingDetails: (ListingId) -> Unit,
+    private val onShowError: (UiText) -> Unit
 ) : IHomeComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -43,9 +45,7 @@ class HomeComponent(
             store.labels.collect { label ->
                 when (label) {
                     is HomeStore.Label.NavigateToListingDetails -> onNavigateToListingDetails(label.listingId)
-                    is HomeStore.Label.DisplayError -> {
-                        println("Error: ${label.message}")
-                    }
+                    is HomeStore.Label.DisplayError -> onShowError(label.message)
                 }
             }
         }

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.availelabs.availe.ui.RefreshStateHolder
 import com.availelabs.availe.ui.components.ListingCard
+import com.availelabs.availe.ui.model.asString
 import com.availelabs.availe.ui.modifiers.refreshTrigger
 import com.composables.icons.lucide.ArrowDown
 import com.composables.icons.lucide.Lucide
@@ -84,7 +85,7 @@ internal fun HomeScreen(
                             IntermediateProgressIndicator()
                         }
                     }
-                } else if (homeState.errorMessage != null && homeState.listingUiModels.isEmpty()) {
+                } else if (homeState.inlineError != null && homeState.listingUiModels.isEmpty()) {
                     item {
                         Column(
                             modifier = Modifier
@@ -94,7 +95,7 @@ internal fun HomeScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             SelectionContainer {
-                                Text(homeState.errorMessage!!)
+                                Text(homeState.inlineError!!.asString())
                             }
                             Spacer(Modifier.height(16.dp))
                             PrimaryButton(

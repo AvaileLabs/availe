@@ -5,6 +5,7 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.availelabs.availe.data.extensions.toAppError
 import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
@@ -12,6 +13,8 @@ import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.home.HomeStore.*
+import com.availelabs.availe.ui.mapper.ErrorMessageMapper
+import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.callbackFlow
@@ -46,7 +49,7 @@ interface HomeStore : Store<Intent, State, Label> {
         val listingUiModels: List<ListingUiModel> = emptyList(),
         val isLoading: Boolean = false,
         val isRefreshing: Boolean = false,
-        val errorMessage: String? = null,
+        val inlineError: UiText? = null,
         val isAuthenticated: Boolean = false,
         val currentPage: Int = 0,
         val endReached: Boolean = false
@@ -54,7 +57,7 @@ interface HomeStore : Store<Intent, State, Label> {
 
     sealed interface Label {
         data class NavigateToListingDetails(val listingId: ListingId) : Label
-        data class DisplayError(val message: String) : Label
+        data class DisplayError(val message: UiText) : Label
     }
 }
 
@@ -76,7 +79,7 @@ class HomeStoreFactory(
 
     private sealed interface Action {
         data class ListingsLoaded(val listings: List<Listing>, val page: Int) : Action
-        data class ListingsError(val message: String) : Action
+        data class ListingsError(val message: UiText) : Action
         data object ObserveAuthentication : Action
         data object ObserveSessionInvalidation : Action
         data object DataPurged : Action
@@ -87,7 +90,7 @@ class HomeStoreFactory(
         data class LoadingStateChanged(val loadingIndicator: LoadingIndicator, val isActive: Boolean) : Message
         data class AppendListings(val listingUiModels: List<ListingUiModel>, val page: Int) : Message
         data class ReplaceListings(val listingUiModels: List<ListingUiModel>) : Message
-        data class SetError(val message: String?) : Message
+        data class SetInlineError(val message: UiText?) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
         data class SetEndReached(val endReached: Boolean) : Message
         data object ResetState : Message
@@ -132,8 +135,11 @@ class HomeStoreFactory(
                 }
 
                 is Action.ListingsError -> {
-                    dispatch(Message.SetError(action.message))
-                    publish(Label.DisplayError(action.message))
+                    if (state().listingUiModels.isEmpty()) {
+                        dispatch(Message.SetInlineError(action.message))
+                    } else {
+                        publish(Label.DisplayError(action.message))
+                    }
                 }
 
                 Action.ObserveAuthentication -> observeAuthentication()
@@ -161,8 +167,7 @@ class HomeStoreFactory(
             scope.launch {
                 val userProfile = sessionManager.getCurrentUserProfile()
                 if (userProfile == null) {
-                    val errorMessage = "You must be logged in to create a listing"
-                    dispatch(Message.SetError(errorMessage))
+                    val errorMessage = UiText.VerbatimString("You must be logged in to create a listing")
                     publish(Label.DisplayError(errorMessage))
                     return@launch
                 }
@@ -186,8 +191,7 @@ class HomeStoreFactory(
                         when (result.value) {
                             is InsertResult.Inserted<*> -> fetchListingsPage(0, FetchTrigger.DataChanged)
                             is InsertResult.AlreadyExists -> {
-                                val errorMessage = "Listing already exists"
-                                dispatch(Message.SetError(errorMessage))
+                                val errorMessage = UiText.VerbatimString("Listing already exists")
                                 publish(Label.DisplayError(errorMessage))
                                 dispatch(
                                     Message.LoadingStateChanged(
@@ -200,9 +204,8 @@ class HomeStoreFactory(
                     }
 
                     is RepositoryOperationResult.Failure -> {
-                        val errorMessage = result.error.value
-                        dispatch(Message.SetError(errorMessage))
-                        publish(Label.DisplayError(errorMessage))
+                        val uiText = ErrorMessageMapper.map(result.error)
+                        publish(Label.DisplayError(uiText))
                         dispatch(
                             Message.LoadingStateChanged(
                                 loadingIndicator = LoadingIndicator.Overlay,
@@ -221,7 +224,7 @@ class HomeStoreFactory(
             val minimumRefreshDurationMilliseconds = 375L
 
             dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = true))
-            dispatch(Message.SetError(null))
+            dispatch(Message.SetInlineError(null))
 
             if (page == 0) {
                 dispatch(Message.SetEndReached(false))
@@ -247,15 +250,7 @@ class HomeStoreFactory(
                     when (response) {
                         is StoreReadResponse.Data -> {
                             val data = response.requireData()
-                            val uiModels = data.map { it.toListingUiModel() }
-                            if (page == 0) {
-                                dispatch(Message.ReplaceListings(uiModels))
-                            } else {
-                                dispatch(Message.AppendListings(uiModels, page))
-                            }
-                            if (data.isEmpty()) {
-                                dispatch(Message.SetEndReached(true))
-                            }
+                            forward(Action.ListingsLoaded(data, page))
 
                             val isFetcherResponse = response.origin is StoreReadResponseOrigin.Fetcher
                             val shouldStopLoading = isFetcherResponse || !request.refresh
@@ -266,9 +261,9 @@ class HomeStoreFactory(
                         }
 
                         is StoreReadResponse.Error -> {
-                            val errorMessage = response.errorMessageOrNull() ?: "Unknown error"
-                            dispatch(Message.SetError(errorMessage))
-                            publish(Label.DisplayError(errorMessage))
+                            val appError = response.toAppError()
+                            val uiText = ErrorMessageMapper.map(appError)
+                            forward(Action.ListingsError(uiText))
                             dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
                         }
 
@@ -365,7 +360,7 @@ class HomeStoreFactory(
                     currentPage = msg.page
                 )
 
-                is Message.SetError -> copy(errorMessage = msg.message)
+                is Message.SetInlineError -> copy(inlineError = msg.message)
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
                 is Message.SetEndReached -> copy(endReached = msg.endReached)
                 Message.ResetState -> copy(

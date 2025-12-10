@@ -13,6 +13,8 @@ import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.listingdetails.ListingDetailsStore.*
+import com.availelabs.availe.ui.mapper.ErrorMessageMapper
+import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.launch
 
 interface ListingDetailsStore : Store<Intent, State, Label> {
@@ -24,7 +26,7 @@ interface ListingDetailsStore : Store<Intent, State, Label> {
     data class State(
         val listing: Listing? = null,
         val isLoading: Boolean = false,
-        val errorMessage: String? = null
+        val errorMessage: UiText? = null
     )
 
     sealed interface Label
@@ -52,7 +54,7 @@ class ListingDetailsStoreFactory(
     private sealed interface Message {
         data class SetLoading(val isLoading: Boolean) : Message
         data class ListingLoaded(val listing: Listing) : Message
-        data class SetError(val message: String?) : Message
+        data class SetError(val message: UiText?) : Message
     }
 
     private class ListingDetailsBootstrapper(
@@ -89,13 +91,14 @@ class ListingDetailsStoreFactory(
                             }
 
                             is FindResult.NotFound -> {
-                                dispatch(Message.SetError("Listing not found"))
+                                dispatch(Message.SetError(UiText.VerbatimString("Listing not found")))
                             }
                         }
                     }
 
                     is RepositoryOperationResult.Failure -> {
-                        dispatch(Message.SetError(result.error.value))
+                        val uiText = ErrorMessageMapper.map(result.error)
+                        dispatch(Message.SetError(uiText))
                     }
                 }
 

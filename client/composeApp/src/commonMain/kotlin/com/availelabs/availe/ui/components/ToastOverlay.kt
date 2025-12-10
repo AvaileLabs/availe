@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.availelabs.availe.domain.model.ToastId
 import com.availelabs.availe.domain.model.ToastMessage
+import com.availelabs.availe.ui.model.asString
 import com.composables.icons.lucide.*
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.Text
@@ -92,7 +93,7 @@ private fun Toast(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = message.text.value,
+                    text = message.text.asString(),
                     style = Theme[textStyles][body],
                     color = textColor
                 )

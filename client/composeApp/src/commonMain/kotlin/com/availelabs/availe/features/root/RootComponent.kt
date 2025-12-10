@@ -19,12 +19,12 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.core.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
-import com.availelabs.availe.domain.model.DisplayMessage
 import com.availelabs.availe.domain.model.ToastId
 import com.availelabs.availe.domain.model.ToastMessage
 import com.availelabs.availe.features.appshell.*
 import com.availelabs.availe.features.login.ILoginComponent
 import com.availelabs.availe.features.login.LoginComponent
+import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
@@ -126,23 +126,18 @@ class RootComponent(
                 val toast = when (label) {
                     is MainStore.Label.ErrorOccurred -> {
                         ToastMessage.Error(
-                            text = DisplayMessage(label.message)
+                            text = UiText.VerbatimString(label.message)
                         )
                     }
 
                     is MainStore.Label.InfoOccurred -> {
                         ToastMessage.Info(
-                            text = DisplayMessage(label.message)
+                            text = UiText.VerbatimString(label.message)
                         )
                     }
                 }
 
-                _toastMessages.update { it + toast }
-
-                scope.launch {
-                    delay(toast.durationMilliseconds)
-                    dismissToast(toast.id)
-                }
+                showToast(toast)
             }
         }
     }
@@ -167,6 +162,15 @@ class RootComponent(
         _toastMessages.update { list -> list.filter { it.id != id } }
     }
 
+    private fun showToast(toast: ToastMessage) {
+        _toastMessages.update { it + toast }
+
+        scope.launch {
+            delay(toast.durationMilliseconds)
+            dismissToast(toast.id)
+        }
+    }
+
     private fun createChildComponent(
         configuration: RootConfiguration,
         componentContext: ComponentContext
@@ -182,7 +186,10 @@ class RootComponent(
                         isAuthenticationLoading = isAuthenticationLoading,
                         onExplicitLogin = { mainStore.accept(MainStore.Intent.LoginRequested) },
                         onCancelLogin = { mainStore.accept(MainStore.Intent.CancelLoginRequested) },
-                        onShowLoginGuard = { loginOverlayNavigation.activate(LoginConfiguration) }
+                        onShowLoginGuard = { loginOverlayNavigation.activate(LoginConfiguration) },
+                        onShowToast = { uiText ->
+                            showToast(ToastMessage.Error(text = uiText))
+                        }
                     )
                 )
             }

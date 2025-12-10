@@ -1,0 +1,11 @@
+<resources>
+    <string name="error_no_internet">No internet connection. Please check your network.</string>
+    <string name="error_request_timeout">The connection timed out. Please try again.</string>
+    <string name="error_server_unreachable">The server is experiencing issues. Please try again later.</string>
+    <string name="error_serialization">Data error. Please ensure you have the latest version of the app.</string>
+    <string name="error_session_expired">Session expired. Please log in again.</string>
+    <string name="error_invalid_credentials">Invalid credentials. Please check your login details.</string>
+    <string name="error_resource_not_found">Unable to load this data. It may have been removed.</string>
+    <string name="error_operation_forbidden">You do not have permission to perform this action.</string>
+    <string name="error_unknown">An unexpected error occurred.</string>
+</resources>
