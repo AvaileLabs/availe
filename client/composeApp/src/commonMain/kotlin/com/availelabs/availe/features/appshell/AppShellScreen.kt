@@ -17,12 +17,13 @@ import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.home.HomeStore
 import com.availelabs.availe.features.listingdetails.ListingDetailsScreen
 import com.availelabs.availe.ui.animation.appStackAnimation
+import com.availelabs.availe.ui.components.AuthenticationActionButton
 import com.availelabs.availe.ui.components.ChatOverlayWindow
 import com.availelabs.availe.ui.components.PredictiveBackGestureOverlay
 import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.CirclePlus
-import com.composables.icons.lucide.LogIn
 import com.composables.icons.lucide.LogOut
+import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.*
 
 @OptIn(ExperimentalDecomposeApi::class)
@@ -68,7 +69,7 @@ fun AppShellScreen(
                             } else {
                                 IconButton(onClick = { appShellComponent.onBackClicked() }) {
                                     Icon(
-                                        imageVector = com.composables.icons.lucide.Lucide.ArrowLeft,
+                                        imageVector = Lucide.ArrowLeft,
                                         contentDescription = "Back"
                                     )
                                 }
@@ -84,7 +85,7 @@ fun AppShellScreen(
                                         IconButton(
                                             onClick = { activeInstance.component.onIntent(HomeStore.Intent.QuickCreateListingRequested) }
                                         ) {
-                                            Icon(com.composables.icons.lucide.Lucide.CirclePlus, "Add")
+                                            Icon(Lucide.CirclePlus, "Add")
                                         }
                                     }
                                 }
@@ -96,28 +97,14 @@ fun AppShellScreen(
                                 IconButton(
                                     onClick = { appShellComponent.onLogoutClicked() }
                                 ) {
-                                    Icon(com.composables.icons.lucide.Lucide.LogOut, "Logout")
+                                    Icon(Lucide.LogOut, "Logout")
                                 }
                             } else {
-                                if (isAuthenticationLoading) {
-                                    DestructiveButton(
-                                        onClick = { appShellComponent.onCancelLoginClicked() }
-                                    ) {
-                                        Text("Cancel")
-                                    }
-                                } else {
-                                    PrimaryButton(
-                                        onClick = { appShellComponent.onLoginClicked() }
-                                    ) {
-                                        if (authenticationState is AuthenticationState.InitializationFailed) {
-                                            Icon(com.composables.icons.lucide.Lucide.LogIn, null)
-                                            Text("Retry")
-                                        } else {
-                                            Icon(com.composables.icons.lucide.Lucide.LogIn, null)
-                                            Text("Log In")
-                                        }
-                                    }
-                                }
+                                AuthenticationActionButton(
+                                    isLoading = isAuthenticationLoading,
+                                    onLoginClicked = { appShellComponent.onLoginClicked() },
+                                    onCancelLoginClicked = { appShellComponent.onCancelLoginClicked() }
+                                )
                             }
                         }
                     )
