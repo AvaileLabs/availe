@@ -1,5 +1,6 @@
 package com.availelabs.availe.data.sources.remote
 
+import com.availelabs.availe.core.coroutines.IoDispatcher
 import com.availelabs.availe.data.auth.platformLogin
 import com.availelabs.availe.data.auth.platformResumeLogin
 import com.availelabs.availe.domain.auth.AuthenticationState
@@ -7,6 +8,7 @@ import com.availelabs.availe.domain.auth.LoginResult
 import com.availelabs.availe.domain.auth.LogoutError
 import com.availelabs.availe.domain.auth.LogoutResult
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withContext
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
 import org.publicvalue.multiplatform.oidc.OpenIdConnectException
@@ -33,36 +35,38 @@ class AuthenticationRemoteDataSource(
     private val tokenStore: TokenStore
 ) : IAuthenticationRemoteDataSource {
 
-    override suspend fun discover() {
+    override suspend fun discover() = withContext(IoDispatcher) {
         openIdConnectClient.discover()
     }
 
-    override suspend fun getTokens(): OauthTokens? {
-        return tokenStore.getTokens()
+    override suspend fun getTokens(): OauthTokens? = withContext(IoDispatcher) {
+        tokenStore.getTokens()
     }
 
-    override suspend fun refreshTokens(refreshToken: String): AccessTokenResponse {
-        return openIdConnectClient.refreshToken(refreshToken)
+    override suspend fun refreshTokens(refreshToken: String): AccessTokenResponse = withContext(IoDispatcher) {
+        openIdConnectClient.refreshToken(refreshToken)
     }
 
-    override suspend fun saveTokens(tokens: AccessTokenResponse) {
+    override suspend fun saveTokens(tokens: AccessTokenResponse) = withContext(IoDispatcher) {
         tokenStore.saveTokens(tokens)
     }
 
-    override suspend fun removeTokens() {
+    override suspend fun removeTokens() = withContext(IoDispatcher) {
         tokenStore.removeTokens()
     }
 
-    override suspend fun login(onStateUpdate: (AuthenticationState) -> Unit): LoginResult {
-        return platformLogin(openIdConnectClient, codeAuthenticationFlowFactory, tokenStore, onStateUpdate)
-    }
+    override suspend fun login(onStateUpdate: (AuthenticationState) -> Unit): LoginResult =
+        withContext(IoDispatcher) {
+            platformLogin(openIdConnectClient, codeAuthenticationFlowFactory, tokenStore, onStateUpdate)
+        }
 
-    override suspend fun resumeLogin(code: String, onStateUpdate: (AuthenticationState) -> Unit) {
-        platformResumeLogin(code, openIdConnectClient, tokenStore, onStateUpdate)
-    }
+    override suspend fun resumeLogin(code: String, onStateUpdate: (AuthenticationState) -> Unit) =
+        withContext(IoDispatcher) {
+            platformResumeLogin(code, openIdConnectClient, tokenStore, onStateUpdate)
+        }
 
-    override suspend fun logout(): LogoutResult {
-        return try {
+    override suspend fun logout(): LogoutResult = withContext(IoDispatcher) {
+        try {
             val oauthTokens = tokenStore.getTokens()
             val idToken = oauthTokens?.idToken
 
@@ -78,8 +82,8 @@ class AuthenticationRemoteDataSource(
         } catch (openIdConnectException: OpenIdConnectException) {
             LogoutResult.Failed(
                 LogoutError.Authentication(
-                    openIdConnectException.message,
-                    openIdConnectException.cause
+                    message = openIdConnectException.message,
+                    cause = openIdConnectException.cause
                 )
             )
         } catch (exception: Exception) {

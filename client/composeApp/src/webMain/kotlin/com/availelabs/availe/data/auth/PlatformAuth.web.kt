@@ -1,6 +1,7 @@
 package com.availelabs.availe.data.auth
 
 import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.domain.auth.LoginError
 import com.availelabs.availe.domain.auth.LoginResult
 import com.availelabs.availe.domain.model.AuthToken
 import kotlinx.browser.window
@@ -21,15 +22,20 @@ actual suspend fun platformLogin(
     tokenStore: TokenStore,
     onStateUpdate: (AuthenticationState) -> Unit
 ): LoginResult {
-    val authorizationRequest = client.createAuthorizationCodeRequest()
-    AuthStorage.saveAuthParams(
-        verifier = authorizationRequest.pkce.codeVerifier,
-        state = authorizationRequest.state,
-        nonce = authorizationRequest.nonce,
-        redirectUri = authorizationRequest.config.redirectUri
-    )
-    window.location.href = authorizationRequest.url.toString()
-    return LoginResult.Cancelled
+    return try {
+        val authorizationRequest = client.createAuthorizationCodeRequest()
+        AuthStorage.saveAuthParams(
+            verifier = authorizationRequest.pkce.codeVerifier,
+            state = authorizationRequest.state,
+            nonce = authorizationRequest.nonce,
+            redirectUri = authorizationRequest.config.redirectUri
+        )
+        window.location.href = authorizationRequest.url.toString()
+        LoginResult.Cancelled
+    } catch (exception: Exception) {
+        onStateUpdate(AuthenticationState.LoggedOut)
+        LoginResult.Failed(LoginError.ServerUnreachable)
+    }
 }
 
 @OptIn(ExperimentalOpenIdConnect::class, ExperimentalWasmJsInterop::class)
@@ -72,6 +78,6 @@ actual suspend fun platformResumeLogin(
         window.history.replaceState(null, "", "/")
     } catch (exception: Exception) {
         console.error("Failed to exchange token: ${exception.message}")
-        onStateUpdate(AuthenticationState.InitializationFailed(exception))
+        onStateUpdate(AuthenticationState.InitializationFailed(Exception("Login failed")))
     }
 }

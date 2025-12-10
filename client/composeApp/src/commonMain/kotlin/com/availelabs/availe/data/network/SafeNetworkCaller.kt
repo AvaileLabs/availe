@@ -1,7 +1,7 @@
 package com.availelabs.availe.data.network
 
 import com.availelabs.availe.data.sources.local.ILocalDataCleaner
-import com.availelabs.availe.domain.model.UserFriendlyErrorMessage
+import com.availelabs.availe.domain.model.DisplayMessage
 import com.availelabs.availe.domain.types.RepositoryOperationResult
 import kotlinx.coroutines.CancellationException
 
@@ -38,7 +38,7 @@ class SafeNetworkCaller(
                 is NetworkErrorType.Unrecoverable -> throw throwable
             }
 
-            RepositoryOperationResult.Failure(UserFriendlyErrorMessage(errorMessageString))
+            RepositoryOperationResult.Failure(DisplayMessage(errorMessageString))
         }
     }
 }

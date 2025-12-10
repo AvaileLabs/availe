@@ -11,13 +11,10 @@ import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.auth.JwtUserProfileMapper
 import com.availelabs.availe.domain.auth.UserProfile
 import com.availelabs.availe.domain.model.AuthToken
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
 import org.publicvalue.multiplatform.oidc.OpenIdConnectException
 
 interface ISessionManager {
@@ -57,17 +54,17 @@ class SessionManager(
                         val newTokens = authenticationRemoteDataSource.refreshTokens(storedTokens.refreshToken!!)
                         authenticationRemoteDataSource.saveTokens(newTokens)
                         val authToken = AuthToken(newTokens.access_token)
-                        _authenticationState.update { AuthenticationState.LoggedIn(authToken) }
+                        updateState(AuthenticationState.LoggedIn(authToken))
                     } catch (_: OpenIdConnectException) {
                         handleExpiredSession()
                     } catch (_: Exception) {
                         handleExpiredSession()
                     }
                 } else {
-                    _authenticationState.update { AuthenticationState.LoggedOut }
+                    updateState(AuthenticationState.LoggedOut)
                 }
             } catch (exception: Exception) {
-                _authenticationState.update { AuthenticationState.InitializationFailed(exception) }
+                updateState(AuthenticationState.InitializationFailed(exception))
             }
         }
     }
@@ -84,21 +81,27 @@ class SessionManager(
 
     override suspend fun onSessionInvalidated() {
         localDataCleaner.clearAllData()
-        _authenticationState.update { AuthenticationState.SessionExpired }
+        updateState(AuthenticationState.SessionExpired)
         _sessionInvalidated.emit(Unit)
     }
 
     override fun onLogoutSuccess() {
-        _authenticationState.update { AuthenticationState.LoggedOut }
+        updateState(AuthenticationState.LoggedOut)
     }
 
     override fun updateState(newAuthenticationState: AuthenticationState) {
-        _authenticationState.update { newAuthenticationState }
+        if (newAuthenticationState == _authenticationState.value) return
+
+        coroutineScope.launch(Dispatchers.Main) {
+            _authenticationState.update { newAuthenticationState }
+        }
     }
 
     private suspend fun handleExpiredSession() {
         localDataCleaner.clearAllData()
-        _authenticationState.update { AuthenticationState.SessionExpired }
-        _sessionInvalidated.emit(Unit)
+        withContext(Dispatchers.Main) {
+            updateState(AuthenticationState.SessionExpired)
+            _sessionInvalidated.emit(Unit)
+        }
     }
 }

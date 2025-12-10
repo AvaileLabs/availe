@@ -8,6 +8,8 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.data.repositories.IAuthenticationRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.domain.auth.LoginError
+import com.availelabs.availe.domain.auth.LoginResult
 import com.availelabs.availe.features.appshell.MainStore.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
@@ -19,6 +21,7 @@ interface MainStore : Store<Intent, State, Label> {
     sealed interface Intent {
         data object LoginRequested : Intent
         data object LogoutRequested : Intent
+        data object CancelLoginRequested : Intent
         data object ClearErrorRequested : Intent
     }
 
@@ -88,6 +91,7 @@ class MainStoreFactory(
             when (intent) {
                 Intent.LoginRequested -> performLogin()
                 Intent.LogoutRequested -> performLogout()
+                Intent.CancelLoginRequested -> dispatch(Message.SetLoading(false))
                 Intent.ClearErrorRequested -> dispatch(Message.SetError(null))
             }
         }
@@ -128,9 +132,26 @@ class MainStoreFactory(
             scope.launch {
                 dispatch(Message.SetLoading(true))
                 try {
-                    authenticationRepository.login(sessionManager::updateState)
+                    when (val loginResult = authenticationRepository.login(sessionManager::updateState)) {
+                        is LoginResult.Success -> {
+                            // State update handled by sessionManager callback
+                        }
+                        is LoginResult.Cancelled -> {
+                            // User cancelled, simply stop loading
+                        }
+                        is LoginResult.Failed -> {
+                            val errorMessage = when (loginResult.error) {
+                                LoginError.NoInternetConnection -> "No internet connection. Please check your network."
+                                LoginError.ServerUnreachable -> "Unable to reach the server. Please try again later."
+                                LoginError.InvalidCredentials -> "Invalid credentials. Please check your login details."
+                                is LoginError.Unexpected -> "An unexpected error occurred."
+                            }
+                            dispatch(Message.SetError(errorMessage))
+                            publish(Label.ErrorOccurred(errorMessage))
+                        }
+                    }
                 } catch (_: Exception) {
-                    val errorMessage = "Cannot connect to authentication server. Please try again later."
+                    val errorMessage = "An unexpected error occurred."
                     dispatch(Message.SetError(errorMessage))
                     publish(Label.ErrorOccurred(errorMessage))
                 } finally {
@@ -144,8 +165,8 @@ class MainStoreFactory(
                 dispatch(Message.SetLoading(true))
                 try {
                     authenticationRepository.logout()
-                } catch (exception: Exception) {
-                    val errorMessage = exception.message ?: "Logout failed"
+                } catch (_: Exception) {
+                    val errorMessage = "An unexpected error occurred during logout."
                     dispatch(Message.SetError(errorMessage))
                     publish(Label.ErrorOccurred(errorMessage))
                 } finally {

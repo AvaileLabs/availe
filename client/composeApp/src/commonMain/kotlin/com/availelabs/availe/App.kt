@@ -17,6 +17,7 @@ import com.availelabs.availe.features.root.IRootComponent
 import com.availelabs.availe.features.root.RootChildComponent
 import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.LoginGuardModal
+import com.availelabs.availe.ui.components.ToastOverlay
 import com.composables.uikit.styling.UiKitTheme
 import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.scrim
@@ -26,6 +27,7 @@ import com.composeunstyled.theme.Theme
 fun App(rootComponent: IRootComponent) {
     val childStack by rootComponent.childStack.subscribeAsState()
     val loginOverlay by rootComponent.loginOverlay.subscribeAsState()
+    val toastMessages by rootComponent.toastMessages.subscribeAsState()
 
     UiKitTheme {
         Box(
@@ -69,6 +71,15 @@ fun App(rootComponent: IRootComponent) {
                         onDismiss = rootComponent::dismissLoginOverlay
                     )
                 }
+            }
+
+            // Render Toast Overlay
+            if (toastMessages.isNotEmpty()) {
+                ToastOverlay(
+                    messages = toastMessages,
+                    onDismiss = rootComponent::dismissToast,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }

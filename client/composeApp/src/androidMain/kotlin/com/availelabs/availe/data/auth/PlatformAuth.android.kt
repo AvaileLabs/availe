@@ -1,5 +1,7 @@
 package com.availelabs.availe.data.auth
 
+import com.availelabs.availe.data.network.NetworkErrorType
+import com.availelabs.availe.data.network.classifyNetworkError
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.auth.LoginError
 import com.availelabs.availe.domain.auth.LoginResult
@@ -7,7 +9,6 @@ import com.availelabs.availe.domain.model.AuthToken
 import kotlinx.coroutines.CancellationException
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
-import org.publicvalue.multiplatform.oidc.OpenIdConnectException
 import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.tokenstore.TokenStore
 import org.publicvalue.multiplatform.oidc.tokenstore.saveTokens
@@ -25,19 +26,25 @@ actual suspend fun platformLogin(
     } catch (_: CancellationException) {
         onStateUpdate(AuthenticationState.LoggedOut)
         return LoginResult.Cancelled
-    } catch (e: OpenIdConnectException) {
+    } catch (exception: Exception) {
         onStateUpdate(AuthenticationState.LoggedOut)
-        return LoginResult.Failed(LoginError.Authentication(e.message, e.cause))
-    } catch (e: Exception) {
-        onStateUpdate(AuthenticationState.LoggedOut)
-        return LoginResult.Failed(LoginError.Unknown(e))
+
+        val networkErrorType = exception.classifyNetworkError()
+        val loginError = when (networkErrorType) {
+            is NetworkErrorType.Recoverable.Connectivity -> LoginError.NoInternetConnection
+            is NetworkErrorType.Recoverable.ConnectionTimeout -> LoginError.ServerUnreachable
+            is NetworkErrorType.Recoverable.ServerSide -> LoginError.ServerUnreachable
+            else -> LoginError.Unexpected(exception.message ?: "Unknown Android login error")
+        }
+
+        return LoginResult.Failed(loginError)
     }
 
     try {
         tokenStore.saveTokens(response)
-    } catch (e: Exception) {
+    } catch (exception: Exception) {
         onStateUpdate(AuthenticationState.LoggedOut)
-        return LoginResult.Failed(LoginError.Storage(e))
+        return LoginResult.Failed(LoginError.Unexpected("Token storage failed: ${exception.message}"))
     }
 
     onStateUpdate(AuthenticationState.LoggedIn(AuthToken(response.access_token)))
@@ -51,5 +58,4 @@ actual suspend fun platformResumeLogin(
     tokenStore: TokenStore,
     onStateUpdate: (AuthenticationState) -> Unit
 ) {
-    // No-op on Android
 }

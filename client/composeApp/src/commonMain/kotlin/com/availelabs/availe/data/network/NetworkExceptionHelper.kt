@@ -37,6 +37,18 @@ sealed interface NetworkErrorType {
 }
 
 fun Throwable.classifyNetworkError(): NetworkErrorType {
+    var currentThrowable: Throwable? = this
+    while (currentThrowable != null) {
+        val networkErrorType = currentThrowable.identifySpecificNetworkError()
+        if (networkErrorType != null) {
+            return networkErrorType
+        }
+        currentThrowable = currentThrowable.cause
+    }
+    return NetworkErrorType.Unrecoverable
+}
+
+private fun Throwable.identifySpecificNetworkError(): NetworkErrorType? {
     return when (this) {
         is HttpRequestTimeoutException -> NetworkErrorType.Recoverable.ConnectionTimeout
         is ConnectTimeoutException -> NetworkErrorType.Recoverable.ConnectionTimeout
@@ -46,7 +58,7 @@ fun Throwable.classifyNetworkError(): NetworkErrorType {
         is ClientRequestException -> NetworkErrorType.Recoverable.ClientSide
         is ServerResponseException -> NetworkErrorType.Recoverable.ServerSide
         is SerializationException -> NetworkErrorType.Recoverable.DataSerialization
-        else -> classifyPlatformError() ?: NetworkErrorType.Unrecoverable
+        else -> classifyPlatformError()
     }
 }
 

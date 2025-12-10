@@ -44,6 +44,7 @@ interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     fun dismissChatOverlay()
     fun onBackClicked()
     fun onLoginClicked()
+    fun onCancelLoginClicked()
     fun onLogoutClicked()
 }
 
@@ -54,6 +55,7 @@ class AppShellComponent(
     override val backDispatcher: BackDispatcher?,
     override val isAuthenticationLoading: Value<Boolean>,
     private val onExplicitLogin: () -> Unit,
+    private val onCancelLogin: () -> Unit,
     private val onShowLoginGuard: () -> Unit
 ) : IAppShellComponent, ComponentContext by componentContext {
 
@@ -125,6 +127,10 @@ class AppShellComponent(
 
     override fun onLoginClicked() {
         onExplicitLogin()
+    }
+
+    override fun onCancelLoginClicked() {
+        onCancelLogin()
     }
 
     override fun onLogoutClicked() {

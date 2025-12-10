@@ -7,9 +7,10 @@ sealed interface LoginResult {
 }
 
 sealed interface LoginError {
-    data class Authentication(val message: String, val cause: Throwable?) : LoginError
-    data class Storage(val cause: Throwable) : LoginError
-    data class Unknown(val cause: Throwable) : LoginError
+    data object NoInternetConnection : LoginError
+    data object ServerUnreachable : LoginError
+    data object InvalidCredentials : LoginError
+    data class Unexpected(val debugMessage: String) : LoginError
 }
 
 sealed interface LogoutResult {

@@ -99,18 +99,23 @@ fun AppShellScreen(
                                     Icon(com.composables.icons.lucide.Lucide.LogOut, "Logout")
                                 }
                             } else {
-                                PrimaryButton(
-                                    onClick = { appShellComponent.onLoginClicked() },
-                                    enabled = !isAuthenticationLoading
-                                ) {
-                                    if (isAuthenticationLoading) {
-                                        IntermediateProgressIndicator(modifier = Modifier.size(20.dp))
-                                    } else if (authenticationState is AuthenticationState.InitializationFailed) {
-                                        Icon(com.composables.icons.lucide.Lucide.LogIn, null)
-                                        Text("Retry")
-                                    } else {
-                                        Icon(com.composables.icons.lucide.Lucide.LogIn, null)
-                                        Text("Log In")
+                                if (isAuthenticationLoading) {
+                                    DestructiveButton(
+                                        onClick = { appShellComponent.onCancelLoginClicked() }
+                                    ) {
+                                        Text("Cancel")
+                                    }
+                                } else {
+                                    PrimaryButton(
+                                        onClick = { appShellComponent.onLoginClicked() }
+                                    ) {
+                                        if (authenticationState is AuthenticationState.InitializationFailed) {
+                                            Icon(com.composables.icons.lucide.Lucide.LogIn, null)
+                                            Text("Retry")
+                                        } else {
+                                            Icon(com.composables.icons.lucide.Lucide.LogIn, null)
+                                            Text("Log In")
+                                        }
                                     }
                                 }
                             }
