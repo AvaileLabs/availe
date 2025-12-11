@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.availelabs.availe.features.home
 
 import androidx.compose.animation.AnimatedVisibility
@@ -7,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import availe.client.composeapp.generated.resources.*
 import com.availelabs.availe.ui.RefreshStateHolder
 import com.availelabs.availe.ui.components.ListingCard
+import com.availelabs.availe.ui.components.WindowSize
+import com.availelabs.availe.ui.components.rememberWindowSize
 import com.availelabs.availe.ui.model.asString
 import com.availelabs.availe.ui.modifiers.refreshTrigger
 import com.composables.icons.lucide.ArrowDown
@@ -47,23 +52,7 @@ internal fun HomeScreen(
 ) {
     val homeState by homeComponent.state.collectAsState()
     val refreshState = remember { RefreshStateHolder() }
-    val listState = rememberLazyListState()
-
-    val shouldLoadNextPage by remember {
-        derivedStateOf {
-            val layoutInfo = listState.layoutInfo
-            val totalItemsNumber = layoutInfo.totalItemsCount
-            val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
-
-            lastVisibleItemIndex > (totalItemsNumber - 5)
-        }
-    }
-
-    LaunchedEffect(shouldLoadNextPage) {
-        if (shouldLoadNextPage && !homeState.isLoading && !homeState.endReached) {
-            homeComponent.onIntent(HomeStore.Intent.LoadNextPage)
-        }
-    }
+    val windowSize = rememberWindowSize()
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -74,83 +63,25 @@ internal fun HomeScreen(
                     onRefresh = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
                 )
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                state = listState
-            ) {
-                if (homeState.isLoading && homeState.listingUiModels.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier.fillParentMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            IntermediateProgressIndicator()
-                        }
-                    }
-                } else if (homeState.inlineError != null && homeState.listingUiModels.isEmpty()) {
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillParentMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            SelectionContainer {
-                                Text(homeState.inlineError!!.asString())
-                            }
-                            Spacer(Modifier.height(16.dp))
-                            PrimaryButton(
-                                onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
-                            ) {
-                                Text(stringResource(Res.string.generic_retry))
-                            }
-                        }
-                    }
-                } else if (homeState.listingUiModels.isEmpty() && !homeState.isLoading) {
-                    item {
-                        Box(
-                            modifier = Modifier.fillParentMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                SelectionContainer {
-                                    Text(stringResource(Res.string.home_empty_state))
-                                }
-                                Spacer(Modifier.height(16.dp))
-                                PrimaryButton(
-                                    onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
-                                ) {
-                                    Text(stringResource(Res.string.generic_refresh))
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    items(homeState.listingUiModels, key = { it.id.value }) { listingUiModel ->
-                        ListingCard(
-                            title = listingUiModel.title,
-                            price = listingUiModel.price,
-                            imageUrl = listingUiModel.imageUrl,
-                            category = listingUiModel.category,
-                            description = listingUiModel.description,
-                            onClick = {
-                                homeComponent.onIntent(HomeStore.Intent.ListingClicked(listingUiModel.id))
-                            }
-                        )
-                    }
-                    if (homeState.isLoading && homeState.listingUiModels.isNotEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                IntermediateProgressIndicator()
-                            }
-                        }
-                    }
+            when (windowSize) {
+                WindowSize.Compact -> {
+                    MobileListLayout(
+                        homeState = homeState,
+                        onListingClick = { homeComponent.onIntent(HomeStore.Intent.ListingClicked(it)) },
+                        onRefresh = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) },
+                        onLoadNextPage = { homeComponent.onIntent(HomeStore.Intent.LoadNextPage) }
+                    )
+                }
+
+                WindowSize.Medium,
+                WindowSize.Expanded -> {
+                    DesktopGridLayout(
+                        homeState = homeState,
+                        onListingClick = { homeComponent.onIntent(HomeStore.Intent.ListingClicked(it)) },
+                        onRefresh = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) },
+                        onLoadNextPage = { homeComponent.onIntent(HomeStore.Intent.LoadNextPage) },
+                        isExpanded = windowSize is WindowSize.Expanded
+                    )
                 }
             }
 
@@ -159,6 +90,209 @@ internal fun HomeScreen(
                 pullProgress = refreshState.pullProgress,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
+        }
+    }
+}
+
+@Composable
+private fun DesktopGridLayout(
+    homeState: HomeStore.State,
+    onListingClick: (com.availelabs.availe.domain.model.ListingId) -> Unit,
+    onRefresh: () -> Unit,
+    onLoadNextPage: () -> Unit,
+    isExpanded: Boolean
+) {
+    val gridState = rememberLazyGridState()
+
+    val shouldLoadNextPage by remember {
+        derivedStateOf {
+            val layoutInfo = gridState.layoutInfo
+            val totalItemsNumber = layoutInfo.totalItemsCount
+            val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
+            lastVisibleItemIndex > (totalItemsNumber - 10)
+        }
+    }
+
+    LaunchedEffect(shouldLoadNextPage) {
+        if (shouldLoadNextPage && !homeState.isLoading && !homeState.endReached) {
+            onLoadNextPage()
+        }
+    }
+
+    val minColumnSize = if (isExpanded) 300.dp else 240.dp
+
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = minColumnSize),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        state = gridState,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Spacer(Modifier.height(8.dp))
+        }
+
+        if (homeState.isLoading && homeState.listingUiModels.isEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(400.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    IntermediateProgressIndicator()
+                }
+            }
+        } else if (homeState.inlineError != null && homeState.listingUiModels.isEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                ErrorState(error = homeState.inlineError.asString(), onRetry = onRefresh)
+            }
+        } else if (homeState.listingUiModels.isEmpty() && !homeState.isLoading) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                EmptyState(onRefresh = onRefresh)
+            }
+        } else {
+            items(homeState.listingUiModels, key = { it.id.value }) { listingUiModel ->
+                ListingCard(
+                    title = listingUiModel.title,
+                    price = listingUiModel.price,
+                    imageUrl = listingUiModel.imageUrl,
+                    category = listingUiModel.category,
+                    description = listingUiModel.description,
+                    onClick = { onListingClick(listingUiModel.id) }
+                )
+            }
+
+            if (homeState.isLoading) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IntermediateProgressIndicator()
+                    }
+                }
+            }
+        }
+
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun MobileListLayout(
+    homeState: HomeStore.State,
+    onListingClick: (com.availelabs.availe.domain.model.ListingId) -> Unit,
+    onRefresh: () -> Unit,
+    onLoadNextPage: () -> Unit
+) {
+    val listState = rememberLazyListState()
+
+    val shouldLoadNextPage by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItemsNumber = layoutInfo.totalItemsCount
+            val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
+            lastVisibleItemIndex > (totalItemsNumber - 5)
+        }
+    }
+
+    LaunchedEffect(shouldLoadNextPage) {
+        if (shouldLoadNextPage && !homeState.isLoading && !homeState.endReached) {
+            onLoadNextPage()
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        state = listState
+    ) {
+        if (homeState.isLoading && homeState.listingUiModels.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier.fillParentMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    IntermediateProgressIndicator()
+                }
+            }
+        } else if (homeState.inlineError != null && homeState.listingUiModels.isEmpty()) {
+            item {
+                ErrorState(
+                    error = homeState.inlineError.asString(),
+                    onRetry = onRefresh,
+                    modifier = Modifier.fillParentMaxSize()
+                )
+            }
+        } else if (homeState.listingUiModels.isEmpty() && !homeState.isLoading) {
+            item {
+                EmptyState(
+                    onRefresh = onRefresh,
+                    modifier = Modifier.fillParentMaxSize()
+                )
+            }
+        } else {
+            items(homeState.listingUiModels, key = { it.id.value }) { listingUiModel ->
+                ListingCard(
+                    title = listingUiModel.title,
+                    price = listingUiModel.price,
+                    imageUrl = listingUiModel.imageUrl,
+                    category = listingUiModel.category,
+                    description = listingUiModel.description,
+                    onClick = { onListingClick(listingUiModel.id) }
+                )
+            }
+            if (homeState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IntermediateProgressIndicator()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ErrorState(
+    error: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        SelectionContainer {
+            Text(error)
+        }
+        Spacer(Modifier.height(16.dp))
+        PrimaryButton(onClick = onRetry) {
+            Text(stringResource(Res.string.generic_retry))
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        SelectionContainer {
+            Text(stringResource(Res.string.home_empty_state))
+        }
+        Spacer(Modifier.height(16.dp))
+        PrimaryButton(onClick = onRefresh) {
+            Text(stringResource(Res.string.generic_refresh))
         }
     }
 }
