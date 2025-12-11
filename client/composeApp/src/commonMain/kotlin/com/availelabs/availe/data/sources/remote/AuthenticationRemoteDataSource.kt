@@ -1,13 +1,11 @@
 package com.availelabs.availe.data.sources.remote
 
-import com.availelabs.availe.core.coroutines.IoDispatcher
 import com.availelabs.availe.data.auth.platformLogin
 import com.availelabs.availe.data.auth.platformResumeLogin
 import com.availelabs.availe.data.network.NetworkErrorType
 import com.availelabs.availe.data.network.classifyNetworkError
 import com.availelabs.availe.domain.auth.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.withContext
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
 import org.publicvalue.multiplatform.oidc.OpenIdConnectException
@@ -34,60 +32,59 @@ class AuthenticationRemoteDataSource(
     private val tokenStore: TokenStore
 ) : IAuthenticationRemoteDataSource {
 
-    override suspend fun discover() = withContext(IoDispatcher) {
+    override suspend fun discover() =
         openIdConnectClient.discover()
-    }
 
-    override suspend fun getTokens(): OauthTokens? = withContext(IoDispatcher) {
+
+    override suspend fun getTokens(): OauthTokens? =
         tokenStore.getTokens()
-    }
 
-    override suspend fun refreshTokens(refreshToken: String): AccessTokenResponse = withContext(IoDispatcher) {
+
+    override suspend fun refreshTokens(refreshToken: String): AccessTokenResponse =
         openIdConnectClient.refreshToken(refreshToken)
-    }
 
-    override suspend fun saveTokens(tokens: AccessTokenResponse) = withContext(IoDispatcher) {
+
+    override suspend fun saveTokens(tokens: AccessTokenResponse) =
         tokenStore.saveTokens(tokens)
-    }
 
-    override suspend fun removeTokens() = withContext(IoDispatcher) {
+
+    override suspend fun removeTokens() =
         tokenStore.removeTokens()
-    }
+
 
     override suspend fun login(onStateUpdate: (AuthenticationState) -> Unit): LoginResult =
-        withContext(IoDispatcher) {
-            try {
-                platformLogin(openIdConnectClient, codeAuthenticationFlowFactory, tokenStore, onStateUpdate)
-            } catch (_: CancellationException) {
-                LoginResult.Cancelled
-            } catch (throwable: Throwable) {
-                val errorMessage = throwable.message ?: ""
-                if (errorMessage == "Socket closed" || errorMessage.contains("cancelled", ignoreCase = true)) {
-                    return@withContext LoginResult.Cancelled
-                }
 
-                val networkErrorType = throwable.classifyNetworkError()
-                val loginError = when (networkErrorType) {
-                    is NetworkErrorType.Recoverable.Connectivity -> LoginError.NoInternetConnection
-                    is NetworkErrorType.Recoverable.ConnectionTimeout -> LoginError.ServerUnreachable
-                    is NetworkErrorType.Recoverable.ServerSide -> LoginError.ServerUnreachable
-                    is NetworkErrorType.Recoverable.ClientSide -> LoginError.Unexpected(
-                        throwable.message ?: "Client side error"
-                    )
-
-                    is NetworkErrorType.Recoverable.DataSerialization -> LoginError.Unexpected("Data serialization error")
-                    is NetworkErrorType.Unrecoverable -> LoginError.Unexpected(throwable.message ?: "Unknown error")
-                }
-                LoginResult.Failed(loginError)
+        try {
+            platformLogin(openIdConnectClient, codeAuthenticationFlowFactory, tokenStore, onStateUpdate)
+        } catch (_: CancellationException) {
+            LoginResult.Cancelled
+        } catch (throwable: Throwable) {
+            val errorMessage = throwable.message ?: ""
+            if (errorMessage == "Socket closed" || errorMessage.contains("cancelled", ignoreCase = true)) {
+                return LoginResult.Cancelled
             }
+
+            val networkErrorType = throwable.classifyNetworkError()
+            val loginError = when (networkErrorType) {
+                is NetworkErrorType.Recoverable.Connectivity -> LoginError.NoInternetConnection
+                is NetworkErrorType.Recoverable.ConnectionTimeout -> LoginError.ServerUnreachable
+                is NetworkErrorType.Recoverable.ServerSide -> LoginError.ServerUnreachable
+                is NetworkErrorType.Recoverable.ClientSide -> LoginError.Unexpected(
+                    throwable.message ?: "Client side error"
+                )
+
+                is NetworkErrorType.Recoverable.DataSerialization -> LoginError.Unexpected("Data serialization error")
+                is NetworkErrorType.Unrecoverable -> LoginError.Unexpected(throwable.message ?: "Unknown error")
+            }
+            LoginResult.Failed(loginError)
         }
+
 
     override suspend fun resumeLogin(code: String, onStateUpdate: (AuthenticationState) -> Unit) =
-        withContext(IoDispatcher) {
-            platformResumeLogin(code, openIdConnectClient, tokenStore, onStateUpdate)
-        }
+        platformResumeLogin(code, openIdConnectClient, tokenStore, onStateUpdate)
 
-    override suspend fun logout(): LogoutResult = withContext(IoDispatcher) {
+
+    override suspend fun logout(): LogoutResult =
         try {
             val oauthTokens = tokenStore.getTokens()
             val idToken = oauthTokens?.idToken
@@ -111,5 +108,5 @@ class AuthenticationRemoteDataSource(
         } catch (exception: Exception) {
             LogoutResult.Failed(LogoutError.Unknown(exception))
         }
-    }
+
 }
