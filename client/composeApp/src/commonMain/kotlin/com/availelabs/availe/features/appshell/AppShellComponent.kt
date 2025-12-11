@@ -3,6 +3,7 @@
 package com.availelabs.availe.features.appshell
 
 import androidx.compose.ui.graphics.vector.ImageVector
+import availe.client.composeapp.generated.resources.*
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -31,6 +32,7 @@ import com.composables.icons.lucide.MessageCircle
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import org.jetbrains.compose.resources.StringResource
 import kotlin.uuid.ExperimentalUuidApi
 
 interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
@@ -245,12 +247,12 @@ sealed interface AppShellChildComponent {
 
 data class NavIcon(
     val icon: ImageVector,
-    val contentDescription: String
+    val contentDescription: StringResource
 )
 
 @Serializable
 sealed interface AppShellConfiguration {
-    val displayName: String
+    val titleResource: StringResource
     val navigationIcon: NavIcon
     val canonicalParent: AppShellConfiguration? get() = null
 
@@ -259,10 +261,10 @@ sealed interface AppShellConfiguration {
     @Serializable
     data object Home : AppShellConfiguration {
         @Transient
-        override val displayName: String = "Availe"
+        override val titleResource: StringResource = Res.string.navigation_home
 
         @Transient
-        override val navigationIcon: NavIcon = NavIcon(Lucide.House, "Home Screen")
+        override val navigationIcon: NavIcon = NavIcon(Lucide.House, Res.string.accessibility_navigation_home)
 
         override fun toUrlPath(): String = "/"
     }
@@ -270,10 +272,10 @@ sealed interface AppShellConfiguration {
     @Serializable
     data class ListingDetails(val listingId: ListingId) : AppShellConfiguration {
         @Transient
-        override val displayName: String = "Details"
+        override val titleResource: StringResource = Res.string.navigation_details
 
         @Transient
-        override val navigationIcon: NavIcon = NavIcon(Lucide.House, "Details Screen")
+        override val navigationIcon: NavIcon = NavIcon(Lucide.House, Res.string.accessibility_navigation_details)
 
         override val canonicalParent: AppShellConfiguration = Home
 
@@ -287,10 +289,10 @@ sealed interface AppShellConfiguration {
     @Serializable
     data class Chat(val recipientJid: Jid) : AppShellConfiguration {
         @Transient
-        override val displayName: String = "Chat"
+        override val titleResource: StringResource = Res.string.navigation_chat
 
         @Transient
-        override val navigationIcon: NavIcon = NavIcon(Lucide.MessageCircle, "Chat Screen")
+        override val navigationIcon: NavIcon = NavIcon(Lucide.MessageCircle, Res.string.accessibility_navigation_chat)
 
         override val canonicalParent: AppShellConfiguration = Home
 

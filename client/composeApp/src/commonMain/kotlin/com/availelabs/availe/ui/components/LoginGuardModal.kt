@@ -10,6 +10,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import availe.client.composeapp.generated.resources.*
 import com.composables.icons.lucide.Lock
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.Icon
@@ -17,6 +18,7 @@ import com.composables.uikit.components.PrimaryButton
 import com.composables.uikit.components.Text
 import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun LoginGuardModal(
@@ -55,7 +57,7 @@ fun LoginGuardModal(
             Spacer(Modifier.height(16.dp))
 
             Text(
-                text = "Sign in required",
+                text = stringResource(Res.string.authentication_guard_title),
                 style = Theme[textStyles][title],
                 textAlign = TextAlign.Center
             )
@@ -63,7 +65,7 @@ fun LoginGuardModal(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = "You need to be signed in to access this feature. Please sign in or create an account.",
+                text = stringResource(Res.string.authentication_guard_body),
                 style = Theme[textStyles][body].copy(
                     color = Theme[colors][onBackground].copy(alpha = 0.7f)
                 ),
@@ -84,14 +86,14 @@ fun LoginGuardModal(
                     borderWidth = 1.dp,
                     borderColor = Theme[colors][outline].copy(alpha = 0.2f)
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(Res.string.generic_cancel))
                 }
 
                 PrimaryButton(
                     onClick = onConfirm,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Sign In")
+                    Text(stringResource(Res.string.authentication_sign_in))
                 }
             }
         }

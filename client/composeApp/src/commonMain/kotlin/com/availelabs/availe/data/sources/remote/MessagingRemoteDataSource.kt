@@ -16,8 +16,17 @@ import nl.adaptivity.xmlutil.serialization.XML
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+sealed interface MessagingConnectionState {
+    data object Disconnected : MessagingConnectionState
+    data object Connecting : MessagingConnectionState
+    data object Handshaking : MessagingConnectionState
+    data object Authenticated : MessagingConnectionState
+    data object AuthenticationFailed : MessagingConnectionState
+    data class Error(val message: String) : MessagingConnectionState
+}
+
 interface IMessagingRemoteDataSource {
-    val connectionStatus: StateFlow<String>
+    val connectionStatus: StateFlow<MessagingConnectionState>
     val incomingMessages: SharedFlow<XmppMessageStanza>
     suspend fun connect(jid: Jid, token: AuthToken)
     suspend fun disconnect()
@@ -28,8 +37,9 @@ class MessagingRemoteDataSource(
     private val httpClient: HttpClient
 ) : IMessagingRemoteDataSource {
 
-    private val mutableConnectionStatusStateFlow = MutableStateFlow("Disconnected")
-    override val connectionStatus: StateFlow<String> = mutableConnectionStatusStateFlow.asStateFlow()
+    private val mutableConnectionStatusStateFlow =
+        MutableStateFlow<MessagingConnectionState>(MessagingConnectionState.Disconnected)
+    override val connectionStatus: StateFlow<MessagingConnectionState> = mutableConnectionStatusStateFlow.asStateFlow()
 
     private val mutableIncomingMessagesSharedFlow = MutableSharedFlow<XmppMessageStanza>()
     override val incomingMessages: SharedFlow<XmppMessageStanza> = mutableIncomingMessagesSharedFlow.asSharedFlow()
@@ -43,7 +53,7 @@ class MessagingRemoteDataSource(
     @OptIn(ExperimentalEncodingApi::class)
     override suspend fun connect(jid: Jid, token: AuthToken) {
         try {
-            mutableConnectionStatusStateFlow.value = "Connecting..."
+            mutableConnectionStatusStateFlow.value = MessagingConnectionState.Connecting
             httpClient.ws(
                 method = HttpMethod.Get,
                 host = NetworkConstants.HOST_IP,
@@ -51,7 +61,7 @@ class MessagingRemoteDataSource(
                 path = "/ws"
             ) {
                 defaultClientWebSocketSession = this
-                mutableConnectionStatusStateFlow.value = "Connected (Handshaking)"
+                mutableConnectionStatusStateFlow.value = MessagingConnectionState.Handshaking
 
                 val domain = SharedNetworkConstants.XMPP_DOMAIN
                 val openStanza = XmppOpenStanza(to = domain, version = "1.0")
@@ -66,7 +76,7 @@ class MessagingRemoteDataSource(
                     if (frame is Frame.Text) {
                         val text = frame.readText()
                         if (text.contains("<success")) {
-                            mutableConnectionStatusStateFlow.value = "Authenticated"
+                            mutableConnectionStatusStateFlow.value = MessagingConnectionState.Authenticated
 
                             send(Frame.Text(xmlSerializer.encodeToString(XmppOpenStanza.serializer(), openStanza)))
 
@@ -89,7 +99,7 @@ class MessagingRemoteDataSource(
 
                             break
                         } else if (text.contains("<failure")) {
-                            mutableConnectionStatusStateFlow.value = "Authentication Failed"
+                            mutableConnectionStatusStateFlow.value = MessagingConnectionState.AuthenticationFailed
                             close()
                             return@ws
                         }
@@ -114,10 +124,11 @@ class MessagingRemoteDataSource(
                 }
             }
         } catch (exception: Exception) {
-            mutableConnectionStatusStateFlow.value = "Error: ${exception.message}"
+            mutableConnectionStatusStateFlow.value =
+                MessagingConnectionState.Error(exception.message ?: "Unknown error")
         } finally {
-            if (!mutableConnectionStatusStateFlow.value.startsWith("Error")) {
-                mutableConnectionStatusStateFlow.value = "Disconnected"
+            if (mutableConnectionStatusStateFlow.value !is MessagingConnectionState.Error) {
+                mutableConnectionStatusStateFlow.value = MessagingConnectionState.Disconnected
             }
             defaultClientWebSocketSession = null
         }
@@ -126,7 +137,7 @@ class MessagingRemoteDataSource(
     override suspend fun disconnect() {
         defaultClientWebSocketSession?.close()
         defaultClientWebSocketSession = null
-        mutableConnectionStatusStateFlow.value = "Disconnected"
+        mutableConnectionStatusStateFlow.value = MessagingConnectionState.Disconnected
     }
 
     override suspend fun sendMessage(to: Jid, body: MessageContent) {

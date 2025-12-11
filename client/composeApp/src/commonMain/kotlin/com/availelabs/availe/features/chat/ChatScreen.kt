@@ -23,6 +23,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import availe.client.composeapp.generated.resources.*
+import com.availelabs.availe.data.sources.remote.MessagingConnectionState
 import com.availelabs.availe.domain.model.ChatMessage
 import com.availelabs.availe.domain.model.MessageContent
 import com.composables.icons.lucide.Lucide
@@ -32,6 +34,7 @@ import com.composables.uikit.components.*
 import com.composables.uikit.scaffolds.ScreenScaffold
 import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ChatScreen(
@@ -55,8 +58,6 @@ fun ChatScreen(
                 .fillMaxSize()
                 .background(Theme[colors][secondary].copy(alpha = 0.3f))
         ) {
-            // In overlay mode, the window header provides context, so we skip UserInfoHeader
-
             MessageList(
                 messages = chatState.messages,
                 listState = lazyListState,
@@ -101,12 +102,20 @@ fun ChatScreen(
 
 @Composable
 private fun UserInfoHeader(
-    connectionStatus: String,
+    connectionStatus: MessagingConnectionState,
     recipientName: String
 ) {
-    val isConnected = connectionStatus == "Authenticated"
+    val isConnected = connectionStatus is MessagingConnectionState.Authenticated
     val statusColor = if (isConnected) Color(0xFF10B981) else Theme[colors][destructive]
-    val statusText = if (isConnected) "Online" else connectionStatus
+
+    val statusText = when (connectionStatus) {
+        MessagingConnectionState.Authenticated -> stringResource(Res.string.chat_status_online)
+        MessagingConnectionState.AuthenticationFailed -> stringResource(Res.string.chat_status_authentication_failed)
+        MessagingConnectionState.Connecting -> stringResource(Res.string.chat_status_connecting)
+        MessagingConnectionState.Disconnected -> stringResource(Res.string.chat_status_disconnected)
+        is MessagingConnectionState.Error -> connectionStatus.message
+        MessagingConnectionState.Handshaking -> stringResource(Res.string.chat_status_handshaking)
+    }
 
     Column(
         modifier = Modifier
@@ -277,7 +286,7 @@ private fun ChatInput(
                             false
                         }
                     },
-                placeholder = { Text("Type a message...") },
+                placeholder = { Text(stringResource(Res.string.chat_input_placeholder)) },
                 shape = RoundedCornerShape(percent = 50)
             )
 
@@ -294,7 +303,7 @@ private fun ChatInput(
                 shape = CircleShape,
                 modifier = Modifier.size(44.dp)
             ) {
-                Icon(Lucide.Send, contentDescription = "Send")
+                Icon(Lucide.Send, contentDescription = stringResource(Res.string.accessibility_action_send))
             }
         }
     }

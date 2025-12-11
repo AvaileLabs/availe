@@ -13,6 +13,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import availe.client.composeapp.generated.resources.Res
+import availe.client.composeapp.generated.resources.generic_close
+import availe.client.composeapp.generated.resources.generic_expand
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Maximize2
 import com.composables.icons.lucide.MessageCircle
@@ -25,6 +28,7 @@ import com.composables.uikit.styling.card
 import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.outline
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ChatOverlayWindow(
@@ -79,7 +83,7 @@ fun ChatOverlayWindow(
                 ) {
                     Icon(
                         imageVector = Lucide.Maximize2,
-                        contentDescription = "Expand",
+                        contentDescription = stringResource(Res.string.generic_expand),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -90,7 +94,7 @@ fun ChatOverlayWindow(
                 ) {
                     Icon(
                         imageVector = Lucide.X,
-                        contentDescription = "Close",
+                        contentDescription = stringResource(Res.string.generic_close),
                         modifier = Modifier.size(18.dp)
                     )
                 }

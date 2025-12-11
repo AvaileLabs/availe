@@ -1,6 +1,7 @@
 package com.availelabs.availe.data.repositories
 
 import com.availelabs.availe.data.sources.remote.IMessagingRemoteDataSource
+import com.availelabs.availe.data.sources.remote.MessagingConnectionState
 import com.availelabs.availe.domain.model.AuthToken
 import com.availelabs.availe.domain.model.ChatMessage
 import com.availelabs.availe.domain.model.Jid
@@ -8,7 +9,7 @@ import com.availelabs.availe.domain.model.MessageContent
 import kotlinx.coroutines.flow.*
 
 interface IMessagingRepository {
-    val connectionStatus: StateFlow<String>
+    val connectionStatus: StateFlow<MessagingConnectionState>
     val messages: Flow<ChatMessage>
     suspend fun connect(jid: Jid, token: AuthToken)
     suspend fun disconnect()
@@ -19,7 +20,7 @@ class MessagingRepository(
     private val messagingRemoteDataSource: IMessagingRemoteDataSource
 ) : IMessagingRepository {
 
-    override val connectionStatus: StateFlow<String> = messagingRemoteDataSource.connectionStatus
+    override val connectionStatus: StateFlow<MessagingConnectionState> = messagingRemoteDataSource.connectionStatus
 
     private val outgoingMessages = MutableSharedFlow<ChatMessage>()
 

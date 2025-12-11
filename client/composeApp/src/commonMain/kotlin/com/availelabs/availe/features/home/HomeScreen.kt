@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import availe.client.composeapp.generated.resources.*
 import com.availelabs.availe.ui.RefreshStateHolder
 import com.availelabs.availe.ui.components.ListingCard
 import com.availelabs.availe.ui.model.asString
@@ -34,6 +35,7 @@ import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.outline
 import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
@@ -101,7 +103,7 @@ internal fun HomeScreen(
                             PrimaryButton(
                                 onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
                             ) {
-                                Text("Retry")
+                                Text(stringResource(Res.string.generic_retry))
                             }
                         }
                     }
@@ -113,13 +115,13 @@ internal fun HomeScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 SelectionContainer {
-                                    Text("No listings found")
+                                    Text(stringResource(Res.string.home_empty_state))
                                 }
                                 Spacer(Modifier.height(16.dp))
                                 PrimaryButton(
                                     onClick = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
                                 ) {
-                                    Text("Refresh")
+                                    Text(stringResource(Res.string.generic_refresh))
                                 }
                             }
                         }
@@ -202,7 +204,7 @@ private fun PullToRefreshIndicator(
                 ) {
                     Icon(
                         imageVector = Lucide.ArrowDown,
-                        contentDescription = "Pull to refresh",
+                        contentDescription = stringResource(Res.string.accessibility_pull_to_refresh),
                         modifier = Modifier.size(20.dp)
                     )
                 }

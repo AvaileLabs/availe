@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import availe.client.composeapp.generated.resources.*
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -25,6 +26,7 @@ import com.composables.icons.lucide.CirclePlus
 import com.composables.icons.lucide.LogOut
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.*
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
@@ -63,20 +65,20 @@ fun AppShellScreen(
                                 IconButton(onClick = { }) {
                                     Icon(
                                         imageVector = activeConfiguration.navigationIcon.icon,
-                                        contentDescription = activeConfiguration.navigationIcon.contentDescription
+                                        contentDescription = stringResource(activeConfiguration.navigationIcon.contentDescription)
                                     )
                                 }
                             } else {
                                 IconButton(onClick = { appShellComponent.onBackClicked() }) {
                                     Icon(
                                         imageVector = Lucide.ArrowLeft,
-                                        contentDescription = "Back"
+                                        contentDescription = stringResource(Res.string.generic_back)
                                     )
                                 }
                             }
                         },
                         title = {
-                            Text(activeConfiguration.displayName)
+                            Text(stringResource(activeConfiguration.titleResource))
                         },
                         actions = {
                             when (val activeInstance = childStack.active.instance) {
@@ -85,7 +87,7 @@ fun AppShellScreen(
                                         IconButton(
                                             onClick = { activeInstance.component.onIntent(HomeStore.Intent.QuickCreateListingRequested) }
                                         ) {
-                                            Icon(Lucide.CirclePlus, "Add")
+                                            Icon(Lucide.CirclePlus, stringResource(Res.string.accessibility_action_add))
                                         }
                                     }
                                 }
@@ -97,7 +99,7 @@ fun AppShellScreen(
                                 IconButton(
                                     onClick = { appShellComponent.onLogoutClicked() }
                                 ) {
-                                    Icon(Lucide.LogOut, "Logout")
+                                    Icon(Lucide.LogOut, stringResource(Res.string.accessibility_action_logout))
                                 }
                             } else {
                                 AuthenticationActionButton(
@@ -138,7 +140,7 @@ fun AppShellScreen(
                                     .padding(end = 24.dp, bottom = 24.dp)
                             ) {
                                 ChatOverlayWindow(
-                                    title = "Messaging",
+                                    title = stringResource(Res.string.chat_title),
                                     onExpand = appShellComponent::expandChatOverlay,
                                     onClose = appShellComponent::dismissChatOverlay
                                 ) {

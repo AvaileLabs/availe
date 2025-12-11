@@ -1,5 +1,6 @@
 package com.availelabs.availe.features.appshell
 
+import availe.client.composeapp.generated.resources.*
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
@@ -8,9 +9,10 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.data.repositories.IAuthenticationRepository
 import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.auth.AuthenticationState
-import com.availelabs.availe.domain.auth.LoginError
 import com.availelabs.availe.domain.auth.LoginResult
 import com.availelabs.availe.features.appshell.MainStore.*
+import com.availelabs.availe.ui.mapper.ErrorMessageMapper
+import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -29,12 +31,12 @@ interface MainStore : Store<Intent, State, Label> {
         val isAuthenticated: Boolean = false,
         val isAuthenticationServiceAvailable: Boolean = true,
         val isLoading: Boolean = false,
-        val errorMessage: String? = null
+        val errorMessage: UiText? = null
     )
 
     sealed interface Label {
-        data class ErrorOccurred(val message: String) : Label
-        data class InfoOccurred(val message: String) : Label
+        data class ErrorOccurred(val message: UiText) : Label
+        data class InfoOccurred(val message: UiText) : Label
     }
 }
 
@@ -61,7 +63,7 @@ class MainStoreFactory(
         data class SetLoading(val isLoading: Boolean) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
         data class SetAuthenticationServiceAvailable(val isAvailable: Boolean) : Message
-        data class SetError(val message: String?) : Message
+        data class SetError(val message: UiText?) : Message
     }
 
     private inner class MainBootstrapper : CoroutineBootstrapper<Action>() {
@@ -112,7 +114,7 @@ class MainStoreFactory(
                 is AuthenticationState.SessionExpired -> {
                     dispatch(Message.SetAuthenticated(false))
                     dispatch(Message.SetAuthenticationServiceAvailable(true))
-                    val message = "Session expired. Please log in again."
+                    val message = UiText.ResourceString(Res.string.error_session_expired)
                     dispatch(Message.SetError(message))
                     publish(Label.ErrorOccurred(message))
                 }
@@ -120,7 +122,7 @@ class MainStoreFactory(
                 is AuthenticationState.InitializationFailed -> {
                     dispatch(Message.SetAuthenticated(false))
                     dispatch(Message.SetAuthenticationServiceAvailable(false))
-                    val message = "Authentication service unavailable."
+                    val message = UiText.ResourceString(Res.string.authentication_service_unavailable)
                     dispatch(Message.SetError(message))
                 }
 
@@ -138,17 +140,12 @@ class MainStoreFactory(
 
                     is LoginResult.Cancelled -> {
                         dispatch(Message.SetLoading(false))
-                        publish(Label.InfoOccurred("Login cancelled"))
+                        publish(Label.InfoOccurred(UiText.ResourceString(Res.string.authentication_info_cancelled)))
                     }
 
                     is LoginResult.Failed -> {
                         dispatch(Message.SetLoading(false))
-                        val errorMessage = when (loginResult.error) {
-                            LoginError.NoInternetConnection -> "No internet connection. Please check your network."
-                            LoginError.ServerUnreachable -> "Unable to reach the server. Please try again later."
-                            LoginError.InvalidCredentials -> "Invalid credentials. Please check your login details."
-                            is LoginError.Unexpected -> loginResult.error.debugMessage
-                        }
+                        val errorMessage = ErrorMessageMapper.map(loginResult.error)
                         dispatch(Message.SetError(errorMessage))
                         publish(Label.ErrorOccurred(errorMessage))
                     }
@@ -162,7 +159,7 @@ class MainStoreFactory(
                 try {
                     authenticationRepository.logout()
                 } catch (_: Exception) {
-                    val errorMessage = "An unexpected error occurred during logout."
+                    val errorMessage = UiText.ResourceString(Res.string.authentication_error_logout)
                     dispatch(Message.SetError(errorMessage))
                     publish(Label.ErrorOccurred(errorMessage))
                 } finally {

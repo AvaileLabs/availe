@@ -1,5 +1,6 @@
 package com.availelabs.availe.features.home
 
+import availe.client.composeapp.generated.resources.*
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
@@ -167,7 +168,7 @@ class HomeStoreFactory(
             scope.launch {
                 val userProfile = sessionManager.getCurrentUserProfile()
                 if (userProfile == null) {
-                    val errorMessage = UiText.VerbatimString("You must be logged in to create a listing")
+                    val errorMessage = UiText.ResourceString(Res.string.authentication_listing_create_requirement)
                     publish(Label.DisplayError(errorMessage))
                     return@launch
                 }
@@ -191,7 +192,7 @@ class HomeStoreFactory(
                         when (result.value) {
                             is InsertResult.Inserted<*> -> fetchListingsPage(0, FetchTrigger.DataChanged)
                             is InsertResult.AlreadyExists -> {
-                                val errorMessage = UiText.VerbatimString("Listing already exists")
+                                val errorMessage = UiText.ResourceString(Res.string.home_listing_exists)
                                 publish(Label.DisplayError(errorMessage))
                                 dispatch(
                                     Message.LoadingStateChanged(

@@ -1,6 +1,7 @@
 package com.availelabs.availe.ui.mapper
 
 import availe.client.composeapp.generated.resources.*
+import com.availelabs.availe.domain.auth.LoginError
 import com.availelabs.availe.domain.model.error.AppError
 import com.availelabs.availe.ui.model.UiText
 
@@ -19,6 +20,15 @@ object ErrorMessageMapper {
             is AppError.BusinessError.OperationForbidden -> UiText.ResourceString(Res.string.error_operation_forbidden)
 
             is AppError.UnknownError -> UiText.ResourceString(Res.string.error_unknown)
+        }
+    }
+
+    fun map(error: LoginError): UiText {
+        return when (error) {
+            LoginError.NoInternetConnection -> UiText.ResourceString(Res.string.error_no_internet)
+            LoginError.ServerUnreachable -> UiText.ResourceString(Res.string.error_server_unreachable)
+            LoginError.InvalidCredentials -> UiText.ResourceString(Res.string.error_invalid_credentials)
+            is LoginError.Unexpected -> UiText.VerbatimString(error.debugMessage)
         }
     }
 }

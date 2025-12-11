@@ -9,6 +9,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.data.repositories.IMessagingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
+import com.availelabs.availe.data.sources.remote.MessagingConnectionState
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.model.ChatMessage
 import com.availelabs.availe.domain.model.Jid
@@ -27,7 +28,7 @@ interface ChatStore : Store<Intent, State, Label> {
 
     data class State(
         val recipientJid: Jid,
-        val connectionStatus: String = "Disconnected",
+        val connectionStatus: MessagingConnectionState = MessagingConnectionState.Disconnected,
         val messages: List<ChatMessage> = emptyList()
     )
 
@@ -50,12 +51,12 @@ class ChatStoreFactory(
         ) {}
 
     private sealed interface Action {
-        data class UpdateStatus(val status: String) : Action
+        data class UpdateStatus(val status: MessagingConnectionState) : Action
         data class MessageReceived(val message: ChatMessage) : Action
     }
 
     private sealed interface Message {
-        data class SetStatus(val status: String) : Message
+        data class SetStatus(val status: MessagingConnectionState) : Message
         data class AddMessage(val message: ChatMessage) : Message
     }
 

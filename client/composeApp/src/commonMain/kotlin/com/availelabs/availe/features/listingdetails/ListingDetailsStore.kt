@@ -2,6 +2,8 @@
 
 package com.availelabs.availe.features.listingdetails
 
+import availe.client.composeapp.generated.resources.Res
+import availe.client.composeapp.generated.resources.listing_not_found
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
@@ -91,7 +93,7 @@ class ListingDetailsStoreFactory(
                             }
 
                             is FindResult.NotFound -> {
-                                dispatch(Message.SetError(UiText.VerbatimString("Listing not found")))
+                                dispatch(Message.SetError(UiText.ResourceString(Res.string.listing_not_found)))
                             }
                         }
                     }

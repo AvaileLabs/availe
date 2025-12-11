@@ -5,12 +5,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
+import availe.client.composeapp.generated.resources.Res
+import availe.client.composeapp.generated.resources.authentication_log_in
 import com.composables.icons.lucide.LogIn
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.IntermediateProgressIndicator
 import com.composables.uikit.components.PrimaryButton
 import com.composables.uikit.components.Text
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun AuthenticationActionButton(
@@ -31,7 +34,7 @@ fun AuthenticationActionButton(
                 imageVector = Lucide.LogIn,
                 contentDescription = null
             )
-            Text("Log In")
+            Text(stringResource(Res.string.authentication_log_in))
         }
     }
 }

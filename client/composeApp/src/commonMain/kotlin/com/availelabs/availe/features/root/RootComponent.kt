@@ -24,7 +24,6 @@ import com.availelabs.availe.domain.model.ToastMessage
 import com.availelabs.availe.features.appshell.*
 import com.availelabs.availe.features.login.ILoginComponent
 import com.availelabs.availe.features.login.LoginComponent
-import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
@@ -126,13 +125,13 @@ class RootComponent(
                 val toast = when (label) {
                     is MainStore.Label.ErrorOccurred -> {
                         ToastMessage.Error(
-                            text = UiText.VerbatimString(label.message)
+                            text = label.message
                         )
                     }
 
                     is MainStore.Label.InfoOccurred -> {
                         ToastMessage.Info(
-                            text = UiText.VerbatimString(label.message)
+                            text = label.message
                         )
                     }
                 }

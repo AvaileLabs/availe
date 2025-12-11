@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import availe.client.composeapp.generated.resources.*
 import coil3.compose.AsyncImage
 import com.availelabs.availe.domain.extensions.toDisplayString
 import com.availelabs.availe.domain.model.Email
@@ -34,6 +35,7 @@ import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
 import com.composeunstyled.Text
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.absoluteValue
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -69,7 +71,7 @@ fun ListingDetailsScreen(
                             listingDetailsComponent.onIntent(ListingDetailsStore.Intent.RetryRequested)
                         }
                     ) {
-                        Text("Retry")
+                        Text(stringResource(Res.string.generic_retry))
                     }
                 }
             } else if (state.listing != null) {
@@ -130,7 +132,7 @@ private fun MobileListingLayout(
                     ) {
                         Icon(
                             imageVector = Lucide.MapPin,
-                            contentDescription = "Location",
+                            contentDescription = stringResource(Res.string.accessibility_location),
                             modifier = Modifier.size(16.dp),
                             tint = Theme[colors][onBackground].copy(alpha = 0.6f)
                         )
@@ -171,9 +173,9 @@ private fun MobileListingLayout(
                 )
                 Spacer(Modifier.height(24.dp))
 
-                Section("Description") {
+                Section(stringResource(Res.string.listing_about)) {
                     Text(
-                        text = listing.description?.value ?: "No description provided.",
+                        text = listing.description?.value ?: stringResource(Res.string.listing_description_empty),
                         style = Theme[textStyles][body].copy(color = Theme[colors][onBackground].copy(alpha = 0.8f))
                     )
                 }
@@ -196,7 +198,7 @@ private fun MobileListingLayout(
             ) {
                 Column {
                     Text(
-                        "Total Price",
+                        stringResource(Res.string.listing_price_total),
                         style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.8)
                     )
                     SelectionContainer {
@@ -207,7 +209,10 @@ private fun MobileListingLayout(
                     }
                 }
                 PrimaryButton(onClick = { onContactSeller(listing.commonData.publisherEmail) }) {
-                    Text(if (listing.category == ListingCategory.Event) "Book Ticket" else "Contact Seller")
+                    Text(
+                        if (listing.category == ListingCategory.Event) stringResource(Res.string.listing_book_ticket)
+                        else stringResource(Res.string.listing_contact_seller)
+                    )
                 }
             }
         }
@@ -246,7 +251,7 @@ private fun DesktopListingLayout(
                     ) {
                         Icon(
                             imageVector = Lucide.MapPin,
-                            contentDescription = "Location",
+                            contentDescription = stringResource(Res.string.accessibility_location),
                             modifier = Modifier.size(18.dp),
                             tint = Theme[colors][onBackground].copy(alpha = 0.6f)
                         )
@@ -291,9 +296,9 @@ private fun DesktopListingLayout(
 
                 Spacer(Modifier.height(32.dp))
 
-                Section("About this item") {
+                Section(stringResource(Res.string.listing_about)) {
                     Text(
-                        text = listing.description?.value ?: "No description provided.",
+                        text = listing.description?.value ?: stringResource(Res.string.listing_description_empty),
                         style = Theme[textStyles][body].copy(
                             lineHeight = Theme[textStyles][body].fontSize * 1.6,
                             color = Theme[colors][onBackground].copy(alpha = 0.9f)
@@ -340,12 +345,12 @@ private fun DesktopListingLayout(
                         ) {
                             Badge(
                                 icon = Lucide.Star,
-                                text = "${listing.mockRating} Rating",
+                                text = stringResource(Res.string.listing_rating_label, listing.mockRating),
                                 tint = Color(0xFFEAB308)
                             )
                             Badge(
                                 icon = Lucide.MessageCircle,
-                                text = "${listing.mockReviewCount} Reviews",
+                                text = stringResource(Res.string.listing_reviews_label, listing.mockReviewCount),
                                 tint = Theme[colors][primary]
                             )
                         }
@@ -355,7 +360,7 @@ private fun DesktopListingLayout(
                         Row {
                             Badge(
                                 icon = Lucide.BadgeCheck,
-                                text = "Identity Verified",
+                                text = stringResource(Res.string.listing_identity_verified),
                                 tint = Color(0xFF10B981)
                             )
                         }
@@ -366,14 +371,17 @@ private fun DesktopListingLayout(
                             onClick = { onContactSeller(listing.commonData.publisherEmail) },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (listing.category == ListingCategory.Event) "Book Now" else "Contact Seller")
+                            Text(
+                                if (listing.category == ListingCategory.Event) stringResource(Res.string.listing_book_now)
+                                else stringResource(Res.string.listing_contact_seller)
+                            )
                         }
 
                         Spacer(Modifier.height(16.dp))
 
                         SelectionContainer {
                             Text(
-                                text = "Secure transaction protected by Availe Guarantee.",
+                                text = stringResource(Res.string.listing_secure_guarantee),
                                 style = Theme[textStyles][body].copy(
                                     fontSize = Theme[textStyles][body].fontSize * 0.75,
                                     color = Theme[colors][onBackground].copy(alpha = 0.6f)
@@ -513,7 +521,11 @@ private fun SellerInfoCard(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "${listing.mockRating} (${listing.mockReviewCount})",
+                        text = stringResource(
+                            Res.string.listing_rating_count_format,
+                            listing.mockRating,
+                            listing.mockReviewCount
+                        ),
                         style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.85)
                     )
                 }
@@ -527,7 +539,7 @@ private fun SellerInfoCard(
             borderWidth = 1.dp,
             borderColor = Theme[colors][outline]
         ) {
-            Text("Profile")
+            Text(stringResource(Res.string.listing_profile))
         }
     }
 }

@@ -1,4 +1,67 @@
 <resources>
+    <string name="application_name">Availe</string>
+
+    <string name="generic_retry">Retry</string>
+    <string name="generic_refresh">Refresh</string>
+    <string name="generic_cancel">Cancel</string>
+    <string name="generic_back">Back</string>
+    <string name="generic_close">Close</string>
+    <string name="generic_expand">Expand</string>
+
+    <string name="accessibility_navigation_home">Home Screen</string>
+    <string name="accessibility_navigation_details">Details Screen</string>
+    <string name="accessibility_navigation_chat">Chat Screen</string>
+    <string name="accessibility_action_add">Add</string>
+    <string name="accessibility_action_logout">Logout</string>
+    <string name="accessibility_action_send">Send</string>
+    <string name="accessibility_action_dismiss">Dismiss</string>
+    <string name="accessibility_pull_to_refresh">Pull to refresh</string>
+    <string name="accessibility_location">Location</string>
+    <string name="accessibility_favorite">Favorite</string>
+
+    <string name="navigation_home">Availe</string>
+    <string name="navigation_details">Details</string>
+    <string name="navigation_chat">Chat</string>
+
+    <string name="authentication_log_in">Log In</string>
+    <string name="authentication_sign_in">Sign In</string>
+    <string name="authentication_guard_title">Sign in required</string>
+    <string name="authentication_guard_body">You need to be signed in to access this feature. Please sign in or create
+        an account.
+    </string>
+    <string name="authentication_service_unavailable">Authentication service unavailable.</string>
+    <string name="authentication_error_logout">An unexpected error occurred during logout.</string>
+    <string name="authentication_info_cancelled">Login cancelled</string>
+    <string name="authentication_listing_create_requirement">You must be logged in to create a listing</string>
+
+    <string name="home_empty_state">No listings found</string>
+    <string name="home_listing_exists">Listing already exists</string>
+
+    <string name="listing_not_found">Listing not found</string>
+    <string name="listing_price_total">Total Price</string>
+    <string name="listing_contact_seller">Contact Seller</string>
+    <string name="listing_book_now">Book Now</string>
+    <string name="listing_book_ticket">Book Ticket</string>
+    <string name="listing_profile">Profile</string>
+    <string name="listing_about">About this item</string>
+    <string name="listing_description_empty">No description provided.</string>
+    <string name="listing_identity_verified">Identity Verified</string>
+    <string name="listing_secure_guarantee">Secure transaction protected by Availe Guarantee.</string>
+    <string name="listing_rating_label">%s Rating</string>
+    <string name="listing_reviews_label">%d Reviews</string>
+    <string name="listing_rating_count_format">%s (%d)</string>
+    <string name="listing_editor_title_invalid">Title is invalid</string>
+    <string name="listing_editor_price_required">Price is required</string>
+
+    <string name="chat_title">Messaging</string>
+    <string name="chat_input_placeholder">Type a message...</string>
+    <string name="chat_status_connecting">Connecting...</string>
+    <string name="chat_status_handshaking">Connected (Handshaking)</string>
+    <string name="chat_status_authenticated">Authenticated</string>
+    <string name="chat_status_authentication_failed">Authentication Failed</string>
+    <string name="chat_status_disconnected">Disconnected</string>
+    <string name="chat_status_online">Online</string>
+
     <string name="error_no_internet">No internet connection. Please check your network.</string>
     <string name="error_request_timeout">The connection timed out. Please try again.</string>
     <string name="error_server_unreachable">The server is experiencing issues. Please try again later.</string>
