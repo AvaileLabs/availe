@@ -14,7 +14,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -29,6 +32,8 @@ import com.availelabs.availe.ui.components.WindowSize
 import com.availelabs.availe.ui.components.rememberWindowSize
 import com.availelabs.availe.ui.model.asString
 import com.availelabs.availe.ui.modifiers.refreshTrigger
+import com.availelabs.availe.ui.util.InfiniteGridHandler
+import com.availelabs.availe.ui.util.InfiniteListHandler
 import com.composables.icons.lucide.ArrowDown
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.Icon
@@ -104,20 +109,11 @@ private fun DesktopGridLayout(
 ) {
     val gridState = rememberLazyGridState()
 
-    val shouldLoadNextPage by remember {
-        derivedStateOf {
-            val layoutInfo = gridState.layoutInfo
-            val totalItemsNumber = layoutInfo.totalItemsCount
-            val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
-            lastVisibleItemIndex > (totalItemsNumber - 10)
-        }
-    }
-
-    LaunchedEffect(shouldLoadNextPage) {
-        if (shouldLoadNextPage && !homeState.isLoading && !homeState.endReached) {
-            onLoadNextPage()
-        }
-    }
+    InfiniteGridHandler(
+        gridState = gridState,
+        enabled = !homeState.isLoading && !homeState.endReached,
+        onLoadMore = onLoadNextPage
+    )
 
     val minColumnSize = if (isExpanded) 300.dp else 240.dp
 
@@ -188,20 +184,11 @@ private fun MobileListLayout(
 ) {
     val listState = rememberLazyListState()
 
-    val shouldLoadNextPage by remember {
-        derivedStateOf {
-            val layoutInfo = listState.layoutInfo
-            val totalItemsNumber = layoutInfo.totalItemsCount
-            val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
-            lastVisibleItemIndex > (totalItemsNumber - 5)
-        }
-    }
-
-    LaunchedEffect(shouldLoadNextPage) {
-        if (shouldLoadNextPage && !homeState.isLoading && !homeState.endReached) {
-            onLoadNextPage()
-        }
-    }
+    InfiniteListHandler(
+        listState = listState,
+        enabled = !homeState.isLoading && !homeState.endReached,
+        onLoadMore = onLoadNextPage
+    )
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),

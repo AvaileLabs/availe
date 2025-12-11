@@ -17,10 +17,15 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.features.chat.ChatScreen
-import com.availelabs.availe.features.home.HomeStore
 import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.*
-import com.composables.icons.lucide.*
+import com.availelabs.availe.ui.mapper.ActionIconMapper
+import com.availelabs.availe.ui.model.LayoutMode
+import com.availelabs.availe.ui.model.asString
+import com.composables.icons.lucide.ArrowLeft
+import com.composables.icons.lucide.House
+import com.composables.icons.lucide.LogOut
+import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.*
 import org.jetbrains.compose.resources.stringResource
 
@@ -37,6 +42,15 @@ fun AppShellScreen(
     val focusManager = LocalFocusManager.current
     val backDispatcher = appShellComponent.backDispatcher
     val windowSize = rememberWindowSize()
+
+    val layoutMode = when (windowSize) {
+        WindowSize.Expanded -> LayoutMode.MultiPane
+        else -> LayoutMode.SinglePane
+    }
+
+    LaunchedEffect(layoutMode) {
+        appShellComponent.onLayoutModeChanged(layoutMode)
+    }
 
     LaunchedEffect(activeConfiguration) {
         focusManager.clearFocus()
@@ -77,21 +91,14 @@ fun AppShellScreen(
                                 }
                             },
                             actions = {
-                                when (val activeInstance = childStack.active.instance) {
-                                    is AppShellChildComponent.Home -> {
-                                        if (authenticationState is AuthenticationState.LoggedIn) {
-                                            IconButton(
-                                                onClick = { activeInstance.component.onIntent(HomeStore.Intent.QuickCreateListingRequested) }
-                                            ) {
-                                                Icon(
-                                                    Lucide.CirclePlus,
-                                                    stringResource(Res.string.accessibility_action_add)
-                                                )
-                                            }
-                                        }
-                                    }
+                                val activeInstance = childStack.active.instance
+                                val childActions by activeInstance.actions.subscribeAsState()
 
-                                    else -> {}
+                                childActions.forEach { action ->
+                                    val iconVector = ActionIconMapper.map(action.icon)
+                                    IconButton(onClick = action.onClick) {
+                                        Icon(iconVector, action.label.asString())
+                                    }
                                 }
 
                                 if (authenticationState is AuthenticationState.LoggedIn) {
@@ -150,13 +157,8 @@ fun AppShellScreen(
                         )
                     }
 
-                    val isOverlayVisible = windowSize is WindowSize.Expanded
-                    LaunchedEffect(isOverlayVisible) {
-                        appShellComponent.setChatOverlayMode(isActive = isOverlayVisible)
-                    }
-
                     val overlayInstance = chatOverlay.child?.instance
-                    if (isOverlayVisible && overlayInstance != null) {
+                    if (layoutMode == LayoutMode.MultiPane && overlayInstance != null) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)

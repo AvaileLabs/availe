@@ -1,6 +1,8 @@
 package com.availelabs.availe.features.listingdetails
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
@@ -10,11 +12,13 @@ import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.ui.model.AppBarAction
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 
 interface IListingDetailsComponent {
     val state: StateFlow<ListingDetailsStore.State>
+    val actions: Value<List<AppBarAction>>
     fun onIntent(intent: ListingDetailsStore.Intent)
     fun onBackClicked()
     fun onContactSellerClicked(sellerEmail: Email)
@@ -38,6 +42,8 @@ class ListingDetailsComponent(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override val state: StateFlow<ListingDetailsStore.State> = store.stateFlow
+
+    override val actions: Value<List<AppBarAction>> = MutableValue(emptyList())
 
     init {
         val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())

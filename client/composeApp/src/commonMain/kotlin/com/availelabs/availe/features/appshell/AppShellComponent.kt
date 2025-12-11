@@ -25,6 +25,8 @@ import com.availelabs.availe.features.home.HomeComponent
 import com.availelabs.availe.features.home.IHomeComponent
 import com.availelabs.availe.features.listingdetails.IListingDetailsComponent
 import com.availelabs.availe.features.listingdetails.ListingDetailsComponent
+import com.availelabs.availe.ui.model.AppBarAction
+import com.availelabs.availe.ui.model.LayoutMode
 import com.availelabs.availe.ui.model.UiText
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
@@ -42,7 +44,7 @@ interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     val isAuthenticationLoading: Value<Boolean>
     val backDispatcher: BackDispatcher?
 
-    fun setChatOverlayMode(isActive: Boolean)
+    fun onLayoutModeChanged(mode: LayoutMode)
     fun expandChatOverlay()
     fun dismissChatOverlay()
     fun onBackClicked()
@@ -65,7 +67,7 @@ class AppShellComponent(
 
     private val childStackNavigation = StackNavigation<AppShellConfiguration>()
     private val chatOverlayNavigation = SlotNavigation<AppShellConfiguration.Chat>()
-    private var isChatOverlayModeActive = false
+    private var layoutMode = LayoutMode.SinglePane
 
     override val authenticationState: Value<AuthenticationState> = appContainer.sessionManager.authenticationState
 
@@ -107,8 +109,28 @@ class AppShellComponent(
         lifecycle.doOnDestroy { authenticationSubscription.cancel() }
     }
 
-    override fun setChatOverlayMode(isActive: Boolean) {
-        isChatOverlayModeActive = isActive
+    override fun onLayoutModeChanged(mode: LayoutMode) {
+        if (layoutMode == mode) return
+        layoutMode = mode
+
+        if (mode == LayoutMode.SinglePane) {
+            // Migration: MultiPane (Desktop) -> SinglePane (Mobile)
+            // If we have a chat in the overlay, dismiss it and push it to the main stack
+            val overlayChild = chatOverlay.value.child
+            if (overlayChild != null) {
+                val configuration = overlayChild.configuration
+                chatOverlayNavigation.dismiss()
+                childStackNavigation.bringToFront(configuration)
+            }
+        } else {
+            // Migration: SinglePane (Mobile) -> MultiPane (Desktop)
+            // If the top of the stack is a Chat, pop it and activate it in the overlay
+            val activeConfiguration = childStack.value.active.configuration
+            if (activeConfiguration is AppShellConfiguration.Chat) {
+                childStackNavigation.pop()
+                chatOverlayNavigation.activate(activeConfiguration)
+            }
+        }
     }
 
     @OptIn(DelicateDecomposeApi::class)
@@ -117,7 +139,7 @@ class AppShellComponent(
         if (currentSlot != null) {
             val configuration = currentSlot.configuration
             chatOverlayNavigation.dismiss()
-            childStackNavigation.pushToFront(configuration)
+            childStackNavigation.bringToFront(configuration)
         }
     }
 
@@ -199,10 +221,10 @@ class AppShellComponent(
                         val isAuthenticated =
                             appContainer.sessionManager.authenticationState.value is AuthenticationState.LoggedIn
                         if (isAuthenticated) {
-                            if (isChatOverlayModeActive) {
+                            if (layoutMode == LayoutMode.MultiPane) {
                                 chatOverlayNavigation.activate(AppShellConfiguration.Chat(recipientJid))
                             } else {
-                                childStackNavigation.pushToFront(AppShellConfiguration.Chat(recipientJid))
+                                childStackNavigation.bringToFront(AppShellConfiguration.Chat(recipientJid))
                             }
                         } else {
                             onShowLoginGuard()
@@ -240,9 +262,19 @@ class AppShellComponent(
 }
 
 sealed interface AppShellChildComponent {
-    data class Home(val component: IHomeComponent) : AppShellChildComponent
-    data class ListingDetails(val component: IListingDetailsComponent) : AppShellChildComponent
-    data class Chat(val component: IChatComponent) : AppShellChildComponent
+    val actions: Value<List<AppBarAction>>
+
+    data class Home(val component: IHomeComponent) : AppShellChildComponent {
+        override val actions: Value<List<AppBarAction>> = component.actions
+    }
+
+    data class ListingDetails(val component: IListingDetailsComponent) : AppShellChildComponent {
+        override val actions: Value<List<AppBarAction>> = component.actions
+    }
+
+    data class Chat(val component: IChatComponent) : AppShellChildComponent {
+        override val actions: Value<List<AppBarAction>> = component.actions
+    }
 }
 
 data class NavIcon(
