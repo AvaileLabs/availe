@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import availe.client.composeapp.generated.resources.*
 import com.availelabs.availe.ui.RefreshStateHolder
 import com.availelabs.availe.ui.components.ListingCard
-import com.availelabs.availe.ui.components.WindowSize
+import com.availelabs.availe.ui.components.WindowSizeClass
 import com.availelabs.availe.ui.components.rememberWindowSize
 import com.availelabs.availe.ui.model.asString
 import com.availelabs.availe.ui.modifiers.refreshTrigger
@@ -69,7 +69,7 @@ internal fun HomeScreen(
                 )
         ) {
             when (windowSize) {
-                WindowSize.Compact -> {
+                WindowSizeClass.Compact -> {
                     MobileListLayout(
                         homeState = homeState,
                         onListingClick = { homeComponent.onIntent(HomeStore.Intent.ListingClicked(it)) },
@@ -78,14 +78,14 @@ internal fun HomeScreen(
                     )
                 }
 
-                WindowSize.Medium,
-                WindowSize.Expanded -> {
+                WindowSizeClass.Medium,
+                WindowSizeClass.Expanded -> {
                     DesktopGridLayout(
                         homeState = homeState,
                         onListingClick = { homeComponent.onIntent(HomeStore.Intent.ListingClicked(it)) },
                         onRefresh = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) },
                         onLoadNextPage = { homeComponent.onIntent(HomeStore.Intent.LoadNextPage) },
-                        isExpanded = windowSize is WindowSize.Expanded
+                        isExpanded = windowSize is WindowSizeClass.Expanded
                     )
                 }
             }

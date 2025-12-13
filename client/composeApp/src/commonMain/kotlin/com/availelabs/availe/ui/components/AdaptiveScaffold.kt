@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import com.composables.uikit.styling.background
 import com.composables.uikit.styling.colors
@@ -12,7 +13,7 @@ import com.composeunstyled.ProvideContentColor
 import com.composeunstyled.theme.Theme
 
 @Composable
-fun AvaileScaffold(
+fun AdaptiveScaffold(
     modifier: Modifier = Modifier,
     appBar: (@Composable () -> Unit)? = null,
     sideBar: (@Composable () -> Unit)? = null,
@@ -23,11 +24,8 @@ fun AvaileScaffold(
 ) {
     val windowSize = rememberWindowSize()
 
-    // Desktop: Content-only (No Nav Bars)
-    // Tablet: SideBar
-    // Mobile: BottomBar
-    val isSideBarVisible = windowSize is WindowSize.Medium
-    val isBottomBarVisible = windowSize is WindowSize.Compact
+    val isSideBarVisible = windowSize !is WindowSizeClass.Compact
+    val isBottomBarVisible = windowSize is WindowSizeClass.Compact
 
     Row(
         modifier = modifier
@@ -49,7 +47,11 @@ fun AvaileScaffold(
                     appBar()
                 }
 
-                Box(modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clipToBounds()
+                ) {
                     content()
                 }
 

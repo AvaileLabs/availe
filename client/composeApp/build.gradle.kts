@@ -76,9 +76,17 @@ kotlin {
             dependsOn(commonMain)
         }
 
+        val nonWebMain by creating {
+            dependsOn(commonMain)
+        }
+
         jvmMain.dependsOn(nonAndroidMain)
         iosMain.dependsOn(nonAndroidMain)
         webMain.dependsOn(nonAndroidMain)
+
+        androidMain.dependsOn(nonWebMain)
+        jvmMain.dependsOn(nonWebMain)
+        iosMain.dependsOn(nonWebMain)
 
         androidMain.dependencies {
             implementation(compose.preview)
