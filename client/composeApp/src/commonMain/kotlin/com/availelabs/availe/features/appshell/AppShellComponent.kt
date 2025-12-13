@@ -50,6 +50,7 @@ interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     fun onLoginClicked()
     fun onCancelLoginClicked()
     fun onLogoutClicked()
+    fun onHomeTabClicked()
 }
 
 class AppShellComponent(
@@ -112,8 +113,6 @@ class AppShellComponent(
         layoutMode = mode
 
         if (mode == LayoutMode.SinglePane) {
-            // Migration: MultiPane (Desktop) -> SinglePane (Mobile)
-            // If we have a chat in the overlay, dismiss it and push it to the main stack
             val overlayChild = chatOverlay.value.child
             if (overlayChild != null) {
                 val configuration = overlayChild.configuration
@@ -121,8 +120,6 @@ class AppShellComponent(
                 childStackNavigation.bringToFront(configuration)
             }
         } else {
-            // Migration: SinglePane (Mobile) -> MultiPane (Desktop)
-            // If the top of the stack is a Chat, pop it and activate it in the overlay
             val activeConfiguration = childStack.value.active.configuration
             if (activeConfiguration is AppShellConfiguration.Chat) {
                 childStackNavigation.pop()
@@ -162,6 +159,10 @@ class AppShellComponent(
         scope.launch {
             appContainer.authenticationRepository.logout()
         }
+    }
+
+    override fun onHomeTabClicked() {
+        childStackNavigation.bringToFront(AppShellConfiguration.Home)
     }
 
     private fun calculateInitialStack(intent: AppShellIntent): List<AppShellConfiguration> {
