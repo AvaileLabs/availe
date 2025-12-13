@@ -1,5 +1,6 @@
 package com.availelabs.orchestration.ejabberd
 
+import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedAuthenticationConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
@@ -36,11 +37,20 @@ internal fun ejabberdRunSpec(): ContainerRunSpecification<EjabberdPortsList, Eja
     val pemFile = File(generatedConfigDirectory, "server.pem")
     val jwkFile = File(generatedConfigDirectory, "keycloak.jwk")
 
+    /**
+     * We include the host IP in the environment variables solely to trigger the
+     * drift detection logic in DockerContainerManager when the IP changes.
+     * Ejabberd doesn't use this directly, but it still forces it to reload the correct IP.
+     */
+    val environmentVariables = listOf(
+        "AVAILE_HOST_IP_TRACKER=${NetworkConstants.HOST_IP}"
+    )
+
     return ContainerRunSpecification(
         name = "availe-ejabberd",
         image = "ghcr.io/processone/ejabberd",
         tag = "25.10",
-        environmentVariables = emptyList(),
+        environmentVariables = environmentVariables,
         portMappings = EjabberdPortsList,
         volumes = EjabberdVolumesList(
             configHostPath = configFile.absolutePath,

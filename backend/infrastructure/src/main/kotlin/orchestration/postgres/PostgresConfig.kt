@@ -1,5 +1,6 @@
 package com.availelabs.orchestration.postgres
 
+import com.availelabs.availe.NetworkConstants
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.availelabs.utils.loadGradleProperties
 
@@ -26,7 +27,8 @@ internal fun postgresRunSpec(): ContainerRunSpecification<PostgresPortsList, Pos
     val environmentVariables = listOf(
         "POSTGRES_DB=$dbName",
         "POSTGRES_USER=${config.dbUser}",
-        "POSTGRES_PASSWORD=${config.dbPassword}"
+        "POSTGRES_PASSWORD=${config.dbPassword}",
+        "AVAILE_HOST_IP_TRACKER=${NetworkConstants.HOST_IP}"
     )
 
     return ContainerRunSpecification(
