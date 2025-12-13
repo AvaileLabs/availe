@@ -1,4 +1,4 @@
-import com.availelabs.buildlogic.getHostIpAddress
+import com.availelabs.buildlogic.HostIpValueSource
 import com.github.gmazzo.buildconfig.BuildConfigSourceSet
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -52,7 +52,8 @@ kotlin {
 
 val hostIpProvider = providers.provider {
     if (useLocalIp) {
-        "\"${getHostIpAddress()}\""
+        val ipAddress = providers.of(HostIpValueSource::class) {}.get()
+        "\"$ipAddress\""
     } else {
         "\"localhost\""
     }
