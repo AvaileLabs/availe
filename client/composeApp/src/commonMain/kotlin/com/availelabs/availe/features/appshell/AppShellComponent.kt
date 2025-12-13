@@ -27,7 +27,6 @@ import com.availelabs.availe.features.listingdetails.IListingDetailsComponent
 import com.availelabs.availe.features.listingdetails.ListingDetailsComponent
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.LayoutMode
-import com.availelabs.availe.ui.model.UiText
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.MessageCircle
@@ -61,8 +60,7 @@ class AppShellComponent(
     override val isAuthenticationLoading: Value<Boolean>,
     private val onExplicitLogin: () -> Unit,
     private val onCancelLogin: () -> Unit,
-    private val onShowLoginGuard: () -> Unit,
-    private val onShowToast: (UiText) -> Unit
+    private val onShowLoginGuard: () -> Unit
 ) : IAppShellComponent, ComponentContext by componentContext {
 
     private val childStackNavigation = StackNavigation<AppShellConfiguration>()
@@ -207,7 +205,7 @@ class AppShellComponent(
                     onNavigateToListingDetails = { listingId ->
                         childStackNavigation.pushNew(AppShellConfiguration.ListingDetails(listingId))
                     },
-                    onShowError = onShowToast
+                    messageService = appContainer.messageService
                 )
             )
 

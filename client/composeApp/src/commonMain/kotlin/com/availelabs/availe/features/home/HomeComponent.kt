@@ -12,8 +12,10 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.data.repositories.ISessionManager
+import com.availelabs.availe.data.services.IMessageService
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.domain.model.ToastMessage
 import com.availelabs.availe.ui.model.ActionIcon
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
@@ -31,7 +33,7 @@ class HomeComponent(
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionManager,
     private val onNavigateToListingDetails: (ListingId) -> Unit,
-    private val onShowError: (UiText) -> Unit
+    private val messageService: IMessageService
 ) : IHomeComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -56,7 +58,9 @@ class HomeComponent(
             store.labels.collect { label ->
                 when (label) {
                     is HomeStore.Label.NavigateToListingDetails -> onNavigateToListingDetails(label.listingId)
-                    is HomeStore.Label.DisplayError -> onShowError(label.message)
+                    is HomeStore.Label.DisplayError -> {
+                        messageService.show(ToastMessage.Error(label.message))
+                    }
                 }
             }
         }

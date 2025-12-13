@@ -111,7 +111,7 @@ private fun DesktopGridLayout(
 
     InfiniteGridHandler(
         gridState = gridState,
-        enabled = !homeState.isLoading && !homeState.endReached,
+        enabled = !homeState.isLoading && !homeState.endReached && homeState.paginationError == null,
         onLoadMore = onLoadNextPage
     )
 
@@ -167,6 +167,15 @@ private fun DesktopGridLayout(
                     }
                 }
             }
+
+            if (homeState.paginationError != null) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    PaginationErrorFooter(
+                        error = homeState.paginationError.asString(),
+                        onRetry = onLoadNextPage
+                    )
+                }
+            }
         }
 
         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -186,7 +195,7 @@ private fun MobileListLayout(
 
     InfiniteListHandler(
         listState = listState,
-        enabled = !homeState.isLoading && !homeState.endReached,
+        enabled = !homeState.isLoading && !homeState.endReached && homeState.paginationError == null,
         onLoadMore = onLoadNextPage
     )
 
@@ -239,6 +248,35 @@ private fun MobileListLayout(
                     }
                 }
             }
+            if (homeState.paginationError != null) {
+                item {
+                    PaginationErrorFooter(
+                        error = homeState.paginationError.asString(),
+                        onRetry = onLoadNextPage
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaginationErrorFooter(
+    error: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(error)
+        Spacer(Modifier.height(8.dp))
+        PrimaryButton(onClick = onRetry) {
+            Text(stringResource(Res.string.generic_retry))
         }
     }
 }

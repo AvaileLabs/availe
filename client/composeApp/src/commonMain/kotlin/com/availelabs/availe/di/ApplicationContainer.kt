@@ -12,6 +12,8 @@ import com.availelabs.availe.data.network.SafeNetworkCaller
 import com.availelabs.availe.data.preferences.ListingPreferences
 import com.availelabs.availe.data.repositories.*
 import com.availelabs.availe.data.repositories.store.ListingStoreFactory
+import com.availelabs.availe.data.services.IMessageService
+import com.availelabs.availe.data.services.MessageService
 import com.availelabs.availe.data.sources.local.ListingLocalDataSource
 import com.availelabs.availe.data.sources.local.LocalDataCleaner
 import com.availelabs.availe.data.sources.remote.AuthenticationRemoteDataSource
@@ -37,6 +39,7 @@ interface IApplicationContainer {
     val authenticationRepository: IAuthenticationRepository
     val listingRepository: IListingRepository
     val messagingRepository: IMessagingRepository
+    val messageService: IMessageService
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
@@ -187,11 +190,14 @@ fun createApplicationContainer(
         safeNetworkCaller = safeNetworkCaller
     )
 
+    val messageService = MessageService(lifecycle)
+
     return ApplicationContainer(
         sessionManager = sessionManager,
         authenticationRepository = authenticationRepository,
         listingRepository = listingRepository,
-        messagingRepository = messagingRepository
+        messagingRepository = messagingRepository,
+        messageService = messageService
     )
 }
 
@@ -199,5 +205,6 @@ private class ApplicationContainer(
     override val sessionManager: ISessionManager,
     override val authenticationRepository: IAuthenticationRepository,
     override val listingRepository: IListingRepository,
-    override val messagingRepository: IMessagingRepository
+    override val messagingRepository: IMessagingRepository,
+    override val messageService: IMessageService
 ) : IApplicationContainer

@@ -6,10 +6,8 @@ import com.arkivanov.decompose.router.slot.*
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.router.webhistory.WebNavigation
 import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.operator.map
-import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.lifecycle.doOnDestroy
@@ -71,8 +69,7 @@ class RootComponent(
 
     private val isAuthenticationLoading: Value<Boolean> = authenticationState.map { it.isLoading }
 
-    private val _toastMessages = MutableValue<List<ToastMessage>>(emptyList())
-    override val toastMessages: Value<List<ToastMessage>> = _toastMessages
+    override val toastMessages: Value<List<ToastMessage>> = appContainer.messageService.toastMessages
 
     private val childStackNavigation = StackNavigation<RootConfiguration>()
     private val loginOverlayNavigation = SlotNavigation<LoginConfiguration>()
@@ -136,7 +133,7 @@ class RootComponent(
                     }
                 }
 
-                showToast(toast)
+                appContainer.messageService.show(toast)
             }
         }
     }
@@ -158,16 +155,7 @@ class RootComponent(
     }
 
     override fun dismissToast(id: ToastId) {
-        _toastMessages.update { list -> list.filter { it.id != id } }
-    }
-
-    private fun showToast(toast: ToastMessage) {
-        _toastMessages.update { it + toast }
-
-        scope.launch {
-            delay(toast.durationMilliseconds)
-            dismissToast(toast.id)
-        }
+        appContainer.messageService.dismiss(id)
     }
 
     private fun createChildComponent(
@@ -185,10 +173,7 @@ class RootComponent(
                         isAuthenticationLoading = isAuthenticationLoading,
                         onExplicitLogin = { mainStore.accept(MainStore.Intent.LoginRequested) },
                         onCancelLogin = { mainStore.accept(MainStore.Intent.CancelLoginRequested) },
-                        onShowLoginGuard = { loginOverlayNavigation.activate(LoginConfiguration) },
-                        onShowToast = { uiText ->
-                            showToast(ToastMessage.Error(text = uiText))
-                        }
+                        onShowLoginGuard = { loginOverlayNavigation.activate(LoginConfiguration) }
                     )
                 )
             }

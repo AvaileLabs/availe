@@ -1,6 +1,8 @@
 package com.availelabs.availe.features.home
 
-import availe.client.composeapp.generated.resources.*
+import availe.client.composeapp.generated.resources.Res
+import availe.client.composeapp.generated.resources.authentication_listing_create_requirement
+import availe.client.composeapp.generated.resources.home_listing_exists
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
@@ -51,6 +53,7 @@ interface HomeStore : Store<Intent, State, Label> {
         val isLoading: Boolean = false,
         val isRefreshing: Boolean = false,
         val inlineError: UiText? = null,
+        val paginationError: UiText? = null,
         val isAuthenticated: Boolean = false,
         val currentPage: Int = 0,
         val endReached: Boolean = false
@@ -80,7 +83,7 @@ class HomeStoreFactory(
 
     private sealed interface Action {
         data class ListingsLoaded(val listings: List<Listing>, val page: Int) : Action
-        data class ListingsError(val message: UiText) : Action
+        data class ListingsError(val message: UiText, val isPagination: Boolean) : Action
         data object ObserveAuthentication : Action
         data object ObserveSessionInvalidation : Action
         data object DataPurged : Action
@@ -92,6 +95,7 @@ class HomeStoreFactory(
         data class AppendListings(val listingUiModels: List<ListingUiModel>, val page: Int) : Message
         data class ReplaceListings(val listingUiModels: List<ListingUiModel>) : Message
         data class SetInlineError(val message: UiText?) : Message
+        data class SetPaginationError(val message: UiText?) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
         data class SetEndReached(val endReached: Boolean) : Message
         data object ResetState : Message
@@ -136,7 +140,9 @@ class HomeStoreFactory(
                 }
 
                 is Action.ListingsError -> {
-                    if (state().listingUiModels.isEmpty()) {
+                    if (action.isPagination) {
+                        dispatch(Message.SetPaginationError(action.message))
+                    } else if (state().listingUiModels.isEmpty()) {
                         dispatch(Message.SetInlineError(action.message))
                     } else {
                         publish(Label.DisplayError(action.message))
@@ -226,6 +232,7 @@ class HomeStoreFactory(
 
             dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = true))
             dispatch(Message.SetInlineError(null))
+            dispatch(Message.SetPaginationError(null))
 
             if (page == 0) {
                 dispatch(Message.SetEndReached(false))
@@ -264,7 +271,7 @@ class HomeStoreFactory(
                         is StoreReadResponse.Error -> {
                             val appError = response.toAppError()
                             val uiText = ErrorMessageMapper.map(appError)
-                            forward(Action.ListingsError(uiText))
+                            forward(Action.ListingsError(uiText, isPagination = trigger == FetchTrigger.LoadMore))
                             dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
                         }
 
@@ -362,6 +369,7 @@ class HomeStoreFactory(
                 )
 
                 is Message.SetInlineError -> copy(inlineError = msg.message)
+                is Message.SetPaginationError -> copy(paginationError = msg.message)
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
                 is Message.SetEndReached -> copy(endReached = msg.endReached)
                 Message.ResetState -> copy(
@@ -369,7 +377,9 @@ class HomeStoreFactory(
                     currentPage = 0,
                     endReached = false,
                     isLoading = false,
-                    isRefreshing = false
+                    isRefreshing = false,
+                    inlineError = null,
+                    paginationError = null
                 )
             }
     }
