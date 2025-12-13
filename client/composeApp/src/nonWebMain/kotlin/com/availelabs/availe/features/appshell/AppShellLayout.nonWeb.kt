@@ -125,7 +125,7 @@ private fun CompactShell(
                     activeConfiguration is AppShellConfiguration.Home || activeConfiguration.canonicalParent is AppShellConfiguration.Home
                 ShellNavigationItem(
                     selected = isHomeSelected,
-                    onClick = { /* Navigate Home Logic */ },
+                    onClick = { appShellComponent.onHomeTabClicked() },
                     icon = { Icon(Lucide.House, null) },
                     label = { Text(stringResource(Res.string.navigation_home)) },
                     modifier = Modifier.weight(1f)
@@ -207,7 +207,7 @@ private fun NonCompactShell(
                         activeConfiguration is AppShellConfiguration.Home || activeConfiguration.canonicalParent is AppShellConfiguration.Home
                     ShellRailNavigationItem(
                         selected = isHomeSelected,
-                        onClick = { /* Navigate Home Logic */ },
+                        onClick = { appShellComponent.onHomeTabClicked() },
                         icon = { Icon(Lucide.House, null) }
                     )
                 }

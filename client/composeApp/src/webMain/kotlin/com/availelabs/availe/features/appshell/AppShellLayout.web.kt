@@ -57,7 +57,7 @@ actual fun AppShellLayout(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(
-                            onClick = { /* Navigate Home Logic */ },
+                            onClick = { appShellComponent.onHomeTabClicked() },
                             backgroundColor = if (isHomeSelected) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
                         ) {
                             Row(

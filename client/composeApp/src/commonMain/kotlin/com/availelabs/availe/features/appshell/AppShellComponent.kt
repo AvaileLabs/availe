@@ -162,6 +162,7 @@ class AppShellComponent(
     }
 
     override fun onHomeTabClicked() {
+        dismissChatOverlay()
         childStackNavigation.bringToFront(AppShellConfiguration.Home)
     }
 
