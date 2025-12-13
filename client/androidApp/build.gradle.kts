@@ -1,4 +1,4 @@
-import com.availelabs.buildlogic.getHostIpAddress
+import com.availelabs.buildlogic.HostIpValueSource
 
 plugins {
     id("org.jetbrains.kotlin.android")
@@ -27,7 +27,7 @@ abstract class GenerateNetworkSecurityConfig : DefaultTask() {
     @TaskAction
     fun generate() {
         val xmlContent = templateFile.get().asFile.readText()
-            .replace($$"${HOST_IP}", hostIpAddress.get())
+            .replace("\${HOST_IP}", hostIpAddress.get())
 
         val outputFile = outputDirectory.get().file("xml/network_security_config.xml").asFile
         outputFile.parentFile.mkdirs()
@@ -38,7 +38,7 @@ abstract class GenerateNetworkSecurityConfig : DefaultTask() {
 val generateDebugNetworkSecurityConfig =
     tasks.register<GenerateNetworkSecurityConfig>("generateDebugNetworkSecurityConfig") {
         templateFile.set(layout.projectDirectory.file("src/main/res-templates/network_security_config.xml.tpl"))
-        hostIpAddress.set(providers.provider { getHostIpAddress() })
+        hostIpAddress.set(providers.of(HostIpValueSource::class) {})
         outputDirectory.set(layout.buildDirectory.dir("generated/networkSecurity/debug/res"))
     }
 
