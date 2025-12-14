@@ -10,7 +10,7 @@ loglevel: info
 certfiles:
   - "/opt/ejabberd/conf/server.pem"
 
-auth_method: [ jwt ]
+auth_method: [ jwt, sql ]
 jwt_key: "@KEYCLOAK_URL@"
 jwt_jid_field: "jid"
 
@@ -83,7 +83,6 @@ api_permissions:
       - "!start"
 
 modules:
-  mod_admin_update_sql: { }
   mod_adhoc: { }
   mod_admin_extra: { }
   mod_announce:

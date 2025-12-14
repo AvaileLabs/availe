@@ -10,6 +10,8 @@ import com.availelabs.orchestration.opensearch.OpenSearchConfig
 import com.availelabs.orchestration.opensearch.OpenSearchConfigGen
 import com.availelabs.orchestration.opensearch.OpenSearchInitializer
 import com.availelabs.orchestration.postgres.PostgresConfig
+import com.availelabs.orchestration.postgresejabberd.PostgresEjabberdConfig
+import com.availelabs.orchestration.postgreskeycloak.PostgresKeycloakConfig
 import com.availelabs.provisioning.PostgresProvisioner
 import com.availelabs.provisioning.keycloak.KeycloakProvisioner
 import com.availelabs.utils.ServiceWaiter
@@ -24,8 +26,12 @@ internal class InfrastructureManager(
     private val keycloakProvisioner: KeycloakProvisioner,
     private val hostSystemManager: HostSystemManager,
     private val postgresConfiguration: PostgresConfig,
+    private val postgresKeycloakConfiguration: PostgresKeycloakConfig,
+    private val postgresEjabberdConfiguration: PostgresEjabberdConfig,
     private val openSearchConfig: OpenSearchConfig,
     private val postgresRunSpecification: ContainerRunSpecification<*, *>,
+    private val postgresKeycloakRunSpecification: ContainerRunSpecification<*, *>,
+    private val postgresEjabberdRunSpecification: ContainerRunSpecification<*, *>,
     private val keycloakRunSpecification: ContainerRunSpecification<*, *>,
     private val ejabberdRunSpecification: ContainerRunSpecification<*, *>,
     private val openSearchNode1RunSpecification: ContainerRunSpecification<*, *>,
@@ -40,11 +46,15 @@ internal class InfrastructureManager(
         openSearchNode1RunSpecification,
         ejabberdRunSpecification,
         keycloakRunSpecification,
+        postgresKeycloakRunSpecification,
+        postgresEjabberdRunSpecification,
         postgresRunSpecification
     )
 
     private val containerRunSpecificationByContainerName: Map<String, ContainerRunSpecification<*, *>> = listOf(
         postgresRunSpecification,
+        postgresKeycloakRunSpecification,
+        postgresEjabberdRunSpecification,
         keycloakRunSpecification,
         ejabberdRunSpecification,
         openSearchNode1RunSpecification,
@@ -75,12 +85,28 @@ internal class InfrastructureManager(
             }
 
             executeProvisioningStep(
-                stepName = "Postgres Database",
+                stepName = "Postgres Database (Main)",
                 containerNameForLogs = postgresRunSpecification.name
             ) {
                 containerOrchestrator.orchestrationSetup(listOf(postgresRunSpecification))
                 serviceWaiter.waitForPostgres(postgresConfiguration)
                 postgresProvisioner.provision()
+            }
+
+            executeProvisioningStep(
+                stepName = "Postgres Database (Keycloak Dedicated)",
+                containerNameForLogs = postgresKeycloakRunSpecification.name
+            ) {
+                containerOrchestrator.orchestrationSetup(listOf(postgresKeycloakRunSpecification))
+                serviceWaiter.waitForPostgresKeycloak(postgresKeycloakConfiguration)
+            }
+
+            executeProvisioningStep(
+                stepName = "Postgres Database (Ejabberd Dedicated)",
+                containerNameForLogs = postgresEjabberdRunSpecification.name
+            ) {
+                containerOrchestrator.orchestrationSetup(listOf(postgresEjabberdRunSpecification))
+                serviceWaiter.waitForPostgresEjabberd(postgresEjabberdConfiguration)
             }
 
             executeProvisioningStep(
@@ -118,14 +144,16 @@ internal class InfrastructureManager(
                 keycloakProvisioner.provision()
             }
 
+            val ejabberdContainerName = ejabberdRunSpecification.name
+
             executeProvisioningStep(
                 stepName = "Ejabberd Messaging Service",
-                containerNameForLogs = ejabberdRunSpecification.name,
+                containerNameForLogs = ejabberdContainerName,
                 performZombieCheck = true
             ) {
                 generateEjabberdConfigurationFiles()
                 containerOrchestrator.orchestrationSetup(listOf(ejabberdRunSpecification))
-                serviceWaiter.waitForEjabberd(ejabberdRunSpecification.name)
+                serviceWaiter.waitForEjabberd(ejabberdContainerName)
             }
 
             logger.info(">>> SYSTEM PROVISIONING COMPLETE <<<")

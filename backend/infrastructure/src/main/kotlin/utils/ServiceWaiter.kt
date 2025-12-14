@@ -6,6 +6,8 @@ import com.availelabs.orchestration.keycloak.KeycloakPortsList
 import com.availelabs.orchestration.opensearch.OpenSearchConfig
 import com.availelabs.orchestration.opensearch.OpenSearchPortsList
 import com.availelabs.orchestration.postgres.PostgresConfig
+import com.availelabs.orchestration.postgresejabberd.PostgresEjabberdConfig
+import com.availelabs.orchestration.postgreskeycloak.PostgresKeycloakConfig
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -54,6 +56,76 @@ internal class ServiceWaiter(private val dockerContainerManager: DockerContainer
             }
         }
         throw IllegalStateException("Database not ready after ${timeoutSeconds}s: ${lastError?.message}", lastError)
+    }
+
+    fun waitForPostgresKeycloak(postgresKeycloakConfiguration: PostgresKeycloakConfig, timeoutSeconds: Long = 60) {
+        logger.info("Waiting for Keycloak Database connection at ${postgresKeycloakConfiguration.databaseUrl}...")
+        val deadline = System.currentTimeMillis() + timeoutSeconds * 1000
+
+        val connectionProperties = Properties().apply {
+            setProperty("user", postgresKeycloakConfiguration.databaseUser)
+            setProperty("password", postgresKeycloakConfiguration.databasePassword)
+            setProperty("loginTimeout", "5")
+            setProperty("socketTimeout", "5")
+            setProperty("connectTimeout", "5")
+        }
+
+        var lastError: Throwable? = null
+
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                DriverManager.getConnection(postgresKeycloakConfiguration.databaseUrl, connectionProperties)
+                    .use { connection ->
+                        if (connection.isValid(5)) {
+                            logger.info("Keycloak Database connection successful.")
+                            return
+                        }
+                    }
+            } catch (throwable: Throwable) {
+                lastError = throwable
+                logger.debug("Keycloak Database not yet ready: ${throwable.message}")
+                Thread.sleep(1_000)
+            }
+        }
+        throw IllegalStateException(
+            "Keycloak Database not ready after ${timeoutSeconds}s: ${lastError?.message}",
+            lastError
+        )
+    }
+
+    fun waitForPostgresEjabberd(postgresEjabberdConfiguration: PostgresEjabberdConfig, timeoutSeconds: Long = 60) {
+        logger.info("Waiting for Dedicated Ejabberd database connection at ${postgresEjabberdConfiguration.databaseUrl}...")
+        val deadline = System.currentTimeMillis() + timeoutSeconds * 1000
+
+        val connectionProperties = Properties().apply {
+            setProperty("user", postgresEjabberdConfiguration.databaseUser)
+            setProperty("password", postgresEjabberdConfiguration.databasePassword)
+            setProperty("loginTimeout", "5")
+            setProperty("socketTimeout", "5")
+            setProperty("connectTimeout", "5")
+        }
+
+        var lastError: Throwable? = null
+
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                DriverManager.getConnection(postgresEjabberdConfiguration.databaseUrl, connectionProperties)
+                    .use { connection ->
+                        if (connection.isValid(5)) {
+                            logger.info("Dedicated Ejabberd Database connection successful.")
+                            return
+                        }
+                    }
+            } catch (throwable: Throwable) {
+                lastError = throwable
+                logger.debug("Dedicated Ejabberd Database not yet ready: ${throwable.message}")
+                Thread.sleep(1_000)
+            }
+        }
+        throw IllegalStateException(
+            "Dedicated Ejabberd Database not ready after ${timeoutSeconds}s: ${lastError?.message}",
+            lastError
+        )
     }
 
     fun waitForKeycloak(timeoutSeconds: Long = 120) {

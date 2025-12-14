@@ -38,6 +38,6 @@ internal fun postgresRunSpec(): ContainerRunSpecification<PostgresPortsList, Pos
         environmentVariables = environmentVariables,
         portMappings = PostgresPortsList,
         volumes = PostgresVolumesList,
-        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
     )
 }

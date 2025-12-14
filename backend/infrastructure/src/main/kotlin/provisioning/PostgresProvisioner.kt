@@ -1,6 +1,5 @@
 package com.availelabs.provisioning
 
-import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.postgres.PostgresConfig
 import com.availelabs.provisioning.keycloak.specs.KeycloakDesiredState
 import org.slf4j.LoggerFactory
@@ -12,30 +11,14 @@ internal class PostgresProvisioner(private val postgresConfiguration: PostgresCo
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun provision() {
-        logger.info("Provisioning Postgres...")
+        logger.info("Provisioning Postgres (Main Application)...")
         provisionKeycloakSchema()
-        provisionEjabberdSchema()
-        logger.info("Postgres provisioning complete.")
+        logger.info("Postgres (Main Application) provisioning complete.")
     }
 
     private fun provisionKeycloakSchema() {
         val schemaName = KeycloakDesiredState.DB_SCHEMA_NAME
         createSchemaIfNotExists(schemaName)
-    }
-
-    private fun provisionEjabberdSchema() {
-        val schemaName = SharedNetworkConstants.DATABASE_SCHEMA_XMPP
-        createSchemaIfNotExists(schemaName)
-
-        // Ejabberd requires the search_path to be set explicitly for the user,
-        // otherwise it defaults to 'public' and fails to find/create tables in the correct namespace.
-        val alterRoleStatement = "ALTER ROLE ${postgresConfiguration.dbUser} SET search_path TO $schemaName, public"
-        executeSqlStatement(alterRoleStatement)
-        logger.info(
-            "User '{}' search path updated to '{}'. Ejabberd will handle table creation (update_sql_schema=true).",
-            postgresConfiguration.dbUser,
-            schemaName
-        )
     }
 
     private fun createSchemaIfNotExists(schemaName: String) {

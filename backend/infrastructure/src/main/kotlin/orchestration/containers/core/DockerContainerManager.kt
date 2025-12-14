@@ -82,6 +82,13 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         }
     }
 
+    fun getRunningContainerId(containerName: String): String {
+        return when (val status = getContainerStatus(containerName)) {
+            is ContainerStatus.ContainerRunning -> status.containerIdentifier
+            else -> throw IllegalStateException("Container '$containerName' is not running or not found.")
+        }
+    }
+
     fun stopAndRemoveContainer(containerName: String) {
         logger.info("Attempting to stop and remove container '{}'...", containerName)
         val containerSummary = dockerClient.listContainersCmd()

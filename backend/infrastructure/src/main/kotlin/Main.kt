@@ -13,6 +13,10 @@ import com.availelabs.orchestration.opensearch.openSearchNode1Spec
 import com.availelabs.orchestration.opensearch.openSearchNode2Spec
 import com.availelabs.orchestration.postgres.loadPostgresConfig
 import com.availelabs.orchestration.postgres.postgresRunSpec
+import com.availelabs.orchestration.postgresejabberd.loadPostgresEjabberdConfig
+import com.availelabs.orchestration.postgresejabberd.postgresEjabberdRunSpecification
+import com.availelabs.orchestration.postgreskeycloak.loadPostgresKeycloakConfig
+import com.availelabs.orchestration.postgreskeycloak.postgresKeycloakRunSpecification
 import com.availelabs.provisioning.PostgresProvisioner
 import com.availelabs.provisioning.keycloak.KeycloakProvisioner
 import com.availelabs.provisioning.keycloak.reconcilers.ClientsReconciler
@@ -50,10 +54,14 @@ internal fun main(args: Array<String>) {
         )
 
         val postgresConfiguration = loadPostgresConfig()
+        val postgresKeycloakConfiguration = loadPostgresKeycloakConfig()
+        val postgresEjabberdConfiguration = loadPostgresEjabberdConfig()
         val keycloakConfiguration = loadKeycloakConfig()
         val openSearchConfig = loadOpenSearchConfig()
 
         val postgresRunSpecification = postgresRunSpec()
+        val postgresKeycloakRunSpecification = postgresKeycloakRunSpecification()
+        val postgresEjabberdRunSpecification = postgresEjabberdRunSpecification()
         val keycloakRunSpecification = keycloakRunSpec()
         val ejabberdRunSpecification = ejabberdRunSpec()
         val openSearchNode1RunSpecification = openSearchNode1Spec()
@@ -82,8 +90,12 @@ internal fun main(args: Array<String>) {
             keycloakProvisioner = keycloakProvisioner,
             hostSystemManager = hostSystemManager,
             postgresConfiguration = postgresConfiguration,
+            postgresKeycloakConfiguration = postgresKeycloakConfiguration,
+            postgresEjabberdConfiguration = postgresEjabberdConfiguration,
             openSearchConfig = openSearchConfig,
             postgresRunSpecification = postgresRunSpecification,
+            postgresKeycloakRunSpecification = postgresKeycloakRunSpecification,
+            postgresEjabberdRunSpecification = postgresEjabberdRunSpecification,
             keycloakRunSpecification = keycloakRunSpecification,
             ejabberdRunSpecification = ejabberdRunSpecification,
             openSearchNode1RunSpecification = openSearchNode1RunSpecification,
