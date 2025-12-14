@@ -9,6 +9,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.sql.DriverManager
+import java.util.*
 
 internal class PostgresProvisioner(private val postgresConfiguration: PostgresConfig) {
 
@@ -63,49 +64,40 @@ internal class PostgresProvisioner(private val postgresConfiguration: PostgresCo
 
         val sqlContent = response.body()
 
-        val statements = sqlContent.split(";")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
+        val cleanSqlContent = sqlContent
+            .replace(Regex("(?m)^\\s*--.*$"), "")
+            .replace(Regex("(?s)/\\*.*?\\*/"), "")
+            .lines()
+            .filter { it.isNotBlank() }
+            .joinToString("\n")
 
-        try {
-            DriverManager.getConnection(
-                postgresConfiguration.dbUrl,
-                postgresConfiguration.dbUser,
-                postgresConfiguration.dbPassword
-            ).use { connection ->
-                connection.createStatement().use { statement ->
-                    statements.forEach { sql ->
-                        try {
-                            statement.execute(sql)
-                        } catch (e: Exception) {
-                            val message = e.message?.lowercase() ?: ""
-                            if (!message.contains("already exists")) {
-                                logger.warn("Error executing SQL statement: $sql", e)
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (throwable: Throwable) {
-            logger.error("Failed to apply Ejabberd SQL schema", throwable)
-            throw IllegalStateException("Could not apply Ejabberd SQL schema", throwable)
-        }
+        executeSqlStatement(cleanSqlContent)
     }
 
     private fun executeSqlStatement(sqlStatement: String) {
+        val connectionProperties = Properties().apply {
+            setProperty("user", postgresConfiguration.dbUser)
+            setProperty("password", postgresConfiguration.dbPassword)
+            setProperty("allowMultiQueries", "true")
+        }
+
         try {
             DriverManager.getConnection(
                 postgresConfiguration.dbUrl,
-                postgresConfiguration.dbUser,
-                postgresConfiguration.dbPassword
+                connectionProperties
             ).use { databaseConnection ->
                 databaseConnection.createStatement().use { statement ->
                     statement.execute(sqlStatement)
                 }
             }
         } catch (throwable: Throwable) {
-            logger.error("Failed to execute SQL: {}", sqlStatement, throwable)
-            throw IllegalStateException("Could not execute SQL statement: ${throwable.message}", throwable)
+            val message = throwable.message?.lowercase() ?: ""
+            if (!message.contains("already exists")) {
+                logger.error("Failed to execute SQL: {}", sqlStatement.take(100) + "...", throwable)
+                throw IllegalStateException("Could not execute SQL statement: ${throwable.message}", throwable)
+            } else {
+                logger.info("SQL execution skipped (objects already exist).")
+            }
         }
     }
 }

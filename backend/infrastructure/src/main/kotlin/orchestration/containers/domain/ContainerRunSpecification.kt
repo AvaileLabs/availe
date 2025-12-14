@@ -9,9 +9,16 @@ internal data class ContainerRunSpecification<P : ContainerRunSpecification.Port
     val environmentVariables: List<String> = emptyList(),
     val portMappings: P,
     val volumes: V,
+    val ulimits: List<Ulimit> = emptyList(),
     val restartPolicy: RestartPolicy = RestartPolicy.unlessStoppedRestart(),
     val command: List<String> = emptyList()
 ) {
+    data class Ulimit(
+        val name: String,
+        val softLimit: Long,
+        val hardLimit: Long
+    )
+
     interface VolumeMount {
         val hostSource: String
         val containerPath: String

@@ -3,10 +3,17 @@ package com.availelabs.orchestration.containers.core
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.model.*
+import org.apache.hc.core5.http.NoHttpResponseException
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayOutputStream
+import java.net.SocketException
+import java.nio.channels.AsynchronousCloseException
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 
 internal class DockerContainerManager(private val dockerClient: DockerClient, private val dockerNetworkName: String) {
     private val logger = LoggerFactory.getLogger(javaClass)
+    private val dockerLogStreamer = DockerLogStreamer(dockerClient)
 
     sealed interface ContainerStatus {
         data class ContainerNotFound(val name: String) : ContainerStatus
@@ -19,6 +26,7 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
     }
 
     fun ensureContainerIsRunning(runSpecification: ContainerRunSpecification<*, *>): String {
+        logger.info("Ensuring container '{}' is running...", runSpecification.name)
         return when (val containerStatus = getContainerStatus(runSpecification.name)) {
             is ContainerStatus.ContainerRunning -> {
                 if (isConfigurationOutOfSync(runSpecification, containerStatus)) {
@@ -27,6 +35,7 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
                     createAndStartNewContainer(runSpecification)
                 } else {
                     logger.debug("Container '{}' is already running and up to date.", runSpecification.name)
+                    dockerLogStreamer.startStreaming(containerStatus.containerIdentifier, runSpecification.name)
                     containerStatus.containerIdentifier
                 }
             }
@@ -48,26 +57,130 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
     }
 
     fun stopAndRemoveContainer(containerName: String) {
+        logger.info("Attempting to stop and remove container '{}'...", containerName)
         val containerSummary = dockerClient.listContainersCmd()
             .withShowAll(true)
             .withNameFilter(listOf(containerName))
             .exec()
-            .firstOrNull() ?: return
+            .firstOrNull()
+
+        if (containerSummary == null) {
+            logger.info("Container '{}' does not exist. Skipping removal.", containerName)
+            return
+        }
+
+        dockerLogStreamer.stopStreaming(containerSummary.id)
 
         try {
-            val isContainerRunning = dockerClient.inspectContainerCmd(containerSummary.id).exec().state.running == true
+            val containerInspect = dockerClient.inspectContainerCmd(containerSummary.id).exec()
+            val isContainerRunning = containerInspect.state.running == true
+
             if (isContainerRunning) {
-                logger.info("Stopping container '{}'...", containerName)
-                dockerClient.stopContainerCmd(containerSummary.id).exec()
+                logger.info("Stopping container '{}' (ID: {})...", containerName, containerSummary.id)
+                try {
+                    dockerClient.stopContainerCmd(containerSummary.id)
+                        .withTimeout(10)
+                        .exec()
+                    logger.info("Container '{}' stopped gracefully.", containerName)
+                } catch (exception: Exception) {
+                    logger.warn("Failed to stop container '{}' gracefully. Attempting to kill...", containerName)
+                    dockerClient.killContainerCmd(containerSummary.id).exec()
+                    logger.info("Container '{}' killed.", containerName)
+                }
             }
+
             logger.info("Removing container '{}'...", containerName)
-            dockerClient.removeContainerCmd(containerSummary.id).exec()
-        } catch (_: Exception) {
-            logger.warn("Container '{}' was already removed or failed to stop/remove, ignoring.", containerName)
+            dockerClient.removeContainerCmd(containerSummary.id)
+                .withForce(true)
+                .exec()
+            logger.info("Container '{}' removed successfully.", containerName)
+
+        } catch (exception: Exception) {
+            logger.warn("Error during stop/remove sequence for container '{}': {}", containerName, exception.message)
         }
     }
 
+    fun executeCommand(containerIdentifier: String, command: List<String>): String {
+        // First, try a trivial command to "warm up" the socket and ensure connection stability
+        try {
+            performExecution(containerIdentifier, listOf("echo", "socket_check"), 1)
+        } catch (ignored: Exception) {
+            logger.debug("Socket warmup failed (expected if socket is cold), proceeding to main command.")
+        }
+
+        return performExecutionWithRetry(containerIdentifier, command)
+    }
+
+    private fun performExecutionWithRetry(containerIdentifier: String, command: List<String>): String {
+        var attemptCount = 0
+        val maxAttempts = 3
+        var lastException: Exception? = null
+
+        while (attemptCount < maxAttempts) {
+            try {
+                attemptCount++
+                return performExecution(containerIdentifier, command, attemptCount)
+            } catch (exception: Exception) {
+                if (isTransportError(exception)) {
+                    logger.warn(
+                        "Transport error during exec (attempt $attemptCount/$maxAttempts). Retrying... Error: ${exception.message}"
+                    )
+                    lastException = exception
+                    // Backoff: 1s, 2s, 3s
+                    Thread.sleep(1000L * attemptCount)
+                } else {
+                    throw exception
+                }
+            }
+        }
+        throw IllegalStateException("Failed to execute command after $maxAttempts attempts", lastException)
+    }
+
+    private fun performExecution(containerIdentifier: String, command: List<String>, attempt: Int): String {
+        logger.info("Executing command in container '{}' (Attempt {}): {}", containerIdentifier, attempt, command)
+
+        val execCreateCmdResponse = dockerClient.execCreateCmd(containerIdentifier)
+            .withAttachStdout(true)
+            .withAttachStderr(true)
+            .withCmd(*command.toTypedArray())
+            .exec()
+
+        val outputStream = ByteArrayOutputStream()
+
+        dockerClient.execStartCmd(execCreateCmdResponse.id)
+            .exec(com.github.dockerjava.core.command.ExecStartResultCallback(outputStream, outputStream))
+            .awaitCompletion(30, TimeUnit.SECONDS)
+
+        val output = outputStream.toString(StandardCharsets.UTF_8)
+
+        // Check exit code
+        val inspectExecResponse = dockerClient.inspectExecCmd(execCreateCmdResponse.id).exec()
+        if (inspectExecResponse.exitCodeLong != 0L) {
+            throw IllegalStateException("Command failed with exit code ${inspectExecResponse.exitCodeLong}. Output: $output")
+        }
+
+        return output
+    }
+
+    private fun isTransportError(exception: Throwable): Boolean {
+        // Recursively check causes for known transport exceptions
+        var currentException: Throwable? = exception
+        while (currentException != null) {
+            if (currentException is NoHttpResponseException ||
+                currentException is SocketException ||
+                currentException is AsynchronousCloseException ||
+                currentException.message?.contains("failed to respond") == true ||
+                currentException.message?.contains("Connection reset") == true
+            ) {
+                return true
+            }
+            currentException = currentException.cause
+        }
+        return false
+    }
+
     private fun getContainerStatus(containerName: String): ContainerStatus {
+        logger.debug("Checking status for container '{}'...", containerName)
         val containerSummary = dockerClient.listContainersCmd()
             .withShowAll(true)
             .withNameFilter(listOf(containerName))
@@ -111,6 +224,7 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
     }
 
     private fun createAndStartNewContainer(runSpecification: ContainerRunSpecification<*, *>): String {
+        logger.info("Creating new container for '{}'...", runSpecification.name)
         val imageReference = "${runSpecification.image}:${runSpecification.tag}"
 
         val containerPortBindings = Ports().apply {
@@ -126,9 +240,14 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
             Bind(volume.hostSource, Volume(volume.containerPath))
         }
 
+        val ulimits = runSpecification.ulimits.map {
+            Ulimit(it.name, it.softLimit, it.hardLimit)
+        }
+
         val hostConfiguration = HostConfig.newHostConfig()
             .withPortBindings(containerPortBindings)
             .withBinds(volumeBinds)
+            .withUlimits(ulimits)
             .withRestartPolicy(runSpecification.restartPolicy)
             .withNetworkMode(dockerNetworkName)
 
@@ -143,7 +262,13 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         }
 
         val containerIdentifier = createContainerCommand.exec().id
+        logger.info("Container created. Identifier: {}. Starting container...", containerIdentifier)
+
+        dockerLogStreamer.startStreaming(containerIdentifier, runSpecification.name)
+
         dockerClient.startContainerCmd(containerIdentifier).exec()
+        logger.info("Container '{}' started successfully.", runSpecification.name)
+
         return containerIdentifier
     }
 }
