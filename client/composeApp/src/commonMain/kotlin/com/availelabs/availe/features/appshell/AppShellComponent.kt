@@ -205,7 +205,7 @@ class AppShellComponent(
                     listingRepository = appContainer.listingRepository,
                     sessionManager = appContainer.sessionManager,
                     onNavigateToListingDetails = { listingId ->
-                        childStackNavigation.pushNew(AppShellConfiguration.ListingDetails(listingId))
+                        childStackNavigation.pushToFront(AppShellConfiguration.ListingDetails(listingId))
                     },
                     messageService = appContainer.messageService
                 )
