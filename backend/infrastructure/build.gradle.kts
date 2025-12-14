@@ -29,6 +29,7 @@ val containersSetup by tasks.registering(JavaExec::class) {
     description = "Ensures Podman/Docker containers are setup for the application."
     mainClass.set("com.availelabs.MainKt")
     classpath = sourceSets.main.get().runtimeClasspath
+    jvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
 
 val destroyAll by tasks.registering(JavaExec::class) {
@@ -36,5 +37,6 @@ val destroyAll by tasks.registering(JavaExec::class) {
     description = "Stops and removes all containers, volumes, and networks for the application."
     mainClass.set("com.availelabs.MainKt")
     classpath = sourceSets.main.get().runtimeClasspath
+    jvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
     args("--destroyAll")
 }

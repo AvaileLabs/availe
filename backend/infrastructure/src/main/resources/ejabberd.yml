@@ -22,7 +22,7 @@ sql_username: "@DB_USERNAME@"
 sql_password: "@DB_PASSWORD@"
 sql_port: 5432
 sql_schema_multihost: true
-update_sql_schema: false
+update_sql_schema: true
 
 listen:
   - port: 5222
@@ -83,6 +83,7 @@ api_permissions:
       - "!start"
 
 modules:
+  mod_admin_update_sql: { }
   mod_adhoc: { }
   mod_admin_extra: { }
   mod_announce:

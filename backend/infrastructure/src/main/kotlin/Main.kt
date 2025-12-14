@@ -17,22 +17,25 @@ import com.availelabs.provisioning.PostgresProvisioner
 import com.availelabs.provisioning.keycloak.KeycloakProvisioner
 import com.availelabs.provisioning.keycloak.reconcilers.ClientsReconciler
 import com.availelabs.provisioning.keycloak.reconcilers.UserProfileReconciler
-import com.github.dockerjava.api.DockerClient
+import com.availelabs.utils.ServiceWaiter
 import org.slf4j.LoggerFactory
 import provisioning.keycloak.reconcilers.RealmSettingsReconciler
 import kotlin.system.exitProcess
 
 internal fun main(args: Array<String>) {
-    val logger = LoggerFactory.getLogger("com.availelabs.Main")
+    val mainLogger = LoggerFactory.getLogger("com.availelabs.Main")
     val dockerNetworkName = "availe-network"
-    val dockerClient: DockerClient = DockerClientProvider().createDockerClient()
+    val dockerClient = DockerClientProvider().createDockerClient()
     var exitCode = 0
 
-    logger.info("Initializing Infrastructure Manager...")
+    mainLogger.info("Initializing Infrastructure Manager...")
 
     try {
         val hostSystemConfiguration = loadHostSystemConfig()
-        val hostSystemManager = HostSystemManager(logger, hostSystemConfiguration)
+        val hostSystemManager = HostSystemManager(
+            LoggerFactory.getLogger(HostSystemManager::class.java),
+            hostSystemConfiguration
+        )
 
         val dockerNetworkManager = DockerNetworkManager(dockerClient, dockerNetworkName)
         val dockerVolumeManager = DockerVolumeManager(dockerClient)
@@ -70,8 +73,10 @@ internal fun main(args: Array<String>) {
             userProfileReconciler
         )
 
+        val serviceWaiter = ServiceWaiter(dockerContainerManager)
+
         val infrastructureManager = InfrastructureManager(
-            logger = logger,
+            logger = mainLogger,
             containerOrchestrator = containerOrchestrator,
             postgresProvisioner = postgresProvisioner,
             keycloakProvisioner = keycloakProvisioner,
@@ -84,27 +89,28 @@ internal fun main(args: Array<String>) {
             openSearchNode1RunSpecification = openSearchNode1RunSpecification,
             openSearchNode2RunSpecification = openSearchNode2RunSpecification,
             openSearchDashboardsRunSpecification = openSearchDashboardsRunSpecification,
-            dockerContainerManager = dockerContainerManager
+            dockerContainerManager = dockerContainerManager,
+            serviceWaiter = serviceWaiter
         )
 
         if ("--destroyAll" in args) {
-            logger.info("Command received: Destroy All Infrastructure")
+            mainLogger.info("Command received: Destroy All Infrastructure")
             infrastructureManager.teardown()
         } else {
-            logger.info("Command received: Setup Infrastructure")
+            mainLogger.info("Command received: Setup Infrastructure")
             infrastructureManager.setup()
-            logger.info("System is fully provisioned and ready.")
+            mainLogger.info("System is fully provisioned and ready.")
         }
 
     } catch (exception: Exception) {
-        logger.error("An fatal error occurred during execution: ${exception.message}", exception)
+        mainLogger.error("An fatal error occurred during execution: ${exception.message}", exception)
         exitCode = 1
     } finally {
-        logger.info("Shutting down... Closing Docker client connection.")
+        mainLogger.info("Shutting down... Closing Docker client connection.")
         try {
             dockerClient.close()
         } catch (e: Exception) {
-            logger.warn("Error closing Docker client: ${e.message}")
+            mainLogger.warn("Error closing Docker client: ${e.message}")
         }
         exitProcess(exitCode)
     }

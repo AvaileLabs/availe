@@ -2,8 +2,6 @@ package com.availelabs.provisioning.keycloak.specs
 
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedAuthenticationConstants
-import com.availelabs.availe.provisioning.keycloak.specs.DesiredClient
-import com.availelabs.availe.provisioning.keycloak.specs.DesiredRealmSettings
 import org.keycloak.representations.idm.ProtocolMapperRepresentation
 
 internal object KeycloakDesiredState {

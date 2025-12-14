@@ -1,7 +1,5 @@
-package com.availelabs.availe.provisioning.keycloak.specs
+package com.availelabs.provisioning.keycloak.specs
 
-import com.availelabs.provisioning.keycloak.specs.KeycloakClientAttributes
-import com.availelabs.provisioning.keycloak.specs.KeycloakClientScopes
 import org.keycloak.representations.idm.ProtocolMapperRepresentation
 
 internal data class DesiredRealmSettings(

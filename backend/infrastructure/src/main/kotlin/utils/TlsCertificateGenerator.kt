@@ -207,6 +207,6 @@ internal object TlsCertificateGenerator {
     }
 
     private fun isIpAddress(name: String): Boolean {
-        return name.matches(Regex("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\$"))
+        return name.matches(Regex("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"))
     }
 }

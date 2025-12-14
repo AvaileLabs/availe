@@ -5,8 +5,14 @@
         </encoder>
     </appender>
 
-    <logger name="com.github.dockerjava" level="INFO"/>
-    <logger name="org.apache.hc" level="INFO"/>
+    <logger name="com.github.dockerjava" level="WARN"/>
+    <logger name="org.apache.hc" level="WARN"/>
+
+    <logger name="com.availelabs.orchestration" level="WARN"/>
+    <logger name="com.availelabs.provisioning" level="WARN"/>
+    <logger name="com.availelabs.utils" level="WARN"/>
+
+    <logger name="com.availelabs.Main" level="INFO"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

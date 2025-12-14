@@ -15,6 +15,7 @@ import com.availelabs.provisioning.keycloak.KeycloakProvisioner
 import com.availelabs.utils.ServiceWaiter
 import org.slf4j.Logger
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 internal class InfrastructureManager(
     private val logger: Logger,
@@ -30,7 +31,8 @@ internal class InfrastructureManager(
     private val openSearchNode1RunSpecification: ContainerRunSpecification<*, *>,
     private val openSearchNode2RunSpecification: ContainerRunSpecification<*, *>,
     private val openSearchDashboardsRunSpecification: ContainerRunSpecification<*, *>,
-    private val dockerContainerManager: DockerContainerManager
+    private val dockerContainerManager: DockerContainerManager,
+    private val serviceWaiter: ServiceWaiter
 ) {
     private val allRunSpecificationsForTeardown = listOf(
         openSearchDashboardsRunSpecification,
@@ -41,67 +43,99 @@ internal class InfrastructureManager(
         postgresRunSpecification
     )
 
+    private val containerRunSpecificationByContainerName: Map<String, ContainerRunSpecification<*, *>> = listOf(
+        postgresRunSpecification,
+        keycloakRunSpecification,
+        ejabberdRunSpecification,
+        openSearchNode1RunSpecification,
+        openSearchNode2RunSpecification,
+        openSearchDashboardsRunSpecification
+    ).associateBy(ContainerRunSpecification<*, *>::name)
+
+    private data class StepResult(
+        val name: String,
+        val status: StepStatus,
+        val durationMs: Long,
+        val errorMessage: String? = null
+    )
+
+    private enum class StepStatus { SUCCESS, FAILURE }
+
+    private val provisioningReport = mutableListOf<StepResult>()
+
     fun setup() {
-        logger.info(">>> STEP 1/6: HOST SYSTEM TUNING <<<")
-        hostSystemManager.setupHostSystem()
+        try {
+            executeProvisioningStep("Host System Tuning") {
+                hostSystemManager.setupHostSystem()
+            }
 
-        logger.info(">>> STEP 2/6: ASSET GENERATION <<<")
-        logger.info("Generating OpenSearch certificates and configuration...")
-        OpenSearchCertGen.generateCertificates()
-        OpenSearchConfigGen.generateConfigurationFiles()
+            executeProvisioningStep("Asset Generation") {
+                OpenSearchCertGen.generateCertificates()
+                OpenSearchConfigGen.generateConfigurationFiles()
+            }
 
-        logger.info(">>> STEP 3/6: DATABASE LAYER <<<")
-        logger.info("Starting Postgres container...")
-        containerOrchestrator.orchestrationSetup(listOf(postgresRunSpecification))
-        ServiceWaiter.waitForPostgres(postgresConfiguration)
-        logger.info("Postgres is ready.")
+            executeProvisioningStep(
+                stepName = "Postgres Database",
+                containerNameForLogs = postgresRunSpecification.name
+            ) {
+                containerOrchestrator.orchestrationSetup(listOf(postgresRunSpecification))
+                serviceWaiter.waitForPostgres(postgresConfiguration)
+                postgresProvisioner.provision()
+            }
 
-        logger.info("Provisioning Postgres (creating schema)...")
-        postgresProvisioner.provision()
+            executeProvisioningStep(
+                stepName = "OpenSearch Cluster",
+                containerNameForLogs = openSearchNode1RunSpecification.name
+            ) {
+                containerOrchestrator.orchestrationSetup(
+                    listOf(
+                        openSearchNode1RunSpecification,
+                        openSearchNode2RunSpecification
+                    )
+                )
 
-        logger.info(">>> STEP 4/6: SEARCH LAYER <<<")
-        logger.info("Starting OpenSearch Cluster (Nodes 1 & 2)...")
-        containerOrchestrator.orchestrationSetup(
-            listOf(
-                openSearchNode1RunSpecification,
-                openSearchNode2RunSpecification
-            )
-        )
+                val openSearchInitializer = OpenSearchInitializer(dockerContainerManager)
+                logger.info("Waiting 20s for OpenSearch Transport Layer to open before initializing security...")
+                Thread.sleep(20000)
 
-        // Force Initialization of Security (Bypassing permission issues)
-        val openSearchInitializer = OpenSearchInitializer(dockerContainerManager)
+                openSearchInitializer.initializeSecurity()
+                serviceWaiter.waitForOpenSearch(openSearchConfig)
+            }
 
-        logger.info("Waiting 20s for OpenSearch Transport Layer to open before initializing security...")
-        Thread.sleep(20000)
+            executeProvisioningStep(
+                stepName = "OpenSearch Dashboards",
+                containerNameForLogs = openSearchDashboardsRunSpecification.name
+            ) {
+                containerOrchestrator.orchestrationSetup(listOf(openSearchDashboardsRunSpecification))
+            }
 
-        openSearchInitializer.initializeSecurity()
+            executeProvisioningStep(
+                stepName = "Keycloak Identity Service",
+                containerNameForLogs = keycloakRunSpecification.name
+            ) {
+                containerOrchestrator.orchestrationSetup(listOf(keycloakRunSpecification))
+                serviceWaiter.waitForKeycloak()
+                keycloakProvisioner.provision()
+            }
 
-        logger.info("Waiting for OpenSearch Cluster to form...")
-        ServiceWaiter.waitForOpenSearch(openSearchConfig)
-        logger.info("OpenSearch Cluster is ready.")
+            executeProvisioningStep(
+                stepName = "Ejabberd Messaging Service",
+                containerNameForLogs = ejabberdRunSpecification.name,
+                performZombieCheck = true
+            ) {
+                generateEjabberdConfigurationFiles()
+                containerOrchestrator.orchestrationSetup(listOf(ejabberdRunSpecification))
+                serviceWaiter.waitForEjabberd(ejabberdRunSpecification.name)
+            }
 
-        logger.info("Starting OpenSearch Dashboards...")
-        containerOrchestrator.orchestrationSetup(listOf(openSearchDashboardsRunSpecification))
+            logger.info(">>> SYSTEM PROVISIONING COMPLETE <<<")
 
-        logger.info(">>> STEP 5/6: APPLICATION/IDENTITY LAYER <<<")
-        logger.info("Starting Keycloak container...")
-        containerOrchestrator.orchestrationSetup(listOf(keycloakRunSpecification))
-        ServiceWaiter.waitForKeycloak()
-        logger.info("Keycloak is ready.")
-
-        logger.info("Provisioning Keycloak...")
-        keycloakProvisioner.provision()
-
-        logger.info(">>> STEP 6/6: MESSAGING LAYER <<<")
-        logger.info("Fetching Keycloak keys and generating Ejabberd configuration...")
-        generateEjabberdConfigurationFiles()
-
-        logger.info("Starting Ejabberd container...")
-        containerOrchestrator.orchestrationSetup(listOf(ejabberdRunSpecification))
-        ServiceWaiter.waitForEjabberd()
-        logger.info("Ejabberd is ready.")
-
-        logger.info(">>> SYSTEM PROVISIONING COMPLETE <<<")
+        } catch (exception: Exception) {
+            logger.error("Provisioning failed: ${exception.message}")
+            throw exception
+        } finally {
+            printProvisioningReport()
+        }
     }
 
     fun teardown() {
@@ -115,6 +149,88 @@ internal class InfrastructureManager(
         hostSystemManager.teardownHostSystem()
 
         logger.info(">>> INFRASTRUCTURE TEARDOWN COMPLETE <<<")
+    }
+
+    private fun executeProvisioningStep(
+        stepName: String,
+        containerNameForLogs: String? = null,
+        performZombieCheck: Boolean = false,
+        action: () -> Unit
+    ) {
+        val startTime = System.currentTimeMillis()
+        logger.info(">>> STARTING STEP: $stepName <<<")
+        try {
+            action()
+
+            if (performZombieCheck && containerNameForLogs != null) {
+                val hasErrors = dockerContainerManager.checkContainerForErrors(containerNameForLogs)
+                if (hasErrors) {
+                    throw IllegalStateException("Container '$containerNameForLogs' is running but logged fatal errors (Zombie state).")
+                }
+            }
+
+            provisioningReport.add(StepResult(stepName, StepStatus.SUCCESS, System.currentTimeMillis() - startTime))
+            logger.info(">>> STEP COMPLETED: $stepName <<<")
+        } catch (exception: Exception) {
+            provisioningReport.add(
+                StepResult(
+                    stepName,
+                    StepStatus.FAILURE,
+                    System.currentTimeMillis() - startTime,
+                    exception.message
+                )
+            )
+            logger.error(">>> STEP FAILED: $stepName <<<")
+
+            if (containerNameForLogs != null) {
+                if (shouldDumpBufferedLogs(containerNameForLogs)) {
+                    dockerContainerManager.dumpLogsForContainer(containerNameForLogs)
+                }
+
+                if (containerNameForLogs == openSearchNode1RunSpecification.name) {
+                    val openSearchSecondNodeContainerName = openSearchNode2RunSpecification.name
+                    if (shouldDumpBufferedLogs(openSearchSecondNodeContainerName)) {
+                        dockerContainerManager.dumpLogsForContainer(openSearchSecondNodeContainerName)
+                    }
+                }
+            }
+            throw exception
+        }
+    }
+
+    private fun shouldDumpBufferedLogs(containerName: String): Boolean {
+        val containerRunSpecification = containerRunSpecificationByContainerName[containerName]
+        val containerLogStrategy = containerRunSpecification?.logStrategy
+        return containerLogStrategy != ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
+    }
+
+    private fun printProvisioningReport() {
+        val border = "+-------------------------------------+----------+------------+"
+        logger.info("\n")
+        logger.info("PROVISIONING REPORT")
+        logger.info(border)
+        logger.info(String.format("| %-35s | %-8s | %-10s |", "Step Name", "Status", "Duration"))
+        logger.info(border)
+
+        provisioningReport.forEach { result ->
+            val statusIcon = if (result.status == StepStatus.SUCCESS) "SUCCESS" else "FAILED"
+            val durationSeconds = TimeUnit.MILLISECONDS.toSeconds(result.durationMs)
+            logger.info(
+                String.format(
+                    "| %-35s | %-8s | %-9ss |",
+                    result.name,
+                    statusIcon,
+                    durationSeconds
+                )
+            )
+        }
+        logger.info(border)
+
+        val failedStep = provisioningReport.find { it.status == StepStatus.FAILURE }
+        if (failedStep != null) {
+            logger.error("Failure Reason (${failedStep.name}): ${failedStep.errorMessage}")
+        }
+        logger.info("\n")
     }
 
     private fun cleanLocalArtifacts() {

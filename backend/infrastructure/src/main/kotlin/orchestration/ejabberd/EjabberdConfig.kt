@@ -1,7 +1,6 @@
 package com.availelabs.orchestration.ejabberd
 
 import com.availelabs.availe.NetworkConstants
-import com.availelabs.availe.configuration.SharedAuthenticationConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.availelabs.orchestration.keycloak.KeycloakPortsList
@@ -10,10 +9,6 @@ import com.availelabs.utils.TlsCertificateGenerator
 import com.availelabs.utils.loadGradleProperties
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.File
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 
 internal data class EjabberdConfig(
     val adminUser: String,
@@ -56,7 +51,8 @@ internal fun ejabberdRunSpec(): ContainerRunSpecification<EjabberdPortsList, Eja
             configHostPath = configFile.absolutePath,
             pemHostPath = pemFile.absolutePath,
             jwkHostPath = jwkFile.absolutePath
-        )
+        ),
+        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
     )
 }
 
@@ -116,16 +112,17 @@ internal fun generateEjabberdConfigurationFiles() {
 private fun fetchKeycloakJwks(): String {
     val host = "localhost"
     val port = KeycloakPortsList.Http.hostPortNumber
-    val realm = SharedAuthenticationConstants.REALM_NAME
-    val url = "http://$host:$port/realms/$realm${SharedAuthenticationConstants.Paths.OPENID_CONNECT_CERTIFICATES}"
+    val realm = com.availelabs.availe.configuration.SharedAuthenticationConstants.REALM_NAME
+    val url =
+        "http://$host:$port/realms/$realm${com.availelabs.availe.configuration.SharedAuthenticationConstants.Paths.OPENID_CONNECT_CERTIFICATES}"
 
-    val client = HttpClient.newHttpClient()
-    val request = HttpRequest.newBuilder()
-        .uri(URI.create(url))
+    val client = java.net.http.HttpClient.newHttpClient()
+    val request = java.net.http.HttpRequest.newBuilder()
+        .uri(java.net.URI.create(url))
         .GET()
         .build()
 
-    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+    val response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
 
     if (response.statusCode() != 200) {
         throw IllegalStateException("Failed to fetch Keycloak JWKS. Status: ${response.statusCode()} Body: ${response.body()}")

@@ -9,6 +9,7 @@ import java.security.SecureRandom
 internal object OpenSearchConfigGen {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    @Suppress("SetWorldReadable")
     fun generateConfigurationFiles() {
         val projectRootDirectory = System.getProperty("user.dir")
         val generatedConfigDirectory = File(projectRootDirectory, "build/generated/opensearch")
@@ -38,6 +39,7 @@ internal object OpenSearchConfigGen {
         logger.info("OpenSearch configuration files generated at ${generatedConfigDirectory.absolutePath}")
     }
 
+    @Suppress("SetWorldReadable")
     private fun generateOpenSearchYml(directory: File) {
         val content = """
             cluster.name: availe-opensearch-cluster
@@ -76,6 +78,7 @@ internal object OpenSearchConfigGen {
         file.setReadable(true, false)
     }
 
+    @Suppress("SetWorldReadable")
     private fun generateDashboardsYml(directory: File) {
         val content = """
             server.name: ${SharedOpenSearchConstants.DASHBOARDS_NAME}
@@ -206,6 +209,7 @@ internal object OpenSearchConfigGen {
         writeSecurityFile(directory, "audit.yml", auditContent)
     }
 
+    @Suppress("SetWorldReadable")
     private fun writeSecurityFile(directory: File, filename: String, content: String) {
         val file = File(directory, filename)
         file.writeText(content)
@@ -227,10 +231,9 @@ internal object OpenSearchConfigGen {
         // Note: BCrypt uses a non-standard Base64 alphabet.
 
         val stringBuilder = StringBuilder()
-        stringBuilder.append("\$2a\$")
-        if (cost < 10) stringBuilder.append("0")
+        stringBuilder.append($$"$2a$")
         stringBuilder.append(cost)
-        stringBuilder.append("\$")
+        stringBuilder.append("$")
 
         stringBuilder.append(encodeBase64(salt, 16))
         stringBuilder.append(encodeBase64(rawHash, 23)) // 23 bytes of hash used for the string

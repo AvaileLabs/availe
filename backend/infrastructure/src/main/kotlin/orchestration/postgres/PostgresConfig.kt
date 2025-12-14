@@ -37,6 +37,7 @@ internal fun postgresRunSpec(): ContainerRunSpecification<PostgresPortsList, Pos
         tag = "18",
         environmentVariables = environmentVariables,
         portMappings = PostgresPortsList,
-        volumes = PostgresVolumesList
+        volumes = PostgresVolumesList,
+        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
     )
 }

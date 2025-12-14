@@ -11,8 +11,15 @@ internal data class ContainerRunSpecification<P : ContainerRunSpecification.Port
     val volumes: V,
     val ulimits: List<Ulimit> = emptyList(),
     val restartPolicy: RestartPolicy = RestartPolicy.unlessStoppedRestart(),
-    val command: List<String> = emptyList()
+    val command: List<String> = emptyList(),
+    val logStrategy: LogStrategy = LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
 ) {
+    enum class LogStrategy {
+        BUFFER_AND_DUMP_ON_FAILURE,
+        STREAM_ALWAYS,
+        SILENT
+    }
+
     data class Ulimit(
         val name: String,
         val softLimit: Long,

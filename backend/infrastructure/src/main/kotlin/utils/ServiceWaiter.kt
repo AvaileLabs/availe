@@ -1,7 +1,7 @@
 package com.availelabs.utils
 
 import com.availelabs.availe.configuration.SharedNetworkConstants
-import com.availelabs.orchestration.ejabberd.EjabberdPortsList
+import com.availelabs.orchestration.containers.core.DockerContainerManager
 import com.availelabs.orchestration.keycloak.KeycloakPortsList
 import com.availelabs.orchestration.opensearch.OpenSearchConfig
 import com.availelabs.orchestration.opensearch.OpenSearchPortsList
@@ -9,7 +9,6 @@ import com.availelabs.orchestration.postgres.PostgresConfig
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.File
-import java.net.Socket
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -23,7 +22,7 @@ import java.util.*
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 
-internal object ServiceWaiter {
+internal class ServiceWaiter(private val dockerContainerManager: DockerContainerManager) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun waitForPostgres(postgresConfiguration: PostgresConfig, timeoutSeconds: Long = 60) {
@@ -87,25 +86,27 @@ internal object ServiceWaiter {
         throw IllegalStateException("Keycloak not ready after ${timeoutSeconds}s: ${lastError?.message}", lastError)
     }
 
-    fun waitForEjabberd(timeoutSeconds: Long = 60) {
-        val port = EjabberdPortsList.Client.hostPortNumber
-        val host = "localhost"
-        logger.info("Waiting for Ejabberd to be ready at $host:$port...")
+    fun waitForEjabberd(containerName: String, timeoutSeconds: Long = 60) {
+        logger.info("Waiting for Ejabberd to be ready (via ejabberdctl status)...")
         val deadline = System.currentTimeMillis() + timeoutSeconds * 1000
         var lastError: Throwable? = null
 
+        val statusCommand = listOf("ejabberdctl", "status")
+
         while (System.currentTimeMillis() < deadline) {
             try {
-                Socket(host, port).use { socket ->
-                    if (socket.isConnected) {
-                        logger.info("Ejabberd is ready.")
-                        return
-                    }
+                val commandOutput = dockerContainerManager.executeCommand(containerName, statusCommand)
+                if (commandOutput.contains("The node", ignoreCase = true) &&
+                    commandOutput.contains("is started", ignoreCase = true)
+                ) {
+                    logger.info("Ejabberd is ready.")
+                    return
                 }
             } catch (throwable: Throwable) {
                 lastError = throwable
+                logger.debug("Ejabberd not yet ready: ${throwable.message}")
             }
-            Thread.sleep(1_000)
+            Thread.sleep(2_000)
         }
         throw IllegalStateException("Ejabberd not ready after ${timeoutSeconds}s: ${lastError?.message}", lastError)
     }
@@ -149,7 +150,6 @@ internal object ServiceWaiter {
                     logger.info("OpenSearch is ready (Status 200). Cluster health: ${httpResponse.body()}")
                     return
                 } else if (httpResponse.statusCode() == 401 || httpResponse.statusCode() == 403) {
-                    // Downgrade to DEBUG for the first 30 seconds to allow for initialization
                     if (System.currentTimeMillis() - startTime < 30_000) {
                         logger.debug("OpenSearch Auth Failed (Init Phase). Status: ${httpResponse.statusCode()}")
                     } else {
