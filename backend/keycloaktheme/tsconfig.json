@@ -21,7 +21,7 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [
-    "../server/src"
+    "src"
   ],
   "references": [
     {

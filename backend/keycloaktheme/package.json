@@ -6,7 +6,7 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "keycloakify dev",
-    "build": "keycloakify ../server/build",
+    "build": "keycloakify build",
     "storybook": "keycloakify storybook"
   },
   "dependencies": {
@@ -18,7 +18,7 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "typescript": "^5.5.3",
-    "vite": "^5.3.3"
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0-beta.2"
   }
 }
