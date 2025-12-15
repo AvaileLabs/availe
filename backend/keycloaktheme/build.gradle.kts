@@ -31,7 +31,22 @@ tasks.named("pnpmInstall") {
     dependsOn(enableCorepack)
 }
 
-val buildTheme by tasks.registering(NpxTask::class) {
+val updateKeycloakThemeDependencies by tasks.registering(NpxTask::class) {
+    group = "dependencies"
+    description = "Updates pnpm dependencies for the Keycloak theme"
+    dependsOn(enableCorepack)
+
+    command.set("pnpm")
+    args.set(listOf("update"))
+
+    inputs.file("package.json")
+    outputs.file("pnpm-lock.yaml")
+    outputs.dir("node_modules")
+}
+
+val buildKeycloakTheme by tasks.registering(NpxTask::class) {
+    group = "build"
+    description = "Builds the Keycloak theme JAR using pnpm and Keycloakify"
     dependsOn(tasks.named("pnpmInstall"))
 
     command.set("pnpm")
@@ -47,7 +62,7 @@ val buildTheme by tasks.registering(NpxTask::class) {
 }
 
 tasks.named("assemble") {
-    dependsOn(buildTheme)
+    dependsOn(buildKeycloakTheme)
 }
 
 tasks.named("clean") {
