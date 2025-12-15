@@ -13,7 +13,7 @@ internal fun openSearchNode1Spec(): ContainerRunSpecification<OpenSearchPortsLis
         certFileName = "node1.pem",
         keyFileName = "node1-key.pem",
         portMappings = OpenSearchPortsList,
-        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
     )
 }
 
@@ -28,7 +28,7 @@ internal fun openSearchNode2Spec(): ContainerRunSpecification<ContainerRunSpecif
         certFileName = "node2.pem",
         keyFileName = "node2-key.pem",
         portMappings = emptyPortsList,
-        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
     )
 }
 
@@ -118,6 +118,6 @@ internal fun openSearchDashboardsSpec(): ContainerRunSpecification<OpenSearchDas
         environmentVariables = environmentVariables,
         portMappings = OpenSearchDashboardsPortsList,
         volumes = volumes,
-        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
     )
 }
