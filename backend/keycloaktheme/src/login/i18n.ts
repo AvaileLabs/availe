@@ -1,11 +1,8 @@
-import {createUseI18n} from "keycloakify/login";
+import {i18nBuilder} from "keycloakify/login";
+import {ThemeName} from "./kc.gen.tsx";
 
-export const {useI18n, ofTypeI18n} = createUseI18n({
-    en: {
-        loginTitle: "Log in to Availe",
-        registerTitle: "New here? Join Availe",
-        doRegister: "Create New Account"
-    }
-});
+const {useI18n, ofTypeI18n} = i18nBuilder.withThemeName<ThemeName>().build();
 
-export type I18n = typeof ofTypeI18n;
+type I18n = typeof ofTypeI18n;
+
+export {useI18n, type I18n};

@@ -10,31 +10,30 @@ version = "1.0.0"
 
 node {
     download.set(true)
-    version.set("25.2.1")
+    // Recommend using LTS (v22) instead of bleeding edge (v25) for better stability
+    version.set("22.12.0")
+    // Tell the plugin to manage pnpm for you
+    pnpmVersion.set("9.15.0")
+
     workDir.set(layout.projectDirectory.dir(".gradle/nodejs"))
     npmWorkDir.set(layout.projectDirectory.dir(".gradle/npm"))
+    // pnpmWorkDir will default to .gradle/pnpm which is where the plugin looks
     nodeProjectDir.set(layout.projectDirectory)
 }
 
-val enableCorepack by tasks.registering(NpxTask::class) {
-    command.set("corepack")
-    args.set(listOf("enable"))
-    dependsOn(tasks.named("nodeSetup"))
-}
+// REMOVED: val enableCorepack ...
+// REMOVED: tasks.named("pnpmSetup") ...
 
-tasks.named("pnpmSetup") {
-    enabled = false
-    dependsOn(enableCorepack)
-}
-
+// Ensure pnpm is installed before we try to use it
 tasks.named("pnpmInstall") {
-    dependsOn(enableCorepack)
+    dependsOn(tasks.named("pnpmSetup"))
 }
 
 val updateKeycloakThemeDependencies by tasks.registering(NpxTask::class) {
     group = "dependencies"
     description = "Updates pnpm dependencies for the Keycloak theme"
-    dependsOn(enableCorepack)
+    // REMOVED: dependsOn(enableCorepack)
+    dependsOn(tasks.named("pnpmSetup")) // Ensure pnpm is available
 
     command.set("pnpm")
     args.set(listOf("update"))

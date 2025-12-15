@@ -1,11 +1,11 @@
 import type {ExtendKcContext} from "keycloakify/login";
-import type {KcEnvName, ThemeName} from "keycloakify/dist/bin/keycloakify/generateFtl";
+import {KcEnvName, ThemeName} from "./kc.gen.tsx";
 
 export type KcContextExtension = {
-    themeName?: ThemeName;
-    properties: {
-        [key in KcEnvName]: string;
-    };
+    themeName: ThemeName;
+    properties: Record<KcEnvName, string> & {};
 };
 
-export type KcContext = ExtendKcContext<KcContextExtension, {}>;
+export type KcContextExtensionPerPage = {};
+
+export type KcContext = ExtendKcContext<KcContextExtension, KcContextExtensionPerPage>;

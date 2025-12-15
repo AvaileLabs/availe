@@ -2,6 +2,7 @@ import {type FormEventHandler, useState} from "react";
 import {clsx} from "keycloakify/tools/clsx";
 import {useConstCallback} from "keycloakify/tools/useConstCallback";
 import type {PageProps} from "keycloakify/login/pages/PageProps";
+import {getKcClsx} from "keycloakify/login/lib/kcClsx";
 import type {KcContext} from "../KcContext";
 import type {I18n} from "../i18n";
 
@@ -11,6 +12,11 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: "log
     const {social, realm, url, usernameHidden, login, auth, registrationDisabled} = kcContext;
 
     const {msg, msgStr} = i18n;
+
+    const {kcClsx} = getKcClsx({
+        doUseDefaultCss,
+        classes
+    });
 
     const [isLoginButtonDisabled, setIsLoginButtonDisabled] = useState(false);
 
@@ -30,20 +36,20 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: "log
             displayInfo={social?.displayInfo}
             headerNode={msg("loginTitle")}
         >
-            <div id="kc-form">
+            <div id="kc-form" className={kcClsx("kcFormContentClass")}>
 
                 {/* MOVED REGISTRATION BUTTON TO TOP FOR BETTER UX */}
                 {realm.password && realm.registrationAllowed && !registrationDisabled && (
-                    <div className={clsx(classes?.kcFormGroupClass)} style={{marginBottom: "2rem"}}>
+                    <div className={kcClsx("kcFormGroupClass")} style={{marginBottom: "2rem"}}>
                         <div id="kc-registration">
                             <a
                                 tabIndex={1}
                                 href={url.registrationUrl}
                                 className={clsx(
-                                    classes?.kcButtonClass,
-                                    classes?.kcButtonPrimaryClass,
-                                    classes?.kcButtonBlockClass,
-                                    classes?.kcButtonLargeClass
+                                    kcClsx("kcButtonClass"),
+                                    kcClsx("kcButtonPrimaryClass"),
+                                    kcClsx("kcButtonBlockClass"),
+                                    kcClsx("kcButtonLargeClass")
                                 )}
                                 style={{
                                     backgroundColor: "#4CAF50",
@@ -71,8 +77,8 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: "log
                             action={url.loginAction}
                             method="post"
                         >
-                            <div className={clsx(classes?.kcFormGroupClass)}>
-                                <label htmlFor="username" className={clsx(classes?.kcLabelClass)}>
+                            <div className={kcClsx("kcFormGroupClass")}>
+                                <label htmlFor="username" className={kcClsx("kcLabelClass")}>
                                     {!realm.loginWithEmailAllowed
                                         ? msg("username")
                                         : !realm.registrationEmailAsUsername
@@ -82,7 +88,7 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: "log
                                 <input
                                     tabIndex={2}
                                     id="username"
-                                    className={clsx(classes?.kcInputClass)}
+                                    className={kcClsx("kcInputClass")}
                                     name="username"
                                     defaultValue={login.username ?? ""}
                                     type="text"
@@ -91,21 +97,21 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: "log
                                 />
                             </div>
 
-                            <div className={clsx(classes?.kcFormGroupClass)}>
-                                <label htmlFor="password" className={clsx(classes?.kcLabelClass)}>
+                            <div className={kcClsx("kcFormGroupClass")}>
+                                <label htmlFor="password" className={kcClsx("kcLabelClass")}>
                                     {msg("password")}
                                 </label>
                                 <input
                                     tabIndex={3}
                                     id="password"
-                                    className={clsx(classes?.kcInputClass)}
+                                    className={kcClsx("kcInputClass")}
                                     name="password"
                                     type="password"
                                     autoComplete="current-password"
                                 />
                             </div>
 
-                            <div className={clsx(classes?.kcFormGroupClass, "kcFormSettingClass")}>
+                            <div className={clsx(kcClsx("kcFormGroupClass"), kcClsx("kcFormSettingClass"))}>
                                 <div id="kc-form-options">
                                     {realm.rememberMe && !usernameHidden && (
                                         <div className="checkbox">
@@ -122,7 +128,7 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: "log
                                         </div>
                                     )}
                                 </div>
-                                <div className="kcFormOptionsWrapperClass">
+                                <div className={kcClsx("kcFormOptionsWrapperClass")}>
                                     {realm.resetPasswordAllowed && (
                                         <span>
                                             <a tabIndex={5} href={url.loginResetCredentialsUrl}>
@@ -133,12 +139,12 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: "log
                                 </div>
                             </div>
 
-                            <div id="kc-form-buttons" className={clsx(classes?.kcFormGroupClass)}>
+                            <div id="kc-form-buttons" className={kcClsx("kcFormGroupClass")}>
                                 <input
                                     type="hidden"
                                     id="id-hidden-input"
                                     name="credentialId"
-                                    {...(auth.selectedCredential !== undefined
+                                    {...(auth?.selectedCredential !== undefined
                                         ? {
                                             value: auth.selectedCredential
                                         }
@@ -148,10 +154,10 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: "log
                                     tabIndex={6}
                                     disabled={isLoginButtonDisabled}
                                     className={clsx(
-                                        classes?.kcButtonClass,
-                                        classes?.kcButtonPrimaryClass,
-                                        classes?.kcButtonBlockClass,
-                                        classes?.kcButtonLargeClass
+                                        kcClsx("kcButtonClass"),
+                                        kcClsx("kcButtonPrimaryClass"),
+                                        kcClsx("kcButtonBlockClass"),
+                                        kcClsx("kcButtonLargeClass")
                                     )}
                                     name="login"
                                     id="kc-login"
@@ -167,26 +173,26 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: "log
                 {realm.password && social?.providers !== undefined && (
                     <div
                         id="kc-social-providers"
-                        className={clsx("kcFormSocialAccountSectionClass", "para")}
+                        className={clsx(kcClsx("kcFormSocialAccountSectionClass"), "para")}
                     >
                         <hr/>
                         <h4>{msg("identity-provider-login-label")}</h4>
-                        <ul className={clsx("kcFormSocialAccountListClass", social.providers.length > 3 && "list-grid")}>
+                        <ul className={clsx(kcClsx("kcFormSocialAccountListClass"), social.providers.length > 3 && "list-grid")}>
                             {social.providers.map((...[p]) => (
                                 <li key={p.alias}>
                                     <a
                                         id={`social-${p.alias}`}
                                         className={clsx(
-                                            "kcFormSocialAccountListButtonClass",
+                                            kcClsx("kcFormSocialAccountListButtonClass"),
                                             social.providers && social.providers.length > 3 && "grid"
                                         )}
                                         type="button"
                                         href={p.loginUrl}
                                     >
-                                        {p.iconClasses && <i className={clsx("kcCommonLogoIdP", p.iconClasses)}
+                                        {p.iconClasses && <i className={clsx(kcClsx("kcCommonLogoIdP"), p.iconClasses)}
                                                              aria-hidden="true"></i>}
                                         <span
-                                            className={clsx("kcFormSocialAccountNameClass", p.iconClasses && "kc-social-icon-text")}
+                                            className={clsx(kcClsx("kcFormSocialAccountNameClass"), p.iconClasses && "kc-social-icon-text")}
                                             dangerouslySetInnerHTML={{__html: p.displayName}}
                                         ></span>
                                     </a>
