@@ -54,6 +54,7 @@ gradle-buildconfig = "6.0.6"
 mvikotlin = "4.3.0"
 sqldelight = "2.2.1"
 bouncycastleBom = "1.83"
+gradle-node = "7.1.0"
 
 # npm / JS tooling
 sqljs = "1.13.0"
@@ -169,3 +170,4 @@ kreplica = { id = "io.availe.kreplica", version.ref = "kreplica" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 gradle-buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "gradle-buildconfig" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+gradle-node = { id = "com.github.node-gradle.node", version.ref = "gradle-node" }
