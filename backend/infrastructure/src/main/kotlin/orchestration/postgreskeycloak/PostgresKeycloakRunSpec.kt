@@ -21,6 +21,6 @@ internal fun postgresKeycloakRunSpecification(): ContainerRunSpecification<Postg
         environmentVariables = environmentVariables,
         portMappings = PostgresKeycloakPortsList,
         volumes = PostgresKeycloakVolumesList,
-        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
     )
 }
