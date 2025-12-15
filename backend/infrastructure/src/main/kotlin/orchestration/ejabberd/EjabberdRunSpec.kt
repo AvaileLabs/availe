@@ -13,7 +13,7 @@ internal fun ejabberdRunSpec(): ContainerRunSpecification<EjabberdPortsList, Eja
     val configFile = File(generatedConfigDirectory, "ejabberd.yml")
     val pemFile = File(generatedConfigDirectory, "server.pem")
     val jwkFile = File(generatedConfigDirectory, "keycloak.jwk")
-    
+
     val environmentVariables = listOf(
         "AVAILE_HOST_IP_TRACKER=${NetworkConstants.HOST_IP}",
         "ERLANG_COOKIE=availe-dev-cookie"
@@ -30,7 +30,7 @@ internal fun ejabberdRunSpec(): ContainerRunSpecification<EjabberdPortsList, Eja
             pemHostPath = pemFile.absolutePath,
             jwkHostPath = jwkFile.absolutePath
         ),
-        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
     )
 }
 

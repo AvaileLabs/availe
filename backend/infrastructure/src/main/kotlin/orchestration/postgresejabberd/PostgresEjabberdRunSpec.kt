@@ -21,6 +21,6 @@ internal fun postgresEjabberdRunSpecification(): ContainerRunSpecification<Postg
         environmentVariables = environmentVariables,
         portMappings = PostgresEjabberdPortsList,
         volumes = PostgresEjabberdVolumesList,
-        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
     )
 }
