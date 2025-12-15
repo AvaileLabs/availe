@@ -8,14 +8,13 @@ internal class OpenSearchInitializer(private val dockerContainerManager: DockerC
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun initializeSecurity() {
-        logger.info("Forcing OpenSearch Security Configuration via securityadmin.sh...")
-
         val containerName = SharedOpenSearchConstants.NODE_1_NAME
+        val port = SharedOpenSearchConstants.OPENSEARCH_PORT
 
-        // We explicitly specify -h (hostname) and -p (port)
-        // This ensures the script connects to the node using the interface and port
-        // that matches the SSL certificate we generated (CN=opensearch-node1).
-        // Fix: Targeted the HTTP/REST port (9200) instead of Transport port (9300) for OpenSearch 3.x+
+        logger.info("Waiting for OpenSearch internal port $port to be available inside container '$containerName'...")
+        waitForInternalPortAvailability(containerName, port)
+
+        logger.info("Forcing OpenSearch Security Configuration via securityadmin.sh...")
 
         val command = listOf(
             "/bin/bash",
@@ -29,7 +28,7 @@ internal class OpenSearchInitializer(private val dockerContainerManager: DockerC
                     "-cert /usr/share/opensearch/config/certs/admin.pem " +
                     "-key /usr/share/opensearch/config/certs/admin-key.pem " +
                     "-h $containerName " +
-                    "-p ${SharedOpenSearchConstants.OPENSEARCH_PORT}"
+                    "-p $port"
         )
 
         try {
@@ -40,6 +39,26 @@ internal class OpenSearchInitializer(private val dockerContainerManager: DockerC
         } catch (exception: Exception) {
             logger.error("Failed to initialize OpenSearch Security: ${exception.message}", exception)
             throw IllegalStateException("OpenSearch Security Initialization failed.", exception)
+        }
+    }
+
+    private fun waitForInternalPortAvailability(containerName: String, port: Int) {
+        // Loops for up to 60 seconds inside the container checking for TCP connectivity on the localhost port.
+        // Returns exit code 0 if successful, 1 if timeout.
+        val waitCommand = listOf(
+            "/bin/bash",
+            "-c",
+            "for i in {1..60}; do if timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/$port' 2>/dev/null; then exit 0; fi; sleep 1; done; echo 'Timeout waiting for port $port'; exit 1"
+        )
+
+        try {
+            dockerContainerManager.executeCommand(containerName, waitCommand)
+            logger.info("Internal port $port is accepting connections.")
+        } catch (exception: Exception) {
+            throw IllegalStateException(
+                "Timed out waiting for OpenSearch port $port to open inside container '$containerName'.",
+                exception
+            )
         }
     }
 }

@@ -121,9 +121,6 @@ internal class InfrastructureManager(
                 )
 
                 val openSearchInitializer = OpenSearchInitializer(dockerContainerManager)
-                logger.info("Waiting 20s for OpenSearch Transport Layer to open before initializing security...")
-                Thread.sleep(20000)
-
                 openSearchInitializer.initializeSecurity()
                 serviceWaiter.waitForOpenSearch(openSearchConfig)
             }
