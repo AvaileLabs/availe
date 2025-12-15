@@ -8,7 +8,7 @@
     <logger name="com.github.dockerjava" level="WARN"/>
     <logger name="org.apache.hc" level="WARN"/>
 
-    <logger name="com.availelabs.orchestration" level="WARN"/>
+    <logger name="com.availelabs.orchestration" level="INFO"/>
     <logger name="com.availelabs.provisioning" level="WARN"/>
     <logger name="com.availelabs.utils" level="WARN"/>
 

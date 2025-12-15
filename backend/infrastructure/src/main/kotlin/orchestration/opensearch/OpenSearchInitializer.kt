@@ -3,6 +3,7 @@ package com.availelabs.orchestration.opensearch
 import com.availelabs.availe.configuration.SharedOpenSearchConstants
 import com.availelabs.orchestration.containers.core.DockerContainerManager
 import org.slf4j.LoggerFactory
+import java.io.File
 
 internal class OpenSearchInitializer(private val dockerContainerManager: DockerContainerManager) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -11,8 +12,21 @@ internal class OpenSearchInitializer(private val dockerContainerManager: DockerC
         val containerName = SharedOpenSearchConstants.NODE_1_NAME
         val port = SharedOpenSearchConstants.OPENSEARCH_PORT
 
-        logger.info("Waiting for OpenSearch internal port $port to be available inside container '$containerName'...")
-        waitForInternalPortAvailability(containerName, port)
+        val projectRootDirectory = System.getProperty("user.dir")
+        val securityConfigurationDirectory =
+            File(projectRootDirectory, "build/generated/opensearch/opensearch-security")
+
+        val currentConfigurationHash =
+            OpenSearchSecurityHasher.calculateConfigurationHash(securityConfigurationDirectory)
+        val openSearchSecurityReconciler = OpenSearchSecurityReconciler()
+
+        logger.info("Waiting for OpenSearch API to be available...")
+        openSearchSecurityReconciler.waitForClusterAvailability(60)
+
+        if (!openSearchSecurityReconciler.isReconciliationNeeded(currentConfigurationHash)) {
+            logger.info("OpenSearch Security is already up to date. Skipping initialization.")
+            return
+        }
 
         logger.info("Forcing OpenSearch Security Configuration via securityadmin.sh...")
 
@@ -36,29 +50,11 @@ internal class OpenSearchInitializer(private val dockerContainerManager: DockerC
             logger.info("Security Initialization Output:\n$output")
             logger.info("OpenSearch Security Configuration successfully applied.")
 
+            openSearchSecurityReconciler.updateStateWithNewHash(currentConfigurationHash)
+
         } catch (exception: Exception) {
             logger.error("Failed to initialize OpenSearch Security: ${exception.message}", exception)
             throw IllegalStateException("OpenSearch Security Initialization failed.", exception)
-        }
-    }
-
-    private fun waitForInternalPortAvailability(containerName: String, port: Int) {
-        // Loops for up to 60 seconds inside the container checking for TCP connectivity on the localhost port.
-        // Returns exit code 0 if successful, 1 if timeout.
-        val waitCommand = listOf(
-            "/bin/bash",
-            "-c",
-            "for i in {1..60}; do if timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/$port' 2>/dev/null; then exit 0; fi; sleep 1; done; echo 'Timeout waiting for port $port'; exit 1"
-        )
-
-        try {
-            dockerContainerManager.executeCommand(containerName, waitCommand)
-            logger.info("Internal port $port is accepting connections.")
-        } catch (exception: Exception) {
-            throw IllegalStateException(
-                "Timed out waiting for OpenSearch port $port to open inside container '$containerName'.",
-                exception
-            )
         }
     }
 }

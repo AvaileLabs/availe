@@ -1,5 +1,6 @@
 package com.availelabs.orchestration.opensearch
 
+import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedOpenSearchConstants
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification.Ulimit
@@ -11,13 +12,12 @@ internal fun openSearchNode1Spec(): ContainerRunSpecification<OpenSearchPortsLis
         dataVolumeName = "availe-opensearch-data1",
         certFileName = "node1.pem",
         keyFileName = "node1-key.pem",
-        portMappings = OpenSearchPortsList // Expose ports on host only for Node 1
+        portMappings = OpenSearchPortsList,
+        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
     )
 }
 
 internal fun openSearchNode2Spec(): ContainerRunSpecification<ContainerRunSpecification.PortList, OpenSearchNodeVolumesList> {
-    // Node 2 is internal; we do not map its ports to the host to avoid conflicts/redundancy,
-    // but it needs to be accessible on the docker network.
     val emptyPortsList = object : ContainerRunSpecification.PortList {
         override val all = emptyList<ContainerRunSpecification.PortMapping>()
     }
@@ -27,7 +27,8 @@ internal fun openSearchNode2Spec(): ContainerRunSpecification<ContainerRunSpecif
         dataVolumeName = "availe-opensearch-data2",
         certFileName = "node2.pem",
         keyFileName = "node2-key.pem",
-        portMappings = emptyPortsList
+        portMappings = emptyPortsList,
+        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
     )
 }
 
@@ -36,12 +37,15 @@ private fun <P : ContainerRunSpecification.PortList> createOpenSearchNodeSpec(
     dataVolumeName: String,
     certFileName: String,
     keyFileName: String,
-    portMappings: P
+    portMappings: P,
+    logStrategy: ContainerRunSpecification.LogStrategy
 ): ContainerRunSpecification<P, OpenSearchNodeVolumesList> {
     val projectRootDirectory = System.getProperty("user.dir")
     val generatedConfigDirectory = File(projectRootDirectory, "build/generated/opensearch")
     val generatedCertDirectory = File(generatedConfigDirectory, "certs")
     val securityConfigDirectory = File(generatedConfigDirectory, "opensearch-security")
+
+    val staticAssetsHash = OpenSearchSecurityHasher.calculateStaticAssetsHash(generatedConfigDirectory)
 
     val environmentVariables = listOf(
         "cluster.name=availe-opensearch-cluster",
@@ -50,8 +54,9 @@ private fun <P : ContainerRunSpecification.PortList> createOpenSearchNodeSpec(
         "cluster.initial_cluster_manager_nodes=${SharedOpenSearchConstants.NODE_1_NAME},${SharedOpenSearchConstants.NODE_2_NAME}",
         "bootstrap.memory_lock=true",
         "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m",
-        "DISABLE_INSTALL_DEMO_CONFIG=true", // We are providing our own security config
-        "OPENSEARCH_CONFIG_GENERATION_TIMESTAMP=${System.currentTimeMillis()}"
+        "DISABLE_INSTALL_DEMO_CONFIG=true",
+        "AVAILE_HOST_IP_TRACKER=${NetworkConstants.HOST_IP}",
+        "OPENSEARCH_ASSET_HASH=$staticAssetsHash"
     )
 
     val ulimits = listOf(
@@ -84,7 +89,8 @@ private fun <P : ContainerRunSpecification.PortList> createOpenSearchNodeSpec(
         environmentVariables = environmentVariables,
         portMappings = portMappings,
         volumes = volumes,
-        ulimits = ulimits
+        ulimits = ulimits,
+        logStrategy = logStrategy
     )
 }
 
@@ -92,10 +98,13 @@ internal fun openSearchDashboardsSpec(): ContainerRunSpecification<OpenSearchDas
     val projectRootDirectory = System.getProperty("user.dir")
     val generatedConfigDirectory = File(projectRootDirectory, "build/generated/opensearch")
 
+    val staticAssetsHash = OpenSearchSecurityHasher.calculateStaticAssetsHash(generatedConfigDirectory)
+
     val environmentVariables = listOf(
         "OPENSEARCH_HOSTS=[\"https://${SharedOpenSearchConstants.NODE_1_NAME}:${SharedOpenSearchConstants.OPENSEARCH_PORT}\",\"https://${SharedOpenSearchConstants.NODE_2_NAME}:${SharedOpenSearchConstants.OPENSEARCH_PORT}\"]",
         "DISABLE_SECURITY_DASHBOARDS_PLUGIN=false",
-        "OPENSEARCH_CONFIG_GENERATION_TIMESTAMP=${System.currentTimeMillis()}"
+        "AVAILE_HOST_IP_TRACKER=${NetworkConstants.HOST_IP}",
+        "OPENSEARCH_ASSET_HASH=$staticAssetsHash"
     )
 
     val volumes = OpenSearchDashboardsVolumesList(
@@ -108,6 +117,7 @@ internal fun openSearchDashboardsSpec(): ContainerRunSpecification<OpenSearchDas
         tag = SharedOpenSearchConstants.DASHBOARDS_VERSION,
         environmentVariables = environmentVariables,
         portMappings = OpenSearchDashboardsPortsList,
-        volumes = volumes
+        volumes = volumes,
+        logStrategy = ContainerRunSpecification.LogStrategy.STREAM_ALWAYS
     )
 }

@@ -14,14 +14,12 @@ import java.io.File
 import java.io.FileReader
 import java.security.KeyPair
 import java.security.Security
+import java.security.cert.X509Certificate
 
 internal object OpenSearchCertGen {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     init {
-        // Essential: Register Bouncy Castle provider explicitly.
-        // This ensures the "BC" provider is available even if we take the "Load Existing Certs" path,
-        // which might bypass the init block of TlsCertificateGenerator.
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(BouncyCastleProvider())
         }
@@ -35,14 +33,11 @@ internal object OpenSearchCertGen {
             generatedCertDirectory.mkdirs()
         }
 
-        // Ensure the directory itself is accessible
         setFileReadableByAll(generatedCertDirectory)
 
         val rootCaFile = File(generatedCertDirectory, "root-ca.pem")
         val rootKeyFile = File(generatedCertDirectory, "root-ca-key.pem")
 
-        // Idempotency check: If Root CA exists, load it. If not, generate it.
-        // This prevents "SignatureException" where nodes reject each other because they were signed by different CA generations.
         val rootBundle = if (rootCaFile.exists() && rootKeyFile.exists()) {
             logger.info("Existing OpenSearch Root CA found. Loading...")
             loadRootCertificate(rootCaFile, rootKeyFile)
@@ -54,77 +49,103 @@ internal object OpenSearchCertGen {
             newBundle
         }
 
-        logger.info("Generating OpenSearch Admin Certificate...")
-        val adminBundle = TlsCertificateGenerator.generateSignedCertificate(
-            commonName = "admin",
-            subjectAlternativeNames = emptyList(),
-            issuerBundle = rootBundle
+        ensureSignedCertificate(
+            rootBundle,
+            File(generatedCertDirectory, "admin.pem"),
+            File(generatedCertDirectory, "admin-key.pem"),
+            "admin",
+            emptyList()
         )
-        writeAndPermitFile(File(generatedCertDirectory, "admin.pem"), adminBundle.certificatePem)
-        writeAndPermitFile(File(generatedCertDirectory, "admin-key.pem"), adminBundle.privateKeyPem)
 
-        logger.info("Generating OpenSearch Node1 Certificate...")
-        val node1Bundle = TlsCertificateGenerator.generateSignedCertificate(
-            commonName = SharedOpenSearchConstants.NODE_1_NAME,
-            // Include localhost and 127.0.0.1 for health checks
-            subjectAlternativeNames = listOf(SharedOpenSearchConstants.NODE_1_NAME, "localhost", "127.0.0.1"),
-            issuerBundle = rootBundle
+        ensureSignedCertificate(
+            rootBundle,
+            File(generatedCertDirectory, "node1.pem"),
+            File(generatedCertDirectory, "node1-key.pem"),
+            SharedOpenSearchConstants.NODE_1_NAME,
+            listOf(SharedOpenSearchConstants.NODE_1_NAME, "localhost", "127.0.0.1")
         )
-        writeAndPermitFile(File(generatedCertDirectory, "node1.pem"), node1Bundle.certificatePem)
-        writeAndPermitFile(File(generatedCertDirectory, "node1-key.pem"), node1Bundle.privateKeyPem)
 
-        logger.info("Generating OpenSearch Node2 Certificate...")
-        val node2Bundle = TlsCertificateGenerator.generateSignedCertificate(
-            commonName = SharedOpenSearchConstants.NODE_2_NAME,
-            subjectAlternativeNames = listOf(SharedOpenSearchConstants.NODE_2_NAME, "localhost", "127.0.0.1"),
-            issuerBundle = rootBundle
+        ensureSignedCertificate(
+            rootBundle,
+            File(generatedCertDirectory, "node2.pem"),
+            File(generatedCertDirectory, "node2-key.pem"),
+            SharedOpenSearchConstants.NODE_2_NAME,
+            listOf(SharedOpenSearchConstants.NODE_2_NAME, "localhost", "127.0.0.1")
         )
-        writeAndPermitFile(File(generatedCertDirectory, "node2.pem"), node2Bundle.certificatePem)
-        writeAndPermitFile(File(generatedCertDirectory, "node2-key.pem"), node2Bundle.privateKeyPem)
 
-        logger.info("Generating OpenSearch Dashboards Certificate...")
-        val dashboardsBundle = TlsCertificateGenerator.generateSignedCertificate(
-            commonName = SharedOpenSearchConstants.DASHBOARDS_NAME,
-            subjectAlternativeNames = listOf(SharedOpenSearchConstants.DASHBOARDS_NAME, "localhost", "127.0.0.1"),
-            issuerBundle = rootBundle
+        ensureSignedCertificate(
+            rootBundle,
+            File(generatedCertDirectory, "dashboards.pem"),
+            File(generatedCertDirectory, "dashboards-key.pem"),
+            SharedOpenSearchConstants.DASHBOARDS_NAME,
+            listOf(SharedOpenSearchConstants.DASHBOARDS_NAME, "localhost", "127.0.0.1")
         )
-        writeAndPermitFile(File(generatedCertDirectory, "dashboards.pem"), dashboardsBundle.certificatePem)
-        writeAndPermitFile(File(generatedCertDirectory, "dashboards-key.pem"), dashboardsBundle.privateKeyPem)
 
-        logger.info("OpenSearch certificates generated at ${generatedCertDirectory.absolutePath}")
+        logger.info("OpenSearch certificates check complete at ${generatedCertDirectory.absolutePath}")
     }
 
-    private fun loadRootCertificate(certFile: File, keyFile: File): TlsCertificateGenerator.CertificateBundle {
-        // Read Certificate
-        val certParser = PEMParser(FileReader(certFile))
-        val certHolder = certParser.readObject() as X509CertificateHolder
-        val x509Certificate = JcaX509CertificateConverter().setProvider("BC").getCertificate(certHolder)
-        certParser.close()
+    private fun ensureSignedCertificate(
+        issuerBundle: TlsCertificateGenerator.CertificateBundle,
+        certificateFile: File,
+        keyFile: File,
+        commonName: String,
+        subjectAlternativeNames: List<String>
+    ) {
+        if (certificateFile.exists() && keyFile.exists()) {
+            try {
+                val existingCertificate = loadCertificate(certificateFile)
+                existingCertificate.verify(issuerBundle.x509Certificate.publicKey)
+                logger.info("Certificate for '$commonName' exists and is valid. Skipping generation.")
+                return
+            } catch (exception: Exception) {
+                logger.warn("Certificate for '$commonName' exists but failed verification against current Root CA: ${exception.message}. Regenerating...")
+            }
+        }
 
-        // Read Private Key
+        logger.info("Generating OpenSearch '$commonName' Certificate...")
+        val bundle = TlsCertificateGenerator.generateSignedCertificate(
+            commonName = commonName,
+            subjectAlternativeNames = subjectAlternativeNames,
+            issuerBundle = issuerBundle
+        )
+        writeAndPermitFile(certificateFile, bundle.certificatePem)
+        writeAndPermitFile(keyFile, bundle.privateKeyPem)
+    }
+
+    private fun loadCertificate(certificateFile: File): X509Certificate {
+        PEMParser(FileReader(certificateFile)).use { parser ->
+            val certificateHolder = parser.readObject() as? X509CertificateHolder
+                ?: throw IllegalStateException("File ${certificateFile.name} does not contain a certificate")
+            return JcaX509CertificateConverter()
+                .setProvider(BouncyCastleProvider.PROVIDER_NAME)
+                .getCertificate(certificateHolder)
+        }
+    }
+
+    private fun loadRootCertificate(certificateFile: File, keyFile: File): TlsCertificateGenerator.CertificateBundle {
+        val x509Certificate = loadCertificate(certificateFile)
+
         val keyParser = PEMParser(FileReader(keyFile))
         val keyObject = keyParser.readObject()
         keyParser.close()
 
-        // Robust key loading: Handle both PKCS#1 (PEMKeyPair) and PKCS#8 (PrivateKeyInfo)
-        // This ensures that if we have an old Root CA generated with PKCS#1, we can still load it
-        // to sign new certs, while new generation will use PKCS#8.
         val privateKey = when (keyObject) {
-            is PEMKeyPair -> JcaPEMKeyConverter().setProvider("BC").getKeyPair(keyObject).private
-            is PrivateKeyInfo -> JcaPEMKeyConverter().setProvider("BC").getPrivateKey(keyObject)
+            is PEMKeyPair -> JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME)
+                .getKeyPair(keyObject).private
+
+            is PrivateKeyInfo -> JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME)
+                .getPrivateKey(keyObject)
+
             else -> throw IllegalStateException("Unknown private key format in ${keyFile.name}: ${keyObject?.javaClass?.name}")
         }
 
-        // Reconstruct keypair (public key is extracted from certificate)
         val keyPair = KeyPair(x509Certificate.publicKey, privateKey)
-
-        // Reconstruct the contents as text for the Bundle
-        val certPem = certFile.readText()
-        val keyPem = keyFile.readText()
+        val certificatePem = certificateFile.readText()
+        val privateKeyPem = keyFile.readText()
 
         return TlsCertificateGenerator.CertificateBundle(
-            certificatePem = certPem,
-            privateKeyPem = keyPem,
+            certificatePem = certificatePem,
+            privateKeyPem = privateKeyPem,
             x509Certificate = x509Certificate,
             keyPair = keyPair
         )
@@ -136,8 +157,7 @@ internal object OpenSearchCertGen {
     }
 
     private fun setFileReadableByAll(file: File) {
-        // Essential for Docker bind mounts: Host user owns the file, but Container user (uid 1000) needs to read it.
-        val success = file.setReadable(true, false) // readable=true, ownerOnly=false
+        val success = file.setReadable(true, false)
         if (!success) {
             logger.warn("Failed to set readable permissions on ${file.absolutePath}. Docker container might fail to read this file.")
         }
