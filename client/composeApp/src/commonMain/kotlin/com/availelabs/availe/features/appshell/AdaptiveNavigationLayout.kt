@@ -1,6 +1,5 @@
 package com.availelabs.availe.features.appshell
 
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.router.slot.ChildSlot
@@ -22,12 +21,4 @@ fun AppShellContentStack(
     modifier: Modifier = Modifier
 ) {
     ContentStack(appShellComponent, modifier)
-}
-
-@Composable
-fun BoxScope.AppShellChatOverlay(
-    appShellComponent: IAppShellComponent,
-    modifier: Modifier = Modifier
-) {
-    ChatOverlay(appShellComponent, modifier)
 }
