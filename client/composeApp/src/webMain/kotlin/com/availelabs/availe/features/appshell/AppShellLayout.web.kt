@@ -9,18 +9,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import availe.client.composeapp.generated.resources.Res
-import availe.client.composeapp.generated.resources.accessibility_action_logout
 import availe.client.composeapp.generated.resources.navigation_home
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.ui.components.AppTopNavigation
-import com.availelabs.availe.ui.components.AuthenticationActionButton
-import com.availelabs.availe.ui.mapper.ActionIconMapper
-import com.availelabs.availe.ui.model.asString
 import com.composables.icons.lucide.House
-import com.composables.icons.lucide.LogOut
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.IconButton
@@ -71,26 +66,14 @@ actual fun AppShellLayout(
                     }
                 },
                 actions = {
-                    childActions.forEach { action ->
-                        val iconVector = ActionIconMapper.map(action.icon)
-                        IconButton(onClick = action.onClick) {
-                            Icon(iconVector, action.label.asString())
-                        }
-                    }
-
-                    if (authenticationState is AuthenticationState.LoggedIn) {
-                        IconButton(
-                            onClick = { appShellComponent.onLogoutClicked() }
-                        ) {
-                            Icon(Lucide.LogOut, stringResource(Res.string.accessibility_action_logout))
-                        }
-                    } else {
-                        AuthenticationActionButton(
-                            isLoading = isAuthenticationLoading,
-                            onLoginClicked = { appShellComponent.onLoginClicked() },
-                            onCancelLoginClicked = { appShellComponent.onCancelLoginClicked() }
-                        )
-                    }
+                    ShellActions(
+                        actions = childActions,
+                        authenticationState = authenticationState,
+                        isAuthenticationLoading = isAuthenticationLoading,
+                        onLoginClicked = { appShellComponent.onLoginClicked() },
+                        onLogoutClicked = { appShellComponent.onLogoutClicked() },
+                        onCancelLoginClicked = { appShellComponent.onCancelLoginClicked() }
+                    )
                 }
             )
 
@@ -109,7 +92,7 @@ actual fun AppShellLayout(
                     AppShellContentStack(appShellComponent)
                 }
 
-                AppShellChatOverlay(
+                ChatOverlay(
                     appShellComponent = appShellComponent,
                     modifier = Modifier.align(Alignment.BottomEnd)
                 )

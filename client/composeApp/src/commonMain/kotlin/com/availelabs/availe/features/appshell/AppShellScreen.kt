@@ -1,7 +1,6 @@
 package com.availelabs.availe.features.appshell
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -11,17 +10,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import availe.client.composeapp.generated.resources.Res
+import availe.client.composeapp.generated.resources.accessibility_action_logout
 import availe.client.composeapp.generated.resources.chat_title
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.features.chat.ChatScreen
+import com.availelabs.availe.features.home.HomeScreen
+import com.availelabs.availe.features.listingdetails.ListingDetailsScreen
 import com.availelabs.availe.ui.animation.appStackAnimation
-import com.availelabs.availe.ui.components.ChatOverlayWindow
-import com.availelabs.availe.ui.components.PredictiveBackGestureOverlay
-import com.availelabs.availe.ui.components.WindowSizeClass
-import com.availelabs.availe.ui.components.rememberWindowSize
+import com.availelabs.availe.ui.components.*
+import com.availelabs.availe.ui.mapper.ActionIconMapper
+import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.LayoutMode
+import com.availelabs.availe.ui.model.asString
+import com.composables.icons.lucide.LogOut
+import com.composables.icons.lucide.Lucide
+import com.composables.uikit.components.Icon
+import com.composables.uikit.components.IconButton
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalDecomposeApi::class)
@@ -91,7 +98,7 @@ internal fun ContentStack(
 }
 
 @Composable
-internal fun BoxScope.ChatOverlay(
+internal fun ChatOverlay(
     appShellComponent: IAppShellComponent,
     modifier: Modifier = Modifier
 ) {
@@ -117,15 +124,46 @@ internal fun BoxScope.ChatOverlay(
 }
 
 @Composable
+fun ShellActions(
+    actions: List<AppBarAction>,
+    authenticationState: AuthenticationState,
+    isAuthenticationLoading: Boolean,
+    onLoginClicked: () -> Unit,
+    onLogoutClicked: () -> Unit,
+    onCancelLoginClicked: () -> Unit
+) {
+    actions.forEach { action ->
+        val iconVector = ActionIconMapper.map(action.icon)
+        IconButton(onClick = action.onClick) {
+            Icon(iconVector, action.label.asString())
+        }
+    }
+
+    if (authenticationState is AuthenticationState.LoggedIn) {
+        IconButton(
+            onClick = onLogoutClicked
+        ) {
+            Icon(Lucide.LogOut, stringResource(Res.string.accessibility_action_logout))
+        }
+    } else {
+        AuthenticationActionButton(
+            isLoading = isAuthenticationLoading,
+            onLoginClicked = onLoginClicked,
+            onCancelLoginClicked = onCancelLoginClicked
+        )
+    }
+}
+
+@Composable
 private fun AppShellChildComponent.Render(modifier: Modifier) {
     when (this) {
-        is AppShellChildComponent.Home -> com.availelabs.availe.features.home.HomeScreen(
+        is AppShellChildComponent.Home -> HomeScreen(
             homeComponent = this.component,
             onSearchClick = { },
             onNotificationClick = { }
         )
 
-        is AppShellChildComponent.ListingDetails -> com.availelabs.availe.features.listingdetails.ListingDetailsScreen(
+        is AppShellChildComponent.ListingDetails -> ListingDetailsScreen(
             listingDetailsComponent = this.component
         )
 

@@ -7,7 +7,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import availe.client.composeapp.generated.resources.Res
-import availe.client.composeapp.generated.resources.accessibility_action_logout
 import availe.client.composeapp.generated.resources.generic_back
 import availe.client.composeapp.generated.resources.navigation_home
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -15,11 +14,9 @@ import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.ui.components.*
-import com.availelabs.availe.ui.mapper.ActionIconMapper
-import com.availelabs.availe.ui.model.asString
+import com.availelabs.availe.ui.model.AppBarAction
 import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.House
-import com.composables.icons.lucide.LogOut
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.IconButton
@@ -69,54 +66,13 @@ private fun CompactShell(
 
     AdaptiveScaffold(
         appBar = {
-            TopAppBar(
-                navigation = {
-                    val isBackStackEmpty = childStack.backStack.isEmpty()
-                    if (isBackStackEmpty) {
-                        IconButton(onClick = { }) {
-                            Icon(
-                                imageVector = activeConfiguration.navigationIcon.icon,
-                                contentDescription = stringResource(activeConfiguration.navigationIcon.contentDescription)
-                            )
-                        }
-                    } else {
-                        IconButton(onClick = { appShellComponent.onBackClicked() }) {
-                            Icon(
-                                imageVector = Lucide.ArrowLeft,
-                                contentDescription = stringResource(Res.string.generic_back)
-                            )
-                        }
-                    }
-                },
-                title = {
-                    if (activeConfiguration is AppShellConfiguration.Home) {
-                        Text("Availe", fontWeight = FontWeight.Bold)
-                    } else {
-                        Text(stringResource(activeConfiguration.titleResource))
-                    }
-                },
-                actions = {
-                    childActions.forEach { action ->
-                        val iconVector = ActionIconMapper.map(action.icon)
-                        IconButton(onClick = action.onClick) {
-                            Icon(iconVector, action.label.asString())
-                        }
-                    }
-
-                    if (authenticationState is AuthenticationState.LoggedIn) {
-                        IconButton(
-                            onClick = { appShellComponent.onLogoutClicked() }
-                        ) {
-                            Icon(Lucide.LogOut, stringResource(Res.string.accessibility_action_logout))
-                        }
-                    } else {
-                        AuthenticationActionButton(
-                            isLoading = isAuthenticationLoading,
-                            onLoginClicked = { appShellComponent.onLoginClicked() },
-                            onCancelLoginClicked = { appShellComponent.onCancelLoginClicked() }
-                        )
-                    }
-                }
+            SharedTopAppBar(
+                appShellComponent = appShellComponent,
+                activeConfiguration = activeConfiguration,
+                isBackStackEmpty = childStack.backStack.isEmpty(),
+                childActions = childActions,
+                authenticationState = authenticationState,
+                isAuthenticationLoading = isAuthenticationLoading
             )
         },
         bottomBar = {
@@ -150,54 +106,13 @@ private fun NonCompactShell(
 
     AdaptiveScaffold(
         appBar = {
-            TopAppBar(
-                navigation = {
-                    val isBackStackEmpty = childStack.backStack.isEmpty()
-                    if (isBackStackEmpty) {
-                        IconButton(onClick = { }) {
-                            Icon(
-                                imageVector = activeConfiguration.navigationIcon.icon,
-                                contentDescription = stringResource(activeConfiguration.navigationIcon.contentDescription)
-                            )
-                        }
-                    } else {
-                        IconButton(onClick = { appShellComponent.onBackClicked() }) {
-                            Icon(
-                                imageVector = Lucide.ArrowLeft,
-                                contentDescription = stringResource(Res.string.generic_back)
-                            )
-                        }
-                    }
-                },
-                title = {
-                    if (activeConfiguration is AppShellConfiguration.Home) {
-                        Text("Availe", fontWeight = FontWeight.Bold)
-                    } else {
-                        Text(stringResource(activeConfiguration.titleResource))
-                    }
-                },
-                actions = {
-                    childActions.forEach { action ->
-                        val iconVector = ActionIconMapper.map(action.icon)
-                        IconButton(onClick = action.onClick) {
-                            Icon(iconVector, action.label.asString())
-                        }
-                    }
-
-                    if (authenticationState is AuthenticationState.LoggedIn) {
-                        IconButton(
-                            onClick = { appShellComponent.onLogoutClicked() }
-                        ) {
-                            Icon(Lucide.LogOut, stringResource(Res.string.accessibility_action_logout))
-                        }
-                    } else {
-                        AuthenticationActionButton(
-                            isLoading = isAuthenticationLoading,
-                            onLoginClicked = { appShellComponent.onLoginClicked() },
-                            onCancelLoginClicked = { appShellComponent.onCancelLoginClicked() }
-                        )
-                    }
-                }
+            SharedTopAppBar(
+                appShellComponent = appShellComponent,
+                activeConfiguration = activeConfiguration,
+                isBackStackEmpty = childStack.backStack.isEmpty(),
+                childActions = childActions,
+                authenticationState = authenticationState,
+                isAuthenticationLoading = isAuthenticationLoading
             )
         },
         sideBar = {
@@ -221,11 +136,61 @@ private fun NonCompactShell(
         ) {
             Box(modifier = Modifier.weight(1f).fillMaxSize()) {
                 AppShellContentStack(appShellComponent)
-                AppShellChatOverlay(
+                ChatOverlay(
                     appShellComponent = appShellComponent,
                     modifier = Modifier.align(Alignment.BottomEnd)
                 )
             }
         }
     }
+}
+
+@Composable
+private fun SharedTopAppBar(
+    appShellComponent: IAppShellComponent,
+    activeConfiguration: AppShellConfiguration,
+    isBackStackEmpty: Boolean,
+    childActions: List<AppBarAction>,
+    authenticationState: AuthenticationState,
+    isAuthenticationLoading: Boolean
+) {
+    val (icon, onIconClick) = if (isBackStackEmpty) {
+        activeConfiguration.navigationIcon.icon to {}
+    } else {
+        Lucide.ArrowLeft to { appShellComponent.onBackClicked() }
+    }
+
+    val contentDescription = if (isBackStackEmpty) {
+        stringResource(activeConfiguration.navigationIcon.contentDescription)
+    } else {
+        stringResource(Res.string.generic_back)
+    }
+
+    TopAppBar(
+        navigation = {
+            IconButton(onClick = onIconClick) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = contentDescription
+                )
+            }
+        },
+        title = {
+            if (activeConfiguration is AppShellConfiguration.Home) {
+                Text("Availe", fontWeight = FontWeight.Bold)
+            } else {
+                Text(stringResource(activeConfiguration.titleResource))
+            }
+        },
+        actions = {
+            ShellActions(
+                actions = childActions,
+                authenticationState = authenticationState,
+                isAuthenticationLoading = isAuthenticationLoading,
+                onLoginClicked = { appShellComponent.onLoginClicked() },
+                onLogoutClicked = { appShellComponent.onLogoutClicked() },
+                onCancelLoginClicked = { appShellComponent.onCancelLoginClicked() }
+            )
+        }
+    )
 }
