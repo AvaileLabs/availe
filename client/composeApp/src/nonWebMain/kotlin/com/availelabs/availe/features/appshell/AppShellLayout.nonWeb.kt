@@ -14,6 +14,7 @@ import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.ui.components.*
+import com.availelabs.availe.ui.mapper.NavigationUiMapper
 import com.availelabs.availe.ui.model.AppBarAction
 import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.House
@@ -154,14 +155,16 @@ private fun SharedTopAppBar(
     authenticationState: AuthenticationState,
     isAuthenticationLoading: Boolean
 ) {
+    val navigationUiState = NavigationUiMapper.map(activeConfiguration)
+
     val (icon, onIconClick) = if (isBackStackEmpty) {
-        activeConfiguration.navigationIcon.icon to {}
+        navigationUiState.icon to {}
     } else {
         Lucide.ArrowLeft to { appShellComponent.onBackClicked() }
     }
 
     val contentDescription = if (isBackStackEmpty) {
-        stringResource(activeConfiguration.navigationIcon.contentDescription)
+        stringResource(navigationUiState.contentDescription)
     } else {
         stringResource(Res.string.generic_back)
     }
@@ -179,7 +182,7 @@ private fun SharedTopAppBar(
             if (activeConfiguration is AppShellConfiguration.Home) {
                 Text("Availe", fontWeight = FontWeight.Bold)
             } else {
-                Text(stringResource(activeConfiguration.titleResource))
+                Text(stringResource(navigationUiState.title))
             }
         },
         actions = {
