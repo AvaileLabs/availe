@@ -16,8 +16,8 @@ import com.availelabs.availe.features.appshell.MainStore
 import com.availelabs.availe.features.root.IRootComponent
 import com.availelabs.availe.features.root.RootChildComponent
 import com.availelabs.availe.ui.animation.appStackAnimation
-import com.availelabs.availe.ui.components.LoginGuardModal
-import com.availelabs.availe.ui.components.ToastOverlay
+import com.availelabs.availe.ui.components.dialogs.LoginGuardModal
+import com.availelabs.availe.ui.components.feedback.ToastOverlay
 import com.composables.uikit.styling.UiKitTheme
 import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.scrim

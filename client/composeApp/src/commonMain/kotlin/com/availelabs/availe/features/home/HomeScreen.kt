@@ -28,8 +28,8 @@ import androidx.compose.ui.unit.dp
 import availe.client.composeapp.generated.resources.*
 import com.availelabs.availe.ui.RefreshStateHolder
 import com.availelabs.availe.ui.components.ListingCard
-import com.availelabs.availe.ui.components.WindowSizeClass
-import com.availelabs.availe.ui.components.rememberWindowSize
+import com.availelabs.availe.ui.components.layout.WindowSizeClass
+import com.availelabs.availe.ui.components.layout.rememberWindowSize
 import com.availelabs.availe.ui.model.asString
 import com.availelabs.availe.ui.modifiers.refreshTrigger
 import com.availelabs.availe.ui.util.InfiniteGridHandler

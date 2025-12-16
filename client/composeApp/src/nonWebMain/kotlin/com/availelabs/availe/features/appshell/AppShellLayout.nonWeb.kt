@@ -13,7 +13,9 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.availelabs.availe.domain.auth.AuthenticationState
-import com.availelabs.availe.ui.components.*
+import com.availelabs.availe.ui.components.layout.*
+import com.availelabs.availe.ui.components.navigation.ShellNavigationItem
+import com.availelabs.availe.ui.components.navigation.ShellRailNavigationItem
 import com.availelabs.availe.ui.mapper.NavigationUiMapper
 import com.availelabs.availe.ui.model.AppBarAction
 import com.composables.icons.lucide.ArrowLeft

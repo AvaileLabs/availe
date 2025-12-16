@@ -1,4 +1,4 @@
-package com.availelabs.availe.ui.components
+package com.availelabs.availe.ui.components.dialogs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

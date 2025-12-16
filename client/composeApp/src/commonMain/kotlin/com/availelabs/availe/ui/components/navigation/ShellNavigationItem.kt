@@ -1,4 +1,4 @@
-package com.availelabs.availe.ui.components
+package com.availelabs.availe.ui.components.navigation
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState

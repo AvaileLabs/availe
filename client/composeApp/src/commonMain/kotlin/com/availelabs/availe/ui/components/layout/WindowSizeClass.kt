@@ -1,4 +1,4 @@
-package com.availelabs.availe.ui.components
+package com.availelabs.availe.ui.components.layout
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp

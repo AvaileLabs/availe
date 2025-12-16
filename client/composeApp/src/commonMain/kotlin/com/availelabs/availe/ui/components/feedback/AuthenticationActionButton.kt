@@ -1,4 +1,4 @@
-package com.availelabs.availe.ui.components
+package com.availelabs.availe.ui.components.feedback
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
