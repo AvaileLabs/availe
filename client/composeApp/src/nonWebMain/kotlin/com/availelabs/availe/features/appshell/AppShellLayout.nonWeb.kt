@@ -193,7 +193,7 @@ private fun SharedTopAppBar(
                 authenticationState = authenticationState,
                 isAuthenticationLoading = isAuthenticationLoading,
                 onLoginClicked = { appShellComponent.onLoginClicked() },
-                onSettingsClick = { appShellComponent.onProfileClicked() },
+                onSettingsClick = { appShellComponent.onSettingsClicked() },
                 onCancelLoginClicked = { appShellComponent.onCancelLoginClicked() }
             )
         }
