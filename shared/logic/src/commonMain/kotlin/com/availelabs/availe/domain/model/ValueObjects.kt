@@ -59,3 +59,7 @@ value class ChatMessageId(val value: String)
 @Serializable
 @JvmInline
 value class MessageContent(val value: String)
+
+@Serializable
+@JvmInline
+value class UserDisplayName(val value: String)

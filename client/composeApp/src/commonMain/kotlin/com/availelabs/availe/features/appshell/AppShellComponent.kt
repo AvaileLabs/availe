@@ -13,6 +13,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.lifecycle.doOnDestroy
+import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.domain.model.Jid
@@ -23,6 +24,8 @@ import com.availelabs.availe.features.home.HomeComponent
 import com.availelabs.availe.features.home.IHomeComponent
 import com.availelabs.availe.features.listingdetails.IListingDetailsComponent
 import com.availelabs.availe.features.listingdetails.ListingDetailsComponent
+import com.availelabs.availe.features.settings.ISettingsComponent
+import com.availelabs.availe.features.settings.SettingsComponent
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.LayoutMode
 import kotlinx.coroutines.*
@@ -44,6 +47,7 @@ interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     fun onCancelLoginClicked()
     fun onLogoutClicked()
     fun onHomeTabClicked()
+    fun onSettingsClicked()
 }
 
 class AppShellComponent(
@@ -60,6 +64,8 @@ class AppShellComponent(
     private val childStackNavigation = StackNavigation<AppShellConfiguration>()
     private val chatOverlayNavigation = SlotNavigation<AppShellConfiguration.Chat>()
     private var layoutMode = LayoutMode.SinglePane
+
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
 
     override val authenticationState: Value<AuthenticationState> = appContainer.sessionManager.authenticationState
 
@@ -89,7 +95,6 @@ class AppShellComponent(
     )
 
     init {
-        val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
         lifecycle.doOnDestroy { scope.cancel() }
 
         val dismissOverlayOnLogoutObserver: (AuthenticationState) -> Unit = { state ->
@@ -155,8 +160,11 @@ class AppShellComponent(
     }
 
     override fun onHomeTabClicked() {
-        dismissChatOverlay()
         childStackNavigation.bringToFront(AppShellConfiguration.Home)
+    }
+
+    override fun onSettingsClicked() {
+        childStackNavigation.bringToFront(AppShellConfiguration.Settings)
     }
 
     private fun calculateInitialStack(intent: AppShellIntent): List<AppShellConfiguration> {
@@ -235,6 +243,18 @@ class AppShellComponent(
                     onNavigateBack = { childStackNavigation.pop() }
                 )
             )
+
+            AppShellConfiguration.Settings -> AppShellChildComponent.Settings(
+                SettingsComponent(
+                    componentContext = componentContext,
+                    storeFactory = DefaultStoreFactory(),
+                    sessionManager = appContainer.sessionManager,
+                    authenticationRepository = appContainer.authenticationRepository,
+                    onOpenUrl = { url ->
+                        appContainer.inAppBrowserLauncher.open(url)
+                    }
+                )
+            )
         }
     }
 
@@ -266,6 +286,10 @@ sealed interface AppShellChildComponent {
     }
 
     data class Chat(val component: IChatComponent) : AppShellChildComponent {
+        override val actions: Value<List<AppBarAction>> = component.actions
+    }
+
+    data class Settings(val component: ISettingsComponent) : AppShellChildComponent {
         override val actions: Value<List<AppBarAction>> = component.actions
     }
 }
@@ -301,5 +325,10 @@ sealed interface AppShellConfiguration {
         companion object {
             const val ROUTE_SEGMENT_NAME = "chat"
         }
+    }
+
+    @Serializable
+    data object Settings : AppShellConfiguration {
+        override fun toUrlPath(): String = "/settings"
     }
 }

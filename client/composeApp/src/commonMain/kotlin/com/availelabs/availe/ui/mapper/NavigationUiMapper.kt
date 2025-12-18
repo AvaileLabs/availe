@@ -6,6 +6,7 @@ import com.availelabs.availe.ui.model.NavigationUiState
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.MessageCircle
+import com.composables.icons.lucide.Settings
 
 object NavigationUiMapper {
     fun map(configuration: AppShellConfiguration): NavigationUiState {
@@ -26,6 +27,12 @@ object NavigationUiMapper {
                 title = Res.string.navigation_chat,
                 icon = Lucide.MessageCircle,
                 contentDescription = Res.string.accessibility_navigation_chat
+            )
+
+            is AppShellConfiguration.Settings -> NavigationUiState(
+                title = Res.string.navigation_settings,
+                icon = Lucide.Settings,
+                contentDescription = Res.string.accessibility_navigation_settings
             )
         }
     }

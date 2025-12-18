@@ -24,6 +24,10 @@ kotlin {
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
+        androidResources {
+            enable = true
+        }
+
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
         }
@@ -92,6 +96,7 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.browser)
             implementation(libs.sqldelight.android.driver)
         }
         commonMain.dependencies {

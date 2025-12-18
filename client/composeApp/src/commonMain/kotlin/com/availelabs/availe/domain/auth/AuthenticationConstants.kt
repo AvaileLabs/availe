@@ -9,6 +9,9 @@ internal object AuthenticationConstants {
     const val DISCOVERY_URI: String =
         "http://${NetworkConstants.HOST_IP}:${SharedNetworkConstants.KEYCLOAK_PUBLIC_PORT}/realms/${SharedAuthenticationConstants.REALM_NAME}${SharedAuthenticationConstants.Paths.OPENID_CONNECT_DISCOVERY}"
 
+    const val ACCOUNT_MANAGEMENT_URL: String =
+        "http://${NetworkConstants.HOST_IP}:${SharedNetworkConstants.KEYCLOAK_PUBLIC_PORT}/realms/${SharedAuthenticationConstants.REALM_NAME}/account"
+
     const val REDIRECT_URI_ANDROID: String = "${SharedAuthenticationConstants.REDIRECT_SCHEME}://callback"
     const val REDIRECT_URI_IOS: String = "${SharedAuthenticationConstants.REDIRECT_SCHEME}://callback"
     const val REDIRECT_URI_JVM: String = "http://127.0.0.1:8888/callback"

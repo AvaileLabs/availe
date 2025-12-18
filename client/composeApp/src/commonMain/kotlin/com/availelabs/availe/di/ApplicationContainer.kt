@@ -3,7 +3,9 @@ package com.availelabs.availe.di
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
+import com.availelabs.availe.core.platform.IInAppBrowserLauncher
 import com.availelabs.availe.core.platform.PlatformActivity
+import com.availelabs.availe.core.platform.createInAppBrowserLauncher
 import com.availelabs.availe.data.auth.*
 import com.availelabs.availe.data.database.DatabaseProvider
 import com.availelabs.availe.data.database.createDatabaseFileController
@@ -40,6 +42,7 @@ interface IApplicationContainer {
     val listingRepository: IListingRepository
     val messagingRepository: IMessagingRepository
     val messageService: IMessageService
+    val inAppBrowserLauncher: IInAppBrowserLauncher
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
@@ -54,6 +57,7 @@ fun createApplicationContainer(
     val platformAuthenticationConfiguration = createPlatformAuthenticationConfig(activity)
     val settings = Settings()
     val listingPreferences = ListingPreferences(settings)
+    val inAppBrowserLauncher = createInAppBrowserLauncher(activity)
 
     val json = Json {
         ignoreUnknownKeys = true
@@ -100,7 +104,7 @@ fun createApplicationContainer(
         authenticationRemoteDataSource = authenticationRemoteDataSource,
         localDataCleaner = localDataCleaner,
         lifecycle = lifecycle,
-        accountManagementUrl = "http://${NetworkConstants.HOST_IP}:${SharedNetworkConstants.KEYCLOAK_PUBLIC_PORT}/realms/availe/account"
+        accountManagementUrl = com.availelabs.availe.domain.auth.AuthenticationConstants.ACCOUNT_MANAGEMENT_URL
     )
 
     val authenticationRepository = AuthenticationRepository(
@@ -197,7 +201,8 @@ fun createApplicationContainer(
         authenticationRepository = authenticationRepository,
         listingRepository = listingRepository,
         messagingRepository = messagingRepository,
-        messageService = messageService
+        messageService = messageService,
+        inAppBrowserLauncher = inAppBrowserLauncher
     )
 }
 
@@ -206,5 +211,6 @@ private class ApplicationContainer(
     override val authenticationRepository: IAuthenticationRepository,
     override val listingRepository: IListingRepository,
     override val messagingRepository: IMessagingRepository,
-    override val messageService: IMessageService
+    override val messageService: IMessageService,
+    override val inAppBrowserLauncher: IInAppBrowserLauncher
 ) : IApplicationContainer

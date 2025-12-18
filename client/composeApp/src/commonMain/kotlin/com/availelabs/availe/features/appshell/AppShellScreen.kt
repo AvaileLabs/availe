@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import availe.client.composeapp.generated.resources.Res
-import availe.client.composeapp.generated.resources.accessibility_action_logout
+import availe.client.composeapp.generated.resources.accessibility_action_settings
 import availe.client.composeapp.generated.resources.chat_title
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
@@ -19,6 +19,7 @@ import com.availelabs.availe.domain.auth.AuthenticationState
 import com.availelabs.availe.features.chat.ChatScreen
 import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.listingdetails.ListingDetailsScreen
+import com.availelabs.availe.features.settings.SettingsScreen
 import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.PredictiveBackGestureOverlay
 import com.availelabs.availe.ui.components.dialogs.ChatOverlayWindow
@@ -29,8 +30,8 @@ import com.availelabs.availe.ui.mapper.ActionIconMapper
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.LayoutMode
 import com.availelabs.availe.ui.model.asString
-import com.composables.icons.lucide.LogOut
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Settings
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.IconButton
 import org.jetbrains.compose.resources.stringResource
@@ -133,7 +134,7 @@ fun ShellActions(
     authenticationState: AuthenticationState,
     isAuthenticationLoading: Boolean,
     onLoginClicked: () -> Unit,
-    onLogoutClicked: () -> Unit,
+    onSettingsClick: () -> Unit,
     onCancelLoginClicked: () -> Unit
 ) {
     actions.forEach { action ->
@@ -145,9 +146,9 @@ fun ShellActions(
 
     if (authenticationState is AuthenticationState.LoggedIn) {
         IconButton(
-            onClick = onLogoutClicked
+            onClick = onSettingsClick
         ) {
-            Icon(Lucide.LogOut, stringResource(Res.string.accessibility_action_logout))
+            Icon(Lucide.Settings, stringResource(Res.string.accessibility_action_settings))
         }
     } else {
         AuthenticationActionButton(
@@ -174,6 +175,10 @@ private fun AppShellChildComponent.Render(modifier: Modifier) {
         is AppShellChildComponent.Chat -> ChatScreen(
             component = this.component,
             isOverlay = false
+        )
+
+        is AppShellChildComponent.Settings -> SettingsScreen(
+            component = this.component
         )
     }
 }

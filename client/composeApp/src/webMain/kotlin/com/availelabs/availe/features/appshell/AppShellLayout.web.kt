@@ -71,7 +71,7 @@ actual fun AppShellLayout(
                         authenticationState = authenticationState,
                         isAuthenticationLoading = isAuthenticationLoading,
                         onLoginClicked = { appShellComponent.onLoginClicked() },
-                        onLogoutClicked = { appShellComponent.onLogoutClicked() },
+                        onSettingsClick = { appShellComponent.onSettingsClicked() },
                         onCancelLoginClicked = { appShellComponent.onCancelLoginClicked() }
                     )
                 }
