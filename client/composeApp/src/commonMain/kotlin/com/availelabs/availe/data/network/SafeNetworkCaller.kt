@@ -18,12 +18,6 @@ class SafeNetworkCaller(
         } catch (cancellationException: CancellationException) {
             throw cancellationException
         } catch (throwable: Throwable) {
-            val networkErrorType = throwable.classifyNetworkError()
-
-            if (!networkErrorType.isSafeToPreserveLocalData) {
-                localDataCleaner.clearAllData()
-            }
-
             RepositoryOperationResult.Failure(throwable.toAppError())
         }
     }

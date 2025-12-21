@@ -52,12 +52,11 @@ class ListingRepository(
                     try {
                         listingPreferences.updateLastListingsFetchTime(Clock.System.now().toEpochMilliseconds())
                     } catch (_: Exception) {
-                        localDataCleaner.clearAllData()
+                        // Ignore preference update failure
                     }
                 }
             }
             .catch { exception ->
-                localDataCleaner.clearAllData()
                 throw exception
             }
     }
@@ -66,7 +65,9 @@ class ListingRepository(
         return safeNetworkCaller.execute {
             val findResult = remoteDataSource.getListingById(id)
             if (findResult is FindResult.NotFound) {
-                localDataCleaner.clearAllData()
+                TODO()
+                // Optionally clear specific item from local data source if needed,
+                // but avoiding full wipe.
             }
             findResult
         }
@@ -80,11 +81,7 @@ class ListingRepository(
 
     override suspend fun existsById(id: ListingId): RepositoryOperationResult<Boolean> {
         return safeNetworkCaller.execute {
-            val exists = remoteDataSource.existsById(id)
-            if (!exists) {
-                localDataCleaner.clearAllData()
-            }
-            exists
+            remoteDataSource.existsById(id)
         }
     }
 
@@ -93,21 +90,13 @@ class ListingRepository(
         patch: TypeV1ListingDtoPatchRequest
     ): RepositoryOperationResult<UpdateResult<Listing>> {
         return safeNetworkCaller.execute {
-            val updateResult = remoteDataSource.updateListing(id, patch)
-            if (updateResult is UpdateResult.NotFound) {
-                localDataCleaner.clearAllData()
-            }
-            updateResult
+            remoteDataSource.updateListing(id, patch)
         }
     }
 
     override suspend fun deleteListing(id: ListingId): RepositoryOperationResult<DeleteResult> {
         return safeNetworkCaller.execute {
-            val deleteResult = remoteDataSource.deleteListing(id)
-            if (deleteResult is DeleteResult.NotFound) {
-                localDataCleaner.clearAllData()
-            }
-            deleteResult
+            remoteDataSource.deleteListing(id)
         }
     }
 
@@ -124,7 +113,6 @@ class ListingRepository(
 
             (currentTimestampMilliseconds - lastFetchTimeMilliseconds) > stalenessThresholdMilliseconds
         } catch (_: Exception) {
-            localDataCleaner.clearAllData()
             true
         }
     }

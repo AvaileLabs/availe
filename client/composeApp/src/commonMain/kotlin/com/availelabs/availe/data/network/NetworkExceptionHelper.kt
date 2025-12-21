@@ -23,16 +23,16 @@ sealed interface NetworkErrorType {
         }
 
         data object ClientSide : Recoverable {
-            override val isSafeToPreserveLocalData: Boolean = false
+            override val isSafeToPreserveLocalData: Boolean = true
         }
 
         data object DataSerialization : Recoverable {
-            override val isSafeToPreserveLocalData: Boolean = false
+            override val isSafeToPreserveLocalData: Boolean = true
         }
     }
 
     data object Unrecoverable : NetworkErrorType {
-        override val isSafeToPreserveLocalData: Boolean = false
+        override val isSafeToPreserveLocalData: Boolean = true
     }
 }
 
