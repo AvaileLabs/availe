@@ -1,11 +1,11 @@
 package com.availelabs.availe.services
 
-import com.arkivanov.decompose.value.Value
 import com.availelabs.availe.model.ToastId
 import com.availelabs.availe.model.ToastMessage
+import kotlinx.coroutines.flow.StateFlow
 
 interface IMessageService {
-    val toastMessages: Value<List<ToastMessage>>
+    val toastMessages: StateFlow<List<ToastMessage>>
     fun show(message: ToastMessage)
     fun dismiss(id: ToastId)
 }

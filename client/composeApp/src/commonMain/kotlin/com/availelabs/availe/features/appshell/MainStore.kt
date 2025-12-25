@@ -18,8 +18,6 @@ import com.availelabs.availe.repositories.IAuthenticationRepository
 import com.availelabs.availe.repositories.ISessionManager
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -74,14 +72,7 @@ class MainStoreFactory(
     private inner class MainBootstrapper : CoroutineBootstrapper<Action>() {
         override fun invoke() {
             scope.launch {
-                val authenticationFlow = callbackFlow {
-                    val subscription = sessionManager.authenticationState.subscribe { state ->
-                        trySend(state)
-                    }
-                    awaitClose { subscription.cancel() }
-                }
-
-                authenticationFlow.collectLatest { state ->
+                sessionManager.authenticationState.collectLatest { state ->
                     dispatch(Action.UpdateAuthenticationState(state))
                 }
             }

@@ -17,11 +17,11 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.core.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
-import com.availelabs.availe.model.ToastId
-import com.availelabs.availe.model.ToastMessage
 import com.availelabs.availe.features.appshell.*
 import com.availelabs.availe.features.login.ILoginComponent
 import com.availelabs.availe.features.login.LoginComponent
+import com.availelabs.availe.model.ToastId
+import com.availelabs.availe.model.ToastMessage
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
@@ -69,7 +69,8 @@ class RootComponent(
 
     private val isAuthenticationLoading: Value<Boolean> = authenticationState.map { it.isLoading }
 
-    override val toastMessages: Value<List<ToastMessage>> = appContainer.messageService.toastMessages
+    override val toastMessages: Value<List<ToastMessage>> =
+        appContainer.messageService.toastMessages.asValue(lifecycle)
 
     private val childStackNavigation = StackNavigation<RootConfiguration>()
     private val loginOverlayNavigation = SlotNavigation<LoginConfiguration>()

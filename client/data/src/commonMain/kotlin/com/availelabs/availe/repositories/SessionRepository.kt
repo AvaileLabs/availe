@@ -1,8 +1,5 @@
 package com.availelabs.availe.repositories
 
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.lifecycle.coroutines.withLifecycle
 import com.availelabs.availe.auth.AuthenticationState
@@ -12,9 +9,7 @@ import com.availelabs.availe.domain.model.AuthToken
 import com.availelabs.availe.sources.local.ILocalDataCleaner
 import com.availelabs.availe.sources.remote.IAuthenticationRemoteDataSource
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.*
 import org.publicvalue.multiplatform.oidc.OpenIdConnectException
 
 class SessionManager(
@@ -24,8 +19,8 @@ class SessionManager(
     private val accountManagementUrl: String
 ) : ISessionManager {
 
-    private val _authenticationState = MutableValue<AuthenticationState>(AuthenticationState.Unknown)
-    override val authenticationState: Value<AuthenticationState> = _authenticationState
+    private val _authenticationState = MutableStateFlow<AuthenticationState>(AuthenticationState.Unknown)
+    override val authenticationState: StateFlow<AuthenticationState> = _authenticationState.asStateFlow()
 
     private val _sessionInvalidated = MutableSharedFlow<Unit>()
     override val sessionInvalidated: SharedFlow<Unit> = _sessionInvalidated.asSharedFlow()

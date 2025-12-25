@@ -65,20 +65,21 @@ class HomeComponent(
             }
         }
 
-        val authenticationSubscription = sessionManager.authenticationState.subscribe { authenticationState ->
-            if (authenticationState is AuthenticationState.LoggedIn) {
-                _actions.value = listOf(
-                    AppBarAction(
-                        icon = ActionIcon.ADD,
-                        label = UiText.ResourceString(Res.string.accessibility_action_add),
-                        onClick = { store.accept(HomeStore.Intent.QuickCreateListingRequested) }
+        scope.launch {
+            sessionManager.authenticationState.collect { authenticationState ->
+                if (authenticationState is AuthenticationState.LoggedIn) {
+                    _actions.value = listOf(
+                        AppBarAction(
+                            icon = ActionIcon.ADD,
+                            label = UiText.ResourceString(Res.string.accessibility_action_add),
+                            onClick = { store.accept(HomeStore.Intent.QuickCreateListingRequested) }
+                        )
                     )
-                )
-            } else {
-                _actions.value = emptyList()
+                } else {
+                    _actions.value = emptyList()
+                }
             }
         }
-        lifecycle.doOnDestroy { authenticationSubscription.cancel() }
     }
 
     override fun onIntent(intent: HomeStore.Intent) {

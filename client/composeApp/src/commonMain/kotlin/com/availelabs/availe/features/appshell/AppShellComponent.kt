@@ -14,8 +14,9 @@ import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.auth.AuthenticationState
+import com.availelabs.availe.core.decompose.asValue
+import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.features.chat.ChatComponent
@@ -67,7 +68,8 @@ class AppShellComponent(
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
 
-    override val authenticationState: Value<AuthenticationState> = appContainer.sessionManager.authenticationState
+    override val authenticationState: Value<AuthenticationState> =
+        appContainer.sessionManager.authenticationState.asValue(lifecycle)
 
     override val childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>> = childStack(
         source = childStackNavigation,
@@ -97,13 +99,13 @@ class AppShellComponent(
     init {
         lifecycle.doOnDestroy { scope.cancel() }
 
-        val dismissOverlayOnLogoutObserver: (AuthenticationState) -> Unit = { state ->
-            if (state !is AuthenticationState.LoggedIn) {
-                dismissChatOverlay()
+        scope.launch {
+            appContainer.sessionManager.authenticationState.collect { state ->
+                if (state !is AuthenticationState.LoggedIn) {
+                    dismissChatOverlay()
+                }
             }
         }
-        val authenticationSubscription = authenticationState.subscribe(dismissOverlayOnLogoutObserver)
-        lifecycle.doOnDestroy { authenticationSubscription.cancel() }
     }
 
     override fun onLayoutModeChanged(mode: LayoutMode) {

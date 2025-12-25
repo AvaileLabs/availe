@@ -18,9 +18,7 @@ import com.availelabs.availe.repositories.ISessionManager
 import com.availelabs.availe.types.RepositoryOperationResult
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -336,14 +334,7 @@ class HomeStoreFactory(
 
         private fun observeAuthentication() {
             scope.launch {
-                val authenticationFlow = callbackFlow {
-                    val subscription = sessionManager.authenticationState.subscribe { state ->
-                        trySend(state)
-                    }
-                    awaitClose { subscription.cancel() }
-                }
-
-                authenticationFlow.collectLatest { authenticationState ->
+                sessionManager.authenticationState.collectLatest { authenticationState ->
                     when (authenticationState) {
                         is AuthenticationState.LoggedIn -> {
                             dispatch(Message.SetAuthenticated(true))
