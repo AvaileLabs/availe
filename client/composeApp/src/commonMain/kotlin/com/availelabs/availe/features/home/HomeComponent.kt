@@ -14,7 +14,7 @@ import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.model.ToastMessage
 import com.availelabs.availe.repositories.IListingRepository
-import com.availelabs.availe.repositories.ISessionManager
+import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.ui.model.ActionIcon
 import com.availelabs.availe.ui.model.AppBarAction
@@ -31,7 +31,7 @@ interface IHomeComponent {
 class HomeComponent(
     componentContext: ComponentContext,
     private val listingRepository: IListingRepository,
-    private val sessionManager: ISessionManager,
+    private val sessionManager: ISessionRepository,
     private val onNavigateToListingDetails: (ListingId) -> Unit,
     private val messageService: IMessageService
 ) : IHomeComponent, ComponentContext by componentContext {

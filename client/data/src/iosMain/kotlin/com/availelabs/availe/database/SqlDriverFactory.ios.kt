@@ -11,7 +11,7 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUserDomainMask
 
-class NativeSqlDriverFactory : SqlDriverFactory {
+internal class NativeSqlDriverFactory : SqlDriverFactory {
     @OptIn(ExperimentalForeignApi::class)
     override suspend fun createDriver(): SqlDriver {
         val databaseName = ClientDatabaseConfiguration.databaseName.value
@@ -42,6 +42,6 @@ class NativeSqlDriverFactory : SqlDriverFactory {
     }
 }
 
-actual fun createSqlDriverFactory(activity: PlatformActivity): SqlDriverFactory {
+internal actual fun createSqlDriverFactory(activity: PlatformActivity): SqlDriverFactory {
     return NativeSqlDriverFactory()
 }

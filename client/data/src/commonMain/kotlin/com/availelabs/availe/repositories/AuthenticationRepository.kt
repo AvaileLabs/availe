@@ -5,9 +5,9 @@ import com.availelabs.availe.auth.LoginResult
 import com.availelabs.availe.auth.LogoutResult
 import com.availelabs.availe.sources.remote.IAuthenticationRemoteDataSource
 
-class AuthenticationRepository(
+internal class AuthenticationRepository(
     private val authenticationRemoteDataSource: IAuthenticationRemoteDataSource,
-    private val sessionManager: ISessionManager
+    private val sessionManager: ISessionRepository
 ) : IAuthenticationRepository {
 
     override suspend fun login(onStateUpdate: (AuthenticationState) -> Unit): LoginResult {

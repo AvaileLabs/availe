@@ -1,7 +1,7 @@
 package com.availelabs.availe.extensions
 
-import com.availelabs.availe.network.toAppError
 import com.availelabs.availe.model.error.AppError
+import com.availelabs.availe.network.toAppError
 import org.mobilenativefoundation.store.store5.StoreReadResponse
 
 fun StoreReadResponse.Error.toAppError(): AppError {

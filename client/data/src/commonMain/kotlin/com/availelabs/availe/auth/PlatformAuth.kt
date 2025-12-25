@@ -6,7 +6,7 @@ import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.tokenstore.TokenStore
 
 @OptIn(ExperimentalOpenIdConnect::class)
-expect suspend fun platformLogin(
+internal expect suspend fun platformLogin(
     client: OpenIdConnectClient,
     authFactory: CodeAuthFlowFactory,
     tokenStore: TokenStore,
@@ -14,7 +14,7 @@ expect suspend fun platformLogin(
 ): LoginResult
 
 @OptIn(ExperimentalOpenIdConnect::class)
-expect suspend fun platformResumeLogin(
+internal expect suspend fun platformResumeLogin(
     code: String,
     client: OpenIdConnectClient,
     tokenStore: TokenStore,

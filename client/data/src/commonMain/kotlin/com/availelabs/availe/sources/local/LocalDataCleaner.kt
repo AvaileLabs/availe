@@ -11,7 +11,7 @@ interface ILocalDataCleaner {
     suspend fun clearAllData()
 }
 
-class LocalDataCleaner @OptIn(ExperimentalOpenIdConnect::class) constructor(
+internal class LocalDataCleaner @OptIn(ExperimentalOpenIdConnect::class) constructor(
     private val tokenStore: TokenStore,
     private val listingPreferences: IListingPreferences,
     private val databaseProvider: IDatabaseProvider,

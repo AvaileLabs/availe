@@ -11,7 +11,7 @@ import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.tokenstore.*
 import org.publicvalue.multiplatform.oidc.types.remote.AccessTokenResponse
 
-interface IAuthenticationRemoteDataSource {
+internal interface IAuthenticationRemoteDataSource {
     suspend fun discover()
     suspend fun getTokens(): OauthTokens?
     suspend fun refreshTokens(refreshToken: String): AccessTokenResponse
@@ -24,7 +24,7 @@ interface IAuthenticationRemoteDataSource {
 }
 
 @OptIn(ExperimentalOpenIdConnect::class)
-class AuthenticationRemoteDataSource(
+internal class AuthenticationRemoteDataSource(
     private val openIdConnectClient: OpenIdConnectClient,
     private val codeAuthenticationFlowFactory: CodeAuthFlowFactory,
     private val tokenStore: TokenStore

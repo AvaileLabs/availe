@@ -9,7 +9,7 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.availelabs.availe.repositories.IAuthenticationRepository
-import com.availelabs.availe.repositories.ISessionManager
+import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +23,7 @@ interface ISettingsComponent {
 class SettingsComponent(
     componentContext: ComponentContext,
     storeFactory: StoreFactory,
-    sessionManager: ISessionManager,
+    sessionManager: ISessionRepository,
     authenticationRepository: IAuthenticationRepository,
     private val onOpenUrl: (String) -> Unit
 ) : ISettingsComponent, ComponentContext by componentContext {

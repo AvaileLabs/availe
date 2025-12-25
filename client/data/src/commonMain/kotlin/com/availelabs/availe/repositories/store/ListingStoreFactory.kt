@@ -10,7 +10,7 @@ import org.mobilenativefoundation.store.store5.SourceOfTruth
 import org.mobilenativefoundation.store.store5.Store
 import org.mobilenativefoundation.store.store5.StoreBuilder
 
-class ListingStoreFactory(
+internal class ListingStoreFactory(
     private val remoteDataSource: IListingRemoteDataSource,
     private val localDataSource: IListingLocalDataSource,
     private val localDataCleaner: ILocalDataCleaner

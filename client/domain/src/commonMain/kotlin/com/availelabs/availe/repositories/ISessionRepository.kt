@@ -5,7 +5,7 @@ import com.availelabs.availe.auth.UserProfile
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
-interface ISessionManager {
+interface ISessionRepository {
     val authenticationState: StateFlow<AuthenticationState>
     val sessionInvalidated: SharedFlow<Unit>
     fun getAccountManagementUrl(): String

@@ -7,7 +7,7 @@ import nl.adaptivity.xmlutil.serialization.XmlValue
 
 @Serializable
 @XmlSerialName(value = "open", namespace = "urn:ietf:params:xml:ns:xmpp-framing", prefix = "")
-data class XmppOpenStanza(
+internal data class XmppOpenStanza(
     @XmlSerialName(value = "to")
     val to: String,
     @XmlSerialName(value = "version")
@@ -16,7 +16,7 @@ data class XmppOpenStanza(
 
 @Serializable
 @XmlSerialName(value = "auth", namespace = "urn:ietf:params:xml:ns:xmpp-sasl", prefix = "")
-data class XmppAuthStanza(
+internal data class XmppAuthStanza(
     @XmlSerialName(value = "mechanism")
     val mechanism: String,
     @XmlValue
@@ -25,13 +25,13 @@ data class XmppAuthStanza(
 
 @Serializable
 @XmlSerialName(value = "bind", namespace = "urn:ietf:params:xml:ns:xmpp-bind", prefix = "")
-data class XmppBindStanza(
+internal data class XmppBindStanza(
     val resource: String = "availe-app"
 )
 
 @Serializable
 @XmlSerialName(value = "iq", namespace = "jabber:client", prefix = "")
-data class XmppIqStanza(
+internal data class XmppIqStanza(
     @XmlSerialName(value = "type")
     val type: String,
     @XmlSerialName(value = "id")
@@ -42,14 +42,14 @@ data class XmppIqStanza(
 
 @Serializable
 @XmlSerialName(value = "presence", namespace = "jabber:client", prefix = "")
-data class XmppPresenceStanza(
+internal data class XmppPresenceStanza(
     @XmlSerialName(value = "type")
     val type: String? = null
 )
 
 @Serializable
 @XmlSerialName(value = "message", namespace = "jabber:client", prefix = "")
-data class XmppMessageStanza(
+internal data class XmppMessageStanza(
     @XmlSerialName(value = "to")
     val to: String? = null,
     @XmlSerialName(value = "from")

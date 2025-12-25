@@ -4,8 +4,8 @@ import com.availelabs.availe.db.SelectById
 import com.availelabs.availe.db.SelectPage
 import com.availelabs.availe.domain.model.*
 
-fun SelectById.toDomain(): Listing {
-    return _root_ide_package_.com.availelabs.availe.database.mapRawDataToListing(
+internal fun SelectById.toDomain(): Listing {
+    return mapRawDataToListing(
         id = primary_key_id,
         createdAt = created_at,
         publisherId = publisher_id,
@@ -19,8 +19,8 @@ fun SelectById.toDomain(): Listing {
     )
 }
 
-fun SelectPage.toDomain(): Listing {
-    return _root_ide_package_.com.availelabs.availe.database.mapRawDataToListing(
+internal fun SelectPage.toDomain(): Listing {
+    return mapRawDataToListing(
         id = primary_key_id,
         createdAt = created_at,
         publisherId = publisher_id,

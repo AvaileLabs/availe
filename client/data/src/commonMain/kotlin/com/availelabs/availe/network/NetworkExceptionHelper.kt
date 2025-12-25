@@ -6,7 +6,7 @@ import io.ktor.util.network.*
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.serialization.SerializationException
 
-sealed interface NetworkErrorType {
+internal sealed interface NetworkErrorType {
     val isSafeToPreserveLocalData: Boolean
 
     sealed interface Recoverable : NetworkErrorType {
@@ -36,7 +36,7 @@ sealed interface NetworkErrorType {
     }
 }
 
-fun Throwable.classifyNetworkError(): NetworkErrorType {
+internal fun Throwable.classifyNetworkError(): NetworkErrorType {
     var currentThrowable: Throwable? = this
     while (currentThrowable != null) {
         val networkErrorType = currentThrowable.identifySpecificNetworkError()
@@ -62,4 +62,4 @@ private fun Throwable.identifySpecificNetworkError(): NetworkErrorType? {
     }
 }
 
-expect fun Throwable.classifyPlatformError(): NetworkErrorType?
+internal expect fun Throwable.classifyPlatformError(): NetworkErrorType?

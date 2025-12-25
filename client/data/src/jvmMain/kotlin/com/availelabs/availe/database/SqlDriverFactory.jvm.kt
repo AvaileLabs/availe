@@ -7,7 +7,7 @@ import com.availelabs.availe.db.ClientDatabase
 import com.availelabs.availe.platform.PlatformActivity
 import java.io.File
 
-class JvmSqlDriverFactory : SqlDriverFactory {
+internal class JvmSqlDriverFactory : SqlDriverFactory {
     override suspend fun createDriver(): SqlDriver {
         val connectionUrl = ClientDatabaseConfiguration.databaseConnectionUrl.value
         return try {
@@ -29,6 +29,6 @@ class JvmSqlDriverFactory : SqlDriverFactory {
     }
 }
 
-actual fun createSqlDriverFactory(activity: PlatformActivity): SqlDriverFactory {
+internal actual fun createSqlDriverFactory(activity: PlatformActivity): SqlDriverFactory {
     return JvmSqlDriverFactory()
 }

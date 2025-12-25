@@ -14,7 +14,7 @@ import com.availelabs.availe.model.ListingStoreKey
 import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.network.toAppError
 import com.availelabs.availe.repositories.IListingRepository
-import com.availelabs.availe.repositories.ISessionManager
+import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.types.RepositoryOperationResult
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
@@ -69,7 +69,7 @@ interface HomeStore : Store<Intent, State, Label> {
 class HomeStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
-    private val sessionManager: ISessionManager
+    private val sessionManager: ISessionRepository
 ) {
 
     fun create(): HomeStore =

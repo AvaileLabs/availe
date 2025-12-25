@@ -15,7 +15,7 @@ import com.availelabs.availe.auth.LoginResult
 import com.availelabs.availe.features.appshell.MainStore.*
 import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.repositories.IAuthenticationRepository
-import com.availelabs.availe.repositories.ISessionManager
+import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.flow.collectLatest
@@ -46,7 +46,7 @@ interface MainStore : Store<Intent, State, Label> {
 class MainStoreFactory(
     private val storeFactory: StoreFactory,
     private val authenticationRepository: IAuthenticationRepository,
-    private val sessionManager: ISessionManager
+    private val sessionManager: ISessionRepository
 ) {
 
     fun create(): MainStore =

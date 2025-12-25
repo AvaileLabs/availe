@@ -6,7 +6,7 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.domain.model.UserDisplayName
 import com.availelabs.availe.repositories.IAuthenticationRepository
-import com.availelabs.availe.repositories.ISessionManager
+import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.launch
 
@@ -33,7 +33,7 @@ interface ISettingsStore : Store<ISettingsStore.Intent, ISettingsStore.State, IS
 
 class SettingsStoreFactory(
     private val storeFactory: StoreFactory,
-    private val sessionManager: ISessionManager,
+    private val sessionManager: ISessionRepository,
     private val authenticationRepository: IAuthenticationRepository
 ) {
     private sealed interface Msg {

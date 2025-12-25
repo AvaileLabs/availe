@@ -13,7 +13,7 @@ import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-object ClientDatabaseFactory {
+internal object ClientDatabaseFactory {
     @OptIn(ExperimentalUuidApi::class)
     fun createClientDatabase(sqlDriver: SqlDriver, json: Json): ClientDatabase {
         val listingIdColumnAdapter = object : ColumnAdapter<ListingId, String> {

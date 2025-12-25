@@ -2,13 +2,13 @@ package com.availelabs.availe.preferences
 
 import com.russhwolf.settings.Settings
 
-interface IListingPreferences {
+internal interface IListingPreferences {
     suspend fun getLastListingsFetchTimeMilliseconds(): Long?
     suspend fun updateLastListingsFetchTime(timestampMilliseconds: Long)
     suspend fun clear()
 }
 
-class ListingPreferences(
+internal class ListingPreferences(
     private val settings: Settings
 ) : IListingPreferences {
 

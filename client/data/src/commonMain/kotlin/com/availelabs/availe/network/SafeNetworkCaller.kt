@@ -4,11 +4,11 @@ import com.availelabs.availe.sources.local.ILocalDataCleaner
 import com.availelabs.availe.types.RepositoryOperationResult
 import kotlinx.coroutines.CancellationException
 
-interface ISafeNetworkCaller {
+internal interface ISafeNetworkCaller {
     suspend fun <T> execute(operation: suspend () -> T): RepositoryOperationResult<T>
 }
 
-class SafeNetworkCaller(
+internal class SafeNetworkCaller(
     private val localDataCleaner: ILocalDataCleaner
 ) : ISafeNetworkCaller {
 

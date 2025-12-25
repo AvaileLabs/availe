@@ -3,7 +3,7 @@ package com.availelabs.availe.database
 import com.availelabs.availe.platform.PlatformActivity
 import java.io.File
 
-class JvmDatabaseFileController : IDatabaseFileController {
+internal class JvmDatabaseFileController : IDatabaseFileController {
     override suspend fun deleteDatabaseFile() {
         val connectionUrl = ClientDatabaseConfiguration.databaseConnectionUrl.value
         val filePath = connectionUrl.removePrefix("jdbc:sqlite:")
@@ -17,6 +17,6 @@ class JvmDatabaseFileController : IDatabaseFileController {
     }
 }
 
-actual fun createDatabaseFileController(activity: PlatformActivity): IDatabaseFileController {
+internal actual fun createDatabaseFileController(activity: PlatformActivity): IDatabaseFileController {
     return JvmDatabaseFileController()
 }

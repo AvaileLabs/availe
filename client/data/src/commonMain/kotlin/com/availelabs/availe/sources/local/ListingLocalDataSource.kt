@@ -18,7 +18,7 @@ interface IListingLocalDataSource {
     suspend fun isListingDatabaseEmpty(): Boolean
 }
 
-class ListingLocalDataSource(
+internal class ListingLocalDataSource(
     private val databaseProvider: IDatabaseProvider
 ) : IListingLocalDataSource {
 

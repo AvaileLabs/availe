@@ -8,7 +8,7 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.uuid.ExperimentalUuidApi
 
-object JwtUserProfileMapper {
+internal object JwtUserProfileMapper {
     private val json = Json { ignoreUnknownKeys = true }
 
     @OptIn(ExperimentalEncodingApi::class, ExperimentalUuidApi::class)

@@ -12,12 +12,12 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.publicvalue.multiplatform.oidc.OpenIdConnectException
 
-class SessionManager(
+internal class SessionRepository(
     private val authenticationRemoteDataSource: IAuthenticationRemoteDataSource,
     private val localDataCleaner: ILocalDataCleaner,
     lifecycle: Lifecycle,
     private val accountManagementUrl: String
-) : ISessionManager {
+) : ISessionRepository {
 
     private val _authenticationState = MutableStateFlow<AuthenticationState>(AuthenticationState.Unknown)
     override val authenticationState: StateFlow<AuthenticationState> = _authenticationState.asStateFlow()

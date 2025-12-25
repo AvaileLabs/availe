@@ -6,12 +6,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 
-interface IDatabaseProvider {
+internal interface IDatabaseProvider {
     suspend fun getDatabase(): ClientDatabase
     suspend fun closeAndClearDatabase()
 }
 
-class DatabaseProvider(
+internal class DatabaseProvider(
     private val sqlDriverFactory: com.availelabs.availe.database.SqlDriverFactory,
     private val json: Json
 ) : com.availelabs.availe.database.IDatabaseProvider {

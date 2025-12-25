@@ -7,11 +7,11 @@ import com.availelabs.availe.platform.PlatformActivity
 import com.availelabs.availe.repositories.IAuthenticationRepository
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.IMessagingRepository
-import com.availelabs.availe.repositories.ISessionManager
+import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
 
 interface IApplicationContainer {
-    val sessionManager: ISessionManager
+    val sessionManager: ISessionRepository
     val authenticationRepository: IAuthenticationRepository
     val listingRepository: IListingRepository
     val messagingRepository: IMessagingRepository
@@ -36,8 +36,8 @@ private class ApplicationContainer(
     private val dataContainer: IDataContainer,
     override val inAppBrowserLauncher: IInAppBrowserLauncher
 ) : IApplicationContainer {
-    override val sessionManager: ISessionManager
-        get() = dataContainer.sessionManager
+    override val sessionManager: ISessionRepository
+        get() = dataContainer.sessionRepository
     override val authenticationRepository: IAuthenticationRepository
         get() = dataContainer.authenticationRepository
     override val listingRepository: IListingRepository

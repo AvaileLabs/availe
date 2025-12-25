@@ -17,7 +17,7 @@ import nl.adaptivity.xmlutil.serialization.XML
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-interface IMessagingRemoteDataSource {
+internal interface IMessagingRemoteDataSource {
     val connectionStatus: StateFlow<MessagingConnectionState>
     val incomingMessages: SharedFlow<XmppMessageStanza>
     suspend fun connect(jid: Jid, token: AuthToken)
@@ -25,7 +25,7 @@ interface IMessagingRemoteDataSource {
     suspend fun sendMessage(to: Jid, body: MessageContent)
 }
 
-class MessagingRemoteDataSource(
+internal class MessagingRemoteDataSource(
     private val httpClient: HttpClient
 ) : IMessagingRemoteDataSource {
 

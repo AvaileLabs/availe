@@ -10,7 +10,7 @@ import com.availelabs.availe.sources.remote.IMessagingRemoteDataSource
 import kotlinx.coroutines.flow.*
 import kotlin.time.ExperimentalTime
 
-class MessagingRepository(
+internal class MessagingRepository(
     private val messagingRemoteDataSource: IMessagingRemoteDataSource
 ) : IMessagingRepository {
 

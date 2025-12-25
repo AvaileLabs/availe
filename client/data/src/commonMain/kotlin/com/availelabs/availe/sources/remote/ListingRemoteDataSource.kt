@@ -25,7 +25,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlin.uuid.ExperimentalUuidApi
 
-interface IListingRemoteDataSource {
+internal interface IListingRemoteDataSource {
     suspend fun getListingsPage(page: Int, size: Int): List<Listing>
     suspend fun getListingById(id: ListingId): FindResult<Listing>
     suspend fun existsById(id: ListingId): Boolean
@@ -38,7 +38,7 @@ interface IListingRemoteDataSource {
     suspend fun deleteListing(listingId: ListingId): DeleteResult
 }
 
-class ListingRemoteDataSource(
+internal class ListingRemoteDataSource(
     private val httpClient: HttpClient,
     private val json: Json
 ) : IListingRemoteDataSource {

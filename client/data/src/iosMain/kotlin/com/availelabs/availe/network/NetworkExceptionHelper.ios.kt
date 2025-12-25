@@ -3,7 +3,7 @@ package com.availelabs.availe.network
 import io.ktor.client.engine.darwin.*
 import platform.Foundation.*
 
-actual fun Throwable.classifyPlatformError(): NetworkErrorType? {
+internal actual fun Throwable.classifyPlatformError(): NetworkErrorType? {
     if (this is DarwinHttpRequestException) {
         val underlyingError = this.origin
         if (underlyingError.domain == NSURLErrorDomain) {

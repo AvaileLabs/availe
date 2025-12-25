@@ -27,7 +27,7 @@ import org.mobilenativefoundation.store.store5.StoreReadResponseOrigin
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-class ListingRepository(
+internal class ListingRepository(
     private val remoteDataSource: IListingRemoteDataSource,
     private val localDataSource: IListingLocalDataSource,
     storeFactory: ListingStoreFactory,

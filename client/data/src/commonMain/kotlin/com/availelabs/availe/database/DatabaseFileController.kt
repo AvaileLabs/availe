@@ -2,8 +2,8 @@ package com.availelabs.availe.database
 
 import com.availelabs.availe.platform.PlatformActivity
 
-interface IDatabaseFileController {
+internal interface IDatabaseFileController {
     suspend fun deleteDatabaseFile()
 }
 
-expect fun createDatabaseFileController(activity: PlatformActivity): com.availelabs.availe.database.IDatabaseFileController
+internal expect fun createDatabaseFileController(activity: PlatformActivity): com.availelabs.availe.database.IDatabaseFileController

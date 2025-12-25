@@ -13,7 +13,7 @@ import com.availelabs.availe.preferences.ListingPreferences
 import com.availelabs.availe.repositories.AuthenticationRepository
 import com.availelabs.availe.repositories.ListingRepository
 import com.availelabs.availe.repositories.MessagingRepository
-import com.availelabs.availe.repositories.SessionManager
+import com.availelabs.availe.repositories.SessionRepository
 import com.availelabs.availe.repositories.store.ListingStoreFactory
 import com.availelabs.availe.services.MessageService
 import com.availelabs.availe.sources.local.ListingLocalDataSource
@@ -90,7 +90,7 @@ object DataLayerFactory {
             tokenStore = tokenStore
         )
 
-        val sessionManager = SessionManager(
+        val sessionRepository = SessionRepository(
             authenticationRemoteDataSource = authenticationRemoteDataSource,
             localDataCleaner = localDataCleaner,
             lifecycle = lifecycle,
@@ -99,7 +99,7 @@ object DataLayerFactory {
 
         val authenticationRepository = AuthenticationRepository(
             authenticationRemoteDataSource = authenticationRemoteDataSource,
-            sessionManager = sessionManager
+            sessionManager = sessionRepository
         )
 
         val httpClient = HttpClient {
@@ -136,7 +136,7 @@ object DataLayerFactory {
                                 authenticationRemoteDataSource.saveTokens(newTokens)
                                 BearerTokens(newTokens.access_token, newTokens.refresh_token ?: oldRefreshToken)
                             } catch (_: Exception) {
-                                sessionManager.onSessionInvalidated()
+                                sessionRepository.onSessionInvalidated()
                                 null
                             }
                         } else {
@@ -187,7 +187,7 @@ object DataLayerFactory {
         val messageService = MessageService(lifecycle)
 
         return DataContainer(
-            sessionManager = sessionManager,
+            sessionRepository = sessionRepository,
             authenticationRepository = authenticationRepository,
             listingRepository = listingRepository,
             messagingRepository = messagingRepository,
@@ -196,7 +196,7 @@ object DataLayerFactory {
     }
 
     private class DataContainer(
-        override val sessionManager: SessionManager,
+        override val sessionRepository: SessionRepository,
         override val authenticationRepository: AuthenticationRepository,
         override val listingRepository: ListingRepository,
         override val messagingRepository: MessagingRepository,

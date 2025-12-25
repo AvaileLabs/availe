@@ -13,7 +13,7 @@ import com.availelabs.availe.domain.model.MessageContent
 import com.availelabs.availe.features.chat.ChatStore.*
 import com.availelabs.availe.model.ChatMessage
 import com.availelabs.availe.repositories.IMessagingRepository
-import com.availelabs.availe.repositories.ISessionManager
+import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.repositories.MessagingConnectionState
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -38,7 +38,7 @@ interface ChatStore : Store<Intent, State, Label> {
 class ChatStoreFactory(
     private val storeFactory: StoreFactory,
     private val messagingRepository: IMessagingRepository,
-    private val sessionManager: ISessionManager,
+    private val sessionManager: ISessionRepository,
     private val recipientJid: Jid
 ) {
     fun create(): ChatStore =

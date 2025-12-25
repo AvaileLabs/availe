@@ -6,7 +6,7 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLException
 
-actual fun Throwable.classifyPlatformError(): NetworkErrorType? {
+internal actual fun Throwable.classifyPlatformError(): NetworkErrorType? {
     return when (this) {
         is UnknownHostException -> NetworkErrorType.Recoverable.Connectivity
         is ConnectException -> NetworkErrorType.Recoverable.ServerSide

@@ -7,7 +7,7 @@ import platform.Foundation.NSFileManager
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUserDomainMask
 
-class IosDatabaseFileController : IDatabaseFileController {
+internal class IosDatabaseFileController : IDatabaseFileController {
     @OptIn(ExperimentalForeignApi::class)
     override suspend fun deleteDatabaseFile() {
         val fileManager = NSFileManager.defaultManager
@@ -30,6 +30,6 @@ class IosDatabaseFileController : IDatabaseFileController {
     }
 }
 
-actual fun createDatabaseFileController(activity: PlatformActivity): IDatabaseFileController {
+internal actual fun createDatabaseFileController(activity: PlatformActivity): IDatabaseFileController {
     return IosDatabaseFileController()
 }

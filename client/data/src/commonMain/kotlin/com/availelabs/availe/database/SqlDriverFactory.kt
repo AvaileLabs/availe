@@ -3,8 +3,8 @@ package com.availelabs.availe.database
 import app.cash.sqldelight.db.SqlDriver
 import com.availelabs.availe.platform.PlatformActivity
 
-interface SqlDriverFactory {
+internal interface SqlDriverFactory {
     suspend fun createDriver(): SqlDriver
 }
 
-expect fun createSqlDriverFactory(activity: PlatformActivity): com.availelabs.availe.database.SqlDriverFactory
+internal expect fun createSqlDriverFactory(activity: PlatformActivity): com.availelabs.availe.database.SqlDriverFactory

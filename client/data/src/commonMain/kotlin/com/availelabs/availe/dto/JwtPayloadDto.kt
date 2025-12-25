@@ -8,7 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class JwtPayloadDto(
+internal data class JwtPayloadDto(
     @SerialName(SharedAuthenticationConstants.Claims.SUBJECT) val subject: UserId,
     @SerialName(SharedAuthenticationConstants.Claims.EMAIL) val email: Email? = null,
     @SerialName(SharedAuthenticationConstants.Claims.JID) val jid: Jid? = null
