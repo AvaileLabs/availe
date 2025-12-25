@@ -7,9 +7,9 @@ import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.availelabs.availe.data.repositories.IMessagingRepository
-import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.repositories.IMessagingRepository
+import com.availelabs.availe.repositories.ISessionManager
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow

@@ -1,5 +1,6 @@
 package com.availelabs.availe.core.platform
 
+import com.availelabs.availe.platform.PlatformActivity
 import java.awt.Desktop
 import java.net.URI
 

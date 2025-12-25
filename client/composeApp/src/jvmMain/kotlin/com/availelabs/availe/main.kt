@@ -7,12 +7,10 @@ import androidx.compose.ui.window.rememberWindowState
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.availelabs.availe.core.platform.PlatformActivity
 import com.availelabs.availe.di.createApplicationContainer
 import com.availelabs.availe.features.root.RootComponent
-import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
+import com.availelabs.availe.platform.PlatformActivity
 
-@OptIn(ExperimentalOpenIdConnect::class)
 fun main() = application {
     val windowState = rememberWindowState()
     val lifecycle = remember { LifecycleRegistry() }

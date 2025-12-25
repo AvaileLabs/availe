@@ -1,22 +1,21 @@
 package com.availelabs.availe.features.home
 
-import availe.client.composeapp.generated.resources.Res
-import availe.client.composeapp.generated.resources.authentication_listing_create_requirement
-import availe.client.composeapp.generated.resources.home_listing_exists
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.availelabs.availe.data.extensions.toAppError
-import com.availelabs.availe.data.network.toAppError
-import com.availelabs.availe.data.repositories.IListingRepository
-import com.availelabs.availe.data.repositories.ISessionManager
-import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.InsertResult
-import com.availelabs.availe.domain.types.RepositoryOperationResult
+import com.availelabs.availe.extensions.toAppError
 import com.availelabs.availe.features.home.HomeStore.*
+import com.availelabs.availe.model.ListingStoreKey
+import com.availelabs.availe.model.error.AppError
+import com.availelabs.availe.network.toAppError
+import com.availelabs.availe.repositories.IListingRepository
+import com.availelabs.availe.repositories.ISessionManager
+import com.availelabs.availe.types.RepositoryOperationResult
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.channels.awaitClose
@@ -64,7 +63,7 @@ interface HomeStore : Store<Intent, State, Label> {
 
     sealed interface Label {
         data class NavigateToListingDetails(val listingId: ListingId) : Label
-        data class DisplayError(val message: UiText) : Label
+        data class DisplayError(val error: AppError) : Label
     }
 }
 
@@ -88,7 +87,7 @@ class HomeStoreFactory(
         data class ListingsLoaded(val listings: List<Listing>, val page: Int, val origin: StoreReadResponseOrigin) :
             Action
 
-        data class ListingsError(val message: UiText, val isPagination: Boolean) : Action
+        data class ListingsError(val error: AppError, val isPagination: Boolean) : Action
         data object ObserveAuthentication : Action
         data object ObserveSessionInvalidation : Action
         data object DataPurged : Action
@@ -152,12 +151,13 @@ class HomeStoreFactory(
                 }
 
                 is Action.ListingsError -> {
+                    val uiText = ErrorMessageMapper.map(action.error)
                     if (action.isPagination) {
-                        dispatch(Message.SetPaginationError(action.message))
+                        dispatch(Message.SetPaginationError(uiText))
                     } else if (state().listingUiModels.isEmpty()) {
-                        dispatch(Message.SetInlineError(action.message))
+                        dispatch(Message.SetInlineError(uiText))
                     } else {
-                        publish(Label.DisplayError(action.message))
+                        publish(Label.DisplayError(action.error))
                     }
                 }
 
@@ -186,8 +186,8 @@ class HomeStoreFactory(
             scope.launch {
                 val userProfile = sessionManager.getCurrentUserProfile()
                 if (userProfile == null) {
-                    val errorMessage = UiText.ResourceString(Res.string.authentication_listing_create_requirement)
-                    publish(Label.DisplayError(errorMessage))
+                    val error = AppError.BusinessError.OperationForbidden
+                    publish(Label.DisplayError(error))
                     return@launch
                 }
 
@@ -210,8 +210,8 @@ class HomeStoreFactory(
                         when (result.value) {
                             is InsertResult.Inserted<*> -> fetchListingsPage(0, FetchTrigger.DataChanged)
                             is InsertResult.AlreadyExists -> {
-                                val errorMessage = UiText.ResourceString(Res.string.home_listing_exists)
-                                publish(Label.DisplayError(errorMessage))
+                                val error = AppError.BusinessError.OperationForbidden
+                                publish(Label.DisplayError(error))
                                 dispatch(
                                     Message.LoadingStateChanged(
                                         loadingIndicator = LoadingIndicator.Overlay,
@@ -223,8 +223,7 @@ class HomeStoreFactory(
                     }
 
                     is RepositoryOperationResult.Failure -> {
-                        val uiText = ErrorMessageMapper.map(result.error)
-                        publish(Label.DisplayError(uiText))
+                        publish(Label.DisplayError(result.error))
                         dispatch(
                             Message.LoadingStateChanged(
                                 loadingIndicator = LoadingIndicator.Overlay,
@@ -271,8 +270,8 @@ class HomeStoreFactory(
 
                 listingRepository.getListingsPageStream(request)
                     .catch { throwable ->
-                        val uiText = ErrorMessageMapper.map(throwable.toAppError())
-                        forward(Action.ListingsError(uiText, isPagination = trigger == FetchTrigger.LoadMore))
+                        val appError = throwable.toAppError()
+                        forward(Action.ListingsError(appError, isPagination = trigger == FetchTrigger.LoadMore))
                         dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
                     }
                     .collect { response ->
@@ -298,8 +297,7 @@ class HomeStoreFactory(
 
                             is StoreReadResponse.Error -> {
                                 val appError = response.toAppError()
-                                val uiText = ErrorMessageMapper.map(appError)
-                                forward(Action.ListingsError(uiText, isPagination = trigger == FetchTrigger.LoadMore))
+                                forward(Action.ListingsError(appError, isPagination = trigger == FetchTrigger.LoadMore))
                                 dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
                             }
 

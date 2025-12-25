@@ -8,10 +8,10 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.configuration.SharedNetworkConstants
-import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow

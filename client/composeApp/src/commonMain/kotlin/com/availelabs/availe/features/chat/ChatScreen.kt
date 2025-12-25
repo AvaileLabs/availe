@@ -24,9 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import availe.client.composeapp.generated.resources.*
-import com.availelabs.availe.data.sources.remote.MessagingConnectionState
-import com.availelabs.availe.domain.model.ChatMessage
 import com.availelabs.availe.domain.model.MessageContent
+import com.availelabs.availe.model.ChatMessage
+import com.availelabs.availe.repositories.MessagingConnectionState
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Send
 import com.composables.icons.lucide.User

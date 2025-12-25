@@ -8,13 +8,12 @@ import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.lifecycle.stop
 import com.arkivanov.essenty.statekeeper.StateKeeper
-import com.availelabs.availe.core.platform.PlatformActivity
 import com.availelabs.availe.di.createApplicationContainer
 import com.availelabs.availe.features.root.RootComponent
+import com.availelabs.availe.platform.PlatformActivity
 import kotlinx.browser.window
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.w3c.dom.url.URLSearchParams
 import web.dom.DocumentVisibilityState
 import web.dom.document
@@ -27,7 +26,6 @@ import kotlin.js.toJsString
 
 @OptIn(
     ExperimentalComposeUiApi::class,
-    ExperimentalOpenIdConnect::class,
     ExperimentalWasmJsInterop::class,
     ExperimentalDecomposeApi::class
 )

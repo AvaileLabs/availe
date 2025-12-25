@@ -24,11 +24,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import availe.client.composeapp.generated.resources.*
 import coil3.compose.AsyncImage
-import com.availelabs.availe.domain.extensions.toDisplayString
 import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.ImageUrl
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.extensions.toDisplayString
 import com.availelabs.availe.ui.model.asString
 import com.composables.icons.lucide.*
 import com.composables.uikit.components.*

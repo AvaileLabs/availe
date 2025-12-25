@@ -17,8 +17,8 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.core.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
-import com.availelabs.availe.domain.model.ToastId
-import com.availelabs.availe.domain.model.ToastMessage
+import com.availelabs.availe.model.ToastId
+import com.availelabs.availe.model.ToastMessage
 import com.availelabs.availe.features.appshell.*
 import com.availelabs.availe.features.login.ILoginComponent
 import com.availelabs.availe.features.login.LoginComponent
@@ -122,13 +122,13 @@ class RootComponent(
                 val toast = when (label) {
                     is MainStore.Label.ErrorOccurred -> {
                         ToastMessage.Error(
-                            text = label.message
+                            error = label.error
                         )
                     }
 
                     is MainStore.Label.InfoOccurred -> {
                         ToastMessage.Info(
-                            text = label.message
+                            message = label.message
                         )
                     }
                 }

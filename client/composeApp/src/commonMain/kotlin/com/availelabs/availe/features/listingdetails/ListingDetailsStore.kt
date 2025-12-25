@@ -9,12 +9,12 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.availelabs.availe.data.repositories.IListingRepository
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.types.FindResult
-import com.availelabs.availe.domain.types.RepositoryOperationResult
 import com.availelabs.availe.features.listingdetails.ListingDetailsStore.*
+import com.availelabs.availe.repositories.IListingRepository
+import com.availelabs.availe.types.RepositoryOperationResult
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.launch

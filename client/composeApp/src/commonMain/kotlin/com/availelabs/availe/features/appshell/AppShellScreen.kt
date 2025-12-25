@@ -15,7 +15,7 @@ import availe.client.composeapp.generated.resources.chat_title
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.features.chat.ChatScreen
 import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.listingdetails.ListingDetailsScreen

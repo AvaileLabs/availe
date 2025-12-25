@@ -4,9 +4,9 @@ import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.availelabs.availe.data.repositories.IAuthenticationRepository
-import com.availelabs.availe.data.repositories.ISessionManager
 import com.availelabs.availe.domain.model.UserDisplayName
+import com.availelabs.availe.repositories.IAuthenticationRepository
+import com.availelabs.availe.repositories.ISessionManager
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.launch
 

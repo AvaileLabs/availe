@@ -1,8 +1,8 @@
 package com.availelabs.availe.ui.mapper
 
 import availe.client.composeapp.generated.resources.*
-import com.availelabs.availe.domain.auth.LoginError
-import com.availelabs.availe.domain.model.error.AppError
+import com.availelabs.availe.auth.LoginError
+import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.ui.model.UiText
 
 object ErrorMessageMapper {

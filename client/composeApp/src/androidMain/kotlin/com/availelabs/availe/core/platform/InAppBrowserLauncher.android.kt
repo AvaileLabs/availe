@@ -2,6 +2,7 @@ package com.availelabs.availe.core.platform
 
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
+import com.availelabs.availe.platform.PlatformActivity
 
 class AndroidInAppBrowserLauncher(
     private val activity: PlatformActivity

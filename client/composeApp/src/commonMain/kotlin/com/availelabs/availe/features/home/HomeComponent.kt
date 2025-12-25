@@ -10,12 +10,12 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.availelabs.availe.data.repositories.IListingRepository
-import com.availelabs.availe.data.repositories.ISessionManager
-import com.availelabs.availe.data.services.IMessageService
-import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.ToastMessage
+import com.availelabs.availe.model.ToastMessage
+import com.availelabs.availe.repositories.IListingRepository
+import com.availelabs.availe.repositories.ISessionManager
+import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.ui.model.ActionIcon
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
@@ -59,7 +59,7 @@ class HomeComponent(
                 when (label) {
                     is HomeStore.Label.NavigateToListingDetails -> onNavigateToListingDetails(label.listingId)
                     is HomeStore.Label.DisplayError -> {
-                        messageService.show(ToastMessage.Error(label.message))
+                        messageService.show(ToastMessage.Error(label.error))
                     }
                 }
             }

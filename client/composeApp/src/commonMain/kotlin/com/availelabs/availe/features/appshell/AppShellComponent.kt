@@ -15,7 +15,7 @@ import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.di.IApplicationContainer
-import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.features.chat.ChatComponent

@@ -1,16 +1,21 @@
 package com.availelabs.availe.features.appshell
 
-import availe.client.composeapp.generated.resources.*
+import availe.client.composeapp.generated.resources.Res
+import availe.client.composeapp.generated.resources.authentication_error_logout
+import availe.client.composeapp.generated.resources.authentication_service_unavailable
+import availe.client.composeapp.generated.resources.error_session_expired
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.availelabs.availe.data.repositories.IAuthenticationRepository
-import com.availelabs.availe.data.repositories.ISessionManager
-import com.availelabs.availe.domain.auth.AuthenticationState
-import com.availelabs.availe.domain.auth.LoginResult
+import com.availelabs.availe.auth.AuthenticationState
+import com.availelabs.availe.auth.LoginError
+import com.availelabs.availe.auth.LoginResult
 import com.availelabs.availe.features.appshell.MainStore.*
+import com.availelabs.availe.model.error.AppError
+import com.availelabs.availe.repositories.IAuthenticationRepository
+import com.availelabs.availe.repositories.ISessionManager
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.channels.awaitClose
@@ -35,8 +40,8 @@ interface MainStore : Store<Intent, State, Label> {
     )
 
     sealed interface Label {
-        data class ErrorOccurred(val message: UiText) : Label
-        data class InfoOccurred(val message: UiText) : Label
+        data class ErrorOccurred(val error: AppError) : Label
+        data class InfoOccurred(val message: String) : Label
     }
 }
 
@@ -116,7 +121,7 @@ class MainStoreFactory(
                     dispatch(Message.SetAuthenticationServiceAvailable(true))
                     val message = UiText.ResourceString(Res.string.error_session_expired)
                     dispatch(Message.SetError(message))
-                    publish(Label.ErrorOccurred(message))
+                    publish(Label.ErrorOccurred(AppError.AuthenticationError.SessionExpired))
                 }
 
                 is AuthenticationState.InitializationFailed -> {
@@ -140,14 +145,14 @@ class MainStoreFactory(
 
                     is LoginResult.Cancelled -> {
                         dispatch(Message.SetLoading(false))
-                        publish(Label.InfoOccurred(UiText.ResourceString(Res.string.authentication_info_cancelled)))
+                        publish(Label.InfoOccurred("Login cancelled"))
                     }
 
                     is LoginResult.Failed -> {
                         dispatch(Message.SetLoading(false))
                         val errorMessage = ErrorMessageMapper.map(loginResult.error)
                         dispatch(Message.SetError(errorMessage))
-                        publish(Label.ErrorOccurred(errorMessage))
+                        publish(Label.ErrorOccurred(loginResult.error.toAppError()))
                     }
                 }
             }
@@ -158,13 +163,22 @@ class MainStoreFactory(
                 dispatch(Message.SetLoading(true))
                 try {
                     authenticationRepository.logout()
-                } catch (_: Exception) {
+                } catch (exception: Exception) {
                     val errorMessage = UiText.ResourceString(Res.string.authentication_error_logout)
                     dispatch(Message.SetError(errorMessage))
-                    publish(Label.ErrorOccurred(errorMessage))
+                    publish(Label.ErrorOccurred(AppError.UnknownError(exception.message)))
                 } finally {
                     dispatch(Message.SetLoading(false))
                 }
+            }
+        }
+
+        private fun LoginError.toAppError(): AppError {
+            return when (this) {
+                LoginError.NoInternetConnection -> AppError.NetworkError.NoInternetConnection
+                LoginError.ServerUnreachable -> AppError.NetworkError.ServerUnreachable
+                LoginError.InvalidCredentials -> AppError.AuthenticationError.InvalidCredentials
+                is LoginError.Unexpected -> AppError.UnknownError(this.debugMessage)
             }
         }
     }

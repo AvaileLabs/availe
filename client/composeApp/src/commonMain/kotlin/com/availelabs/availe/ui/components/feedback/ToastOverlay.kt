@@ -13,12 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.availelabs.availe.domain.model.ToastId
-import com.availelabs.availe.domain.model.ToastMessage
+import com.availelabs.availe.model.ToastId
+import com.availelabs.availe.model.ToastMessage
+import com.availelabs.availe.ui.mapper.ToastUiMapper
+import com.availelabs.availe.ui.mapper.UiToastModel
 import com.availelabs.availe.ui.model.asString
-import com.composables.icons.lucide.*
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.X
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.Text
 import com.composables.uikit.styling.*
@@ -42,8 +44,9 @@ fun ToastOverlay(
         ) {
             messages.forEach { message ->
                 key(message.id.value) {
+                    val uiModel = ToastUiMapper.map(message)
                     Toast(
-                        message = message,
+                        model = uiModel,
                         onDismiss = { onDismiss(message.id) }
                     )
                 }
@@ -54,7 +57,7 @@ fun ToastOverlay(
 
 @Composable
 private fun Toast(
-    message: ToastMessage,
+    model: UiToastModel,
     onDismiss: () -> Unit
 ) {
     AnimatedVisibility(
@@ -65,11 +68,7 @@ private fun Toast(
         val backgroundColor = Theme[colors][card]
         val textColor = Theme[colors][onCard]
 
-        val (icon, iconColor) = when (message) {
-            is ToastMessage.Error -> Lucide.CircleAlert to Theme[colors][destructive]
-            is ToastMessage.Success -> Lucide.CircleCheck to Color(0xFF10B981)
-            is ToastMessage.Info -> Lucide.Info to Theme[colors][primary]
-        }
+        val iconColor = model.iconColor ?: if (model.isError) Theme[colors][destructive] else Theme[colors][primary]
 
         Row(
             modifier = Modifier
@@ -83,7 +82,7 @@ private fun Toast(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
-                imageVector = icon,
+                imageVector = model.icon,
                 contentDescription = null,
                 tint = iconColor,
                 modifier = Modifier.size(24.dp)
@@ -93,7 +92,7 @@ private fun Toast(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = message.text.asString(),
+                    text = model.text.asString(),
                     style = Theme[textStyles][body],
                     color = textColor
                 )

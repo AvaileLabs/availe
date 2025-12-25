@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
-import com.availelabs.availe.domain.auth.AuthenticationState
+import com.availelabs.availe.auth.AuthenticationState
 
 @Composable
 expect fun AppShellLayout(

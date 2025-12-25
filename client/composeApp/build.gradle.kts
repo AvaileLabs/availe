@@ -1,4 +1,3 @@
-import app.cash.sqldelight.gradle.SqlDelightDatabase
 import com.android.build.api.dsl.androidLibrary
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
@@ -14,7 +13,6 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kreplica)
-    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -41,6 +39,7 @@ kotlin {
             baseName = "ComposeApp"
             isStatic = true
 
+            export(projects.client.core)
             export(projects.shared.logic)
             export(projects.shared.configuration)
             export(libs.decompose)
@@ -97,7 +96,6 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.browser)
-            implementation(libs.sqldelight.android.driver)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -108,14 +106,17 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.datetime)
+            api(projects.client.core)
             api(projects.shared.logic)
             api(projects.shared.client)
             api(projects.shared.configuration)
             implementation(libs.okio)
             implementation(libs.multiplatform.settings.no.arg)
-            implementation(libs.store5)
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.xmlutil)
+            implementation(projects.client.core)
+            implementation(projects.client.domain)
+            implementation(projects.client.data)
+            implementation(libs.store5)
 
             // Ktor
             implementation(libs.ktor.client.core)
@@ -151,18 +152,9 @@ kotlin {
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.kotlinx.serialization.json)
 
-            // kmp-oidc
-            implementation(libs.oidc.appsupport)
-            implementation(libs.oidc.ktor)
-            implementation(libs.oidc.preferences)
-
             // coil3
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
-
-            // sqldelight
-            implementation(libs.sqldelight.runtime)
-            implementation(libs.sqldelight.coroutines.extensions)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -177,36 +169,15 @@ kotlin {
             implementation(libs.ktor.server.core)
             implementation(libs.ktor.server.netty)
             implementation(libs.logback)
-            implementation(libs.sqldelight.sqlite.driver)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
-            implementation(libs.sqldelight.native.driver)
         }
         webMain.dependencies {
             implementation(libs.ktor.client.js)
             implementation(libs.kotlinx.browser)
             implementation(libs.kotlin.browser)
-            implementation(npm("@cashapp/sqldelight-sqljs-worker", libs.versions.sqldelight.get()))
-            implementation(npm("sql.js", libs.versions.sqljs.get()))
-            implementation(devNpm("copy-webpack-plugin", libs.versions.copyWebpackPlugin.get()))
         }
-        jsMain.dependencies {
-            implementation(libs.sqldelight.web.worker.driver)
-        }
-
-        wasmJsMain.dependencies {
-            implementation(libs.sqldelight.web.worker.driver.wasm.js)
-        }
-    }
-}
-
-sqldelight {
-    databases {
-        create("ClientDatabase", Action<SqlDelightDatabase> {
-            packageName.set("com.availelabs.availe.db")
-            generateAsync.set(true)
-        })
     }
 }
 
