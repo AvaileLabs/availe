@@ -3,6 +3,8 @@ package com.availelabs.availe.auth
 import com.availelabs.availe.domain.model.AuthToken
 import io.ktor.http.*
 import kotlinx.browser.window
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.awaitCancellation
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
 import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
@@ -29,10 +31,14 @@ actual suspend fun platformLogin(
             redirectUri = authorizationRequest.config.redirectUri
         )
         window.location.href = authorizationRequest.url.toString()
-        LoginResult.Cancelled
+        awaitCancellation()
+    } catch (cancellationException: CancellationException) {
+        throw cancellationException
     } catch (exception: Exception) {
+        console.error("Login failed: ${exception.message}")
+        console.error(exception.toString())
         onStateUpdate(AuthenticationState.LoggedOut)
-        LoginResult.Failed(LoginError.ServerUnreachable)
+        LoginResult.Failed(LoginError.Unexpected(exception.message ?: "Unknown error"))
     }
 }
 
