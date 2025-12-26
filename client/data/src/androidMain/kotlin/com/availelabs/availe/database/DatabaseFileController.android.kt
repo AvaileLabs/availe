@@ -3,7 +3,7 @@ package com.availelabs.availe.database
 import android.content.Context
 import com.availelabs.availe.platform.PlatformActivity
 
-class AndroidDatabaseFileController(private val context: Context) :
+internal class AndroidDatabaseFileController(private val context: Context) :
     IDatabaseFileController {
     override suspend fun deleteDatabaseFile() {
         val databaseName =
@@ -12,6 +12,6 @@ class AndroidDatabaseFileController(private val context: Context) :
     }
 }
 
-actual fun createDatabaseFileController(activity: PlatformActivity): IDatabaseFileController {
+internal actual fun createDatabaseFileController(activity: PlatformActivity): IDatabaseFileController {
     return AndroidDatabaseFileController(activity)
 }

@@ -1,14 +1,13 @@
-@file:OptIn(ExperimentalStoreApi::class)
-
-package com.availelabs.availe.model
+package com.availelabs.availe.repositories.model
 
 import kotlinx.serialization.Serializable
 import org.mobilenativefoundation.store.core5.ExperimentalStoreApi
 import org.mobilenativefoundation.store.core5.InsertionStrategy
 import org.mobilenativefoundation.store.core5.StoreKey
 
+@OptIn(ExperimentalStoreApi::class)
 @Serializable
-data class ListingStoreKey(
+internal data class ListingStoreKey(
     override val page: Int,
     override val size: Int,
     override val sort: StoreKey.Sort? = null,

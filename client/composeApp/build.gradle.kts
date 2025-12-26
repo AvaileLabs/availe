@@ -116,7 +116,6 @@ kotlin {
             implementation(projects.client.core)
             implementation(projects.client.domain)
             implementation(projects.client.data)
-            implementation(libs.store5)
 
             // Ktor
             implementation(libs.ktor.client.core)

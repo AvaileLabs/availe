@@ -8,14 +8,17 @@ import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
-import com.availelabs.availe.model.ListingStoreKey
+import com.availelabs.availe.model.DataStream
 import com.availelabs.availe.types.RepositoryOperationResult
 import kotlinx.coroutines.flow.Flow
-import org.mobilenativefoundation.store.store5.StoreReadRequest
-import org.mobilenativefoundation.store.store5.StoreReadResponse
 
 interface IListingRepository {
-    fun getListingsPageStream(request: StoreReadRequest<ListingStoreKey>): Flow<StoreReadResponse<List<Listing>>>
+    fun getListingsPageStream(
+        page: Int,
+        size: Int,
+        forceRefresh: Boolean
+    ): Flow<DataStream<List<Listing>>>
+
     suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>>
     suspend fun existsById(id: ListingId): RepositoryOperationResult<Boolean>
     suspend fun createListing(newListing: NewListing): RepositoryOperationResult<InsertResult<Listing>>

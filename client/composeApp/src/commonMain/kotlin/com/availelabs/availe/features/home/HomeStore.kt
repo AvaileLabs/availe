@@ -8,11 +8,9 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.InsertResult
-import com.availelabs.availe.extensions.toAppError
 import com.availelabs.availe.features.home.HomeStore.*
-import com.availelabs.availe.model.ListingStoreKey
+import com.availelabs.availe.model.DataStream
 import com.availelabs.availe.model.error.AppError
-import com.availelabs.availe.network.toAppError
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.types.RepositoryOperationResult
@@ -22,11 +20,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import org.mobilenativefoundation.store.store5.StoreReadRequest
-import org.mobilenativefoundation.store.store5.StoreReadResponse
-import org.mobilenativefoundation.store.store5.StoreReadResponseOrigin
 import kotlin.random.Random
-import kotlin.time.Clock
+import kotlin.time.Clock.System
 import kotlin.uuid.ExperimentalUuidApi
 
 data class ListingUiModel(
@@ -65,7 +60,7 @@ interface HomeStore : Store<Intent, State, Label> {
     }
 }
 
-@OptIn(ExperimentalUuidApi::class, org.mobilenativefoundation.store.core5.ExperimentalStoreApi::class)
+@OptIn(ExperimentalUuidApi::class)
 class HomeStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
@@ -82,9 +77,7 @@ class HomeStoreFactory(
         ) {}
 
     private sealed interface Action {
-        data class ListingsLoaded(val listings: List<Listing>, val page: Int, val origin: StoreReadResponseOrigin) :
-            Action
-
+        data class ListingsLoaded(val listings: List<Listing>, val page: Int) : Action
         data class ListingsError(val error: AppError, val isPagination: Boolean) : Action
         data object ObserveAuthentication : Action
         data object ObserveSessionInvalidation : Action
@@ -100,7 +93,6 @@ class HomeStoreFactory(
         data class SetPaginationError(val message: UiText?) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
         data class SetEndReached(val endReached: Boolean) : Message
-        data class SetLoadedSuccessfully(val hasLoaded: Boolean) : Message
         data object ResetState : Message
     }
 
@@ -141,10 +133,6 @@ class HomeStoreFactory(
 
                     if (action.listings.isEmpty()) {
                         dispatch(Message.SetEndReached(true))
-                    }
-
-                    if (action.listings.isNotEmpty() || action.origin is StoreReadResponseOrigin.Fetcher) {
-                        dispatch(Message.SetLoadedSuccessfully(true))
                     }
                 }
 
@@ -236,82 +224,46 @@ class HomeStoreFactory(
         private fun fetchListingsPage(page: Int, trigger: FetchTrigger) {
             val currentListingUiModels = state().listingUiModels
             val loadingIndicator = resolveLoadingIndicator(trigger, currentListingUiModels)
-            val startTimeMilliseconds = Clock.System.now().toEpochMilliseconds()
+            val startTimeMilliseconds = System.now().toEpochMilliseconds()
             val minimumRefreshDurationMilliseconds = 375L
 
-            dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = true))
-            dispatch(Message.SetPaginationError(null))
-
-            if (currentListingUiModels.isNotEmpty()) {
-                dispatch(Message.SetInlineError(null))
-            }
-
-            if (page == 0) {
-                dispatch(Message.SetEndReached(false))
-            }
+            // We delegate state management to the repository stream.
+            // This ensures the UI state (Loading/Data/Error) stays synchronized with
+            // internal repository events, such as automatic retries or cache refreshes.
 
             scope.launch {
-                val request = when (trigger) {
-                    FetchTrigger.UserPullToRefresh, FetchTrigger.DataChanged -> {
-                        StoreReadRequest.fresh(ListingStoreKey(page, pageSize))
-                    }
+                val forceRefresh = trigger == FetchTrigger.UserPullToRefresh || trigger == FetchTrigger.DataChanged
 
-                    FetchTrigger.InitialLoad -> {
-                        val isStale = listingRepository.isListingCacheStale()
-                        StoreReadRequest.cached(ListingStoreKey(page, pageSize), refresh = isStale)
-                    }
-
-                    else -> {
-                        StoreReadRequest.cached(ListingStoreKey(page, pageSize), refresh = false)
-                    }
-                }
-
-                listingRepository.getListingsPageStream(request)
+                listingRepository.getListingsPageStream(page, pageSize, forceRefresh)
                     .catch { throwable ->
-                        val appError = throwable.toAppError()
+                        val appError = AppError.UnknownError(throwable.message ?: "Unknown stream error")
                         forward(Action.ListingsError(appError, isPagination = trigger == FetchTrigger.LoadMore))
                         dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
                     }
-                    .collect { response ->
-                        when (response) {
-                            is StoreReadResponse.Data -> {
-                                val data = response.requireData()
-                                val shouldClearErrors =
-                                    data.isNotEmpty() || response.origin is StoreReadResponseOrigin.Fetcher
-
-                                if (shouldClearErrors) {
-                                    dispatch(Message.SetInlineError(null))
-                                    dispatch(Message.SetPaginationError(null))
-                                }
-                                forward(Action.ListingsLoaded(data, page, response.origin))
-
-                                val isFetcherResponse = response.origin is StoreReadResponseOrigin.Fetcher
-                                val shouldStopLoading = isFetcherResponse || !request.refresh
-
-                                if (shouldStopLoading) {
-                                    dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
-                                }
+                    .collect { streamResult ->
+                        when (streamResult) {
+                            is DataStream.Loading -> {
+                                dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = true))
                             }
 
-                            is StoreReadResponse.Error -> {
-                                val appError = response.toAppError()
-                                forward(Action.ListingsError(appError, isPagination = trigger == FetchTrigger.LoadMore))
+                            is DataStream.Data -> {
+                                forward(Action.ListingsLoaded(streamResult.value, page))
+                            }
+
+                            is DataStream.Error -> {
+                                forward(
+                                    Action.ListingsError(
+                                        streamResult.error,
+                                        isPagination = trigger == FetchTrigger.LoadMore
+                                    )
+                                )
                                 dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
                             }
-
-                            is StoreReadResponse.Loading -> {
-                            }
-
-                            is StoreReadResponse.NoNewData -> {
-                                dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
-                            }
-
-                            is StoreReadResponse.Initial -> {}
                         }
                     }
 
                 if (trigger is FetchTrigger.UserPullToRefresh) {
-                    val elapsedTimeMilliseconds = Clock.System.now().toEpochMilliseconds() - startTimeMilliseconds
+                    val elapsedTimeMilliseconds = System.now().toEpochMilliseconds() - startTimeMilliseconds
                     if (elapsedTimeMilliseconds < minimumRefreshDurationMilliseconds) {
                         delay(minimumRefreshDurationMilliseconds - elapsedTimeMilliseconds)
                     }
@@ -379,17 +331,39 @@ class HomeStoreFactory(
                     }
                 }
 
-                is Message.ReplaceListings -> copy(listingUiModels = msg.listingUiModels, currentPage = 0)
-                is Message.AppendListings -> copy(
-                    listingUiModels = listingUiModels + msg.listingUiModels,
-                    currentPage = msg.page
+                is Message.ReplaceListings -> copy(
+                    listingUiModels = msg.listingUiModels,
+                    currentPage = 0,
+                    isLoading = false,
+                    isRefreshing = false,
+                    inlineError = null,
+                    paginationError = null,
+                    hasLoadedSuccessfully = true
                 )
 
-                is Message.SetInlineError -> copy(inlineError = msg.message)
-                is Message.SetPaginationError -> copy(paginationError = msg.message)
+                is Message.AppendListings -> copy(
+                    listingUiModels = listingUiModels + msg.listingUiModels,
+                    currentPage = msg.page,
+                    isLoading = false,
+                    isRefreshing = false,
+                    paginationError = null,
+                    hasLoadedSuccessfully = true
+                )
+
+                is Message.SetInlineError -> copy(
+                    inlineError = msg.message,
+                    isLoading = false,
+                    isRefreshing = false
+                )
+
+                is Message.SetPaginationError -> copy(
+                    paginationError = msg.message,
+                    isLoading = false,
+                    isRefreshing = false
+                )
+
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
                 is Message.SetEndReached -> copy(endReached = msg.endReached)
-                is Message.SetLoadedSuccessfully -> copy(hasLoadedSuccessfully = msg.hasLoaded)
                 Message.ResetState -> copy(
                     listingUiModels = emptyList(),
                     currentPage = 0,

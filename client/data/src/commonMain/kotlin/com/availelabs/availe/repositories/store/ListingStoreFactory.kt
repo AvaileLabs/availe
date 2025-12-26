@@ -1,7 +1,7 @@
 package com.availelabs.availe.repositories.store
 
 import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.model.ListingStoreKey
+import com.availelabs.availe.repositories.model.ListingStoreKey
 import com.availelabs.availe.sources.local.IListingLocalDataSource
 import com.availelabs.availe.sources.local.ILocalDataCleaner
 import com.availelabs.availe.sources.remote.IListingRemoteDataSource

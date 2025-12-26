@@ -7,7 +7,7 @@ import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.availelabs.availe.db.ClientDatabase
 import com.availelabs.availe.platform.PlatformActivity
 
-class AndroidSqlDriverFactory(private val context: Context) : SqlDriverFactory {
+internal class AndroidSqlDriverFactory(private val context: Context) : SqlDriverFactory {
     override suspend fun createDriver(): SqlDriver {
         val databaseName =
             ClientDatabaseConfiguration.databaseName.value
@@ -28,6 +28,6 @@ class AndroidSqlDriverFactory(private val context: Context) : SqlDriverFactory {
     }
 }
 
-actual fun createSqlDriverFactory(activity: PlatformActivity): SqlDriverFactory {
+internal actual fun createSqlDriverFactory(activity: PlatformActivity): SqlDriverFactory {
     return AndroidSqlDriverFactory(activity)
 }

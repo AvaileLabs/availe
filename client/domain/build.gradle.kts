@@ -52,7 +52,6 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.shared.logic)
-            implementation(libs.store5)
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)

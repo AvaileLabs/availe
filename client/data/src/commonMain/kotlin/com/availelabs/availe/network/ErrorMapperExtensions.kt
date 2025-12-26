@@ -2,7 +2,7 @@ package com.availelabs.availe.network
 
 import com.availelabs.availe.model.error.AppError
 
-fun Throwable.toAppError(): AppError {
+internal fun Throwable.toAppError(): AppError {
     val networkErrorType = this.classifyNetworkError()
 
     return when (networkErrorType) {

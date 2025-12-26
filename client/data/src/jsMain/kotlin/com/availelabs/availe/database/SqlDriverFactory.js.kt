@@ -7,7 +7,7 @@ import com.availelabs.availe.db.ClientDatabase
 import com.availelabs.availe.platform.PlatformActivity
 import com.availelabs.availe.sources.local.sqlDelightWorker
 
-class WebSqlDriverFactory : SqlDriverFactory {
+internal class WebSqlDriverFactory : SqlDriverFactory {
     override suspend fun createDriver(): SqlDriver {
         val driver = WebWorkerDriver(sqlDelightWorker())
         ClientDatabase.Schema.awaitCreate(driver)
@@ -15,6 +15,6 @@ class WebSqlDriverFactory : SqlDriverFactory {
     }
 }
 
-actual fun createSqlDriverFactory(activity: PlatformActivity): SqlDriverFactory {
+internal actual fun createSqlDriverFactory(activity: PlatformActivity): SqlDriverFactory {
     return WebSqlDriverFactory()
 }

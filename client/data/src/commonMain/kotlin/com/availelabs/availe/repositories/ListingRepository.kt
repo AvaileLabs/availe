@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalTime::class)
-
 package com.availelabs.availe.repositories
 
 import com.availelabs.availe.domain.model.Listing
@@ -10,23 +8,26 @@ import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
-import com.availelabs.availe.model.ListingStoreKey
+import com.availelabs.availe.extensions.toAppError
+import com.availelabs.availe.model.DataStream
 import com.availelabs.availe.network.ISafeNetworkCaller
+import com.availelabs.availe.network.toAppError
 import com.availelabs.availe.preferences.IListingPreferences
+import com.availelabs.availe.repositories.model.ListingStoreKey
 import com.availelabs.availe.repositories.store.ListingStoreFactory
 import com.availelabs.availe.sources.local.IListingLocalDataSource
 import com.availelabs.availe.sources.local.ILocalDataCleaner
 import com.availelabs.availe.sources.remote.IListingRemoteDataSource
 import com.availelabs.availe.types.RepositoryOperationResult
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
+import org.mobilenativefoundation.store.core5.ExperimentalStoreApi
 import org.mobilenativefoundation.store.store5.StoreReadRequest
 import org.mobilenativefoundation.store.store5.StoreReadResponse
 import org.mobilenativefoundation.store.store5.StoreReadResponseOrigin
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 internal class ListingRepository(
     private val remoteDataSource: IListingRemoteDataSource,
     private val localDataSource: IListingLocalDataSource,
@@ -38,9 +39,26 @@ internal class ListingRepository(
 
     private val store = storeFactory.create()
 
-    override fun getListingsPageStream(request: StoreReadRequest<ListingStoreKey>): Flow<StoreReadResponse<List<Listing>>> {
-        return store.stream(request)
-            .onEach { response ->
+    @OptIn(ExperimentalStoreApi::class)
+    override fun getListingsPageStream(
+        page: Int,
+        size: Int,
+        forceRefresh: Boolean
+    ): Flow<DataStream<List<Listing>>> = flow {
+        emit(DataStream.Loading)
+
+        val isStale = if (forceRefresh) true else isListingCacheStale()
+        val key = ListingStoreKey(page, size)
+        val request = if (isStale) {
+            StoreReadRequest.fresh(key)
+        } else {
+            StoreReadRequest.cached(key, refresh = false)
+        }
+
+        var lastData: List<Listing>? = null
+
+        val stream = store.stream(request)
+            .transform { response ->
                 if (response.origin is StoreReadResponseOrigin.Fetcher && response is StoreReadResponse.Data) {
                     try {
                         listingPreferences.updateLastListingsFetchTime(Clock.System.now().toEpochMilliseconds())
@@ -48,19 +66,45 @@ internal class ListingRepository(
                         // Ignore preference update failure
                     }
                 }
+
+                when (response) {
+                    is StoreReadResponse.Data -> {
+                        val data = response.requireData()
+                        lastData = data
+                        emit(DataStream.Data(data))
+                    }
+
+                    is StoreReadResponse.Error -> {
+                        emit(DataStream.Error(response.toAppError()))
+                    }
+
+                    is StoreReadResponse.Loading -> {
+                        emit(DataStream.Loading)
+                    }
+
+                    is StoreReadResponse.NoNewData -> {
+                        if (lastData != null) {
+                            emit(DataStream.Data(lastData!!))
+                        }
+                    }
+
+                    is StoreReadResponse.Initial -> {
+                        // Initial state, do nothing or emit Loading if desired
+                    }
+                }
             }
             .catch { exception ->
-                throw exception
+                emit(DataStream.Error(exception.toAppError()))
             }
+
+        emitAll(stream)
     }
 
     override suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>> {
         return safeNetworkCaller.execute {
             val findResult = remoteDataSource.getListingById(id)
             if (findResult is FindResult.NotFound) {
-                TODO()
-                // Optionally clear specific item from local data source if needed,
-                // but avoiding full wipe.
+                // Optionally handle local cleanup
             }
             findResult
         }
@@ -99,7 +143,8 @@ internal class ListingRepository(
                 return true
             }
 
-            val lastFetchTimeMilliseconds = listingPreferences.getLastListingsFetchTimeMilliseconds() ?: return true
+            val lastFetchTimeMilliseconds =
+                listingPreferences.getLastListingsFetchTimeMilliseconds() ?: return true
 
             val currentTimestampMilliseconds = Clock.System.now().toEpochMilliseconds()
             val stalenessThresholdMilliseconds = 15 * 60 * 1000
