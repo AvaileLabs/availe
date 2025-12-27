@@ -25,10 +25,7 @@ import com.composables.uikit.styling.scrim
 import com.composeunstyled.theme.Theme
 
 @Composable
-fun App(
-    rootComponent: IRootComponent,
-    enableOutsideTapDismiss: Boolean = false
-) {
+fun App(rootComponent: IRootComponent) {
     val childStack by rootComponent.childStack.subscribeAsState()
     val loginOverlay by rootComponent.loginOverlay.subscribeAsState()
     val toastMessages by rootComponent.toastMessages.subscribeAsState()
@@ -37,7 +34,7 @@ fun App(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clearFocusOnUnconsumedTap(enabled = enableOutsideTapDismiss),
+                .clearFocusOnUnconsumedTap(),
             contentAlignment = Alignment.Center
         ) {
             Children(

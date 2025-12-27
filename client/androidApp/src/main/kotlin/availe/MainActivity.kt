@@ -23,8 +23,7 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             App(
-                rootComponent = root,
-                enableOutsideTapDismiss = false
+                rootComponent = root
             )
         }
     }

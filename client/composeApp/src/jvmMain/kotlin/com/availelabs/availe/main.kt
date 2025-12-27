@@ -37,8 +37,7 @@ fun main() = application {
         state = windowState,
     ) {
         App(
-            rootComponent = root,
-            enableOutsideTapDismiss = false
+            rootComponent = root
         )
     }
 }

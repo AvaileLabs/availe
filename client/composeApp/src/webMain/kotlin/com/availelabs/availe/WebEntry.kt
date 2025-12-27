@@ -59,8 +59,7 @@ fun startWebApp(deepLink: String?, stateKeeper: StateKeeper): RootComponent {
 
     ComposeViewport {
         App(
-            rootComponent = root,
-            enableOutsideTapDismiss = false
+            rootComponent = root
         )
     }
 

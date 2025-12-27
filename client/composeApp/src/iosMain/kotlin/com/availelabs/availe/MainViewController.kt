@@ -7,8 +7,7 @@ import platform.UIKit.UIViewController
 fun MainViewController(root: IRootComponent): UIViewController {
     return ComposeUIViewController {
         App(
-            rootComponent = root,
-            enableOutsideTapDismiss = true
+            rootComponent = root
         )
     }
 }
