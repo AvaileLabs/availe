@@ -1,7 +1,6 @@
 package com.availelabs.availe.features.chat
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -18,8 +17,6 @@ import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +40,6 @@ fun ChatScreen(
 ) {
     val chatState by component.state.collectAsState()
     val lazyListState = rememberLazyListState()
-    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(chatState.messages.size) {
         if (chatState.messages.isNotEmpty()) {
@@ -61,7 +57,6 @@ fun ChatScreen(
             MessageList(
                 messages = chatState.messages,
                 listState = lazyListState,
-                onTapBackground = { focusManager.clearFocus() },
                 modifier = Modifier.weight(1f)
             )
 
@@ -86,7 +81,6 @@ fun ChatScreen(
                 MessageList(
                     messages = chatState.messages,
                     listState = lazyListState,
-                    onTapBackground = { focusManager.clearFocus() },
                     modifier = Modifier.weight(1f)
                 )
 
@@ -167,16 +161,12 @@ private fun UserInfoHeader(
 private fun MessageList(
     messages: List<ChatMessage>,
     listState: LazyListState,
-    onTapBackground: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         state = listState,
         modifier = modifier
             .fillMaxWidth()
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = { onTapBackground() })
-            }
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(vertical = 16.dp)

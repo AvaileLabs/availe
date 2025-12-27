@@ -18,20 +18,26 @@ import com.availelabs.availe.features.root.RootChildComponent
 import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.dialogs.LoginGuardModal
 import com.availelabs.availe.ui.components.feedback.ToastOverlay
+import com.availelabs.availe.ui.modifiers.clearFocusOnUnconsumedTap
 import com.composables.uikit.styling.UiKitTheme
 import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.scrim
 import com.composeunstyled.theme.Theme
 
 @Composable
-fun App(rootComponent: IRootComponent) {
+fun App(
+    rootComponent: IRootComponent,
+    enableOutsideTapDismiss: Boolean = false
+) {
     val childStack by rootComponent.childStack.subscribeAsState()
     val loginOverlay by rootComponent.loginOverlay.subscribeAsState()
     val toastMessages by rootComponent.toastMessages.subscribeAsState()
 
     UiKitTheme {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clearFocusOnUnconsumedTap(enabled = enableOutsideTapDismiss),
             contentAlignment = Alignment.Center
         ) {
             Children(
@@ -49,12 +55,11 @@ fun App(rootComponent: IRootComponent) {
                         )
                     }
 
-                    is RootChildComponent.Login -> { /* Handled by overlay */
+                    is RootChildComponent.Login -> {
                     }
                 }
             }
 
-            // Render Login Overlay
             if (loginOverlay.child != null) {
                 Box(
                     modifier = Modifier
@@ -73,7 +78,6 @@ fun App(rootComponent: IRootComponent) {
                 }
             }
 
-            // Render Toast Overlay
             if (toastMessages.isNotEmpty()) {
                 ToastOverlay(
                     messages = toastMessages,

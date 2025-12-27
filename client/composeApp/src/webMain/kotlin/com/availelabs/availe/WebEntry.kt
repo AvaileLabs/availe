@@ -58,7 +58,10 @@ fun startWebApp(deepLink: String?, stateKeeper: StateKeeper): RootComponent {
     lifecycle.attachToDocument()
 
     ComposeViewport {
-        App(rootComponent = root)
+        App(
+            rootComponent = root,
+            enableOutsideTapDismiss = false
+        )
     }
 
     return root

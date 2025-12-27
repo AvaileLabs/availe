@@ -36,6 +36,9 @@ fun main() = application {
         title = "availe",
         state = windowState,
     ) {
-        App(rootComponent = root)
+        App(
+            rootComponent = root,
+            enableOutsideTapDismiss = false
+        )
     }
 }

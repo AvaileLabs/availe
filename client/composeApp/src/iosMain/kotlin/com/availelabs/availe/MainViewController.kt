@@ -5,5 +5,10 @@ import com.availelabs.availe.features.root.IRootComponent
 import platform.UIKit.UIViewController
 
 fun MainViewController(root: IRootComponent): UIViewController {
-    return ComposeUIViewController { App(rootComponent = root) }
+    return ComposeUIViewController {
+        App(
+            rootComponent = root,
+            enableOutsideTapDismiss = true
+        )
+    }
 }

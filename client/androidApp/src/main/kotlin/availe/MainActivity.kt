@@ -21,6 +21,11 @@ class MainActivity : ComponentActivity() {
             componentContext = componentContext,
             appContainer = appContainer
         )
-        setContent { App(root) }
+        setContent {
+            App(
+                rootComponent = root,
+                enableOutsideTapDismiss = false
+            )
+        }
     }
 }
