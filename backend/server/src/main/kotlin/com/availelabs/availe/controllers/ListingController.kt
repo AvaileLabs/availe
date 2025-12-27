@@ -47,6 +47,9 @@ internal class ListingController(
     private val listResponseBodyLens = Body.auto<List<TypeV1ListingDtoData>>().toLens()
     private val pageNumberQueryLens = Query.int().defaulted(ApiParameters.PAGE_NUMBER, 0)
     private val pageSizeQueryLens = Query.int().defaulted(ApiParameters.PAGE_SIZE, 20)
+    private val publisherIdQueryLens = Query.uuid()
+        .map({ UserId(it.toKotlinUuid()) }, { it.value.toJavaUuid() })
+        .optional(ApiParameters.PUBLISHER_ID)
 
     private val examplePrice = Price(PriceAmount("10.00"), CurrencyCode("USD"))
     private val exampleResponseItem = ListingItemDtoSchema.V1.Data(
@@ -155,14 +158,17 @@ internal class ListingController(
     fun listAllListings(): ContractRoute {
         return ApiRoutes.LISTINGS meta {
             summary = "Get all listings."
-            description = "Returns a paginated list of all listings."
+            description = "Returns a paginated list of all listings, optionally filtered by publisher ID."
             queries += pageNumberQueryLens
             queries += pageSizeQueryLens
+            queries += publisherIdQueryLens
             returning(Status.OK, listResponseBodyLens to listOf(exampleResponseItem))
         } bindContract Method.GET to { request: Request ->
             val pageNumber = pageNumberQueryLens(request)
             val pageSize = pageSizeQueryLens(request)
-            val listings = listingService.getListingsPage(pageNumber, pageSize)
+            val publisherId = publisherIdQueryLens(request)
+
+            val listings = listingService.getListingsPage(pageNumber, pageSize, publisherId)
             val responseDto = listings.map { it.toDataDto() }
             Response(Status.OK).with(listResponseBodyLens of responseDto)
         }

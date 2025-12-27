@@ -19,7 +19,7 @@ interface IListingService {
     fun createListing(newListing: NewListing): InsertResult<Listing>
     fun getListingById(id: ListingId): FindResult<Listing>
     fun getAllListings(): List<Listing>
-    fun getListingsPage(pageNumber: Int, pageSize: Int): List<Listing>
+    fun getListingsPage(pageNumber: Int, pageSize: Int, publisherId: UserId? = null): List<Listing>
     fun updateListing(
         listingId: ListingId,
         patch: TypeV1ListingDtoPatchRequest,
@@ -42,8 +42,8 @@ class ListingService(
 
     override fun getAllListings(): List<Listing> = listingRepository.getAllListings()
 
-    override fun getListingsPage(pageNumber: Int, pageSize: Int): List<Listing> {
-        return listingRepository.getListingsPage(pageNumber, pageSize)
+    override fun getListingsPage(pageNumber: Int, pageSize: Int, publisherId: UserId?): List<Listing> {
+        return listingRepository.getListingsPage(pageNumber, pageSize, publisherId)
     }
 
     override fun updateListing(

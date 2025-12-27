@@ -21,6 +21,7 @@ import com.example.jooq.tables.references.LISTING_SERVICE_DETAILS
 import io.availe.models.Patchable
 import org.jooq.DSLContext
 import org.jooq.Field
+import org.jooq.impl.DSL
 import java.math.BigDecimal
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
@@ -31,7 +32,7 @@ interface IListingRepository {
     fun getListingById(id: ListingId): FindResult<Listing>
     fun existsById(id: ListingId): Boolean
     fun getAllListings(): List<Listing>
-    fun getListingsPage(pageNumber: Int, pageSize: Int): List<Listing>
+    fun getListingsPage(pageNumber: Int, pageSize: Int, publisherId: UserId? = null): List<Listing>
     fun updateListing(
         id: ListingId,
         patch: TypeV1ListingDtoPatchRequest
@@ -105,9 +106,16 @@ internal class ListingRepository(
             }
     }
 
-    override fun getListingsPage(pageNumber: Int, pageSize: Int): List<Listing> {
+    override fun getListingsPage(pageNumber: Int, pageSize: Int, publisherId: UserId?): List<Listing> {
         val offset = pageNumber * pageSize
+        val condition = if (publisherId != null) {
+            LISTINGS.PUBLISHER_ID.eq(publisherId.value.toJavaUuid())
+        } else {
+            DSL.noCondition()
+        }
+
         return baseQuery()
+            .where(condition)
             .orderBy(LISTINGS.CREATED_AT.desc())
             .limit(pageSize)
             .offset(offset)
