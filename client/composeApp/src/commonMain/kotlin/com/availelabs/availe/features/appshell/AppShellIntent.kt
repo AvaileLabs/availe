@@ -24,4 +24,9 @@ sealed interface AppShellIntent {
     data class Chatting(
         val recipientJid: Jid
     ) : AppShellIntent
+
+    @Serializable
+    data class ListingEditor(
+        val listingId: ListingId? = null
+    ) : AppShellIntent
 }

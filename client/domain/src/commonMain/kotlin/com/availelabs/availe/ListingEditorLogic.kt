@@ -2,6 +2,11 @@ package com.availelabs.availe
 
 import com.availelabs.availe.domain.extensions.isValid
 import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
+import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
+import com.availelabs.availe.dto.kreplica.ListingServiceDtoSchema
+import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import io.availe.models.Patchable
 
 data class ListingEditorState(
     val isEditing: Boolean = false,
@@ -16,6 +21,7 @@ data class ListingEditorState(
 )
 
 sealed interface ListingEditorIntent {
+    data class LoadData(val listing: Listing) : ListingEditorIntent
     data class ChangeTitle(val title: ListingTitle) : ListingEditorIntent
     data class ChangeDescription(val value: ListingDescription) : ListingEditorIntent
     data class ChangePrice(val amount: PriceAmount) : ListingEditorIntent
@@ -29,6 +35,29 @@ sealed interface ListingEditorIntent {
 
 fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent): ListingEditorState {
     return when (intent) {
+        is ListingEditorIntent.LoadData -> {
+            val commonData = intent.listing.commonData
+            val category = when (intent.listing) {
+                is Listing.Item -> ListingCategory.Item
+                is Listing.Event -> ListingCategory.Event
+                is Listing.Service -> ListingCategory.Service
+            }
+
+            val currency = SupportedCurrency.fromCode(commonData.price.currency) ?: SupportedCurrency.USD
+
+            state.copy(
+                isEditing = true,
+                title = commonData.title,
+                description = commonData.description ?: ListingDescription(""),
+                priceAmount = commonData.price.amount,
+                priceCurrency = currency,
+                imageUrl = commonData.imageLinks.firstOrNull() ?: ImageUrl(""),
+                type = category,
+                error = null,
+                isSubmitting = false
+            )
+        }
+
         is ListingEditorIntent.ChangeTitle -> state.copy(title = intent.title)
         is ListingEditorIntent.ChangeDescription -> state.copy(description = intent.value)
         is ListingEditorIntent.ChangePrice -> {
@@ -81,5 +110,35 @@ fun ListingEditorState.toNewListing(publisherId: UserId, publisherEmail: Email):
         ListingCategory.Item -> NewListing.Item(commonData)
         ListingCategory.Event -> NewListing.Event(commonData)
         ListingCategory.Service -> NewListing.Service(commonData)
+    }
+}
+
+fun ListingEditorState.toPatchRequest(): TypeV1ListingDtoPatchRequest {
+    val imageLinks = if (this.imageUrl.value.isNotBlank()) listOf(this.imageUrl) else emptyList()
+    val descriptionValue = if (this.description.value.isBlank()) null else this.description
+
+    val priceObj = Price(this.priceAmount, this.priceCurrency.code)
+
+    return when (this.type) {
+        ListingCategory.Item -> ListingItemDtoSchema.V1.PatchRequest(
+            title = Patchable.Set(this.title),
+            description = Patchable.Set(descriptionValue),
+            price = Patchable.Set(priceObj),
+            imageLinks = Patchable.Set(imageLinks)
+        )
+
+        ListingCategory.Event -> ListingEventDtoSchema.V1.PatchRequest(
+            title = Patchable.Set(this.title),
+            description = Patchable.Set(descriptionValue),
+            price = Patchable.Set(priceObj),
+            imageLinks = Patchable.Set(imageLinks)
+        )
+
+        ListingCategory.Service -> ListingServiceDtoSchema.V1.PatchRequest(
+            title = Patchable.Set(this.title),
+            description = Patchable.Set(descriptionValue),
+            price = Patchable.Set(priceObj),
+            imageLinks = Patchable.Set(imageLinks)
+        )
     }
 }

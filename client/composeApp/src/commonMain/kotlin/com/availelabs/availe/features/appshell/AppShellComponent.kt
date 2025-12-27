@@ -25,6 +25,8 @@ import com.availelabs.availe.features.home.HomeComponent
 import com.availelabs.availe.features.home.IHomeComponent
 import com.availelabs.availe.features.listingdetails.IListingDetailsComponent
 import com.availelabs.availe.features.listingdetails.ListingDetailsComponent
+import com.availelabs.availe.features.listingeditor.IListingEditorComponent
+import com.availelabs.availe.features.listingeditor.ListingEditorComponent
 import com.availelabs.availe.features.settings.ISettingsComponent
 import com.availelabs.availe.features.settings.SettingsComponent
 import com.availelabs.availe.ui.model.AppBarAction
@@ -186,6 +188,11 @@ class AppShellComponent(
                 AppShellConfiguration.Home,
                 AppShellConfiguration.Chat(intent.recipientJid)
             )
+
+            is AppShellIntent.ListingEditor -> listOf(
+                AppShellConfiguration.Home,
+                AppShellConfiguration.ListingEditor(intent.listingId)
+            )
         }
     }
 
@@ -209,6 +216,9 @@ class AppShellComponent(
                     sessionManager = appContainer.sessionManager,
                     onNavigateToListingDetails = { listingId ->
                         childStackNavigation.pushToFront(AppShellConfiguration.ListingDetails(listingId))
+                    },
+                    onNavigateToCreateListing = {
+                        childStackNavigation.pushToFront(AppShellConfiguration.ListingEditor(null))
                     },
                     messageService = appContainer.messageService
                 )
@@ -257,6 +267,17 @@ class AppShellComponent(
                     }
                 )
             )
+
+            is AppShellConfiguration.ListingEditor -> AppShellChildComponent.ListingEditor(
+                ListingEditorComponent(
+                    componentContext = componentContext,
+                    listingId = configuration.listingId,
+                    listingRepository = appContainer.listingRepository,
+                    sessionManager = appContainer.sessionManager,
+                    messageService = appContainer.messageService,
+                    onNavigateBack = { childStackNavigation.pop() }
+                )
+            )
         }
     }
 
@@ -292,6 +313,10 @@ sealed interface AppShellChildComponent {
     }
 
     data class Settings(val component: ISettingsComponent) : AppShellChildComponent {
+        override val actions: Value<List<AppBarAction>> = component.actions
+    }
+
+    data class ListingEditor(val component: IListingEditorComponent) : AppShellChildComponent {
         override val actions: Value<List<AppBarAction>> = component.actions
     }
 }
@@ -332,5 +357,13 @@ sealed interface AppShellConfiguration {
     @Serializable
     data object Settings : AppShellConfiguration {
         override fun toUrlPath(): String = "/settings"
+    }
+
+    @Serializable
+    data class ListingEditor(val listingId: ListingId?) : AppShellConfiguration {
+        override val canonicalParent: AppShellConfiguration = Home
+
+        override fun toUrlPath(): String =
+            if (listingId == null) "/create-listing" else "/edit-listing/${listingId.value}"
     }
 }

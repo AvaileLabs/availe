@@ -33,6 +33,7 @@ class HomeComponent(
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionRepository,
     private val onNavigateToListingDetails: (ListingId) -> Unit,
+    private val onNavigateToCreateListing: () -> Unit,
     private val messageService: IMessageService
 ) : IHomeComponent, ComponentContext by componentContext {
 
@@ -72,7 +73,7 @@ class HomeComponent(
                         AppBarAction(
                             icon = ActionIcon.ADD,
                             label = UiText.ResourceString(Res.string.accessibility_action_add),
-                            onClick = { store.accept(HomeStore.Intent.QuickCreateListingRequested) }
+                            onClick = onNavigateToCreateListing
                         )
                     )
                 } else {

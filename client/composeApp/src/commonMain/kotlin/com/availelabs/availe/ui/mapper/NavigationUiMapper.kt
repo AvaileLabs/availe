@@ -34,6 +34,12 @@ object NavigationUiMapper {
                 icon = Lucide.Settings,
                 contentDescription = Res.string.accessibility_navigation_settings
             )
+
+            is AppShellConfiguration.ListingEditor -> NavigationUiState(
+                title = Res.string.navigation_details,
+                icon = Lucide.House,
+                contentDescription = Res.string.accessibility_navigation_details
+            )
         }
     }
 }

@@ -7,20 +7,17 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.features.home.HomeStore.*
 import com.availelabs.availe.model.DataStream
 import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
-import com.availelabs.availe.types.RepositoryOperationResult
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlin.random.Random
 import kotlin.time.Clock.System
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -37,7 +34,6 @@ interface HomeStore : Store<Intent, State, Label> {
 
     sealed interface Intent {
         data object RefreshListingsRequested : Intent
-        data object QuickCreateListingRequested : Intent
         data class ListingClicked(val listingId: ListingId) : Intent
         data object LoadNextPage : Intent
     }
@@ -157,7 +153,6 @@ class HomeStoreFactory(
         override fun executeIntent(intent: Intent) {
             when (intent) {
                 Intent.RefreshListingsRequested -> fetchListingsPage(0, FetchTrigger.UserPullToRefresh)
-                Intent.QuickCreateListingRequested -> performQuickCreate()
                 is Intent.ListingClicked -> publish(Label.NavigateToListingDetails(intent.listingId))
                 Intent.LoadNextPage -> {
                     val state = state()
@@ -168,68 +163,11 @@ class HomeStoreFactory(
             }
         }
 
-        private fun performQuickCreate() {
-            scope.launch {
-                val userProfile = sessionManager.getCurrentUserProfile()
-                if (userProfile == null) {
-                    val error = AppError.BusinessError.OperationForbidden
-                    publish(Label.DisplayError(error))
-                    return@launch
-                }
-
-                dispatch(Message.LoadingStateChanged(loadingIndicator = LoadingIndicator.Overlay, isActive = true))
-
-                val randomId = Random.nextInt(1000, 9999)
-                val newListing = NewListing.Item(
-                    commonData = CommonListingData(
-                        title = ListingTitle("Quick Item $randomId"),
-                        description = ListingDescription("This item was created via quick add action."),
-                        price = Price(PriceAmount("10.00"), SupportedCurrency.USD.code),
-                        imageLinks = emptyList(),
-                        publisherId = userProfile.id,
-                        publisherEmail = userProfile.email
-                    )
-                )
-
-                when (val result = listingRepository.createListing(newListing)) {
-                    is RepositoryOperationResult.Success<*> -> {
-                        when (result.value) {
-                            is InsertResult.Inserted<*> -> fetchListingsPage(0, FetchTrigger.DataChanged)
-                            is InsertResult.AlreadyExists -> {
-                                val error = AppError.BusinessError.OperationForbidden
-                                publish(Label.DisplayError(error))
-                                dispatch(
-                                    Message.LoadingStateChanged(
-                                        loadingIndicator = LoadingIndicator.Overlay,
-                                        isActive = false
-                                    )
-                                )
-                            }
-                        }
-                    }
-
-                    is RepositoryOperationResult.Failure -> {
-                        publish(Label.DisplayError(result.error))
-                        dispatch(
-                            Message.LoadingStateChanged(
-                                loadingIndicator = LoadingIndicator.Overlay,
-                                isActive = false
-                            )
-                        )
-                    }
-                }
-            }
-        }
-
         private fun fetchListingsPage(page: Int, trigger: FetchTrigger) {
             val currentListingUiModels = state().listingUiModels
             val loadingIndicator = resolveLoadingIndicator(trigger, currentListingUiModels)
             val startTimeMilliseconds = System.now().toEpochMilliseconds()
             val minimumRefreshDurationMilliseconds = 375L
-
-            // We delegate state management to the repository stream.
-            // This ensures the UI state (Loading/Data/Error) stays synchronized with
-            // internal repository events, such as automatic retries or cache refreshes.
 
             scope.launch {
                 val forceRefresh = trigger == FetchTrigger.UserPullToRefresh || trigger == FetchTrigger.DataChanged

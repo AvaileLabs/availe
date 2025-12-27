@@ -19,6 +19,7 @@ import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.features.chat.ChatScreen
 import com.availelabs.availe.features.home.HomeScreen
 import com.availelabs.availe.features.listingdetails.ListingDetailsScreen
+import com.availelabs.availe.features.listingeditor.ui.ListingEditorScreen
 import com.availelabs.availe.features.settings.SettingsScreen
 import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.PredictiveBackGestureOverlay
@@ -178,6 +179,10 @@ private fun AppShellChildComponent.Render(modifier: Modifier) {
         )
 
         is AppShellChildComponent.Settings -> SettingsScreen(
+            component = this.component
+        )
+
+        is AppShellChildComponent.ListingEditor -> ListingEditorScreen(
             component = this.component
         )
     }

@@ -7,6 +7,7 @@
     <string name="generic_back">Back</string>
     <string name="generic_close">Close</string>
     <string name="generic_expand">Expand</string>
+    <string name="generic_save">Save</string>
 
     <string name="accessibility_navigation_home">Home Screen</string>
     <string name="accessibility_navigation_details">Details Screen</string>
