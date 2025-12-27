@@ -13,6 +13,8 @@ import com.availelabs.availe.types.RepositoryOperationResult
 import kotlinx.coroutines.flow.Flow
 
 interface IListingRepository {
+    val updates: Flow<Unit>
+
     fun getListingsPageStream(
         page: Int,
         size: Int,

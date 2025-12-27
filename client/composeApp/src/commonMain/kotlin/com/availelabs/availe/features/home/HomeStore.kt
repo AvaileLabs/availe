@@ -77,6 +77,8 @@ class HomeStoreFactory(
         data class ListingsError(val error: AppError, val isPagination: Boolean) : Action
         data object ObserveAuthentication : Action
         data object ObserveSessionInvalidation : Action
+        data object ObserveExternalUpdates : Action
+        data object ExternalUpdateReceived : Action
         data object DataPurged : Action
         data object LoadInitialPage : Action
     }
@@ -109,6 +111,7 @@ class HomeStoreFactory(
         override fun invoke() {
             dispatch(Action.ObserveAuthentication)
             dispatch(Action.ObserveSessionInvalidation)
+            dispatch(Action.ObserveExternalUpdates)
             dispatch(Action.LoadInitialPage)
         }
     }
@@ -145,6 +148,8 @@ class HomeStoreFactory(
 
                 Action.ObserveAuthentication -> observeAuthentication()
                 Action.ObserveSessionInvalidation -> observeSessionInvalidation()
+                Action.ObserveExternalUpdates -> observeExternalUpdates()
+                Action.ExternalUpdateReceived -> fetchListingsPage(0, FetchTrigger.DataChanged)
                 Action.DataPurged -> dispatch(Message.ResetState)
                 Action.LoadInitialPage -> fetchListingsPage(0, FetchTrigger.InitialLoad)
             }
@@ -253,6 +258,14 @@ class HomeStoreFactory(
             scope.launch {
                 sessionManager.sessionInvalidated.collect {
                     forward(Action.DataPurged)
+                }
+            }
+        }
+
+        private fun observeExternalUpdates() {
+            scope.launch {
+                listingRepository.updates.collect {
+                    forward(Action.ExternalUpdateReceived)
                 }
             }
         }

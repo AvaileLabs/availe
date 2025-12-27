@@ -38,6 +38,8 @@ internal class ListingRepository(
 ) : IListingRepository {
 
     private val store = storeFactory.create()
+    private val _updates = MutableSharedFlow<Unit>()
+    override val updates: Flow<Unit> = _updates.asSharedFlow()
 
     @OptIn(ExperimentalStoreApi::class)
     override fun getListingsPageStream(
@@ -111,9 +113,26 @@ internal class ListingRepository(
     }
 
     override suspend fun createListing(newListing: NewListing): RepositoryOperationResult<InsertResult<Listing>> {
-        return safeNetworkCaller.execute {
+        val result = safeNetworkCaller.execute {
             remoteDataSource.createListing(newListing)
         }
+
+        if (result is RepositoryOperationResult.Success && result.value is InsertResult.Inserted) {
+            // We invalidate the cache to force a refresh on the next read or trigger an update
+            // However, since we have the 'updates' flow, the HomeStore will just re-fetch.
+            // Ideally we would also clear the specific store key or update the cache manually here.
+            // For now, emitting the update signal is sufficient to trigger the UI refresh loop.
+            try {
+                // Mark cache as stale so next fetch hits network
+                // We could implement a specific method in preferences to invalidate cache
+                // or rely on the fact that HomeStore will call getListingsPageStream(forceRefresh=true)
+                _updates.emit(Unit)
+            } catch (_: Exception) {
+                // Ignore emit failure
+            }
+        }
+
+        return result
     }
 
     override suspend fun existsById(id: ListingId): RepositoryOperationResult<Boolean> {
@@ -126,15 +145,35 @@ internal class ListingRepository(
         id: ListingId,
         patch: TypeV1ListingDtoPatchRequest
     ): RepositoryOperationResult<UpdateResult<Listing>> {
-        return safeNetworkCaller.execute {
+        val result = safeNetworkCaller.execute {
             remoteDataSource.updateListing(id, patch)
         }
+
+        if (result is RepositoryOperationResult.Success && result.value is UpdateResult.Updated) {
+            try {
+                _updates.emit(Unit)
+            } catch (_: Exception) {
+                // Ignore emit failure
+            }
+        }
+
+        return result
     }
 
     override suspend fun deleteListing(id: ListingId): RepositoryOperationResult<DeleteResult> {
-        return safeNetworkCaller.execute {
+        val result = safeNetworkCaller.execute {
             remoteDataSource.deleteListing(id)
         }
+
+        if (result is RepositoryOperationResult.Success && result.value is DeleteResult.Deleted) {
+            try {
+                _updates.emit(Unit)
+            } catch (_: Exception) {
+                // Ignore emit failure
+            }
+        }
+
+        return result
     }
 
     override suspend fun isListingCacheStale(): Boolean {
