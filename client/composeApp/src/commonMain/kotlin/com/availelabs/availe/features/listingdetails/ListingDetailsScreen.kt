@@ -2,13 +2,10 @@
 
 package com.availelabs.availe.features.listingdetails
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,10 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import availe.client.composeapp.generated.resources.*
 import coil3.compose.AsyncImage
-import com.availelabs.availe.domain.model.Email
-import com.availelabs.availe.domain.model.ImageUrl
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.extensions.toDisplayString
 import com.availelabs.availe.ui.model.asString
 import com.composables.icons.lucide.*
@@ -46,7 +40,9 @@ fun ListingDetailsScreen(
     val state by listingDetailsComponent.state.collectAsState()
 
     AppScaffold {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(Theme[colors][background])
+        ) {
             if (state.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -77,7 +73,8 @@ fun ListingDetailsScreen(
             } else if (state.listing != null) {
                 ListingDetailsContent(
                     listing = state.listing!!,
-                    onContactSeller = { sellerEmail -> listingDetailsComponent.onContactSellerClicked(sellerEmail) }
+                    onContactSeller = { sellerEmail -> listingDetailsComponent.onContactSellerClicked(sellerEmail) },
+                    onProfileClicked = { userId -> listingDetailsComponent.onProfileClicked(userId) }
                 )
             }
         }
@@ -87,14 +84,15 @@ fun ListingDetailsScreen(
 @Composable
 private fun ListingDetailsContent(
     listing: Listing,
-    onContactSeller: (Email) -> Unit
+    onContactSeller: (Email) -> Unit,
+    onProfileClicked: (UserId) -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isDesktop = maxWidth > 800.dp
         if (isDesktop) {
-            DesktopListingLayout(listing, onContactSeller)
+            DesktopListingLayout(listing, onContactSeller, onProfileClicked)
         } else {
-            MobileListingLayout(listing, onContactSeller)
+            MobileListingLayout(listing, onContactSeller, onProfileClicked)
         }
     }
 }
@@ -102,7 +100,8 @@ private fun ListingDetailsContent(
 @Composable
 private fun MobileListingLayout(
     listing: Listing,
-    onContactSeller: (Email) -> Unit
+    onContactSeller: (Email) -> Unit,
+    onProfileClicked: (UserId) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -169,7 +168,8 @@ private fun MobileListingLayout(
                 SellerInfoCard(
                     listing = listing,
                     modifier = Modifier.fillMaxWidth(),
-                    onContactClicked = onContactSeller
+                    onContactClicked = onContactSeller,
+                    onProfileClicked = onProfileClicked
                 )
                 Spacer(Modifier.height(24.dp))
 
@@ -222,7 +222,8 @@ private fun MobileListingLayout(
 @Composable
 private fun DesktopListingLayout(
     listing: Listing,
-    onContactSeller: (Email) -> Unit
+    onContactSeller: (Email) -> Unit,
+    onProfileClicked: (UserId) -> Unit
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -335,7 +336,8 @@ private fun DesktopListingLayout(
                         SellerInfoCard(
                             listing = listing,
                             modifier = Modifier.fillMaxWidth(),
-                            onContactClicked = onContactSeller
+                            onContactClicked = onContactSeller,
+                            onProfileClicked = onProfileClicked
                         )
 
                         Spacer(Modifier.height(20.dp))
@@ -495,11 +497,13 @@ private fun CategoryChip(category: ListingCategory) {
 private fun SellerInfoCard(
     listing: Listing,
     modifier: Modifier = Modifier,
-    onContactClicked: (Email) -> Unit
+    onContactClicked: (Email) -> Unit,
+    onProfileClicked: (UserId) -> Unit
 ) {
     Row(
         modifier = modifier
             .border(1.dp, Theme[colors][outline].copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .clickable { onProfileClicked(listing.commonData.publisherId) }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -533,7 +537,7 @@ private fun SellerInfoCard(
         }
         Spacer(Modifier.weight(1f))
         PrimaryButton(
-            onClick = { onContactClicked(listing.commonData.publisherEmail) },
+            onClick = { onProfileClicked(listing.commonData.publisherId) },
             backgroundColor = Theme[colors][card],
             contentColor = Theme[colors][onBackground],
             borderWidth = 1.dp,

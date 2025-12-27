@@ -18,14 +18,19 @@ internal class ListingStoreFactory(
     fun create(): Store<ListingStoreKey, List<Listing>> {
         return StoreBuilder.Companion.from<ListingStoreKey, List<Listing>, List<Listing>>(
             fetcher = Fetcher.Companion.of { key ->
-                remoteDataSource.getListingsPage(key.page, key.size)
+                remoteDataSource.getListingsPage(key.page, key.size, key.publisherId)
             },
             sourceOfTruth = SourceOfTruth.Companion.of(
                 nonFlowReader = { key ->
                     try {
                         val offset = (key.page * key.size).toLong()
                         val limit = key.size.toLong()
-                        localDataSource.getListingsPage(limit, offset)
+
+                        if (key.publisherId != null) {
+                            localDataSource.getListingsByPublisherId(key.publisherId, limit, offset)
+                        } else {
+                            localDataSource.getListingsPage(limit, offset)
+                        }
                     } catch (_: Exception) {
                         localDataCleaner.clearAllData()
                         null
@@ -34,7 +39,11 @@ internal class ListingStoreFactory(
                 writer = { key, listings ->
                     try {
                         if (key.page == 0) {
-                            localDataSource.deleteAllListings()
+                            if (key.publisherId != null) {
+                                localDataSource.deleteListingsByPublisherId(key.publisherId)
+                            } else {
+                                localDataSource.deleteAllListings()
+                            }
                         }
                         listings.forEach { listing ->
                             localDataSource.upsertListing(listing)

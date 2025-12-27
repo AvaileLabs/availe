@@ -11,6 +11,7 @@ import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlinx.coroutines.*
@@ -22,6 +23,7 @@ interface IListingDetailsComponent {
     fun onIntent(intent: ListingDetailsStore.Intent)
     fun onBackClicked()
     fun onContactSellerClicked(sellerEmail: Email)
+    fun onProfileClicked(userId: UserId)
 }
 
 class ListingDetailsComponent(
@@ -29,7 +31,8 @@ class ListingDetailsComponent(
     private val listingId: ListingId,
     private val listingRepository: IListingRepository,
     private val onNavigateBack: () -> Unit,
-    private val onNavigateToChat: (Jid) -> Unit
+    private val onNavigateToChat: (Jid) -> Unit,
+    private val onNavigateToProfile: (UserId) -> Unit
 ) : IListingDetailsComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -61,5 +64,9 @@ class ListingDetailsComponent(
     override fun onContactSellerClicked(sellerEmail: Email) {
         val jid = Jid("${sellerEmail.value}@${SharedNetworkConstants.XMPP_DOMAIN}")
         onNavigateToChat(jid)
+    }
+
+    override fun onProfileClicked(userId: UserId) {
+        onNavigateToProfile(userId)
     }
 }

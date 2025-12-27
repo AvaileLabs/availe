@@ -4,6 +4,7 @@ package com.availelabs.availe.features.root
 
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.features.appshell.AppShellConfiguration
 import com.availelabs.availe.features.appshell.AppShellIntent
 import io.ktor.http.*
@@ -34,6 +35,10 @@ object RootNavigationMapper {
 
                     AppShellConfiguration.Chat.ROUTE_SEGMENT_NAME -> {
                         parseChatIntent(pathSegments)
+                    }
+
+                    AppShellConfiguration.Profile.ROUTE_SEGMENT_NAME -> {
+                        parseProfileIntent(pathSegments)
                     }
 
                     else -> AppShellIntent.Home
@@ -70,5 +75,18 @@ object RootNavigationMapper {
         if (pathSegments.size < 2) return AppShellIntent.Home
         val jidValue = pathSegments[1]
         return AppShellIntent.Chatting(Jid(jidValue))
+    }
+
+    private fun parseProfileIntent(pathSegments: List<String>): AppShellIntent {
+        if (pathSegments.size < 2) return AppShellIntent.Home
+
+        val uuidString = pathSegments[1]
+        val userId = try {
+            UserId(Uuid.parse(uuidString))
+        } catch (_: IllegalArgumentException) {
+            return AppShellIntent.Home
+        }
+
+        return AppShellIntent.ViewingProfile(userId)
     }
 }

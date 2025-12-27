@@ -3,6 +3,7 @@ package com.availelabs.availe.repositories
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
@@ -18,7 +19,8 @@ interface IListingRepository {
     fun getListingsPageStream(
         page: Int,
         size: Int,
-        forceRefresh: Boolean
+        forceRefresh: Boolean,
+        publisherId: UserId? = null
     ): Flow<DataStream<List<Listing>>>
 
     suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>>

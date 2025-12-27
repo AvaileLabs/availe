@@ -17,8 +17,6 @@ import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.core.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
-import com.availelabs.availe.domain.model.Jid
-import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.features.chat.ChatComponent
 import com.availelabs.availe.features.chat.IChatComponent
 import com.availelabs.availe.features.home.HomeComponent
@@ -27,12 +25,13 @@ import com.availelabs.availe.features.listingdetails.IListingDetailsComponent
 import com.availelabs.availe.features.listingdetails.ListingDetailsComponent
 import com.availelabs.availe.features.listingeditor.IListingEditorComponent
 import com.availelabs.availe.features.listingeditor.ListingEditorComponent
+import com.availelabs.availe.features.profile.IProfileComponent
+import com.availelabs.availe.features.profile.ProfileComponent
 import com.availelabs.availe.features.settings.ISettingsComponent
 import com.availelabs.availe.features.settings.SettingsComponent
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.LayoutMode
 import kotlinx.coroutines.*
-import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 
 interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
@@ -50,6 +49,7 @@ interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     fun onCancelLoginClicked()
     fun onLogoutClicked()
     fun onHomeTabClicked()
+    fun onProfileTabClicked()
     fun onSettingsClicked()
 }
 
@@ -167,6 +167,17 @@ class AppShellComponent(
         childStackNavigation.bringToFront(AppShellConfiguration.Home)
     }
 
+    override fun onProfileTabClicked() {
+        scope.launch {
+            val userProfile = appContainer.sessionManager.getCurrentUserProfile()
+            if (userProfile != null) {
+                childStackNavigation.bringToFront(AppShellConfiguration.Profile(userProfile.id))
+            } else {
+                onShowLoginGuard()
+            }
+        }
+    }
+
     override fun onSettingsClicked() {
         childStackNavigation.bringToFront(AppShellConfiguration.Settings)
     }
@@ -192,6 +203,11 @@ class AppShellComponent(
             is AppShellIntent.ListingEditor -> listOf(
                 AppShellConfiguration.Home,
                 AppShellConfiguration.ListingEditor(intent.listingId)
+            )
+
+            is AppShellIntent.ViewingProfile -> listOf(
+                AppShellConfiguration.Home,
+                AppShellConfiguration.Profile(intent.userId)
             )
         }
     }
@@ -242,6 +258,9 @@ class AppShellComponent(
                         } else {
                             onShowLoginGuard()
                         }
+                    },
+                    onNavigateToProfile = { userId ->
+                        childStackNavigation.pushToFront(AppShellConfiguration.Profile(userId))
                     }
                 )
             )
@@ -276,6 +295,26 @@ class AppShellComponent(
                     sessionManager = appContainer.sessionManager,
                     messageService = appContainer.messageService,
                     onNavigateBack = { childStackNavigation.pop() }
+                )
+            )
+
+            is AppShellConfiguration.Profile -> AppShellChildComponent.Profile(
+                ProfileComponent(
+                    componentContext = componentContext,
+                    targetUserId = configuration.userId,
+                    listingRepository = appContainer.listingRepository,
+                    sessionManager = appContainer.sessionManager,
+                    messageService = appContainer.messageService,
+                    onNavigateBack = { childStackNavigation.pop() },
+                    onNavigateToListing = { listingId ->
+                        childStackNavigation.pushToFront(AppShellConfiguration.ListingDetails(listingId))
+                    },
+                    onNavigateToChat = { userId ->
+                        // TODO: Resolve JID from UserId
+                    },
+                    onNavigateToSettings = {
+                        childStackNavigation.pushToFront(AppShellConfiguration.Settings)
+                    }
                 )
             )
         }
@@ -319,51 +358,8 @@ sealed interface AppShellChildComponent {
     data class ListingEditor(val component: IListingEditorComponent) : AppShellChildComponent {
         override val actions: Value<List<AppBarAction>> = component.actions
     }
-}
 
-@Serializable
-sealed interface AppShellConfiguration {
-    val canonicalParent: AppShellConfiguration? get() = null
-
-    fun toUrlPath(): String
-
-    @Serializable
-    data object Home : AppShellConfiguration {
-        override fun toUrlPath(): String = "/"
-    }
-
-    @Serializable
-    data class ListingDetails(val listingId: ListingId) : AppShellConfiguration {
-        override val canonicalParent: AppShellConfiguration = Home
-
-        override fun toUrlPath(): String = "/$ROUTE_SEGMENT_NAME/${listingId.value}"
-
-        companion object {
-            const val ROUTE_SEGMENT_NAME = "listing"
-        }
-    }
-
-    @Serializable
-    data class Chat(val recipientJid: Jid) : AppShellConfiguration {
-        override val canonicalParent: AppShellConfiguration = Home
-
-        override fun toUrlPath(): String = "/$ROUTE_SEGMENT_NAME/${recipientJid.value}"
-
-        companion object {
-            const val ROUTE_SEGMENT_NAME = "chat"
-        }
-    }
-
-    @Serializable
-    data object Settings : AppShellConfiguration {
-        override fun toUrlPath(): String = "/settings"
-    }
-
-    @Serializable
-    data class ListingEditor(val listingId: ListingId?) : AppShellConfiguration {
-        override val canonicalParent: AppShellConfiguration = Home
-
-        override fun toUrlPath(): String =
-            if (listingId == null) "/create-listing" else "/edit-listing/${listingId.value}"
+    data class Profile(val component: IProfileComponent) : AppShellChildComponent {
+        override val actions: Value<List<AppBarAction>> = component.actions
     }
 }

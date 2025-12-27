@@ -3,6 +3,7 @@ package com.availelabs.availe.repositories
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.NewListing
+import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
@@ -42,12 +43,13 @@ internal class ListingRepository(
     override fun getListingsPageStream(
         page: Int,
         size: Int,
-        forceRefresh: Boolean
+        forceRefresh: Boolean,
+        publisherId: UserId?
     ): Flow<DataStream<List<Listing>>> = flow {
         emit(DataStream.Loading)
 
         val shouldRefresh = if (forceRefresh) true else isListingCacheStale()
-        val key = ListingStoreKey(page, size)
+        val key = ListingStoreKey(page, size, publisherId)
 
         val request = if (shouldRefresh) {
             StoreReadRequest.cached(key, refresh = true)

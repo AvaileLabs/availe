@@ -62,6 +62,15 @@ LEFT JOIN listing_event_details ON listings.primary_key_id = listing_event_detai
 LEFT JOIN listing_service_details ON listings.primary_key_id = listing_service_details.listing_id
 LIMIT :limit OFFSET :offset;
 
+selectByPublisherId:
+SELECT *
+FROM listings
+LEFT JOIN listing_item_details ON listings.primary_key_id = listing_item_details.listing_id
+LEFT JOIN listing_event_details ON listings.primary_key_id = listing_event_details.listing_id
+LEFT JOIN listing_service_details ON listings.primary_key_id = listing_service_details.listing_id
+WHERE listings.publisher_id = ?
+LIMIT :limit OFFSET :offset;
+
 selectById:
 SELECT *
 FROM listings
@@ -73,6 +82,10 @@ WHERE listings.primary_key_id = ?;
 deleteById:
 DELETE FROM listings
 WHERE primary_key_id = ?;
+
+deleteByPublisherId:
+DELETE FROM listings
+WHERE publisher_id = ?;
 
 deleteAll:
 DELETE FROM listings;

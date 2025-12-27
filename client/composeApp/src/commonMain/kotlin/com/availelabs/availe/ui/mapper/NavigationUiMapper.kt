@@ -3,10 +3,7 @@ package com.availelabs.availe.ui.mapper
 import availe.client.composeapp.generated.resources.*
 import com.availelabs.availe.features.appshell.AppShellConfiguration
 import com.availelabs.availe.ui.model.NavigationUiState
-import com.composables.icons.lucide.House
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.MessageCircle
-import com.composables.icons.lucide.Settings
+import com.composables.icons.lucide.*
 
 object NavigationUiMapper {
     fun map(configuration: AppShellConfiguration): NavigationUiState {
@@ -39,6 +36,12 @@ object NavigationUiMapper {
                 title = Res.string.navigation_details,
                 icon = Lucide.House,
                 contentDescription = Res.string.accessibility_navigation_details
+            )
+
+            is AppShellConfiguration.Profile -> NavigationUiState(
+                title = Res.string.navigation_profile,
+                icon = Lucide.User,
+                contentDescription = Res.string.accessibility_navigation_profile
             )
         }
     }

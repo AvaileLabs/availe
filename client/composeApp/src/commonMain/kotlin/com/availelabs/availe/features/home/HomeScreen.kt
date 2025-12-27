@@ -40,10 +40,7 @@ import com.composables.uikit.components.Icon
 import com.composables.uikit.components.IntermediateProgressIndicator
 import com.composables.uikit.components.PrimaryButton
 import com.composables.uikit.components.Text
-import com.composables.uikit.styling.card
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.outline
-import com.composables.uikit.styling.primary
+import com.composables.uikit.styling.*
 import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
 import org.jetbrains.compose.resources.stringResource
@@ -68,6 +65,7 @@ internal fun HomeScreen(
                     state = refreshState,
                     onRefresh = { homeComponent.onIntent(HomeStore.Intent.RefreshListingsRequested) }
                 )
+                .background(Theme[colors][background])
         ) {
             when (windowSize) {
                 WindowSizeClass.Compact -> {

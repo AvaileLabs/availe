@@ -8,12 +8,15 @@ import com.availelabs.availe.database.toDomain
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.domain.model.UserId
 
 interface IListingLocalDataSource {
     suspend fun upsertListing(listing: Listing)
     suspend fun getListingsPage(limit: Long, offset: Long): List<Listing>
+    suspend fun getListingsByPublisherId(publisherId: UserId, limit: Long, offset: Long): List<Listing>
     suspend fun getListingById(id: ListingId): Listing?
     suspend fun deleteListingById(id: ListingId)
+    suspend fun deleteListingsByPublisherId(publisherId: UserId)
     suspend fun deleteAllListings()
     suspend fun isListingDatabaseEmpty(): Boolean
 }
@@ -57,6 +60,13 @@ internal class ListingLocalDataSource(
             .map { selectPage -> selectPage.toDomain() }
     }
 
+    override suspend fun getListingsByPublisherId(publisherId: UserId, limit: Long, offset: Long): List<Listing> {
+        val database = databaseProvider.getDatabase()
+        return database.listingsQueries.selectByPublisherId(publisherId, limit, offset)
+            .awaitAsList()
+            .map { selectByPublisherId -> selectByPublisherId.toDomain() }
+    }
+
     override suspend fun getListingById(id: ListingId): Listing? {
         val database = databaseProvider.getDatabase()
         return database.listingsQueries.selectById(id)
@@ -67,6 +77,11 @@ internal class ListingLocalDataSource(
     override suspend fun deleteListingById(id: ListingId) {
         val database = databaseProvider.getDatabase()
         database.listingsQueries.deleteById(id)
+    }
+
+    override suspend fun deleteListingsByPublisherId(publisherId: UserId) {
+        val database = databaseProvider.getDatabase()
+        database.listingsQueries.deleteByPublisherId(publisherId)
     }
 
     override suspend fun deleteAllListings() {

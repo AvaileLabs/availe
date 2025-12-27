@@ -21,10 +21,7 @@ import com.composables.icons.lucide.ChevronDown
 import com.composables.icons.lucide.Image
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.*
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.destructive
-import com.composables.uikit.styling.outline
-import com.composables.uikit.styling.shapes
+import com.composables.uikit.styling.*
 import com.composeunstyled.DropdownPanelAnchor
 import com.composeunstyled.theme.Theme
 
@@ -36,7 +33,11 @@ fun ListingEditorScreen(
     val scrollState = rememberScrollState()
 
     AppScaffold {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Theme[colors][background])
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()

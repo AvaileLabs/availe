@@ -9,6 +9,7 @@ import androidx.compose.ui.text.font.FontWeight
 import availe.client.composeapp.generated.resources.Res
 import availe.client.composeapp.generated.resources.generic_back
 import availe.client.composeapp.generated.resources.navigation_home
+import availe.client.composeapp.generated.resources.navigation_profile
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
@@ -21,11 +22,13 @@ import com.availelabs.availe.ui.model.AppBarAction
 import com.composables.icons.lucide.ArrowLeft
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.User
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.IconButton
 import com.composables.uikit.components.Text
 import com.composables.uikit.components.TopAppBar
 import org.jetbrains.compose.resources.stringResource
+import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 actual fun AppShellLayout(
@@ -41,6 +44,7 @@ actual fun AppShellLayout(
         WindowSizeClass.Compact -> {
             CompactShell(
                 appShellComponent = appShellComponent,
+                childStack = childStack,
                 authenticationState = authenticationState,
                 isAuthenticationLoading = isAuthenticationLoading
             )
@@ -49,6 +53,7 @@ actual fun AppShellLayout(
         else -> {
             NonCompactShell(
                 appShellComponent = appShellComponent,
+                childStack = childStack,
                 authenticationState = authenticationState,
                 isAuthenticationLoading = isAuthenticationLoading
             )
@@ -56,13 +61,14 @@ actual fun AppShellLayout(
     }
 }
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 private fun CompactShell(
     appShellComponent: IAppShellComponent,
+    childStack: ChildStack<AppShellConfiguration, AppShellChildComponent>,
     authenticationState: AuthenticationState,
     isAuthenticationLoading: Boolean
 ) {
-    val childStack by appShellComponent.childStack.subscribeAsState()
     val activeInstance = childStack.active.instance
     val childActions by activeInstance.actions.subscribeAsState()
     val activeConfiguration = childStack.active.configuration
@@ -89,6 +95,18 @@ private fun CompactShell(
                     label = { Text(stringResource(Res.string.navigation_home)) },
                     modifier = Modifier.weight(1f)
                 )
+
+                // The profile tab is selected if the current active configuration is Profile AND the user is logged in.
+                val isProfileSelected = activeConfiguration is AppShellConfiguration.Profile &&
+                        authenticationState is AuthenticationState.LoggedIn
+
+                ShellNavigationItem(
+                    selected = isProfileSelected,
+                    onClick = { appShellComponent.onProfileTabClicked() },
+                    icon = { Icon(Lucide.User, null) },
+                    label = { Text(stringResource(Res.string.navigation_profile)) },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     ) {
@@ -96,13 +114,14 @@ private fun CompactShell(
     }
 }
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 private fun NonCompactShell(
     appShellComponent: IAppShellComponent,
+    childStack: ChildStack<AppShellConfiguration, AppShellChildComponent>,
     authenticationState: AuthenticationState,
     isAuthenticationLoading: Boolean
 ) {
-    val childStack by appShellComponent.childStack.subscribeAsState()
     val activeInstance = childStack.active.instance
     val childActions by activeInstance.actions.subscribeAsState()
     val activeConfiguration = childStack.active.configuration
@@ -127,6 +146,15 @@ private fun NonCompactShell(
                         selected = isHomeSelected,
                         onClick = { appShellComponent.onHomeTabClicked() },
                         icon = { Icon(Lucide.House, null) }
+                    )
+
+                    val isProfileSelected = activeConfiguration is AppShellConfiguration.Profile &&
+                            authenticationState is AuthenticationState.LoggedIn
+
+                    ShellRailNavigationItem(
+                        selected = isProfileSelected,
+                        onClick = { appShellComponent.onProfileTabClicked() },
+                        icon = { Icon(Lucide.User, null) }
                     )
                 }
             )

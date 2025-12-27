@@ -10,6 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import availe.client.composeapp.generated.resources.Res
 import availe.client.composeapp.generated.resources.navigation_home
+import availe.client.composeapp.generated.resources.navigation_profile
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
@@ -17,6 +18,7 @@ import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.ui.components.layout.AppTopNavigation
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.User
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.IconButton
 import com.composables.uikit.components.Text
@@ -61,6 +63,22 @@ actual fun AppShellLayout(
                             ) {
                                 Icon(Lucide.House, null)
                                 Text(stringResource(Res.string.navigation_home))
+                            }
+                        }
+
+                        val isProfileSelected = activeConfiguration is AppShellConfiguration.Profile &&
+                                authenticationState is AuthenticationState.LoggedIn
+
+                        IconButton(
+                            onClick = { appShellComponent.onProfileTabClicked() },
+                            backgroundColor = if (isProfileSelected) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Lucide.User, null)
+                                Text(stringResource(Res.string.navigation_profile))
                             }
                         }
                     }
