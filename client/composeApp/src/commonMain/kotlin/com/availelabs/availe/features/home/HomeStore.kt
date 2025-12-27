@@ -25,7 +25,7 @@ data class ListingUiModel(
     val id: ListingId,
     val title: ListingTitle,
     val price: Price,
-    val imageUrl: com.availelabs.availe.domain.model.ImageUrl?,
+    val imageUrl: ImageUrl?,
     val category: ListingCategory,
     val description: ListingDescription?
 )
@@ -42,6 +42,7 @@ interface HomeStore : Store<Intent, State, Label> {
         val listingUiModels: List<ListingUiModel> = emptyList(),
         val isLoading: Boolean = false,
         val isRefreshing: Boolean = false,
+        val isSyncing: Boolean = false,
         val inlineError: UiText? = null,
         val paginationError: UiText? = null,
         val isAuthenticated: Boolean = false,
@@ -105,6 +106,7 @@ class HomeStoreFactory(
         data object Fullscreen : LoadingIndicator
         data object Overlay : LoadingIndicator
         data object Pagination : LoadingIndicator
+        data object Linear : LoadingIndicator
     }
 
     private class HomeBootstrapper : CoroutineBootstrapper<Action>() {
@@ -220,6 +222,8 @@ class HomeStoreFactory(
         ): LoadingIndicator {
             return if (trigger == FetchTrigger.LoadMore) {
                 LoadingIndicator.Pagination
+            } else if (trigger == FetchTrigger.DataChanged) {
+                LoadingIndicator.Linear
             } else if (currentListingUiModels.isEmpty()) {
                 LoadingIndicator.Fullscreen
             } else {
@@ -279,6 +283,7 @@ class HomeStoreFactory(
                         LoadingIndicator.Fullscreen -> copy(isLoading = msg.isActive)
                         LoadingIndicator.Overlay -> copy(isRefreshing = msg.isActive)
                         LoadingIndicator.Pagination -> copy(isLoading = msg.isActive)
+                        LoadingIndicator.Linear -> copy(isSyncing = msg.isActive)
                     }
                 }
 
@@ -287,6 +292,7 @@ class HomeStoreFactory(
                     currentPage = 0,
                     isLoading = false,
                     isRefreshing = false,
+                    isSyncing = false,
                     inlineError = null,
                     paginationError = null,
                     hasLoadedSuccessfully = true
@@ -297,6 +303,7 @@ class HomeStoreFactory(
                     currentPage = msg.page,
                     isLoading = false,
                     isRefreshing = false,
+                    isSyncing = false,
                     paginationError = null,
                     hasLoadedSuccessfully = true
                 )
@@ -304,13 +311,15 @@ class HomeStoreFactory(
                 is Message.SetInlineError -> copy(
                     inlineError = msg.message,
                     isLoading = false,
-                    isRefreshing = false
+                    isRefreshing = false,
+                    isSyncing = false
                 )
 
                 is Message.SetPaginationError -> copy(
                     paginationError = msg.message,
                     isLoading = false,
-                    isRefreshing = false
+                    isRefreshing = false,
+                    isSyncing = false
                 )
 
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
@@ -321,6 +330,7 @@ class HomeStoreFactory(
                     endReached = false,
                     isLoading = false,
                     isRefreshing = false,
+                    isSyncing = false,
                     inlineError = null,
                     paginationError = null,
                     hasLoadedSuccessfully = false

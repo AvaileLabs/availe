@@ -180,7 +180,6 @@ object DataLayerFactory {
             localDataSource = listingLocalDataSource,
             storeFactory = listingStoreFactory,
             listingPreferences = listingPreferences,
-            localDataCleaner = localDataCleaner,
             safeNetworkCaller = safeNetworkCaller
         )
 

@@ -43,6 +43,7 @@ import com.composables.uikit.components.Text
 import com.composables.uikit.styling.card
 import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.outline
+import com.composables.uikit.styling.primary
 import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
 import org.jetbrains.compose.resources.stringResource
@@ -95,6 +96,16 @@ internal fun HomeScreen(
                 pullProgress = refreshState.pullProgress,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
+
+            if (homeState.isSyncing) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(Theme[colors][primary])
+                        .align(Alignment.TopCenter)
+                )
+            }
         }
     }
 }

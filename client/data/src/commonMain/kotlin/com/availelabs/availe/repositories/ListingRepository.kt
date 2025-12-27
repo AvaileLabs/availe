@@ -16,7 +16,6 @@ import com.availelabs.availe.preferences.IListingPreferences
 import com.availelabs.availe.repositories.model.ListingStoreKey
 import com.availelabs.availe.repositories.store.ListingStoreFactory
 import com.availelabs.availe.sources.local.IListingLocalDataSource
-import com.availelabs.availe.sources.local.ILocalDataCleaner
 import com.availelabs.availe.sources.remote.IListingRemoteDataSource
 import com.availelabs.availe.types.RepositoryOperationResult
 import kotlinx.coroutines.flow.*
@@ -27,13 +26,12 @@ import org.mobilenativefoundation.store.store5.StoreReadResponseOrigin
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalStoreApi::class)
 internal class ListingRepository(
     private val remoteDataSource: IListingRemoteDataSource,
     private val localDataSource: IListingLocalDataSource,
     storeFactory: ListingStoreFactory,
     private val listingPreferences: IListingPreferences,
-    private val localDataCleaner: ILocalDataCleaner,
     private val safeNetworkCaller: ISafeNetworkCaller
 ) : IListingRepository {
 
@@ -41,7 +39,6 @@ internal class ListingRepository(
     private val _updates = MutableSharedFlow<Unit>()
     override val updates: Flow<Unit> = _updates.asSharedFlow()
 
-    @OptIn(ExperimentalStoreApi::class)
     override fun getListingsPageStream(
         page: Int,
         size: Int,
@@ -49,10 +46,11 @@ internal class ListingRepository(
     ): Flow<DataStream<List<Listing>>> = flow {
         emit(DataStream.Loading)
 
-        val isStale = if (forceRefresh) true else isListingCacheStale()
+        val shouldRefresh = if (forceRefresh) true else isListingCacheStale()
         val key = ListingStoreKey(page, size)
-        val request = if (isStale) {
-            StoreReadRequest.fresh(key)
+
+        val request = if (shouldRefresh) {
+            StoreReadRequest.cached(key, refresh = true)
         } else {
             StoreReadRequest.cached(key, refresh = false)
         }
@@ -65,7 +63,6 @@ internal class ListingRepository(
                     try {
                         listingPreferences.updateLastListingsFetchTime(Clock.System.now().toEpochMilliseconds())
                     } catch (_: Exception) {
-                        // Ignore preference update failure
                     }
                 }
 
@@ -86,12 +83,11 @@ internal class ListingRepository(
 
                     is StoreReadResponse.NoNewData -> {
                         if (lastData != null) {
-                            emit(DataStream.Data(lastData!!))
+                            emit(DataStream.Data(lastData))
                         }
                     }
 
                     is StoreReadResponse.Initial -> {
-                        // Initial state, do nothing or emit Loading if desired
                     }
                 }
             }
@@ -104,11 +100,7 @@ internal class ListingRepository(
 
     override suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>> {
         return safeNetworkCaller.execute {
-            val findResult = remoteDataSource.getListingById(id)
-            if (findResult is FindResult.NotFound) {
-                // Optionally handle local cleanup
-            }
-            findResult
+            remoteDataSource.getListingById(id)
         }
     }
 
@@ -117,18 +109,15 @@ internal class ListingRepository(
             remoteDataSource.createListing(newListing)
         }
 
-        if (result is RepositoryOperationResult.Success && result.value is InsertResult.Inserted) {
-            // We invalidate the cache to force a refresh on the next read or trigger an update
-            // However, since we have the 'updates' flow, the HomeStore will just re-fetch.
-            // Ideally we would also clear the specific store key or update the cache manually here.
-            // For now, emitting the update signal is sufficient to trigger the UI refresh loop.
-            try {
-                // Mark cache as stale so next fetch hits network
-                // We could implement a specific method in preferences to invalidate cache
-                // or rely on the fact that HomeStore will call getListingsPageStream(forceRefresh=true)
-                _updates.emit(Unit)
-            } catch (_: Exception) {
-                // Ignore emit failure
+        if (result is RepositoryOperationResult.Success) {
+            val insertResult = result.value
+            if (insertResult is InsertResult.Inserted) {
+                try {
+                    localDataSource.upsertListing(insertResult.value)
+                    store.clear()
+                    _updates.emit(Unit)
+                } catch (_: Exception) {
+                }
             }
         }
 
@@ -149,11 +138,15 @@ internal class ListingRepository(
             remoteDataSource.updateListing(id, patch)
         }
 
-        if (result is RepositoryOperationResult.Success && result.value is UpdateResult.Updated) {
-            try {
-                _updates.emit(Unit)
-            } catch (_: Exception) {
-                // Ignore emit failure
+        if (result is RepositoryOperationResult.Success) {
+            val updateResult = result.value
+            if (updateResult is UpdateResult.Updated) {
+                try {
+                    localDataSource.upsertListing(updateResult.value)
+                    store.clear()
+                    _updates.emit(Unit)
+                } catch (_: Exception) {
+                }
             }
         }
 
@@ -167,9 +160,10 @@ internal class ListingRepository(
 
         if (result is RepositoryOperationResult.Success && result.value is DeleteResult.Deleted) {
             try {
+                localDataSource.deleteListingById(id)
+                store.clear()
                 _updates.emit(Unit)
             } catch (_: Exception) {
-                // Ignore emit failure
             }
         }
 
