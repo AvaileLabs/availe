@@ -1,4 +1,4 @@
-package com.availelabs.availe.features.home
+package com.availelabs.availe.features.listingfeed
 
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
@@ -6,8 +6,10 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.auth.AuthenticationState
-import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.features.home.HomeStore.*
+import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.features.listingfeed.ListingFeedStore.*
 import com.availelabs.availe.model.DataStream
 import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.repositories.IListingRepository
@@ -19,18 +21,17 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.time.Clock.System
-import kotlin.uuid.ExperimentalUuidApi
 
 data class ListingUiModel(
     val id: ListingId,
-    val title: ListingTitle,
-    val price: Price,
-    val imageUrl: ImageUrl?,
+    val title: com.availelabs.availe.domain.model.ListingTitle,
+    val price: com.availelabs.availe.domain.model.Price,
+    val imageUrl: com.availelabs.availe.domain.model.ImageUrl?,
     val category: ListingCategory,
-    val description: ListingDescription?
+    val description: com.availelabs.availe.domain.model.ListingDescription?
 )
 
-interface HomeStore : Store<Intent, State, Label> {
+interface ListingFeedStore : Store<Intent, State, Label> {
 
     sealed interface Intent {
         data object RefreshListingsRequested : Intent
@@ -57,20 +58,20 @@ interface HomeStore : Store<Intent, State, Label> {
     }
 }
 
-@OptIn(ExperimentalUuidApi::class)
-class HomeStoreFactory(
+class ListingFeedStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
-    private val sessionManager: ISessionRepository
+    private val sessionManager: ISessionRepository,
+    private val category: ListingCategory
 ) {
 
-    fun create(): HomeStore =
-        object : HomeStore, Store<Intent, State, Label> by storeFactory.create(
-            name = HomeStore::class.simpleName,
+    fun create(): ListingFeedStore =
+        object : ListingFeedStore, Store<Intent, State, Label> by storeFactory.create(
+            name = "${ListingFeedStore::class.simpleName}_${category.name}",
             initialState = State(),
-            bootstrapper = HomeBootstrapper(),
-            executorFactory = { HomeExecutor() },
-            reducer = HomeReducer
+            bootstrapper = ListingFeedBootstrapper(),
+            executorFactory = { ListingFeedExecutor() },
+            reducer = ListingFeedReducer
         ) {}
 
     private sealed interface Action {
@@ -109,7 +110,7 @@ class HomeStoreFactory(
         data object Linear : LoadingIndicator
     }
 
-    private class HomeBootstrapper : CoroutineBootstrapper<Action>() {
+    private class ListingFeedBootstrapper : CoroutineBootstrapper<Action>() {
         override fun invoke() {
             dispatch(Action.ObserveAuthentication)
             dispatch(Action.ObserveSessionInvalidation)
@@ -118,7 +119,7 @@ class HomeStoreFactory(
         }
     }
 
-    private inner class HomeExecutor : CoroutineExecutor<Intent, Action, State, Message, Label>() {
+    private inner class ListingFeedExecutor : CoroutineExecutor<Intent, Action, State, Message, Label>() {
         private val pageSize = 20
 
         override fun executeAction(action: Action) {
@@ -179,7 +180,12 @@ class HomeStoreFactory(
             scope.launch {
                 val forceRefresh = trigger == FetchTrigger.UserPullToRefresh || trigger == FetchTrigger.DataChanged
 
-                listingRepository.getListingsPageStream(page, pageSize, forceRefresh)
+                listingRepository.getListingsPageStream(
+                    page = page,
+                    size = pageSize,
+                    forceRefresh = forceRefresh,
+                    category = category
+                )
                     .catch { throwable ->
                         val appError = AppError.UnknownError(throwable.message ?: "Unknown stream error")
                         forward(Action.ListingsError(appError, isPagination = trigger == FetchTrigger.LoadMore))
@@ -235,24 +241,12 @@ class HomeStoreFactory(
             scope.launch {
                 sessionManager.authenticationState.collectLatest { authenticationState ->
                     when (authenticationState) {
-                        is AuthenticationState.LoggedIn -> {
-                            dispatch(Message.SetAuthenticated(true))
-                        }
+                        is AuthenticationState.LoggedIn -> dispatch(Message.SetAuthenticated(true))
+                        is AuthenticationState.LoggedOut,
+                        is AuthenticationState.SessionExpired,
+                        is AuthenticationState.InitializationFailed -> dispatch(Message.SetAuthenticated(false))
 
-                        is AuthenticationState.LoggedOut -> {
-                            dispatch(Message.SetAuthenticated(false))
-                        }
-
-                        is AuthenticationState.SessionExpired -> {
-                            dispatch(Message.SetAuthenticated(false))
-                        }
-
-                        is AuthenticationState.InitializationFailed -> {
-                            dispatch(Message.SetAuthenticated(false))
-                        }
-
-                        AuthenticationState.Unknown -> {
-                        }
+                        AuthenticationState.Unknown -> {}
                     }
                 }
             }
@@ -275,7 +269,7 @@ class HomeStoreFactory(
         }
     }
 
-    private object HomeReducer : Reducer<State, Message> {
+    private object ListingFeedReducer : Reducer<State, Message> {
         override fun State.reduce(msg: Message): State =
             when (msg) {
                 is Message.LoadingStateChanged -> {

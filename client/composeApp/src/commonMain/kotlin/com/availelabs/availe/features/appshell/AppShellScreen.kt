@@ -17,11 +17,8 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.features.chat.ChatScreen
-import com.availelabs.availe.features.home.HomeScreen
-import com.availelabs.availe.features.listingdetails.ListingDetailsScreen
+import com.availelabs.availe.features.dashboard.DashboardScreen
 import com.availelabs.availe.features.listingeditor.ui.ListingEditorScreen
-import com.availelabs.availe.features.profile.ProfileScreen
-import com.availelabs.availe.features.settings.SettingsScreen
 import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.PredictiveBackGestureOverlay
 import com.availelabs.availe.ui.components.dialogs.ChatOverlayWindow
@@ -66,8 +63,11 @@ fun AppShellScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // Disable global back overlay on Root Dashboard to allow swipe-to-switch-tabs inside Dashboard
+        val isRoot = childStack.backStack.isEmpty() && activeConfiguration == AppShellConfiguration.Dashboard
+
         PredictiveBackGestureOverlay(
-            backDispatcher = backDispatcher,
+            backDispatcher = if (isRoot) null else backDispatcher,
             backIcon = null,
             modifier = Modifier.fillMaxSize(),
             content = {
@@ -87,6 +87,7 @@ fun AppShellScreen(
 @Composable
 internal fun ContentStack(
     appShellComponent: IAppShellComponent,
+    isSwipeEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
     val childStack by appShellComponent.childStack.subscribeAsState()
@@ -99,6 +100,7 @@ internal fun ContentStack(
         )
     ) { child ->
         child.instance.Render(
+            isSwipeEnabled = isSwipeEnabled,
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -162,16 +164,14 @@ fun ShellActions(
 }
 
 @Composable
-private fun AppShellChildComponent.Render(modifier: Modifier) {
+private fun AppShellChildComponent.Render(
+    isSwipeEnabled: Boolean,
+    modifier: Modifier
+) {
     when (this) {
-        is AppShellChildComponent.Home -> HomeScreen(
-            homeComponent = this.component,
-            onSearchClick = { },
-            onNotificationClick = { }
-        )
-
-        is AppShellChildComponent.ListingDetails -> ListingDetailsScreen(
-            listingDetailsComponent = this.component
+        is AppShellChildComponent.Dashboard -> DashboardScreen(
+            component = this.component,
+            isSwipeEnabled = isSwipeEnabled
         )
 
         is AppShellChildComponent.Chat -> ChatScreen(
@@ -179,15 +179,7 @@ private fun AppShellChildComponent.Render(modifier: Modifier) {
             isOverlay = false
         )
 
-        is AppShellChildComponent.Settings -> SettingsScreen(
-            component = this.component
-        )
-
         is AppShellChildComponent.ListingEditor -> ListingEditorScreen(
-            component = this.component
-        )
-
-        is AppShellChildComponent.Profile -> ProfileScreen(
             component = this.component
         )
     }

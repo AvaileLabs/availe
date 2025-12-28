@@ -18,7 +18,8 @@ expect fun AppShellLayout(
 @Composable
 fun AppShellContentStack(
     appShellComponent: IAppShellComponent,
+    isSwipeEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    ContentStack(appShellComponent, modifier)
+    ContentStack(appShellComponent, isSwipeEnabled, modifier)
 }

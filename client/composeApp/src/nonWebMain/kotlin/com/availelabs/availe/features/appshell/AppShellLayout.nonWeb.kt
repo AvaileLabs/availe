@@ -28,7 +28,6 @@ import com.composables.uikit.components.IconButton
 import com.composables.uikit.components.Text
 import com.composables.uikit.components.TopAppBar
 import org.jetbrains.compose.resources.stringResource
-import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 actual fun AppShellLayout(
@@ -39,39 +38,19 @@ actual fun AppShellLayout(
     chatOverlay: ChildSlot<AppShellConfiguration.Chat, AppShellChildComponent.Chat>
 ) {
     val windowSize = rememberWindowSize()
-
-    when (windowSize) {
-        WindowSizeClass.Compact -> {
-            CompactShell(
-                appShellComponent = appShellComponent,
-                childStack = childStack,
-                authenticationState = authenticationState,
-                isAuthenticationLoading = isAuthenticationLoading
-            )
-        }
-
-        else -> {
-            NonCompactShell(
-                appShellComponent = appShellComponent,
-                childStack = childStack,
-                authenticationState = authenticationState,
-                isAuthenticationLoading = isAuthenticationLoading
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalUuidApi::class)
-@Composable
-private fun CompactShell(
-    appShellComponent: IAppShellComponent,
-    childStack: ChildStack<AppShellConfiguration, AppShellChildComponent>,
-    authenticationState: AuthenticationState,
-    isAuthenticationLoading: Boolean
-) {
     val activeInstance = childStack.active.instance
     val childActions by activeInstance.actions.subscribeAsState()
     val activeConfiguration = childStack.active.configuration
+
+    val dashboardComponent = (activeInstance as? AppShellChildComponent.Dashboard)?.component
+    val isDashboard = dashboardComponent != null
+
+    // Determine navigation UI visibility and state
+    val showBottomBar = isDashboard && windowSize == WindowSizeClass.Compact
+    val showSideRail = isDashboard && windowSize != WindowSizeClass.Compact
+
+    // Swipe is only enabled on Compact screens (Phone)
+    val isSwipeEnabled = windowSize == WindowSizeClass.Compact
 
     AdaptiveScaffold(
         appBar = {
@@ -84,81 +63,50 @@ private fun CompactShell(
                 isAuthenticationLoading = isAuthenticationLoading
             )
         },
-        bottomBar = {
-            AppBottomNavigation {
-                val isHomeSelected =
-                    activeConfiguration is AppShellConfiguration.Home || activeConfiguration.canonicalParent is AppShellConfiguration.Home
-                ShellNavigationItem(
-                    selected = isHomeSelected,
-                    onClick = { appShellComponent.onHomeTabClicked() },
-                    icon = { Icon(Lucide.House, null) },
-                    label = { Text(stringResource(Res.string.navigation_home)) },
-                    modifier = Modifier.weight(1f)
-                )
+        bottomBar = if (showBottomBar && dashboardComponent != null) {
+            {
+                val pages by dashboardComponent.pages.subscribeAsState()
+                val selectedIndex = pages.selectedIndex
 
-                // The profile tab is selected if the current active configuration is Profile AND the user is logged in.
-                val isProfileSelected = activeConfiguration is AppShellConfiguration.Profile &&
-                        authenticationState is AuthenticationState.LoggedIn
+                AppBottomNavigation {
+                    ShellNavigationItem(
+                        selected = selectedIndex == 0,
+                        onClick = { dashboardComponent.onHomeTabClicked() },
+                        icon = { Icon(Lucide.House, null) },
+                        label = { Text(stringResource(Res.string.navigation_home)) },
+                        modifier = Modifier.weight(1f)
+                    )
 
-                ShellNavigationItem(
-                    selected = isProfileSelected,
-                    onClick = { appShellComponent.onProfileTabClicked() },
-                    icon = { Icon(Lucide.User, null) },
-                    label = { Text(stringResource(Res.string.navigation_profile)) },
-                    modifier = Modifier.weight(1f)
-                )
+                    ShellNavigationItem(
+                        selected = selectedIndex == 1,
+                        onClick = { dashboardComponent.onProfileTabClicked() },
+                        icon = { Icon(Lucide.User, null) },
+                        label = { Text(stringResource(Res.string.navigation_profile)) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
-        }
-    ) {
-        AppShellContentStack(appShellComponent)
-    }
-}
+        } else null,
+        sideBar = if (showSideRail && dashboardComponent != null) {
+            {
+                val pages by dashboardComponent.pages.subscribeAsState()
+                val selectedIndex = pages.selectedIndex
 
-@OptIn(ExperimentalUuidApi::class)
-@Composable
-private fun NonCompactShell(
-    appShellComponent: IAppShellComponent,
-    childStack: ChildStack<AppShellConfiguration, AppShellChildComponent>,
-    authenticationState: AuthenticationState,
-    isAuthenticationLoading: Boolean
-) {
-    val activeInstance = childStack.active.instance
-    val childActions by activeInstance.actions.subscribeAsState()
-    val activeConfiguration = childStack.active.configuration
-
-    AdaptiveScaffold(
-        appBar = {
-            SharedTopAppBar(
-                appShellComponent = appShellComponent,
-                activeConfiguration = activeConfiguration,
-                isBackStackEmpty = childStack.backStack.isEmpty(),
-                childActions = childActions,
-                authenticationState = authenticationState,
-                isAuthenticationLoading = isAuthenticationLoading
-            )
-        },
-        sideBar = {
-            AppNavigationRail(
-                navigationItems = {
-                    val isHomeSelected =
-                        activeConfiguration is AppShellConfiguration.Home || activeConfiguration.canonicalParent is AppShellConfiguration.Home
+                AppNavigationRail {
                     ShellRailNavigationItem(
-                        selected = isHomeSelected,
-                        onClick = { appShellComponent.onHomeTabClicked() },
+                        selected = selectedIndex == 0,
+                        onClick = { dashboardComponent.onHomeTabClicked() },
                         icon = { Icon(Lucide.House, null) }
                     )
 
-                    val isProfileSelected = activeConfiguration is AppShellConfiguration.Profile &&
-                            authenticationState is AuthenticationState.LoggedIn
-
                     ShellRailNavigationItem(
-                        selected = isProfileSelected,
-                        onClick = { appShellComponent.onProfileTabClicked() },
+                        selected = selectedIndex == 1,
+                        onClick = { dashboardComponent.onProfileTabClicked() },
                         icon = { Icon(Lucide.User, null) }
                     )
                 }
-            )
-        }
+            }
+        } else null
     ) {
         Column(
             modifier = Modifier
@@ -166,7 +114,10 @@ private fun NonCompactShell(
                 .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
         ) {
             Box(modifier = Modifier.weight(1f).fillMaxSize()) {
-                AppShellContentStack(appShellComponent)
+                AppShellContentStack(
+                    appShellComponent = appShellComponent,
+                    isSwipeEnabled = isSwipeEnabled
+                )
                 ChatOverlay(
                     appShellComponent = appShellComponent,
                     modifier = Modifier.align(Alignment.BottomEnd)
@@ -185,34 +136,38 @@ private fun SharedTopAppBar(
     authenticationState: AuthenticationState,
     isAuthenticationLoading: Boolean
 ) {
-    val navigationUiState = NavigationUiMapper.map(activeConfiguration)
+    val isDashboard = activeConfiguration is AppShellConfiguration.Dashboard
 
-    val (icon, onIconClick) = if (isBackStackEmpty) {
-        navigationUiState.icon to {}
+    val (icon, onIconClick) = if (isBackStackEmpty || isDashboard) {
+        // Show Home icon for root page visualization
+        NavigationUiMapper.map(activeConfiguration).icon to {}
     } else {
         Lucide.ArrowLeft to { appShellComponent.onBackClicked() }
     }
 
-    val contentDescription = if (isBackStackEmpty) {
-        stringResource(navigationUiState.contentDescription)
+    val contentDescription = if (isBackStackEmpty || isDashboard) {
+        stringResource(Res.string.navigation_home)
     } else {
         stringResource(Res.string.generic_back)
     }
 
     TopAppBar(
         navigation = {
-            IconButton(onClick = onIconClick) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = contentDescription
-                )
+            if (icon != null) {
+                IconButton(onClick = onIconClick) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = contentDescription
+                    )
+                }
             }
         },
         title = {
-            if (activeConfiguration is AppShellConfiguration.Home) {
+            if (isDashboard) {
                 Text("Availe", fontWeight = FontWeight.Bold)
             } else {
-                Text(stringResource(navigationUiState.title))
+                val navState = NavigationUiMapper.map(activeConfiguration)
+                Text(stringResource(navState.title))
             }
         },
         actions = {

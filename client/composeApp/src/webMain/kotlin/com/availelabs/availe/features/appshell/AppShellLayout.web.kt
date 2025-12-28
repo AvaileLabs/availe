@@ -37,7 +37,6 @@ actual fun AppShellLayout(
 ) {
     val activeInstance = childStack.active.instance
     val childActions by activeInstance.actions.subscribeAsState()
-    val activeConfiguration = childStack.active.configuration
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -46,39 +45,41 @@ actual fun AppShellLayout(
                     Text("Availe", fontWeight = FontWeight.Bold)
                 },
                 navigationItems = {
-                    val isHomeSelected =
-                        activeConfiguration is AppShellConfiguration.Home || activeConfiguration.canonicalParent is AppShellConfiguration.Home
+                    if (activeInstance is AppShellChildComponent.Dashboard) {
+                        val dashboardComponent = activeInstance.component
+                        val pages by dashboardComponent.pages.subscribeAsState()
+                        val selectedIndex = pages.selectedIndex
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = { appShellComponent.onHomeTabClicked() },
-                            backgroundColor = if (isHomeSelected) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            IconButton(
+                                onClick = { dashboardComponent.onHomeTabClicked() },
+                                backgroundColor = if (selectedIndex == 0) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
                             ) {
-                                Icon(Lucide.House, null)
-                                Text(stringResource(Res.string.navigation_home))
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Lucide.House, null)
+                                    Text(stringResource(Res.string.navigation_home))
+                                }
                             }
-                        }
 
-                        val isProfileSelected = activeConfiguration is AppShellConfiguration.Profile &&
-                                authenticationState is AuthenticationState.LoggedIn
-
-                        IconButton(
-                            onClick = { appShellComponent.onProfileTabClicked() },
-                            backgroundColor = if (isProfileSelected) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Lucide.User, null)
-                                Text(stringResource(Res.string.navigation_profile))
+                            if (authenticationState is AuthenticationState.LoggedIn) {
+                                IconButton(
+                                    onClick = { dashboardComponent.onProfileTabClicked() },
+                                    backgroundColor = if (selectedIndex == 1) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Lucide.User, null)
+                                        Text(stringResource(Res.string.navigation_profile))
+                                    }
+                                }
                             }
                         }
                     }
@@ -107,7 +108,10 @@ actual fun AppShellLayout(
                         .widthIn(max = 1200.dp)
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
                 ) {
-                    AppShellContentStack(appShellComponent)
+                    AppShellContentStack(
+                        appShellComponent = appShellComponent,
+                        isSwipeEnabled = false
+                    )
                 }
 
                 ChatOverlay(

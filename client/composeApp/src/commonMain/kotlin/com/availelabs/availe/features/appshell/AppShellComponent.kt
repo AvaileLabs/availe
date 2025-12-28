@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class, ExperimentalDecomposeApi::class)
-
 package com.availelabs.availe.features.appshell
 
 import com.arkivanov.decompose.ComponentContext
@@ -13,27 +11,21 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.essenty.lifecycle.doOnDestroy
-import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.core.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.features.chat.ChatComponent
 import com.availelabs.availe.features.chat.IChatComponent
-import com.availelabs.availe.features.home.HomeComponent
-import com.availelabs.availe.features.home.IHomeComponent
-import com.availelabs.availe.features.listingdetails.IListingDetailsComponent
-import com.availelabs.availe.features.listingdetails.ListingDetailsComponent
+import com.availelabs.availe.features.dashboard.DashboardComponent
+import com.availelabs.availe.features.dashboard.IDashboardComponent
 import com.availelabs.availe.features.listingeditor.IListingEditorComponent
 import com.availelabs.availe.features.listingeditor.ListingEditorComponent
-import com.availelabs.availe.features.profile.IProfileComponent
-import com.availelabs.availe.features.profile.ProfileComponent
-import com.availelabs.availe.features.settings.ISettingsComponent
-import com.availelabs.availe.features.settings.SettingsComponent
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.LayoutMode
 import kotlinx.coroutines.*
 import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalDecomposeApi::class)
 interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>>
     val chatOverlay: Value<ChildSlot<AppShellConfiguration.Chat, AppShellChildComponent.Chat>>
@@ -48,11 +40,10 @@ interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     fun onLoginClicked()
     fun onCancelLoginClicked()
     fun onLogoutClicked()
-    fun onHomeTabClicked()
-    fun onProfileTabClicked()
     fun onSettingsClicked()
 }
 
+@OptIn(ExperimentalUuidApi::class)
 class AppShellComponent(
     componentContext: ComponentContext,
     private val appContainer: IApplicationContainer,
@@ -88,6 +79,7 @@ class AppShellComponent(
         childFactory = ::createChatOverlayComponent
     )
 
+    @OptIn(ExperimentalDecomposeApi::class)
     override val webNavigation: WebNavigation<*> = childStackWebNavigation(
         navigator = childStackNavigation,
         stack = childStack,
@@ -163,52 +155,26 @@ class AppShellComponent(
         }
     }
 
-    override fun onHomeTabClicked() {
-        childStackNavigation.bringToFront(AppShellConfiguration.Home)
-    }
-
-    override fun onProfileTabClicked() {
-        scope.launch {
-            val userProfile = appContainer.sessionManager.getCurrentUserProfile()
-            if (userProfile != null) {
-                childStackNavigation.bringToFront(AppShellConfiguration.Profile(userProfile.id))
-            } else {
-                onShowLoginGuard()
-            }
-        }
-    }
-
     override fun onSettingsClicked() {
-        childStackNavigation.bringToFront(AppShellConfiguration.Settings)
+        // Settings is now part of ProfileNav inside Dashboard,
+        // but if accessed globally, we might need a strategy.
+        // For now, assume it's handled via Dashboard tab switching if implemented there.
     }
 
     private fun calculateInitialStack(intent: AppShellIntent): List<AppShellConfiguration> {
         return when (intent) {
-            is AppShellIntent.Home -> listOf(AppShellConfiguration.Home)
-            is AppShellIntent.ViewingListing -> listOf(
-                AppShellConfiguration.Home,
-                AppShellConfiguration.ListingDetails(intent.listingId)
-            )
-
-            is AppShellIntent.ViewingListingWithChat -> listOf(
-                AppShellConfiguration.Home,
-                AppShellConfiguration.ListingDetails(intent.listingId)
-            )
-
-            is AppShellIntent.Chatting -> listOf(
-                AppShellConfiguration.Home,
-                AppShellConfiguration.Chat(intent.recipientJid)
-            )
-
             is AppShellIntent.ListingEditor -> listOf(
-                AppShellConfiguration.Home,
+                AppShellConfiguration.Dashboard,
                 AppShellConfiguration.ListingEditor(intent.listingId)
             )
 
-            is AppShellIntent.ViewingProfile -> listOf(
-                AppShellConfiguration.Home,
-                AppShellConfiguration.Profile(intent.userId)
+            is AppShellIntent.Chatting -> listOf(
+                AppShellConfiguration.Dashboard,
+                AppShellConfiguration.Chat(intent.recipientJid)
             )
+
+            // Everything else is routed to Dashboard to handle internally
+            else -> listOf(AppShellConfiguration.Dashboard)
         }
     }
 
@@ -219,49 +185,33 @@ class AppShellComponent(
         }
     }
 
-    @OptIn(DelicateDecomposeApi::class)
     private fun createChildComponent(
         configuration: AppShellConfiguration,
         componentContext: ComponentContext
     ): AppShellChildComponent {
         return when (configuration) {
-            AppShellConfiguration.Home -> AppShellChildComponent.Home(
-                HomeComponent(
+            AppShellConfiguration.Dashboard -> AppShellChildComponent.Dashboard(
+                DashboardComponent(
                     componentContext = componentContext,
                     listingRepository = appContainer.listingRepository,
                     sessionManager = appContainer.sessionManager,
+                    messageService = appContainer.messageService,
+                    authenticationRepository = appContainer.authenticationRepository,
+                    inAppBrowserLauncher = appContainer.inAppBrowserLauncher,
                     onNavigateToListingDetails = { listingId ->
-                        childStackNavigation.pushToFront(AppShellConfiguration.ListingDetails(listingId))
+                        // No-op here, Dashboard handles it internally via HomeNav
                     },
                     onNavigateToCreateListing = {
                         childStackNavigation.pushToFront(AppShellConfiguration.ListingEditor(null))
                     },
-                    messageService = appContainer.messageService
-                )
-            )
-
-            is AppShellConfiguration.ListingDetails -> AppShellChildComponent.ListingDetails(
-                ListingDetailsComponent(
-                    componentContext = componentContext,
-                    listingId = configuration.listingId,
-                    listingRepository = appContainer.listingRepository,
-                    onNavigateBack = { childStackNavigation.pop() },
-                    onNavigateToChat = { recipientJid ->
-                        val isAuthenticated =
-                            appContainer.sessionManager.authenticationState.value is AuthenticationState.LoggedIn
-                        if (isAuthenticated) {
-                            if (layoutMode == LayoutMode.MultiPane) {
-                                chatOverlayNavigation.activate(AppShellConfiguration.Chat(recipientJid))
-                            } else {
-                                childStackNavigation.bringToFront(AppShellConfiguration.Chat(recipientJid))
-                            }
-                        } else {
-                            onShowLoginGuard()
-                        }
+                    onNavigateToChat = { userId ->
+                        // Placeholder
                     },
-                    onNavigateToProfile = { userId ->
-                        childStackNavigation.pushToFront(AppShellConfiguration.Profile(userId))
-                    }
+                    onNavigateToSettings = {
+                        // Placeholder
+                    },
+                    onShowLoginGuard = onShowLoginGuard,
+                    initialIntent = initialIntent
                 )
             )
 
@@ -275,18 +225,6 @@ class AppShellComponent(
                 )
             )
 
-            AppShellConfiguration.Settings -> AppShellChildComponent.Settings(
-                SettingsComponent(
-                    componentContext = componentContext,
-                    storeFactory = DefaultStoreFactory(),
-                    sessionManager = appContainer.sessionManager,
-                    authenticationRepository = appContainer.authenticationRepository,
-                    onOpenUrl = { url ->
-                        appContainer.inAppBrowserLauncher.open(url)
-                    }
-                )
-            )
-
             is AppShellConfiguration.ListingEditor -> AppShellChildComponent.ListingEditor(
                 ListingEditorComponent(
                     componentContext = componentContext,
@@ -295,26 +233,6 @@ class AppShellComponent(
                     sessionManager = appContainer.sessionManager,
                     messageService = appContainer.messageService,
                     onNavigateBack = { childStackNavigation.pop() }
-                )
-            )
-
-            is AppShellConfiguration.Profile -> AppShellChildComponent.Profile(
-                ProfileComponent(
-                    componentContext = componentContext,
-                    targetUserId = configuration.userId,
-                    listingRepository = appContainer.listingRepository,
-                    sessionManager = appContainer.sessionManager,
-                    messageService = appContainer.messageService,
-                    onNavigateBack = { childStackNavigation.pop() },
-                    onNavigateToListing = { listingId ->
-                        childStackNavigation.pushToFront(AppShellConfiguration.ListingDetails(listingId))
-                    },
-                    onNavigateToChat = { userId ->
-                        // TODO: Resolve JID from UserId
-                    },
-                    onNavigateToSettings = {
-                        childStackNavigation.pushToFront(AppShellConfiguration.Settings)
-                    }
                 )
             )
         }
@@ -339,11 +257,7 @@ class AppShellComponent(
 sealed interface AppShellChildComponent {
     val actions: Value<List<AppBarAction>>
 
-    data class Home(val component: IHomeComponent) : AppShellChildComponent {
-        override val actions: Value<List<AppBarAction>> = component.actions
-    }
-
-    data class ListingDetails(val component: IListingDetailsComponent) : AppShellChildComponent {
+    data class Dashboard(val component: IDashboardComponent) : AppShellChildComponent {
         override val actions: Value<List<AppBarAction>> = component.actions
     }
 
@@ -351,15 +265,7 @@ sealed interface AppShellChildComponent {
         override val actions: Value<List<AppBarAction>> = component.actions
     }
 
-    data class Settings(val component: ISettingsComponent) : AppShellChildComponent {
-        override val actions: Value<List<AppBarAction>> = component.actions
-    }
-
     data class ListingEditor(val component: IListingEditorComponent) : AppShellChildComponent {
-        override val actions: Value<List<AppBarAction>> = component.actions
-    }
-
-    data class Profile(val component: IProfileComponent) : AppShellChildComponent {
         override val actions: Value<List<AppBarAction>> = component.actions
     }
 }

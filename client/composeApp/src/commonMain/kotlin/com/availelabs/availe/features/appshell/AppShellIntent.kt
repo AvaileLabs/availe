@@ -35,4 +35,7 @@ sealed interface AppShellIntent {
     data class ViewingProfile(
         val userId: UserId
     ) : AppShellIntent
+
+    @Serializable
+    data object Settings : AppShellIntent
 }

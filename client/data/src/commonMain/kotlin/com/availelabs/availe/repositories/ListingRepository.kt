@@ -1,9 +1,6 @@
 package com.availelabs.availe.repositories
 
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
@@ -44,10 +41,13 @@ internal class ListingRepository(
         page: Int,
         size: Int,
         forceRefresh: Boolean,
-        publisherId: UserId?
+        publisherId: UserId?,
+        category: ListingCategory?
     ): Flow<DataStream<List<Listing>>> = flow {
         emit(DataStream.Loading)
 
+        // TODO: Implement category filtering. Currently, the category parameter is ignored to allow UI refactoring without breaking the app.
+        // The API endpoint and Local Data Source need to be updated to support filtering by ListingCategory.
         val shouldRefresh = if (forceRefresh) true else isListingCacheStale()
         val key = ListingStoreKey(page, size, publisherId)
 
