@@ -27,10 +27,12 @@ import kotlinx.coroutines.*
 interface IDashboardComponent {
     val pages: Value<ChildPages<DashboardConfiguration, DashboardChildComponent>>
     val actions: Value<List<AppBarAction>>
+    val canNavigateBack: Value<Boolean>
 
     fun onHomeTabClicked()
     fun onProfileTabClicked()
     fun onPageSelected(index: Int)
+    fun onBackClicked()
 }
 
 sealed interface DashboardChildComponent {
@@ -58,7 +60,11 @@ class DashboardComponent(
     private val _actions = MutableValue<List<AppBarAction>>(emptyList())
     override val actions: Value<List<AppBarAction>> = _actions
 
+    private val _canNavigateBack = MutableValue(false)
+    override val canNavigateBack: Value<Boolean> = _canNavigateBack
+
     private var currentChildActionsCancellation: Cancellation? = null
+    private var currentChildBackStateCancellation: Cancellation? = null
 
     override val pages: Value<ChildPages<DashboardConfiguration, DashboardChildComponent>> =
         childPages(
@@ -74,15 +80,26 @@ class DashboardComponent(
             val activeChildInstance = childPages.items[selectedIndex].instance
 
             currentChildActionsCancellation?.cancel()
+            currentChildBackStateCancellation?.cancel()
 
+            // Update Actions
             val newChildActionsValue = when (activeChildInstance) {
                 is DashboardChildComponent.HomeNav -> activeChildInstance.component.actions
                 is DashboardChildComponent.ProfileNav -> activeChildInstance.component.actions
                 null -> MutableValue(emptyList())
             }
-
             currentChildActionsCancellation = newChildActionsValue.subscribe { newActions ->
                 _actions.value = newActions
+            }
+
+            // Update Back State
+            val newChildBackStateValue = when (activeChildInstance) {
+                is DashboardChildComponent.HomeNav -> activeChildInstance.component.canNavigateBack
+                is DashboardChildComponent.ProfileNav -> activeChildInstance.component.canNavigateBack
+                null -> MutableValue(false)
+            }
+            currentChildBackStateCancellation = newChildBackStateValue.subscribe { canGoBack ->
+                _canNavigateBack.value = canGoBack
             }
         }
     }
@@ -94,7 +111,14 @@ class DashboardComponent(
     }
 
     override fun onHomeTabClicked() {
-        navigation.select(0)
+        val currentIndex = pages.value.selectedIndex
+        if (currentIndex == 0) {
+            // If already on home tab, reset the stack
+            val homeInstance = pages.value.items[0].instance as? DashboardChildComponent.HomeNav
+            homeInstance?.component?.reset()
+        } else {
+            navigation.select(0)
+        }
     }
 
     override fun onProfileTabClicked() {
@@ -109,7 +133,15 @@ class DashboardComponent(
                         )
                     )
                 }
-                navigation.select(1)
+
+                // If we are already on the profile tab (index 1), reset it
+                val currentIndex = pages.value.selectedIndex
+                if (currentIndex == 1) {
+                    val profileInstance = pages.value.items[1].instance as? DashboardChildComponent.ProfileNav
+                    profileInstance?.component?.reset()
+                } else {
+                    navigation.select(1)
+                }
             } else {
                 onShowLoginGuard()
             }
@@ -118,6 +150,17 @@ class DashboardComponent(
 
     override fun onPageSelected(index: Int) {
         navigation.select(index)
+    }
+
+    override fun onBackClicked() {
+        val selectedIndex = pages.value.selectedIndex
+        val activeInstance = pages.value.items[selectedIndex].instance
+
+        when (activeInstance) {
+            is DashboardChildComponent.HomeNav -> activeInstance.component.onBackClicked()
+            is DashboardChildComponent.ProfileNav -> activeInstance.component.onBackClicked()
+            null -> {}
+        }
     }
 
     private fun createChild(
@@ -188,10 +231,7 @@ class DashboardComponent(
     }
 
     private fun calculateInitialPages(intent: AppShellIntent?): Pages<DashboardConfiguration> {
-        // Basic logic: Default to Home. If Intent is for Settings, ideally we'd start at Profile tab,
-        // but since we need the userId to create Profile configuration, we might default to Home
-        // and let the user navigate, or assume we can't deep link to profile if not logged in.
-        // For simplicity, we just start with Home. Dynamic adding of Profile tab happens on click.
+        // Basic logic: Default to Home.
         return Pages(
             items = listOf(DashboardConfiguration.Home),
             selectedIndex = 0

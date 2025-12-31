@@ -1,5 +1,6 @@
 package com.availelabs.availe.features.appshell
 
+import com.arkivanov.decompose.Cancellation
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -7,6 +8,7 @@ import com.arkivanov.decompose.router.slot.*
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.router.webhistory.WebNavigation
 import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
+import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
@@ -31,6 +33,7 @@ interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     val chatOverlay: Value<ChildSlot<AppShellConfiguration.Chat, AppShellChildComponent.Chat>>
     val authenticationState: Value<AuthenticationState>
     val isAuthenticationLoading: Value<Boolean>
+    val showBackArrow: Value<Boolean>
     val backDispatcher: BackDispatcher?
 
     fun onLayoutModeChanged(mode: LayoutMode)
@@ -68,6 +71,7 @@ class AppShellComponent(
         source = childStackNavigation,
         serializer = AppShellConfiguration.serializer(),
         initialStack = { calculateInitialStack(initialIntent) },
+        handleBackButton = true,
         childFactory = ::createChildComponent
     )
 
@@ -78,6 +82,11 @@ class AppShellComponent(
         handleBackButton = false,
         childFactory = ::createChatOverlayComponent
     )
+
+    private val _showBackArrow = MutableValue(false)
+    override val showBackArrow: Value<Boolean> = _showBackArrow
+
+    private var dashboardBackStateCancellation: Cancellation? = null
 
     @OptIn(ExperimentalDecomposeApi::class)
     override val webNavigation: WebNavigation<*> = childStackWebNavigation(
@@ -98,6 +107,34 @@ class AppShellComponent(
                 if (state !is AuthenticationState.LoggedIn) {
                     dismissChatOverlay()
                 }
+            }
+        }
+
+        childStack.subscribe { stack ->
+            updateBackArrowState(stack)
+        }
+    }
+
+    private fun updateBackArrowState(stack: ChildStack<AppShellConfiguration, AppShellChildComponent>) {
+        // Cancel any existing subscription to Dashboard's back state
+        dashboardBackStateCancellation?.cancel()
+        dashboardBackStateCancellation = null
+
+        if (stack.backStack.isNotEmpty()) {
+            // If we have a back stack in AppShell (e.g. Chat or ListingEditor), always show back arrow
+            _showBackArrow.value = true
+        } else {
+            // We are at the root of AppShell (Dashboard)
+            val activeInstance = stack.active.instance
+            if (activeInstance is AppShellChildComponent.Dashboard) {
+                // Subscribe to Dashboard's back state
+                dashboardBackStateCancellation = activeInstance.component.canNavigateBack.subscribe { canGoBack ->
+                    _showBackArrow.value = canGoBack
+                }
+            } else {
+                // Should not happen for other root components if Dashboard is the only root,
+                // but safe fallback
+                _showBackArrow.value = false
             }
         }
     }
@@ -137,7 +174,16 @@ class AppShellComponent(
     }
 
     override fun onBackClicked() {
-        childStackNavigation.pop()
+        // If we have a back stack in AppShell, pop it
+        if (childStack.value.backStack.isNotEmpty()) {
+            childStackNavigation.pop()
+        } else {
+            // Otherwise, delegate to the active child (Dashboard)
+            val activeInstance = childStack.value.active.instance
+            if (activeInstance is AppShellChildComponent.Dashboard) {
+                activeInstance.component.onBackClicked()
+            }
+        }
     }
 
     override fun onLoginClicked() {
@@ -156,9 +202,7 @@ class AppShellComponent(
     }
 
     override fun onSettingsClicked() {
-        // Settings is now part of ProfileNav inside Dashboard,
-        // but if accessed globally, we might need a strategy.
-        // For now, assume it's handled via Dashboard tab switching if implemented there.
+        // Placeholder
     }
 
     private fun calculateInitialStack(intent: AppShellIntent): List<AppShellConfiguration> {

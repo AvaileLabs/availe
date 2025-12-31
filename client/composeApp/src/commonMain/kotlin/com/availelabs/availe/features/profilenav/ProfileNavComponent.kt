@@ -5,6 +5,7 @@ import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.operator.map
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.domain.model.UserId
@@ -23,6 +24,10 @@ import com.availelabs.availe.ui.model.AppBarAction
 interface IProfileNavComponent : BackHandlerOwner {
     val childStack: Value<ChildStack<ProfileNavConfiguration, ProfileNavChildComponent>>
     val actions: Value<List<AppBarAction>>
+    val canNavigateBack: Value<Boolean>
+
+    fun onBackClicked()
+    fun reset()
 }
 
 sealed interface ProfileNavChildComponent {
@@ -78,6 +83,8 @@ class ProfileNavComponent(
         childFactory = ::createChild
     )
 
+    override val canNavigateBack: Value<Boolean> = childStack.map { it.backStack.isNotEmpty() }
+
     init {
         childStack.subscribe { stack ->
             val activeComponent = stack.active.instance
@@ -95,6 +102,14 @@ class ProfileNavComponent(
                 }
             }
         }
+    }
+
+    override fun onBackClicked() {
+        navigation.pop()
+    }
+
+    override fun reset() {
+        navigation.popToFirst()
     }
 
     @OptIn(DelicateDecomposeApi::class)

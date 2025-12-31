@@ -41,6 +41,7 @@ actual fun AppShellLayout(
     val activeInstance = childStack.active.instance
     val childActions by activeInstance.actions.subscribeAsState()
     val activeConfiguration = childStack.active.configuration
+    val showBackArrow by appShellComponent.showBackArrow.subscribeAsState()
 
     val dashboardComponent = (activeInstance as? AppShellChildComponent.Dashboard)?.component
     val isDashboard = dashboardComponent != null
@@ -57,7 +58,7 @@ actual fun AppShellLayout(
             SharedTopAppBar(
                 appShellComponent = appShellComponent,
                 activeConfiguration = activeConfiguration,
-                isBackStackEmpty = childStack.backStack.isEmpty(),
+                showBackArrow = showBackArrow,
                 childActions = childActions,
                 authenticationState = authenticationState,
                 isAuthenticationLoading = isAuthenticationLoading
@@ -131,24 +132,24 @@ actual fun AppShellLayout(
 private fun SharedTopAppBar(
     appShellComponent: IAppShellComponent,
     activeConfiguration: AppShellConfiguration,
-    isBackStackEmpty: Boolean,
+    showBackArrow: Boolean,
     childActions: List<AppBarAction>,
     authenticationState: AuthenticationState,
     isAuthenticationLoading: Boolean
 ) {
     val isDashboard = activeConfiguration is AppShellConfiguration.Dashboard
 
-    val (icon, onIconClick) = if (isBackStackEmpty || isDashboard) {
-        // Show Home icon for root page visualization
-        NavigationUiMapper.map(activeConfiguration).icon to {}
-    } else {
+    val (icon, onIconClick) = if (showBackArrow) {
         Lucide.ArrowLeft to { appShellComponent.onBackClicked() }
+    } else {
+        // Show Home icon or logo for root page visualization
+        NavigationUiMapper.map(activeConfiguration).icon to {}
     }
 
-    val contentDescription = if (isBackStackEmpty || isDashboard) {
-        stringResource(Res.string.navigation_home)
-    } else {
+    val contentDescription = if (showBackArrow) {
         stringResource(Res.string.generic_back)
+    } else {
+        stringResource(Res.string.navigation_home)
     }
 
     TopAppBar(

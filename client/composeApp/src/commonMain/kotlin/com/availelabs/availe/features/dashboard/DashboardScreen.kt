@@ -49,7 +49,7 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxSize(),
                     animation = appStackAnimation(
                         backHandler = instance.component.backHandler,
-                        onBack = {} // Back handled internally by stack
+                        onBack = instance.component::onBackClicked
                     )
                 ) {
                     when (val childInstance = it.instance) {
@@ -90,7 +90,7 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxSize(),
                     animation = appStackAnimation(
                         backHandler = instance.component.backHandler,
-                        onBack = {}
+                        onBack = instance.component::onBackClicked
                     )
                 ) {
                     when (val childInstance = it.instance) {
