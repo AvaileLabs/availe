@@ -2,7 +2,10 @@ package com.availelabs.availe.features.profilenav
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.DelicateDecomposeApi
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.stack.*
+import com.arkivanov.decompose.router.webhistory.WebNavigation
+import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.operator.map
@@ -20,14 +23,16 @@ import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.ui.model.AppBarAction
+import kotlin.uuid.ExperimentalUuidApi
 
-interface IProfileNavComponent : BackHandlerOwner {
+interface IProfileNavComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<ProfileNavConfiguration, ProfileNavChildComponent>>
     val actions: Value<List<AppBarAction>>
     val canNavigateBack: Value<Boolean>
 
     fun onBackClicked()
     fun reset()
+    fun navigateToSettings()
 }
 
 sealed interface ProfileNavChildComponent {
@@ -48,7 +53,6 @@ class ProfileNavComponent(
     private val initialStack: List<ProfileNavConfiguration>
 ) : IProfileNavComponent, ComponentContext by componentContext {
 
-    // Secondary constructor to default to Profile root if no complex stack is needed
     constructor(
         componentContext: ComponentContext,
         userId: UserId,
@@ -85,6 +89,15 @@ class ProfileNavComponent(
 
     override val canNavigateBack: Value<Boolean> = childStack.map { it.backStack.isNotEmpty() }
 
+    @OptIn(ExperimentalDecomposeApi::class, ExperimentalUuidApi::class)
+    override val webNavigation: WebNavigation<*> = childStackWebNavigation(
+        navigator = navigation,
+        stack = childStack,
+        serializer = ProfileNavConfiguration.serializer(),
+        pathMapper = { child -> child.configuration.toUrlPath() },
+        childSelector = { null }
+    )
+
     init {
         childStack.subscribe { stack ->
             val activeComponent = stack.active.instance
@@ -112,6 +125,10 @@ class ProfileNavComponent(
         navigation.popToFirst()
     }
 
+    override fun navigateToSettings() {
+        navigation.bringToFront(ProfileNavConfiguration.Settings)
+    }
+
     @OptIn(DelicateDecomposeApi::class)
     private fun createChild(
         configuration: ProfileNavConfiguration,
@@ -126,7 +143,6 @@ class ProfileNavComponent(
                     sessionManager = sessionManager,
                     messageService = messageService,
                     onNavigateBack = {
-                        // Root profile back does nothing
                     },
                     onNavigateToListing = { listingId ->
                         navigation.push(ProfileNavConfiguration.ListingDetails(listingId))
@@ -145,10 +161,9 @@ class ProfileNavComponent(
                     listingRepository = listingRepository,
                     onNavigateBack = { navigation.pop() },
                     onNavigateToChat = { jid ->
-                        // Chat logic
                     },
                     onNavigateToProfile = { userId ->
-                        navigation.push(ProfileNavConfiguration.Profile(userId))
+                        navigation.bringToFront(ProfileNavConfiguration.Profile(userId))
                     }
                 )
             )

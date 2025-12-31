@@ -14,7 +14,7 @@ sealed interface AppShellConfiguration {
 
     @Serializable
     data object Dashboard : AppShellConfiguration {
-        override fun toUrlPath(): String = "/"
+        override fun toUrlPath(): String = ""
     }
 
     @Serializable

@@ -94,8 +94,8 @@ class AppShellComponent(
         stack = childStack,
         serializer = AppShellConfiguration.serializer(),
         pathMapper = { child -> child.configuration.toUrlPath() },
-        childSelector = {
-            null
+        childSelector = { child ->
+            (child.instance as? AppShellChildComponent.Dashboard)?.component
         }
     )
 
@@ -116,24 +116,18 @@ class AppShellComponent(
     }
 
     private fun updateBackArrowState(stack: ChildStack<AppShellConfiguration, AppShellChildComponent>) {
-        // Cancel any existing subscription to Dashboard's back state
         dashboardBackStateCancellation?.cancel()
         dashboardBackStateCancellation = null
 
         if (stack.backStack.isNotEmpty()) {
-            // If we have a back stack in AppShell (e.g. Chat or ListingEditor), always show back arrow
             _showBackArrow.value = true
         } else {
-            // We are at the root of AppShell (Dashboard)
             val activeInstance = stack.active.instance
             if (activeInstance is AppShellChildComponent.Dashboard) {
-                // Subscribe to Dashboard's back state
                 dashboardBackStateCancellation = activeInstance.component.canNavigateBack.subscribe { canGoBack ->
                     _showBackArrow.value = canGoBack
                 }
             } else {
-                // Should not happen for other root components if Dashboard is the only root,
-                // but safe fallback
                 _showBackArrow.value = false
             }
         }
@@ -174,11 +168,9 @@ class AppShellComponent(
     }
 
     override fun onBackClicked() {
-        // If we have a back stack in AppShell, pop it
         if (childStack.value.backStack.isNotEmpty()) {
             childStackNavigation.pop()
         } else {
-            // Otherwise, delegate to the active child (Dashboard)
             val activeInstance = childStack.value.active.instance
             if (activeInstance is AppShellChildComponent.Dashboard) {
                 activeInstance.component.onBackClicked()
@@ -202,7 +194,10 @@ class AppShellComponent(
     }
 
     override fun onSettingsClicked() {
-        // Placeholder
+        val activeInstance = childStack.value.active.instance
+        if (activeInstance is AppShellChildComponent.Dashboard) {
+            activeInstance.component.onSettingsClicked()
+        }
     }
 
     private fun calculateInitialStack(intent: AppShellIntent): List<AppShellConfiguration> {
@@ -217,7 +212,6 @@ class AppShellComponent(
                 AppShellConfiguration.Chat(intent.recipientJid)
             )
 
-            // Everything else is routed to Dashboard to handle internally
             else -> listOf(AppShellConfiguration.Dashboard)
         }
     }
@@ -243,16 +237,13 @@ class AppShellComponent(
                     authenticationRepository = appContainer.authenticationRepository,
                     inAppBrowserLauncher = appContainer.inAppBrowserLauncher,
                     onNavigateToListingDetails = { listingId ->
-                        // No-op here, Dashboard handles it internally via HomeNav
                     },
                     onNavigateToCreateListing = {
                         childStackNavigation.pushToFront(AppShellConfiguration.ListingEditor(null))
                     },
                     onNavigateToChat = { userId ->
-                        // Placeholder
                     },
                     onNavigateToSettings = {
-                        // Placeholder
                     },
                     onShowLoginGuard = onShowLoginGuard,
                     initialIntent = initialIntent

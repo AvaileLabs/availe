@@ -44,11 +44,6 @@ actual fun AppShellLayout(
     val showBackArrow by appShellComponent.showBackArrow.subscribeAsState()
 
     val dashboardComponent = (activeInstance as? AppShellChildComponent.Dashboard)?.component
-    val isDashboard = dashboardComponent != null
-
-    // Determine navigation UI visibility and state
-    val showBottomBar = isDashboard && windowSize == WindowSizeClass.Compact
-    val showSideRail = isDashboard && windowSize != WindowSizeClass.Compact
 
     // Swipe is only enabled on Compact screens (Phone)
     val isSwipeEnabled = windowSize == WindowSizeClass.Compact
@@ -64,7 +59,7 @@ actual fun AppShellLayout(
                 isAuthenticationLoading = isAuthenticationLoading
             )
         },
-        bottomBar = if (showBottomBar && dashboardComponent != null) {
+        bottomBar = if (dashboardComponent != null && windowSize == WindowSizeClass.Compact) {
             {
                 val pages by dashboardComponent.pages.subscribeAsState()
                 val selectedIndex = pages.selectedIndex
@@ -88,7 +83,7 @@ actual fun AppShellLayout(
                 }
             }
         } else null,
-        sideBar = if (showSideRail && dashboardComponent != null) {
+        sideBar = if (dashboardComponent != null && windowSize != WindowSizeClass.Compact) {
             {
                 val pages by dashboardComponent.pages.subscribeAsState()
                 val selectedIndex = pages.selectedIndex
@@ -154,13 +149,11 @@ private fun SharedTopAppBar(
 
     TopAppBar(
         navigation = {
-            if (icon != null) {
-                IconButton(onClick = onIconClick) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = contentDescription
-                    )
-                }
+            IconButton(onClick = onIconClick) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = contentDescription
+                )
             }
         },
         title = {

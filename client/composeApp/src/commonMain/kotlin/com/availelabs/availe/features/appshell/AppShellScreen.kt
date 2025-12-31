@@ -44,6 +44,7 @@ fun AppShellScreen(
     val chatOverlay by appShellComponent.chatOverlay.subscribeAsState()
     val authenticationState by appShellComponent.authenticationState.subscribeAsState()
     val isAuthenticationLoading by appShellComponent.isAuthenticationLoading.subscribeAsState()
+    val showBackArrow by appShellComponent.showBackArrow.subscribeAsState()
     val activeConfiguration = childStack.active.configuration
     val focusManager = LocalFocusManager.current
     val backDispatcher = appShellComponent.backDispatcher
@@ -63,11 +64,11 @@ fun AppShellScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Disable global back overlay on Root Dashboard to allow swipe-to-switch-tabs inside Dashboard
-        val isRoot = childStack.backStack.isEmpty() && activeConfiguration == AppShellConfiguration.Dashboard
+        // Enable back gesture if there is a back stack in AppShell OR inside Dashboard (showBackArrow is true)
+        val isBackEnabled = showBackArrow
 
         PredictiveBackGestureOverlay(
-            backDispatcher = if (isRoot) null else backDispatcher,
+            backDispatcher = if (isBackEnabled) backDispatcher else null,
             backIcon = null,
             modifier = Modifier.fillMaxSize(),
             content = {

@@ -2,7 +2,10 @@ package com.availelabs.availe.features.homenav
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.DelicateDecomposeApi
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.stack.*
+import com.arkivanov.decompose.router.webhistory.WebNavigation
+import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.operator.map
@@ -18,8 +21,9 @@ import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.ui.model.AppBarAction
+import kotlin.uuid.ExperimentalUuidApi
 
-interface IHomeNavComponent : BackHandlerOwner {
+interface IHomeNavComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<HomeNavConfiguration, HomeNavChildComponent>>
     val actions: Value<List<AppBarAction>>
     val canNavigateBack: Value<Boolean>
@@ -59,6 +63,15 @@ class HomeNavComponent(
     )
 
     override val canNavigateBack: Value<Boolean> = childStack.map { it.backStack.isNotEmpty() }
+
+    @OptIn(ExperimentalDecomposeApi::class, ExperimentalUuidApi::class)
+    override val webNavigation: WebNavigation<*> = childStackWebNavigation(
+        navigator = navigation,
+        stack = childStack,
+        serializer = HomeNavConfiguration.serializer(),
+        pathMapper = { child -> child.configuration.toUrlPath() },
+        childSelector = { null }
+    )
 
     init {
         childStack.subscribe { stack ->
@@ -116,7 +129,7 @@ class HomeNavComponent(
                         // Placeholder logic
                     },
                     onNavigateToProfile = { userId ->
-                        navigation.push(HomeNavConfiguration.Profile(userId))
+                        navigation.bringToFront(HomeNavConfiguration.Profile(userId))
                     }
                 )
             )

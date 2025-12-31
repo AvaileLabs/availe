@@ -15,7 +15,6 @@ import com.availelabs.availe.features.profile.ProfileScreen
 import com.availelabs.availe.features.profilenav.ProfileNavChildComponent
 import com.availelabs.availe.features.settings.SettingsScreen
 import com.availelabs.availe.ui.animation.appStackAnimation
-import com.availelabs.availe.ui.components.PredictiveBackGestureOverlay
 import com.availelabs.availe.ui.util.rememberSyncedPagerState
 
 @OptIn(ExperimentalDecomposeApi::class)
@@ -43,7 +42,6 @@ fun DashboardScreen(
             is DashboardChildComponent.HomeNav -> {
                 val childStack by instance.component.childStack.subscribeAsState()
 
-                // Note: We use Children here to render the stack inside the tab
                 Children(
                     stack = childStack,
                     modifier = Modifier.fillMaxSize(),
@@ -62,16 +60,8 @@ fun DashboardScreen(
                         }
 
                         is com.availelabs.availe.features.homenav.HomeNavChildComponent.ListingDetails -> {
-                            // Back gesture enabled only for detail screens
-                            PredictiveBackGestureOverlay(
-                                backDispatcher = null, // Handled by stack
-                                backIcon = null,
-                                modifier = Modifier.fillMaxSize(),
-                                content = {
-                                    ListingDetailsScreen(
-                                        listingDetailsComponent = childInstance.component
-                                    )
-                                }
+                            ListingDetailsScreen(
+                                listingDetailsComponent = childInstance.component
                             )
                         }
 

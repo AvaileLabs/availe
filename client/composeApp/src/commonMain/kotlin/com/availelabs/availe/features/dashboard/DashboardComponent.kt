@@ -4,6 +4,8 @@ import com.arkivanov.decompose.Cancellation
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.pages.*
+import com.arkivanov.decompose.router.webhistory.WebNavigation
+import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
@@ -23,8 +25,10 @@ import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlinx.coroutines.*
+import kotlin.uuid.ExperimentalUuidApi
 
-interface IDashboardComponent {
+@OptIn(ExperimentalDecomposeApi::class)
+interface IDashboardComponent : WebNavigationOwner {
     val pages: Value<ChildPages<DashboardConfiguration, DashboardChildComponent>>
     val actions: Value<List<AppBarAction>>
     val canNavigateBack: Value<Boolean>
@@ -33,6 +37,7 @@ interface IDashboardComponent {
     fun onProfileTabClicked()
     fun onPageSelected(index: Int)
     fun onBackClicked()
+    fun onSettingsClicked()
 }
 
 sealed interface DashboardChildComponent {
@@ -74,6 +79,23 @@ class DashboardComponent(
             childFactory = ::createChild
         )
 
+    @OptIn(ExperimentalDecomposeApi::class, ExperimentalUuidApi::class)
+    override val webNavigation: WebNavigation<*> = childPagesWebNavigation(
+        navigator = navigation,
+        pages = pages,
+        serializer = DashboardConfiguration.serializer(),
+        pathMapper = { childPages ->
+            childPages.items[childPages.selectedIndex].configuration.toUrlPath()
+        },
+        childSelector = { child ->
+            when (val instance = child.instance) {
+                is DashboardChildComponent.HomeNav -> instance.component
+                is DashboardChildComponent.ProfileNav -> instance.component
+                null -> null
+            }
+        }
+    )
+
     init {
         pages.subscribe { childPages ->
             val selectedIndex = childPages.selectedIndex
@@ -82,7 +104,6 @@ class DashboardComponent(
             currentChildActionsCancellation?.cancel()
             currentChildBackStateCancellation?.cancel()
 
-            // Update Actions
             val newChildActionsValue = when (activeChildInstance) {
                 is DashboardChildComponent.HomeNav -> activeChildInstance.component.actions
                 is DashboardChildComponent.ProfileNav -> activeChildInstance.component.actions
@@ -92,7 +113,6 @@ class DashboardComponent(
                 _actions.value = newActions
             }
 
-            // Update Back State
             val newChildBackStateValue = when (activeChildInstance) {
                 is DashboardChildComponent.HomeNav -> activeChildInstance.component.canNavigateBack
                 is DashboardChildComponent.ProfileNav -> activeChildInstance.component.canNavigateBack
@@ -113,7 +133,6 @@ class DashboardComponent(
     override fun onHomeTabClicked() {
         val currentIndex = pages.value.selectedIndex
         if (currentIndex == 0) {
-            // If already on home tab, reset the stack
             val homeInstance = pages.value.items[0].instance as? DashboardChildComponent.HomeNav
             homeInstance?.component?.reset()
         } else {
@@ -134,7 +153,6 @@ class DashboardComponent(
                     )
                 }
 
-                // If we are already on the profile tab (index 1), reset it
                 val currentIndex = pages.value.selectedIndex
                 if (currentIndex == 1) {
                     val profileInstance = pages.value.items[1].instance as? DashboardChildComponent.ProfileNav
@@ -163,13 +181,36 @@ class DashboardComponent(
         }
     }
 
+    override fun onSettingsClicked() {
+        scope.launch {
+            val userProfile = sessionManager.getCurrentUserProfile()
+            if (userProfile != null) {
+                if (pages.value.items.none { it.configuration is DashboardConfiguration.Profile }) {
+                    updatePages(
+                        listOf(
+                            DashboardConfiguration.Home,
+                            DashboardConfiguration.Profile(userProfile.id)
+                        )
+                    )
+                }
+
+                navigation.select(1)
+
+                val profileItem = pages.value.items.find { it.configuration is DashboardConfiguration.Profile }
+                val instance = profileItem?.instance as? DashboardChildComponent.ProfileNav
+                instance?.component?.navigateToSettings()
+            } else {
+                onShowLoginGuard()
+            }
+        }
+    }
+
     private fun createChild(
         configuration: DashboardConfiguration,
         componentContext: ComponentContext
     ): DashboardChildComponent {
         return when (configuration) {
             is DashboardConfiguration.Home -> {
-                // Determine initial stack based on intent only if it's relevant to Home
                 val initialStack = when (initialIntent) {
                     is AppShellIntent.ViewingListing -> listOf(
                         HomeNavConfiguration.HomeFeed,
@@ -231,7 +272,6 @@ class DashboardComponent(
     }
 
     private fun calculateInitialPages(intent: AppShellIntent?): Pages<DashboardConfiguration> {
-        // Basic logic: Default to Home.
         return Pages(
             items = listOf(DashboardConfiguration.Home),
             selectedIndex = 0
