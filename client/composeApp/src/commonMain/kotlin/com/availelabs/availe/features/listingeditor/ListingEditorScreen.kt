@@ -1,4 +1,4 @@
-package com.availelabs.availe.features.listingeditor.ui
+package com.availelabs.availe.features.listingeditor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.availelabs.availe.ListingEditorIntent
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.features.listingeditor.IListingEditorComponent
 import com.composables.icons.lucide.ChevronDown
 import com.composables.icons.lucide.Image
 import com.composables.icons.lucide.Lucide

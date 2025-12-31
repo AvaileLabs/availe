@@ -18,7 +18,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.features.chat.ChatScreen
 import com.availelabs.availe.features.dashboard.DashboardScreen
-import com.availelabs.availe.features.listingeditor.ui.ListingEditorScreen
+import com.availelabs.availe.features.listingeditor.ListingEditorScreen
 import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.PredictiveBackGestureOverlay
 import com.availelabs.availe.ui.components.dialogs.ChatOverlayWindow
