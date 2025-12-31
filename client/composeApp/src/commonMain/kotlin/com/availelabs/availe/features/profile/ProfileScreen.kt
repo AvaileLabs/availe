@@ -211,7 +211,7 @@ private fun EmptyState() {
     ) {
         Text(
             text = stringResource(Res.string.home_empty_state),
-            style = Theme[com.composables.uikit.styling.textStyles][com.composables.uikit.styling.body]
+            style = Theme[textStyles][body]
         )
     }
 }

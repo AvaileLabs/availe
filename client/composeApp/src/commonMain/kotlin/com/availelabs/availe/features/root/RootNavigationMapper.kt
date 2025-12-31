@@ -65,7 +65,7 @@ object RootNavigationMapper {
             return AppShellIntent.Home
         }
 
-        return if (chatJidValue != null && chatJidValue.isNotBlank()) {
+        return if (!chatJidValue.isNullOrBlank()) {
             AppShellIntent.ViewingListingWithChat(
                 listingId = listingId,
                 recipientJid = Jid(chatJidValue)

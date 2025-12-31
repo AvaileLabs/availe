@@ -175,7 +175,7 @@ class ProfileStoreFactory(
             }
         }
 
-        private suspend fun updateLoadingState(isActive: Boolean, isRefresh: Boolean) {
+        private fun updateLoadingState(isActive: Boolean, isRefresh: Boolean) {
             if (isRefresh) {
                 dispatch(Message.SetRefreshing(isActive))
             } else {

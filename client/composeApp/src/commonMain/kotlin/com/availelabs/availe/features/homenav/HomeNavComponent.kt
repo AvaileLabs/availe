@@ -23,6 +23,7 @@ import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalDecomposeApi::class)
 interface IHomeNavComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<HomeNavConfiguration, HomeNavChildComponent>>
     val actions: Value<List<AppBarAction>>
@@ -75,8 +76,7 @@ class HomeNavComponent(
 
     init {
         childStack.subscribe { stack ->
-            val activeComponent = stack.active.instance
-            when (activeComponent) {
+            when (val activeComponent = stack.active.instance) {
                 is HomeNavChildComponent.HomeFeed -> {
                     activeComponent.component.actions.subscribe { _actions.value = it }
                 }

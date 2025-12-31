@@ -123,7 +123,7 @@ fun ListingEditorScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(200.dp)
-                                .clip(Theme[shapes][com.composables.uikit.styling.medium]),
+                                .clip(Theme[shapes][medium]),
                             contentScale = ContentScale.Crop
                         )
                     } else {
@@ -131,7 +131,7 @@ fun ListingEditorScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(200.dp)
-                                .clip(Theme[shapes][com.composables.uikit.styling.medium])
+                                .clip(Theme[shapes][medium])
                                 .background(Theme[colors][outline].copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -168,7 +168,7 @@ fun ListingEditorScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Theme[colors][com.composables.uikit.styling.scrim])
+                        .background(Theme[colors][scrim])
                         .clickable(enabled = false) {},
                     contentAlignment = Alignment.Center
                 ) {

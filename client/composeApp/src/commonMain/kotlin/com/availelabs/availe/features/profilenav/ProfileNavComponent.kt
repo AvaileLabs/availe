@@ -25,6 +25,7 @@ import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalDecomposeApi::class)
 interface IProfileNavComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<ProfileNavConfiguration, ProfileNavChildComponent>>
     val actions: Value<List<AppBarAction>>
@@ -100,8 +101,7 @@ class ProfileNavComponent(
 
     init {
         childStack.subscribe { stack ->
-            val activeComponent = stack.active.instance
-            when (activeComponent) {
+            when (val activeComponent = stack.active.instance) {
                 is ProfileNavChildComponent.Profile -> {
                     activeComponent.component.actions.subscribe { _actions.value = it }
                 }

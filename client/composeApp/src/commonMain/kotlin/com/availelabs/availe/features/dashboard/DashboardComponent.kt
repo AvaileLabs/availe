@@ -91,7 +91,6 @@ class DashboardComponent(
             when (val instance = child.instance) {
                 is DashboardChildComponent.HomeNav -> instance.component
                 is DashboardChildComponent.ProfileNav -> instance.component
-                null -> null
             }
         }
     )
@@ -172,9 +171,7 @@ class DashboardComponent(
 
     override fun onBackClicked() {
         val selectedIndex = pages.value.selectedIndex
-        val activeInstance = pages.value.items[selectedIndex].instance
-
-        when (activeInstance) {
+        when (val activeInstance = pages.value.items[selectedIndex].instance) {
             is DashboardChildComponent.HomeNav -> activeInstance.component.onBackClicked()
             is DashboardChildComponent.ProfileNav -> activeInstance.component.onBackClicked()
             null -> {}
