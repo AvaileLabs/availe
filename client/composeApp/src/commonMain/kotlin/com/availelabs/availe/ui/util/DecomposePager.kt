@@ -29,12 +29,6 @@ fun <T : Any> rememberSyncedPagerState(
         }
     }
 
-    LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage != selectedIndex) {
-            onPageSelected(pagerState.currentPage)
-        }
-    }
-
     LaunchedEffect(pagerState.isScrollInProgress) {
         if (!pagerState.isScrollInProgress) {
             val currentPage = pagerState.currentPage
