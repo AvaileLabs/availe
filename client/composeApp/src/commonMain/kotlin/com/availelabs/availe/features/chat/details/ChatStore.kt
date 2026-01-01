@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalUuidApi::class)
 
-package com.availelabs.availe.features.chat
+package com.availelabs.availe.features.chat.details
 
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
@@ -10,7 +10,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.MessageContent
-import com.availelabs.availe.features.chat.ChatStore.*
+import com.availelabs.availe.features.chat.details.ChatStore.*
 import com.availelabs.availe.model.ChatMessage
 import com.availelabs.availe.repositories.IMessagingRepository
 import com.availelabs.availe.repositories.ISessionRepository

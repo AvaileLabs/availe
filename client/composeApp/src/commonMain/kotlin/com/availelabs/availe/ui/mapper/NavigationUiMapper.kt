@@ -17,7 +17,8 @@ object NavigationUiMapper {
                 contentDescription = Res.string.accessibility_navigation_home
             )
 
-            is AppShellConfiguration.Chat -> NavigationUiState(
+            is AppShellConfiguration.Chat,
+            is AppShellConfiguration.ChatOverlay -> NavigationUiState(
                 title = Res.string.navigation_chat,
                 icon = Lucide.MessageCircle,
                 contentDescription = Res.string.accessibility_navigation_chat

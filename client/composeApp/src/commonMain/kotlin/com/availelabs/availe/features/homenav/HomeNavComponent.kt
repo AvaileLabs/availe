@@ -10,6 +10,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.operator.map
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
+import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.features.home.HomeComponent
 import com.availelabs.availe.features.home.IHomeComponent
@@ -46,6 +47,7 @@ class HomeNavComponent(
     private val messageService: IMessageService,
     private val onNavigateToCreateListing: () -> Unit,
     private val onNavigateToChat: (UserId) -> Unit,
+    private val onNavigateToChatByJid: (Jid) -> Unit,
     private val onNavigateToSettings: () -> Unit,
     private val initialStack: List<HomeNavConfiguration> = listOf(HomeNavConfiguration.HomeFeed)
 ) : IHomeNavComponent, ComponentContext by componentContext {
@@ -125,9 +127,7 @@ class HomeNavComponent(
                     listingId = configuration.listingId,
                     listingRepository = listingRepository,
                     onNavigateBack = { navigation.pop() },
-                    onNavigateToChat = { jid ->
-                        // Placeholder logic
-                    },
+                    onNavigateToChat = onNavigateToChatByJid,
                     onNavigateToProfile = { userId ->
                         navigation.bringToFront(HomeNavConfiguration.Profile(userId))
                     }

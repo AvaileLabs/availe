@@ -16,7 +16,8 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.auth.AuthenticationState
-import com.availelabs.availe.features.chat.ChatScreen
+import com.availelabs.availe.features.chat.details.ChatScreen
+import com.availelabs.availe.features.chat.root.ChatRootScreen
 import com.availelabs.availe.features.dashboard.DashboardScreen
 import com.availelabs.availe.features.listingeditor.ListingEditorScreen
 import com.availelabs.availe.ui.animation.appStackAnimation
@@ -64,7 +65,6 @@ fun AppShellScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Enable back gesture if there is a back stack in AppShell OR inside Dashboard (showBackArrow is true)
         val isBackEnabled = showBackArrow
 
         PredictiveBackGestureOverlay(
@@ -113,20 +113,21 @@ internal fun ChatOverlay(
     modifier: Modifier = Modifier
 ) {
     val chatOverlay by appShellComponent.chatOverlay.subscribeAsState()
+    val shouldShowChatOverlay by appShellComponent.shouldShowChatOverlay.subscribeAsState()
     val overlayInstance = chatOverlay.child?.instance
 
-    if (overlayInstance != null) {
+    if (overlayInstance != null && shouldShowChatOverlay) {
         Box(
-            modifier = modifier.padding(end = 24.dp, bottom = 24.dp)
+            modifier = modifier.padding(end = 24.dp)
         ) {
             ChatOverlayWindow(
+                component = overlayInstance.component,
                 title = stringResource(Res.string.chat_title),
                 onExpand = appShellComponent::expandChatOverlay,
                 onClose = appShellComponent::dismissChatOverlay
             ) {
-                ChatScreen(
-                    component = overlayInstance.component,
-                    isOverlay = true
+                ChatRootScreen(
+                    component = overlayInstance.component
                 )
             }
         }
@@ -181,6 +182,10 @@ private fun AppShellChildComponent.Render(
         )
 
         is AppShellChildComponent.ListingEditor -> ListingEditorScreen(
+            component = this.component
+        )
+
+        is AppShellChildComponent.ChatOverlay -> ChatRootScreen(
             component = this.component
         )
     }

@@ -3,26 +3,21 @@ package com.availelabs.availe.features.appshell
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import availe.client.composeapp.generated.resources.Res
-import availe.client.composeapp.generated.resources.generic_back
-import availe.client.composeapp.generated.resources.navigation_home
-import availe.client.composeapp.generated.resources.navigation_profile
+import availe.client.composeapp.generated.resources.*
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.availelabs.availe.auth.AuthenticationState
+import com.availelabs.availe.features.chat.root.ChatRootScreen
+import com.availelabs.availe.ui.components.dialogs.ChatOverlayWindow
 import com.availelabs.availe.ui.components.layout.*
 import com.availelabs.availe.ui.components.navigation.ShellNavigationItem
 import com.availelabs.availe.ui.components.navigation.ShellRailNavigationItem
 import com.availelabs.availe.ui.mapper.NavigationUiMapper
 import com.availelabs.availe.ui.model.AppBarAction
-import com.composables.icons.lucide.ArrowLeft
-import com.composables.icons.lucide.House
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.User
+import com.composables.icons.lucide.*
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.IconButton
 import com.composables.uikit.components.Text
@@ -35,18 +30,28 @@ actual fun AppShellLayout(
     childStack: ChildStack<AppShellConfiguration, AppShellChildComponent>,
     authenticationState: AuthenticationState,
     isAuthenticationLoading: Boolean,
-    chatOverlay: ChildSlot<AppShellConfiguration.Chat, AppShellChildComponent.Chat>
+    chatOverlay: ChildSlot<AppShellConfiguration.ChatOverlay, AppShellChildComponent.ChatOverlay>
 ) {
     val windowSize = rememberWindowSize()
     val activeInstance = childStack.active.instance
     val childActions by activeInstance.actions.subscribeAsState()
     val activeConfiguration = childStack.active.configuration
     val showBackArrow by appShellComponent.showBackArrow.subscribeAsState()
+    val shouldShowChatOverlay by appShellComponent.shouldShowChatOverlay.subscribeAsState()
 
-    val dashboardComponent = (activeInstance as? AppShellChildComponent.Dashboard)?.component
+    val dashboardComponent = childStack.items
+        .map { it.instance }
+        .filterIsInstance<AppShellChildComponent.Dashboard>()
+        .firstOrNull()?.component
 
-    // Swipe is only enabled on Compact screens (Phone)
     val isSwipeEnabled = windowSize == WindowSizeClass.Compact
+
+    val navigateToTab: (() -> Unit) -> Unit = { performTabAction ->
+        if (activeInstance !is AppShellChildComponent.Dashboard) {
+            appShellComponent.onBackClicked()
+        }
+        performTabAction()
+    }
 
     AdaptiveScaffold(
         appBar = {
@@ -67,7 +72,7 @@ actual fun AppShellLayout(
                 AppBottomNavigation {
                     ShellNavigationItem(
                         selected = selectedIndex == 0,
-                        onClick = { dashboardComponent.onHomeTabClicked() },
+                        onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
                         icon = { Icon(Lucide.House, null) },
                         label = { Text(stringResource(Res.string.navigation_home)) },
                         modifier = Modifier.weight(1f)
@@ -75,7 +80,15 @@ actual fun AppShellLayout(
 
                     ShellNavigationItem(
                         selected = selectedIndex == 1,
-                        onClick = { dashboardComponent.onProfileTabClicked() },
+                        onClick = { navigateToTab { dashboardComponent.onChatTabClicked() } },
+                        icon = { Icon(Lucide.MessageCircle, null) },
+                        label = { Text(stringResource(Res.string.navigation_chat)) },
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    ShellNavigationItem(
+                        selected = selectedIndex == 2 || (selectedIndex == 1 && activeConfiguration is AppShellConfiguration.Dashboard && pages.items.size < 3),
+                        onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
                         icon = { Icon(Lucide.User, null) },
                         label = { Text(stringResource(Res.string.navigation_profile)) },
                         modifier = Modifier.weight(1f)
@@ -91,13 +104,19 @@ actual fun AppShellLayout(
                 AppNavigationRail {
                     ShellRailNavigationItem(
                         selected = selectedIndex == 0,
-                        onClick = { dashboardComponent.onHomeTabClicked() },
+                        onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
                         icon = { Icon(Lucide.House, null) }
                     )
 
                     ShellRailNavigationItem(
                         selected = selectedIndex == 1,
-                        onClick = { dashboardComponent.onProfileTabClicked() },
+                        onClick = { navigateToTab { dashboardComponent.onChatTabClicked() } },
+                        icon = { Icon(Lucide.MessageCircle, null) }
+                    )
+
+                    ShellRailNavigationItem(
+                        selected = selectedIndex == 2,
+                        onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
                         icon = { Icon(Lucide.User, null) }
                     )
                 }
@@ -114,10 +133,21 @@ actual fun AppShellLayout(
                     appShellComponent = appShellComponent,
                     isSwipeEnabled = isSwipeEnabled
                 )
-                ChatOverlay(
-                    appShellComponent = appShellComponent,
-                    modifier = Modifier.align(Alignment.BottomEnd)
-                )
+
+                if (shouldShowChatOverlay && chatOverlay.child != null) {
+                    val overlayInstance = chatOverlay.child!!.instance
+                    ChatOverlayWindow(
+                        component = overlayInstance.component,
+                        title = stringResource(Res.string.chat_title),
+                        onExpand = appShellComponent::expandChatOverlay,
+                        onClose = appShellComponent::dismissChatOverlay,
+                        content = {
+                            ChatRootScreen(
+                                component = overlayInstance.component
+                            )
+                        }
+                    )
+                }
             }
         }
     }
@@ -137,7 +167,6 @@ private fun SharedTopAppBar(
     val (icon, onIconClick) = if (showBackArrow) {
         Lucide.ArrowLeft to { appShellComponent.onBackClicked() }
     } else {
-        // Show Home icon or logo for root page visualization
         NavigationUiMapper.map(activeConfiguration).icon to {}
     }
 

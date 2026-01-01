@@ -8,16 +8,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import availe.client.composeapp.generated.resources.Res
-import availe.client.composeapp.generated.resources.navigation_home
-import availe.client.composeapp.generated.resources.navigation_profile
+import availe.client.composeapp.generated.resources.*
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.availelabs.availe.auth.AuthenticationState
+import com.availelabs.availe.features.chat.root.ChatRootScreen
+import com.availelabs.availe.ui.components.dialogs.ChatOverlayWindow
 import com.availelabs.availe.ui.components.layout.AppTopNavigation
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.MessageCircle
 import com.composables.icons.lucide.User
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.IconButton
@@ -33,10 +34,23 @@ actual fun AppShellLayout(
     childStack: ChildStack<AppShellConfiguration, AppShellChildComponent>,
     authenticationState: AuthenticationState,
     isAuthenticationLoading: Boolean,
-    chatOverlay: ChildSlot<AppShellConfiguration.Chat, AppShellChildComponent.Chat>
+    chatOverlay: ChildSlot<AppShellConfiguration.ChatOverlay, AppShellChildComponent.ChatOverlay>
 ) {
     val activeInstance = childStack.active.instance
     val childActions by activeInstance.actions.subscribeAsState()
+    val shouldShowChatOverlay by appShellComponent.shouldShowChatOverlay.subscribeAsState()
+
+    val dashboardComponent = childStack.items
+        .map { it.instance }
+        .filterIsInstance<AppShellChildComponent.Dashboard>()
+        .firstOrNull()?.component
+
+    val navigateToTab: (() -> Unit) -> Unit = { performTabAction ->
+        if (activeInstance !is AppShellChildComponent.Dashboard) {
+            appShellComponent.onBackClicked()
+        }
+        performTabAction()
+    }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -45,8 +59,7 @@ actual fun AppShellLayout(
                     Text("Availe", fontWeight = FontWeight.Bold)
                 },
                 navigationItems = {
-                    if (activeInstance is AppShellChildComponent.Dashboard) {
-                        val dashboardComponent = activeInstance.component
+                    if (dashboardComponent != null) {
                         val pages by dashboardComponent.pages.subscribeAsState()
                         val selectedIndex = pages.selectedIndex
 
@@ -54,8 +67,9 @@ actual fun AppShellLayout(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // Home
                             IconButton(
-                                onClick = { dashboardComponent.onHomeTabClicked() },
+                                onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
                                 backgroundColor = if (selectedIndex == 0) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
                             ) {
                                 Row(
@@ -67,10 +81,25 @@ actual fun AppShellLayout(
                                 }
                             }
 
+                            // Chat
+                            IconButton(
+                                onClick = { navigateToTab { dashboardComponent.onChatTabClicked() } },
+                                backgroundColor = if (selectedIndex == 1) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Lucide.MessageCircle, null)
+                                    Text(stringResource(Res.string.navigation_chat))
+                                }
+                            }
+
+                            // Profile
                             if (authenticationState is AuthenticationState.LoggedIn) {
                                 IconButton(
-                                    onClick = { dashboardComponent.onProfileTabClicked() },
-                                    backgroundColor = if (selectedIndex == 1) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                                    onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
+                                    backgroundColor = if (selectedIndex == 2) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
                                 ) {
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -114,10 +143,27 @@ actual fun AppShellLayout(
                     )
                 }
 
-                ChatOverlay(
-                    appShellComponent = appShellComponent,
-                    modifier = Modifier.align(Alignment.BottomEnd)
-                )
+                if (shouldShowChatOverlay && chatOverlay.child != null) {
+                    val overlayInstance = chatOverlay.child!!.instance
+                    // Use a Box to align bottom-end
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 24.dp)
+                    ) {
+                        ChatOverlayWindow(
+                            component = overlayInstance.component,
+                            title = stringResource(Res.string.chat_title),
+                            onExpand = appShellComponent::expandChatOverlay,
+                            onClose = appShellComponent::dismissChatOverlay,
+                            content = {
+                                ChatRootScreen(
+                                    component = overlayInstance.component
+                                )
+                            }
+                        )
+                    }
+                }
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.availelabs.availe.features.dashboard
 
+import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.UserId
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
@@ -12,6 +13,11 @@ sealed interface DashboardConfiguration {
     @Serializable
     data object Home : DashboardConfiguration {
         override fun toUrlPath(): String = ""
+    }
+
+    @Serializable
+    data class Chat(val initialJid: Jid? = null) : DashboardConfiguration {
+        override fun toUrlPath(): String = "chat"
     }
 
     @Serializable

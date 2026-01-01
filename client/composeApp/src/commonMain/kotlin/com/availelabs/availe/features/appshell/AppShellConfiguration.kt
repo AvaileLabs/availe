@@ -35,4 +35,11 @@ sealed interface AppShellConfiguration {
         override fun toUrlPath(): String =
             if (listingId == null) "/create-listing" else "/edit-listing/${listingId.value}"
     }
+
+    // Configuration for the persistent overlay slot.
+    // Now holds optional Jid to restore conversation state when switching layout modes.
+    @Serializable
+    data class ChatOverlay(val initialJid: Jid? = null) : AppShellConfiguration {
+        override fun toUrlPath(): String = ""
+    }
 }

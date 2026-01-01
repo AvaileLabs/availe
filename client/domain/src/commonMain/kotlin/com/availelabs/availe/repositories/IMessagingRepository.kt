@@ -3,6 +3,7 @@ package com.availelabs.availe.repositories
 import com.availelabs.availe.domain.model.AuthToken
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.MessageContent
+import com.availelabs.availe.model.ChatConversation
 import com.availelabs.availe.model.ChatMessage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,4 +23,5 @@ interface IMessagingRepository {
     suspend fun connect(jid: Jid, token: AuthToken)
     suspend fun disconnect()
     suspend fun sendMessage(to: Jid, body: MessageContent, from: Jid)
+    fun getConversations(): Flow<List<ChatConversation>>
 }

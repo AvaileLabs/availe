@@ -9,7 +9,9 @@ import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.availelabs.availe.features.chat.root.ChatRootScreen
 import com.availelabs.availe.features.home.HomeScreen
+import com.availelabs.availe.features.homenav.HomeNavChildComponent
 import com.availelabs.availe.features.listingdetails.ListingDetailsScreen
 import com.availelabs.availe.features.profile.ProfileScreen
 import com.availelabs.availe.features.profilenav.ProfileNavChildComponent
@@ -51,7 +53,7 @@ fun DashboardScreen(
                     )
                 ) {
                     when (val childInstance = it.instance) {
-                        is com.availelabs.availe.features.homenav.HomeNavChildComponent.HomeFeed -> {
+                        is HomeNavChildComponent.HomeFeed -> {
                             HomeScreen(
                                 homeComponent = childInstance.component,
                                 onSearchClick = {},
@@ -59,17 +61,24 @@ fun DashboardScreen(
                             )
                         }
 
-                        is com.availelabs.availe.features.homenav.HomeNavChildComponent.ListingDetails -> {
+                        is HomeNavChildComponent.ListingDetails -> {
                             ListingDetailsScreen(
                                 listingDetailsComponent = childInstance.component
                             )
                         }
 
-                        is com.availelabs.availe.features.homenav.HomeNavChildComponent.Profile -> {
+                        is HomeNavChildComponent.Profile -> {
                             ProfileScreen(component = childInstance.component)
                         }
                     }
                 }
+            }
+
+            is DashboardChildComponent.ChatRoot -> {
+                ChatRootScreen(
+                    component = instance.component,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
             is DashboardChildComponent.ProfileNav -> {

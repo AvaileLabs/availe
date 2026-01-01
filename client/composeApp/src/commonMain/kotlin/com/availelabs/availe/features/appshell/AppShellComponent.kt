@@ -16,9 +16,12 @@ import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.core.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
-import com.availelabs.availe.features.chat.ChatComponent
-import com.availelabs.availe.features.chat.IChatComponent
+import com.availelabs.availe.features.chat.details.ChatComponent
+import com.availelabs.availe.features.chat.details.IChatComponent
+import com.availelabs.availe.features.chat.root.ChatRootComponent
+import com.availelabs.availe.features.chat.root.IChatRootComponent
 import com.availelabs.availe.features.dashboard.DashboardComponent
+import com.availelabs.availe.features.dashboard.DashboardConfiguration
 import com.availelabs.availe.features.dashboard.IDashboardComponent
 import com.availelabs.availe.features.listingeditor.IListingEditorComponent
 import com.availelabs.availe.features.listingeditor.ListingEditorComponent
@@ -30,10 +33,11 @@ import kotlin.uuid.ExperimentalUuidApi
 @OptIn(ExperimentalDecomposeApi::class)
 interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>>
-    val chatOverlay: Value<ChildSlot<AppShellConfiguration.Chat, AppShellChildComponent.Chat>>
+    val chatOverlay: Value<ChildSlot<AppShellConfiguration.ChatOverlay, AppShellChildComponent.ChatOverlay>>
     val authenticationState: Value<AuthenticationState>
     val isAuthenticationLoading: Value<Boolean>
     val showBackArrow: Value<Boolean>
+    val shouldShowChatOverlay: Value<Boolean>
     val backDispatcher: BackDispatcher?
 
     fun onLayoutModeChanged(mode: LayoutMode)
@@ -59,7 +63,7 @@ class AppShellComponent(
 ) : IAppShellComponent, ComponentContext by componentContext {
 
     private val childStackNavigation = StackNavigation<AppShellConfiguration>()
-    private val chatOverlayNavigation = SlotNavigation<AppShellConfiguration.Chat>()
+    private val chatOverlayNavigation = SlotNavigation<AppShellConfiguration.ChatOverlay>()
     private var layoutMode = LayoutMode.SinglePane
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
@@ -75,18 +79,23 @@ class AppShellComponent(
         childFactory = ::createChildComponent
     )
 
-    override val chatOverlay: Value<ChildSlot<AppShellConfiguration.Chat, AppShellChildComponent.Chat>> = childSlot(
-        source = chatOverlayNavigation,
-        serializer = AppShellConfiguration.Chat.serializer(),
-        initialConfiguration = { calculateInitialOverlay(initialIntent) },
-        handleBackButton = false,
-        childFactory = ::createChatOverlayComponent
-    )
+    override val chatOverlay: Value<ChildSlot<AppShellConfiguration.ChatOverlay, AppShellChildComponent.ChatOverlay>> =
+        childSlot(
+            source = chatOverlayNavigation,
+            serializer = AppShellConfiguration.ChatOverlay.serializer(),
+            initialConfiguration = { null },
+            handleBackButton = false,
+            childFactory = ::createChatOverlayComponent
+        )
 
     private val _showBackArrow = MutableValue(false)
     override val showBackArrow: Value<Boolean> = _showBackArrow
 
+    private val _shouldShowChatOverlay = MutableValue(false)
+    override val shouldShowChatOverlay: Value<Boolean> = _shouldShowChatOverlay
+
     private var dashboardBackStateCancellation: Cancellation? = null
+    private var dashboardPagesCancellation: Cancellation? = null
 
     @OptIn(ExperimentalDecomposeApi::class)
     override val webNavigation: WebNavigation<*> = childStackWebNavigation(
@@ -105,13 +114,18 @@ class AppShellComponent(
         scope.launch {
             appContainer.sessionManager.authenticationState.collect { state ->
                 if (state !is AuthenticationState.LoggedIn) {
-                    dismissChatOverlay()
+                    chatOverlayNavigation.dismiss()
+                } else if (layoutMode == LayoutMode.MultiPane) {
+                    // Restore overlay on login if desktop
+                    chatOverlayNavigation.activate(AppShellConfiguration.ChatOverlay())
                 }
             }
         }
 
+        // Subscribe to stack changes to manage Back Arrow and Overlay Visibility
         childStack.subscribe { stack ->
             updateBackArrowState(stack)
+            updateOverlayVisibility(stack)
         }
     }
 
@@ -133,33 +147,73 @@ class AppShellComponent(
         }
     }
 
+    private fun updateOverlayVisibility(stack: ChildStack<AppShellConfiguration, AppShellChildComponent>) {
+        dashboardPagesCancellation?.cancel()
+        dashboardPagesCancellation = null
+
+        // 1. Must be Desktop/MultiPane mode
+        if (layoutMode != LayoutMode.MultiPane) {
+            _shouldShowChatOverlay.value = false
+            return
+        }
+
+        // 2. Must be on Dashboard (not separate Listing Editor or Chat route)
+        val activeInstance = stack.active.instance
+        if (activeInstance !is AppShellChildComponent.Dashboard) {
+            _shouldShowChatOverlay.value = true
+            // If we are in standalone Chat route (AppShellConfiguration.Chat), hide.
+            if (stack.active.configuration is AppShellConfiguration.Chat) {
+                _shouldShowChatOverlay.value = false
+            }
+            return
+        }
+
+        // 3. If on Dashboard, check the active Tab
+        dashboardPagesCancellation = activeInstance.component.pages.subscribe { pages ->
+            val activePage = pages.items[pages.selectedIndex]
+            val isChatTab = activePage.configuration is DashboardConfiguration.Chat
+
+            // Hide overlay if we are looking at the full-screen Chat Tab
+            _shouldShowChatOverlay.value = !isChatTab
+        }
+    }
+
     override fun onLayoutModeChanged(mode: LayoutMode) {
         if (layoutMode == mode) return
         layoutMode = mode
 
+        updateOverlayVisibility(childStack.value)
+
         if (mode == LayoutMode.SinglePane) {
             val overlayChild = chatOverlay.value.child
             if (overlayChild != null) {
-                val configuration = overlayChild.configuration
                 chatOverlayNavigation.dismiss()
-                childStackNavigation.bringToFront(configuration)
             }
         } else {
             val activeConfiguration = childStack.value.active.configuration
             if (activeConfiguration is AppShellConfiguration.Chat) {
                 childStackNavigation.pop()
-                chatOverlayNavigation.activate(activeConfiguration)
+                // FIX: Map AppShellConfiguration.Chat -> AppShellConfiguration.ChatOverlay(jid)
+                chatOverlayNavigation.activate(AppShellConfiguration.ChatOverlay(activeConfiguration.recipientJid))
+            } else if (authenticationState.value is AuthenticationState.LoggedIn) {
+                chatOverlayNavigation.activate(AppShellConfiguration.ChatOverlay())
             }
         }
     }
 
     @OptIn(DelicateDecomposeApi::class)
     override fun expandChatOverlay() {
-        val currentSlot = chatOverlay.value.child
-        if (currentSlot != null) {
-            val configuration = currentSlot.configuration
-            chatOverlayNavigation.dismiss()
-            childStackNavigation.bringToFront(configuration)
+        // "Maximize" logic: Go to Dashboard Chat Tab
+        val dashboard = childStack.value.items
+            .map { it.instance }
+            .filterIsInstance<AppShellChildComponent.Dashboard>()
+            .firstOrNull()?.component
+
+        if (dashboard != null) {
+            dashboard.onChatTabClicked()
+            if (childStack.value.active.configuration !is AppShellConfiguration.Dashboard) {
+                childStackNavigation.popTo(0)
+            }
         }
     }
 
@@ -216,11 +270,8 @@ class AppShellComponent(
         }
     }
 
-    private fun calculateInitialOverlay(intent: AppShellIntent): AppShellConfiguration.Chat? {
-        return when (intent) {
-            is AppShellIntent.ViewingListingWithChat -> AppShellConfiguration.Chat(intent.recipientJid)
-            else -> null
-        }
+    private fun calculateInitialOverlay(intent: AppShellIntent): AppShellConfiguration.ChatOverlay? {
+        return null
     }
 
     private fun createChildComponent(
@@ -235,6 +286,7 @@ class AppShellComponent(
                     sessionManager = appContainer.sessionManager,
                     messageService = appContainer.messageService,
                     authenticationRepository = appContainer.authenticationRepository,
+                    messagingRepository = appContainer.messagingRepository,
                     inAppBrowserLauncher = appContainer.inAppBrowserLauncher,
                     onNavigateToListingDetails = { listingId ->
                     },
@@ -242,6 +294,24 @@ class AppShellComponent(
                         childStackNavigation.pushToFront(AppShellConfiguration.ListingEditor(null))
                     },
                     onNavigateToChat = { userId ->
+                    },
+                    onNavigateToChatByJid = { jid ->
+                        if (layoutMode == LayoutMode.MultiPane) {
+                            // Desktop: Open/Select in Overlay
+                            // Ensure overlay is active
+                            chatOverlayNavigation.activate(AppShellConfiguration.ChatOverlay(jid))
+
+                            val overlay = chatOverlay.value.child?.instance
+                            overlay?.component?.selectConversation(jid)
+                        } else {
+                            // Mobile: Switch Dashboard tab to Chat
+                            val dashboard = childStack.value.items
+                                .map { it.instance }
+                                .filterIsInstance<AppShellChildComponent.Dashboard>()
+                                .firstOrNull()?.component
+
+                            dashboard?.selectChat(jid)
+                        }
                     },
                     onNavigateToSettings = {
                     },
@@ -270,20 +340,35 @@ class AppShellComponent(
                     onNavigateBack = { childStackNavigation.pop() }
                 )
             )
+
+            is AppShellConfiguration.ChatOverlay -> {
+                // Should not happen in main stack, but good to handle
+                AppShellChildComponent.ChatOverlay(
+                    ChatRootComponent(
+                        componentContext = componentContext,
+                        messagingRepository = appContainer.messagingRepository,
+                        sessionManager = appContainer.sessionManager,
+                        initialJid = configuration.initialJid,
+                        onNavigateBack = { childStackNavigation.pop() }
+                    )
+                )
+            }
         }
     }
 
     private fun createChatOverlayComponent(
-        configuration: AppShellConfiguration.Chat,
+        configuration: AppShellConfiguration.ChatOverlay,
         componentContext: ComponentContext
-    ): AppShellChildComponent.Chat {
-        return AppShellChildComponent.Chat(
-            ChatComponent(
+    ): AppShellChildComponent.ChatOverlay {
+        return AppShellChildComponent.ChatOverlay(
+            ChatRootComponent(
                 componentContext = componentContext,
-                recipientJid = configuration.recipientJid,
-                sessionManager = appContainer.sessionManager,
                 messagingRepository = appContainer.messagingRepository,
-                onNavigateBack = { chatOverlayNavigation.dismiss() }
+                sessionManager = appContainer.sessionManager,
+                initialJid = configuration.initialJid,
+                onNavigateBack = {
+                    // No-op for overlay back
+                }
             )
         )
     }
@@ -302,5 +387,9 @@ sealed interface AppShellChildComponent {
 
     data class ListingEditor(val component: IListingEditorComponent) : AppShellChildComponent {
         override val actions: Value<List<AppBarAction>> = component.actions
+    }
+
+    data class ChatOverlay(val component: IChatRootComponent) : AppShellChildComponent {
+        override val actions: Value<List<AppBarAction>> = MutableValue(emptyList())
     }
 }

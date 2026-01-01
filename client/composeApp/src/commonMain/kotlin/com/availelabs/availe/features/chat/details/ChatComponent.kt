@@ -1,4 +1,4 @@
-package com.availelabs.availe.features.chat
+package com.availelabs.availe.features.chat.details
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue

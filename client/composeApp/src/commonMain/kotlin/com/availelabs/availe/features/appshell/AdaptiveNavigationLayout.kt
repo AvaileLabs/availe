@@ -12,7 +12,7 @@ expect fun AppShellLayout(
     childStack: ChildStack<AppShellConfiguration, AppShellChildComponent>,
     authenticationState: AuthenticationState,
     isAuthenticationLoading: Boolean,
-    chatOverlay: ChildSlot<AppShellConfiguration.Chat, AppShellChildComponent.Chat>
+    chatOverlay: ChildSlot<AppShellConfiguration.ChatOverlay, AppShellChildComponent.ChatOverlay>
 )
 
 @Composable

@@ -11,6 +11,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.operator.map
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.features.listingdetails.IListingDetailsComponent
 import com.availelabs.availe.features.listingdetails.ListingDetailsComponent
@@ -50,6 +51,7 @@ class ProfileNavComponent(
     private val authenticationRepository: IAuthenticationRepository,
     private val messageService: IMessageService,
     private val onNavigateToChat: (UserId) -> Unit,
+    private val onNavigateToChatByJid: (Jid) -> Unit,
     private val onOpenUrl: (String) -> Unit,
     private val initialStack: List<ProfileNavConfiguration>
 ) : IProfileNavComponent, ComponentContext by componentContext {
@@ -62,6 +64,7 @@ class ProfileNavComponent(
         authenticationRepository: IAuthenticationRepository,
         messageService: IMessageService,
         onNavigateToChat: (UserId) -> Unit,
+        onNavigateToChatByJid: (Jid) -> Unit,
         onOpenUrl: (String) -> Unit
     ) : this(
         componentContext,
@@ -71,6 +74,7 @@ class ProfileNavComponent(
         authenticationRepository,
         messageService,
         onNavigateToChat,
+        onNavigateToChatByJid,
         onOpenUrl,
         listOf(ProfileNavConfiguration.Profile(userId))
     )
@@ -160,8 +164,7 @@ class ProfileNavComponent(
                     listingId = configuration.listingId,
                     listingRepository = listingRepository,
                     onNavigateBack = { navigation.pop() },
-                    onNavigateToChat = { jid ->
-                    },
+                    onNavigateToChat = onNavigateToChatByJid,
                     onNavigateToProfile = { userId ->
                         navigation.bringToFront(ProfileNavConfiguration.Profile(userId))
                     }
