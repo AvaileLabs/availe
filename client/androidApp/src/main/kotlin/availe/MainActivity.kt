@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.arkivanov.decompose.defaultComponentContext
 import com.availelabs.availe.di.createApplicationContainer
-import com.availelabs.availe.features.root.RootComponent
+import com.availelabs.availe.root.RootComponent
 
 class MainActivity : ComponentActivity() {
 

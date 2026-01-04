@@ -42,6 +42,8 @@ kotlin {
             export(projects.client.core)
             export(projects.shared.logic)
             export(projects.shared.configuration)
+            export(projects.client.domain)
+            export(projects.client.features.appShell)
             export(libs.decompose)
             export(libs.decompose.extensions.compose)
             export(libs.essenty.lifecycle)
@@ -114,11 +116,11 @@ kotlin {
             implementation(libs.multiplatform.settings.no.arg)
             implementation(libs.kotlinx.coroutines.core)
             implementation(projects.client.core)
-            implementation(projects.client.domain)
+            api(projects.client.domain)
             implementation(projects.client.data)
             implementation(projects.client.designSystem)
             implementation(projects.client.uiComponents)
-            implementation(projects.client.features.appShell)
+            api(projects.client.features.appShell)
             implementation(projects.client.features.session)
 
             // Ktor
