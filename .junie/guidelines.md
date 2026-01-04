@@ -6,7 +6,6 @@
   Injection wiring. Strictly no business logic.
 * **:client:features:app-shell**: The UI Orchestrator and Navigation Root. Manages the global navigation tree,
   Dashboard, and high-level layout logic. Acts as the implementation provider for feature navigation interfaces.
-  Complex components here are split by responsibility (`component/`, `router/`, `model/`, `ui/`).
 * **:client:features:session**: Global Session State. Manages shared authentication status and user session data to
   prevent circular dependencies between features.
 * **:client:features:**: Vertical Feature Slices (e.g., `auth`, `home`, `chat`, `profile`). Encapsulated modules
@@ -67,11 +66,10 @@
     * Give variables and files explicit full names with no abbreviations.
 * **Comments**: Do not include any code comments at all.
 * **File Structure**:
-    * If possible, keep interfaces and implementations in the same file, with the interface on top and the
-      implementation
-      below.
-    * For complex components (specifically `AppShell`), violate the single-file rule and split by architectural
-      responsibility (e.g., `component/`, `router/`, `model/`, `ui/`).
+    * Keep interfaces and implementations in the same file when possible, with the interface on top and the
+      implementation below.
+    * **Exception**: Large, complex components (like `AppShell`) should be split into distinct packages by
+      responsibility (e.g., `component`, `router`, `model`, `ui`) to ensure maintainability and separation of concerns.
 * **Type Safety**:
     * Use sealed interfaces to enforce type safety and prevent invalid states.
     * Always use value classes whenever possible to improve type safety.
