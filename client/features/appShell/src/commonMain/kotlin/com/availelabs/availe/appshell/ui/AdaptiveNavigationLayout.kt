@@ -1,9 +1,12 @@
-package com.availelabs.availe.appshell
+package com.availelabs.availe.appshell.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
+import com.availelabs.availe.appshell.component.AppShellChildComponent
+import com.availelabs.availe.appshell.component.IAppShellComponent
+import com.availelabs.availe.appshell.model.AppShellConfiguration
 import com.availelabs.availe.auth.AuthenticationState
 
 @Composable

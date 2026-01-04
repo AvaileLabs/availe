@@ -1,4 +1,4 @@
-package com.availelabs.availe.appshell
+package com.availelabs.availe.appshell.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,11 +15,16 @@ import availe.client.designsystem.generated.resources.chat_title
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.availelabs.availe.appshell.component.AppShellChildComponent
+import com.availelabs.availe.appshell.component.IAppShellComponent
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.chat.details.ChatScreen
 import com.availelabs.availe.chat.root.ChatRootScreen
 import com.availelabs.availe.dashboard.DashboardScreen
+import com.availelabs.availe.listingdetails.ListingDetailsScreen
 import com.availelabs.availe.listingeditor.ListingEditorScreen
+import com.availelabs.availe.profile.ProfileScreen
+import com.availelabs.availe.settings.SettingsScreen
 import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.PredictiveBackGestureOverlay
 import com.availelabs.availe.ui.components.dialogs.ChatOverlayWindow
@@ -185,6 +190,18 @@ private fun AppShellChildComponent.Render(
         )
 
         is AppShellChildComponent.ChatOverlay -> ChatRootScreen(
+            component = this.component
+        )
+
+        is AppShellChildComponent.ListingDetails -> ListingDetailsScreen(
+            listingDetailsComponent = this.component
+        )
+
+        is AppShellChildComponent.Profile -> ProfileScreen(
+            component = this.component
+        )
+
+        is AppShellChildComponent.Settings -> SettingsScreen(
             component = this.component
         )
     }

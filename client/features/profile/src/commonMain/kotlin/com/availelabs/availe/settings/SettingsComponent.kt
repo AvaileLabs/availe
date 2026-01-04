@@ -25,7 +25,7 @@ class SettingsComponent(
     storeFactory: StoreFactory,
     sessionManager: ISessionRepository,
     authenticationRepository: IAuthenticationRepository,
-    private val onOpenUrl: (String) -> Unit
+    private val navigator: ISettingsNavigator
 ) : ISettingsComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -50,13 +50,13 @@ class SettingsComponent(
         scope.launch {
             store.labels.collect { label ->
                 when (label) {
-                    is ISettingsStore.Label.SettingsSaved -> { /* Handle success toast? */
+                    is ISettingsStore.Label.SettingsSaved -> {
                     }
 
-                    is ISettingsStore.Label.InfoMessage -> { /* Handle info toast? */
+                    is ISettingsStore.Label.InfoMessage -> {
                     }
 
-                    is ISettingsStore.Label.OpenUrl -> onOpenUrl(label.url)
+                    is ISettingsStore.Label.OpenUrl -> navigator.openUrl(label.url)
                 }
             }
         }

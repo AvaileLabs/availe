@@ -1,4 +1,4 @@
-package com.availelabs.availe.appshell
+package com.availelabs.availe.appshell.model
 
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId

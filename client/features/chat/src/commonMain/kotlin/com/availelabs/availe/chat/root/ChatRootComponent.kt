@@ -26,7 +26,7 @@ class ChatRootComponent(
     private val messagingRepository: IMessagingRepository,
     private val sessionManager: ISessionRepository,
     private val initialJid: Jid? = null,
-    private val onNavigateBack: () -> Unit
+    private val navigator: IChatNavigator
 ) : IChatRootComponent, ComponentContext by componentContext {
 
     private val navigation = PanelsNavigation<ChatRootConfiguration.List, ChatRootConfiguration.Details, Nothing>()

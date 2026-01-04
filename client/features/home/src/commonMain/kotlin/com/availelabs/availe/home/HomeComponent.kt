@@ -9,7 +9,6 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.ListingCategory
-import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.listingfeed.IListingFeedComponent
 import com.availelabs.availe.listingfeed.ListingFeedComponent
 import com.availelabs.availe.repositories.IListingRepository
@@ -30,9 +29,8 @@ class HomeComponent(
     componentContext: ComponentContext,
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionRepository,
-    private val onNavigateToListingDetails: (ListingId) -> Unit,
-    private val onNavigateToCreateListing: () -> Unit,
-    private val messageService: IMessageService
+    private val messageService: IMessageService,
+    private val navigator: IHomeNavigator
 ) : IHomeComponent, ComponentContext by componentContext {
 
     private val navigation = PagesNavigation<HomeConfiguration>()
@@ -68,7 +66,7 @@ class HomeComponent(
                         AppBarAction(
                             icon = ActionIcon.ADD,
                             label = UiText.ResourceString(Res.string.accessibility_action_add),
-                            onClick = onNavigateToCreateListing
+                            onClick = navigator::navigateToCreateListing
                         )
                     )
                 } else {
@@ -93,7 +91,7 @@ class HomeComponent(
                 listingRepository = listingRepository,
                 sessionManager = sessionManager,
                 messageService = messageService,
-                onNavigateToListingDetails = onNavigateToListingDetails
+                onNavigateToListingDetails = navigator::navigateToListingDetails
             )
         }
     }

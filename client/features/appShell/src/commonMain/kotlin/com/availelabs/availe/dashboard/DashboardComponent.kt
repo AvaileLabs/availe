@@ -9,24 +9,15 @@ import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
-import com.availelabs.availe.appshell.AppShellIntent
-import com.availelabs.availe.chat.root.ChatRootComponent
+import com.availelabs.availe.appshell.model.AppShellIntent
 import com.availelabs.availe.chat.root.IChatRootComponent
-import com.availelabs.availe.core.platform.IInAppBrowserLauncher
 import com.availelabs.availe.domain.model.Jid
-import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
-import com.availelabs.availe.homenav.HomeNavComponent
 import com.availelabs.availe.homenav.HomeNavConfiguration
 import com.availelabs.availe.homenav.IHomeNavComponent
 import com.availelabs.availe.profilenav.IProfileNavComponent
-import com.availelabs.availe.profilenav.ProfileNavComponent
 import com.availelabs.availe.profilenav.ProfileNavConfiguration
-import com.availelabs.availe.repositories.IAuthenticationRepository
-import com.availelabs.availe.repositories.IListingRepository
-import com.availelabs.availe.repositories.IMessagingRepository
 import com.availelabs.availe.repositories.ISessionRepository
-import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlinx.coroutines.*
 import kotlin.uuid.ExperimentalUuidApi
@@ -54,17 +45,10 @@ sealed interface DashboardChildComponent {
 
 class DashboardComponent(
     componentContext: ComponentContext,
-    private val listingRepository: IListingRepository,
     private val sessionManager: ISessionRepository,
-    private val authenticationRepository: IAuthenticationRepository,
-    private val messageService: IMessageService,
-    private val messagingRepository: IMessagingRepository,
-    private val inAppBrowserLauncher: IInAppBrowserLauncher,
-    private val onNavigateToListingDetails: (ListingId) -> Unit,
-    private val onNavigateToCreateListing: () -> Unit,
-    private val onNavigateToChat: (UserId) -> Unit,
-    private val onNavigateToChatByJid: (Jid) -> Unit,
-    private val onNavigateToSettings: () -> Unit,
+    private val homeNavFactory: (ComponentContext, List<HomeNavConfiguration>) -> IHomeNavComponent,
+    private val chatRootFactory: (ComponentContext, Jid?) -> IChatRootComponent,
+    private val profileNavFactory: (ComponentContext, UserId, List<ProfileNavConfiguration>) -> IProfileNavComponent,
     private val onShowLoginGuard: () -> Unit,
     private val initialIntent: AppShellIntent? = null
 ) : IDashboardComponent, ComponentContext by componentContext {
@@ -157,9 +141,6 @@ class DashboardComponent(
         scope.launch {
             val userProfile = sessionManager.getCurrentUserProfile()
             if (userProfile != null) {
-                // Ensure Chat configuration exists (it might be duplicated if we push, but Pages usually unique)
-                // We use replace or select.
-                // Assuming standard 3 tabs setup: Home(0), Chat(1), Profile(2)
                 navigation.select(1)
             } else {
                 onShowLoginGuard()
@@ -171,10 +152,6 @@ class DashboardComponent(
         scope.launch {
             val userProfile = sessionManager.getCurrentUserProfile()
             if (userProfile != null) {
-                // Check if profile is at index 2, if so select it.
-                // Dynamic page updating is complex, we assume static 3 tabs for now based on createChild logic
-                // except initial load can be different.
-                // To be safe with `updatePages` we ensure structure.
                 if (pages.value.items.none { it.configuration is DashboardConfiguration.Profile }) {
                     updatePages(
                         listOf(
@@ -210,7 +187,7 @@ class DashboardComponent(
         when (val activeInstance = pages.value.items[selectedIndex].instance) {
             is DashboardChildComponent.HomeNav -> activeInstance.component.onBackClicked()
             is DashboardChildComponent.ProfileNav -> activeInstance.component.onBackClicked()
-            is DashboardChildComponent.ChatRoot -> {} // Chat root typically doesn't have a back stack in this context
+            is DashboardChildComponent.ChatRoot -> {}
             null -> {}
         }
     }
@@ -243,16 +220,9 @@ class DashboardComponent(
     }
 
     override fun selectChat(jid: Jid) {
-        // Switch to Chat tab
         val chatIndex = pages.value.items.indexOfFirst { it.configuration is DashboardConfiguration.Chat }
         if (chatIndex != -1) {
             navigation.select(chatIndex)
-            // If the component is already created, we need to tell it to select the Jid.
-            // Since `pages` is observable, we can try to get the instance immediately if active,
-            // or we rely on the configuration update.
-            // However, Pages navigation doesn't easily support updating the configuration of an existing page
-            // to pass data without recreating it or using a side channel.
-            // Best approach here: Cast the component instance and call a method.
             val chatInstance = pages.value.items[chatIndex].instance as? DashboardChildComponent.ChatRoot
             chatInstance?.component?.selectConversation(jid)
         }
@@ -284,29 +254,13 @@ class DashboardComponent(
                 }
 
                 DashboardChildComponent.HomeNav(
-                    HomeNavComponent(
-                        componentContext = componentContext,
-                        listingRepository = listingRepository,
-                        sessionManager = sessionManager,
-                        messageService = messageService,
-                        onNavigateToCreateListing = onNavigateToCreateListing,
-                        onNavigateToChat = onNavigateToChat,
-                        onNavigateToChatByJid = onNavigateToChatByJid, // Passed from AppShell
-                        onNavigateToSettings = onNavigateToSettings,
-                        initialStack = initialStack
-                    )
+                    homeNavFactory(componentContext, initialStack)
                 )
             }
 
             is DashboardConfiguration.Chat -> {
                 DashboardChildComponent.ChatRoot(
-                    ChatRootComponent(
-                        componentContext = componentContext,
-                        messagingRepository = messagingRepository,
-                        sessionManager = sessionManager,
-                        initialJid = configuration.initialJid,
-                        onNavigateBack = { /* Chat root back handling */ }
-                    )
+                    chatRootFactory(componentContext, configuration.initialJid)
                 )
             }
 
@@ -321,29 +275,13 @@ class DashboardComponent(
                 }
 
                 DashboardChildComponent.ProfileNav(
-                    ProfileNavComponent(
-                        componentContext = componentContext,
-                        userId = configuration.userId,
-                        listingRepository = listingRepository,
-                        sessionManager = sessionManager,
-                        authenticationRepository = authenticationRepository,
-                        messageService = messageService,
-                        onNavigateToChat = onNavigateToChat,
-                        onNavigateToChatByJid = onNavigateToChatByJid,
-                        onOpenUrl = { url -> inAppBrowserLauncher.open(url) },
-                        initialStack = initialStack
-                    )
+                    profileNavFactory(componentContext, configuration.userId, initialStack)
                 )
             }
         }
     }
 
     private fun calculateInitialPages(intent: AppShellIntent?): Pages<DashboardConfiguration> {
-        // Initialize with all 3 tabs to ensure index alignment
-        // We can't know the userId for Profile yet if not logged in or passed,
-        // so we might need a default list or dynamic update on login.
-        // For simplicity, we start with Home and Chat. Profile is added dynamically on login in existing logic.
-        // Let's add Chat by default.
         return Pages(
             items = listOf(
                 DashboardConfiguration.Home,

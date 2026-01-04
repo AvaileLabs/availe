@@ -30,9 +30,7 @@ class ListingDetailsComponent(
     componentContext: ComponentContext,
     private val listingId: ListingId,
     private val listingRepository: IListingRepository,
-    private val onNavigateBack: () -> Unit,
-    private val onNavigateToChat: (Jid) -> Unit,
-    private val onNavigateToProfile: (UserId) -> Unit
+    private val navigator: IListingDetailsNavigator
 ) : IListingDetailsComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -58,15 +56,15 @@ class ListingDetailsComponent(
     }
 
     override fun onBackClicked() {
-        onNavigateBack()
+        navigator.navigateBack()
     }
 
     override fun onContactSellerClicked(sellerEmail: Email) {
         val jid = Jid("${sellerEmail.value}@${SharedNetworkConstants.XMPP_DOMAIN}")
-        onNavigateToChat(jid)
+        navigator.navigateToChat(jid)
     }
 
     override fun onProfileClicked(userId: UserId) {
-        onNavigateToProfile(userId)
+        navigator.navigateToProfile(userId)
     }
 }

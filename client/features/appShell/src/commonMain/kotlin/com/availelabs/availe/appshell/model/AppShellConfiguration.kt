@@ -1,7 +1,8 @@
-package com.availelabs.availe.appshell
+package com.availelabs.availe.appshell.model
 
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.domain.model.UserId
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -36,8 +37,27 @@ sealed interface AppShellConfiguration {
             if (listingId == null) "/create-listing" else "/edit-listing/${listingId.value}"
     }
 
-    // Configuration for the persistent overlay slot.
-    // Now holds optional Jid to restore conversation state when switching layout modes.
+    @Serializable
+    data class ListingDetails(val listingId: ListingId) : AppShellConfiguration {
+        override val canonicalParent: AppShellConfiguration = Dashboard
+
+        override fun toUrlPath(): String = "/listing/${listingId.value}"
+    }
+
+    @Serializable
+    data class Profile(val userId: UserId) : AppShellConfiguration {
+        override val canonicalParent: AppShellConfiguration = Dashboard
+
+        override fun toUrlPath(): String = "/profile/${userId.value}"
+    }
+
+    @Serializable
+    data object Settings : AppShellConfiguration {
+        override val canonicalParent: AppShellConfiguration = Dashboard
+
+        override fun toUrlPath(): String = "/settings"
+    }
+
     @Serializable
     data class ChatOverlay(val initialJid: Jid? = null) : AppShellConfiguration {
         override fun toUrlPath(): String = ""

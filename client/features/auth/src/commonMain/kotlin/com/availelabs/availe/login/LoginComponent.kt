@@ -8,10 +8,10 @@ interface ILoginComponent {
 
 class LoginComponent(
     componentContext: ComponentContext,
-    private val onDismiss: () -> Unit
+    private val navigator: ILoginNavigator
 ) : ILoginComponent, ComponentContext by componentContext {
 
     override fun onDismissClicked() {
-        onDismiss()
+        navigator.dismissLogin()
     }
 }

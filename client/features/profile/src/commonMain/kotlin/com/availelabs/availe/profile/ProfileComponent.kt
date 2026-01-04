@@ -8,7 +8,6 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.model.ToastMessage
 import com.availelabs.availe.repositories.IListingRepository
@@ -31,10 +30,7 @@ class ProfileComponent(
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionRepository,
     private val messageService: IMessageService,
-    private val onNavigateBack: () -> Unit,
-    private val onNavigateToListing: (ListingId) -> Unit,
-    private val onNavigateToChat: (UserId) -> Unit,
-    private val onNavigateToSettings: () -> Unit
+    private val navigator: IProfileNavigator
 ) : IProfileComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -58,10 +54,10 @@ class ProfileComponent(
         scope.launch {
             store.labels.collect { label ->
                 when (label) {
-                    is ProfileStore.Label.NavigateToListingDetails -> onNavigateToListing(label.listingId)
-                    ProfileStore.Label.NavigateBack -> onNavigateBack()
-                    ProfileStore.Label.NavigateToChat -> onNavigateToChat(targetUserId)
-                    ProfileStore.Label.NavigateToSettings -> onNavigateToSettings()
+                    is ProfileStore.Label.NavigateToListingDetails -> navigator.navigateToListing(label.listingId)
+                    ProfileStore.Label.NavigateBack -> navigator.navigateBack()
+                    ProfileStore.Label.NavigateToChat -> navigator.navigateToChat(targetUserId)
+                    ProfileStore.Label.NavigateToSettings -> navigator.navigateToSettings()
                     is ProfileStore.Label.ErrorOccurred -> {
                         messageService.show(ToastMessage.Error(label.error))
                     }

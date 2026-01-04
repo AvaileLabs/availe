@@ -10,17 +10,11 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.operator.map
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
-import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
-import com.availelabs.availe.home.HomeComponent
 import com.availelabs.availe.home.IHomeComponent
 import com.availelabs.availe.listingdetails.IListingDetailsComponent
-import com.availelabs.availe.listingdetails.ListingDetailsComponent
 import com.availelabs.availe.profile.IProfileComponent
-import com.availelabs.availe.profile.ProfileComponent
-import com.availelabs.availe.repositories.IListingRepository
-import com.availelabs.availe.repositories.ISessionRepository
-import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -42,13 +36,9 @@ sealed interface HomeNavChildComponent {
 
 class HomeNavComponent(
     componentContext: ComponentContext,
-    private val listingRepository: IListingRepository,
-    private val sessionManager: ISessionRepository,
-    private val messageService: IMessageService,
-    private val onNavigateToCreateListing: () -> Unit,
-    private val onNavigateToChat: (UserId) -> Unit,
-    private val onNavigateToChatByJid: (Jid) -> Unit,
-    private val onNavigateToSettings: () -> Unit,
+    private val homeFactory: (ComponentContext) -> IHomeComponent,
+    private val listingDetailsFactory: (ComponentContext, ListingId) -> IListingDetailsComponent,
+    private val profileFactory: (ComponentContext, UserId) -> IProfileComponent,
     private val initialStack: List<HomeNavConfiguration> = listOf(HomeNavConfiguration.HomeFeed)
 ) : IHomeNavComponent, ComponentContext by componentContext {
 
@@ -109,45 +99,15 @@ class HomeNavComponent(
     ): HomeNavChildComponent {
         return when (configuration) {
             is HomeNavConfiguration.HomeFeed -> HomeNavChildComponent.HomeFeed(
-                HomeComponent(
-                    componentContext = componentContext,
-                    listingRepository = listingRepository,
-                    sessionManager = sessionManager,
-                    messageService = messageService,
-                    onNavigateToListingDetails = { listingId ->
-                        navigation.push(HomeNavConfiguration.ListingDetails(listingId))
-                    },
-                    onNavigateToCreateListing = onNavigateToCreateListing
-                )
+                homeFactory(componentContext)
             )
 
             is HomeNavConfiguration.ListingDetails -> HomeNavChildComponent.ListingDetails(
-                ListingDetailsComponent(
-                    componentContext = componentContext,
-                    listingId = configuration.listingId,
-                    listingRepository = listingRepository,
-                    onNavigateBack = { navigation.pop() },
-                    onNavigateToChat = onNavigateToChatByJid,
-                    onNavigateToProfile = { userId ->
-                        navigation.bringToFront(HomeNavConfiguration.Profile(userId))
-                    }
-                )
+                listingDetailsFactory(componentContext, configuration.listingId)
             )
 
             is HomeNavConfiguration.Profile -> HomeNavChildComponent.Profile(
-                ProfileComponent(
-                    componentContext = componentContext,
-                    targetUserId = configuration.userId,
-                    listingRepository = listingRepository,
-                    sessionManager = sessionManager,
-                    messageService = messageService,
-                    onNavigateBack = { navigation.pop() },
-                    onNavigateToListing = { listingId ->
-                        navigation.push(HomeNavConfiguration.ListingDetails(listingId))
-                    },
-                    onNavigateToChat = onNavigateToChat,
-                    onNavigateToSettings = onNavigateToSettings
-                )
+                profileFactory(componentContext, configuration.userId)
             )
         }
     }

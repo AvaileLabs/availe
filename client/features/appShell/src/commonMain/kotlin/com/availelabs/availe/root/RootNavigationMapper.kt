@@ -2,7 +2,7 @@
 
 package com.availelabs.availe.root
 
-import com.availelabs.availe.appshell.AppShellIntent
+import com.availelabs.availe.appshell.model.AppShellIntent
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId

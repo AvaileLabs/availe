@@ -36,7 +36,7 @@ class ListingEditorComponent(
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionRepository,
     private val messageService: IMessageService,
-    private val onNavigateBack: () -> Unit
+    private val navigator: IListingEditorNavigator
 ) : IListingEditorComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -71,12 +71,12 @@ class ListingEditorComponent(
                 when (label) {
                     ListingEditorLabel.ListingCreated -> {
                         messageService.show(ToastMessage.Success("Listing created successfully"))
-                        onNavigateBack()
+                        navigator.navigateBack()
                     }
 
                     ListingEditorLabel.ListingUpdated -> {
                         messageService.show(ToastMessage.Success("Listing updated successfully"))
-                        onNavigateBack()
+                        navigator.navigateBack()
                     }
 
                     is ListingEditorLabel.ErrorOccurred -> {
@@ -92,6 +92,6 @@ class ListingEditorComponent(
     }
 
     override fun onBackClicked() {
-        onNavigateBack()
+        navigator.navigateBack()
     }
 }

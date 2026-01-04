@@ -26,7 +26,7 @@ class ChatComponent(
     private val recipientJid: Jid,
     private val messagingRepository: IMessagingRepository,
     private val sessionManager: ISessionRepository,
-    private val onNavigateBack: () -> Unit
+    private val onNavigateBack: () -> Unit // Kept as lambda for internal panel navigation
 ) : IChatComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {

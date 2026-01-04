@@ -10,19 +10,11 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.operator.map
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
-import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.listingdetails.IListingDetailsComponent
-import com.availelabs.availe.listingdetails.ListingDetailsComponent
 import com.availelabs.availe.profile.IProfileComponent
-import com.availelabs.availe.profile.ProfileComponent
-import com.availelabs.availe.repositories.IAuthenticationRepository
-import com.availelabs.availe.repositories.IListingRepository
-import com.availelabs.availe.repositories.ISessionRepository
-import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.settings.ISettingsComponent
-import com.availelabs.availe.settings.SettingsComponent
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -46,36 +38,24 @@ sealed interface ProfileNavChildComponent {
 class ProfileNavComponent(
     componentContext: ComponentContext,
     private val userId: UserId,
-    private val listingRepository: IListingRepository,
-    private val sessionManager: ISessionRepository,
-    private val authenticationRepository: IAuthenticationRepository,
-    private val messageService: IMessageService,
-    private val onNavigateToChat: (UserId) -> Unit,
-    private val onNavigateToChatByJid: (Jid) -> Unit,
-    private val onOpenUrl: (String) -> Unit,
+    private val profileFactory: (ComponentContext, UserId) -> IProfileComponent,
+    private val listingDetailsFactory: (ComponentContext, ListingId) -> IListingDetailsComponent,
+    private val settingsFactory: (ComponentContext) -> ISettingsComponent,
     private val initialStack: List<ProfileNavConfiguration>
 ) : IProfileNavComponent, ComponentContext by componentContext {
 
     constructor(
         componentContext: ComponentContext,
         userId: UserId,
-        listingRepository: IListingRepository,
-        sessionManager: ISessionRepository,
-        authenticationRepository: IAuthenticationRepository,
-        messageService: IMessageService,
-        onNavigateToChat: (UserId) -> Unit,
-        onNavigateToChatByJid: (Jid) -> Unit,
-        onOpenUrl: (String) -> Unit
+        profileFactory: (ComponentContext, UserId) -> IProfileComponent,
+        listingDetailsFactory: (ComponentContext, ListingId) -> IListingDetailsComponent,
+        settingsFactory: (ComponentContext) -> ISettingsComponent
     ) : this(
         componentContext,
         userId,
-        listingRepository,
-        sessionManager,
-        authenticationRepository,
-        messageService,
-        onNavigateToChat,
-        onNavigateToChatByJid,
-        onOpenUrl,
+        profileFactory,
+        listingDetailsFactory,
+        settingsFactory,
         listOf(ProfileNavConfiguration.Profile(userId))
     )
 
@@ -140,45 +120,15 @@ class ProfileNavComponent(
     ): ProfileNavChildComponent {
         return when (configuration) {
             is ProfileNavConfiguration.Profile -> ProfileNavChildComponent.Profile(
-                ProfileComponent(
-                    componentContext = componentContext,
-                    targetUserId = configuration.userId,
-                    listingRepository = listingRepository,
-                    sessionManager = sessionManager,
-                    messageService = messageService,
-                    onNavigateBack = {
-                    },
-                    onNavigateToListing = { listingId ->
-                        navigation.push(ProfileNavConfiguration.ListingDetails(listingId))
-                    },
-                    onNavigateToChat = onNavigateToChat,
-                    onNavigateToSettings = {
-                        navigation.push(ProfileNavConfiguration.Settings)
-                    }
-                )
+                profileFactory(componentContext, configuration.userId)
             )
 
             is ProfileNavConfiguration.ListingDetails -> ProfileNavChildComponent.ListingDetails(
-                ListingDetailsComponent(
-                    componentContext = componentContext,
-                    listingId = configuration.listingId,
-                    listingRepository = listingRepository,
-                    onNavigateBack = { navigation.pop() },
-                    onNavigateToChat = onNavigateToChatByJid,
-                    onNavigateToProfile = { userId ->
-                        navigation.bringToFront(ProfileNavConfiguration.Profile(userId))
-                    }
-                )
+                listingDetailsFactory(componentContext, configuration.listingId)
             )
 
             is ProfileNavConfiguration.Settings -> ProfileNavChildComponent.Settings(
-                SettingsComponent(
-                    componentContext = componentContext,
-                    storeFactory = DefaultStoreFactory(),
-                    sessionManager = sessionManager,
-                    authenticationRepository = authenticationRepository,
-                    onOpenUrl = onOpenUrl
-                )
+                settingsFactory(componentContext)
             )
         }
     }

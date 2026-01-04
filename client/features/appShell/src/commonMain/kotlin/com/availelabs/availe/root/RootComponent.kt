@@ -15,14 +15,15 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.availelabs.availe.appshell.AppShellComponent
-import com.availelabs.availe.appshell.AppShellIntent
-import com.availelabs.availe.appshell.IAppShellComponent
+import com.availelabs.availe.appshell.component.AppShellComponent
+import com.availelabs.availe.appshell.component.IAppShellComponent
+import com.availelabs.availe.appshell.model.AppShellIntent
 import com.availelabs.availe.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.features.session.IMainStore
 import com.availelabs.availe.features.session.MainStoreFactory
 import com.availelabs.availe.login.ILoginComponent
+import com.availelabs.availe.login.ILoginNavigator
 import com.availelabs.availe.login.LoginComponent
 import com.availelabs.availe.model.ToastId
 import com.availelabs.availe.model.ToastMessage
@@ -49,7 +50,7 @@ class RootComponent(
     componentContext: ComponentContext,
     private val appContainer: IApplicationContainer,
     private val deepLinkUrl: String? = null
-) : IRootComponent, ComponentContext by componentContext {
+) : IRootComponent, ComponentContext by componentContext, ILoginNavigator {
 
     constructor(
         componentContext: ComponentContext,
@@ -96,7 +97,7 @@ class RootComponent(
             RootChildComponent.Login(
                 LoginComponent(
                     componentContext = ctx,
-                    onDismiss = { loginOverlayNavigation.dismiss() }
+                    navigator = this
                 )
             )
         }
@@ -157,6 +158,10 @@ class RootComponent(
 
     override fun dismissLoginOverlay() {
         loginOverlayNavigation.dismiss()
+    }
+
+    override fun dismissLogin() {
+        dismissLoginOverlay()
     }
 
     override fun dismissToast(id: ToastId) {
