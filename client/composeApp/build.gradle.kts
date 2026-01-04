@@ -110,7 +110,6 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             api(projects.client.core)
             api(projects.shared.logic)
-            api(projects.shared.client)
             api(projects.shared.configuration)
             implementation(libs.okio)
             implementation(libs.multiplatform.settings.no.arg)

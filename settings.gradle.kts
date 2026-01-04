@@ -53,5 +53,4 @@ include(":backend:server")
 include(":backend:infrastructure")
 
 include(":shared:logic")
-include(":shared:client")
 include(":shared:configuration")
