@@ -1,0 +1,348 @@
+package com.availelabs.availe.listingfeed
+
+import com.arkivanov.mvikotlin.core.store.Reducer
+import com.arkivanov.mvikotlin.core.store.Store
+import com.arkivanov.mvikotlin.core.store.StoreFactory
+import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
+import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.availelabs.availe.auth.AuthenticationState
+import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.listingfeed.ListingFeedStore.*
+import com.availelabs.availe.model.DataStream
+import com.availelabs.availe.model.error.AppError
+import com.availelabs.availe.repositories.IListingRepository
+import com.availelabs.availe.repositories.ISessionRepository
+import com.availelabs.availe.ui.mapper.ErrorMessageMapper
+import com.availelabs.availe.ui.model.UiText
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlin.time.Clock.System
+
+data class ListingUiModel(
+    val id: ListingId,
+    val title: ListingTitle,
+    val price: Price,
+    val imageUrl: ImageUrl?,
+    val category: ListingCategory,
+    val description: ListingDescription?
+)
+
+interface ListingFeedStore : Store<Intent, State, Label> {
+
+    sealed interface Intent {
+        data object RefreshListingsRequested : Intent
+        data class ListingClicked(val listingId: ListingId) : Intent
+        data object LoadNextPage : Intent
+    }
+
+    data class State(
+        val listingUiModels: List<ListingUiModel> = emptyList(),
+        val isLoading: Boolean = false,
+        val isRefreshing: Boolean = false,
+        val isSyncing: Boolean = false,
+        val inlineError: UiText? = null,
+        val paginationError: UiText? = null,
+        val isAuthenticated: Boolean = false,
+        val currentPage: Int = 0,
+        val endReached: Boolean = false,
+        val hasLoadedSuccessfully: Boolean = false
+    )
+
+    sealed interface Label {
+        data class NavigateToListingDetails(val listingId: ListingId) : Label
+        data class DisplayError(val error: AppError) : Label
+    }
+}
+
+internal class ListingFeedStoreFactory(
+    private val storeFactory: StoreFactory,
+    private val listingRepository: IListingRepository,
+    private val sessionManager: ISessionRepository,
+    private val category: ListingCategory
+) {
+
+    fun create(): ListingFeedStore =
+        object : ListingFeedStore, Store<Intent, State, Label> by storeFactory.create(
+            name = "${ListingFeedStore::class.simpleName}_${category.name}",
+            initialState = State(),
+            bootstrapper = ListingFeedBootstrapper(),
+            executorFactory = { ListingFeedExecutor() },
+            reducer = ListingFeedReducer
+        ) {}
+
+    private sealed interface Action {
+        data class ListingsLoaded(val listings: List<Listing>, val page: Int) : Action
+        data class ListingsError(val error: AppError, val isPagination: Boolean) : Action
+        data object ObserveAuthentication : Action
+        data object ObserveSessionInvalidation : Action
+        data object ObserveExternalUpdates : Action
+        data object ExternalUpdateReceived : Action
+        data object DataPurged : Action
+        data object LoadInitialPage : Action
+    }
+
+    private sealed interface Message {
+        data class LoadingStateChanged(val loadingIndicator: LoadingIndicator, val isActive: Boolean) : Message
+        data class AppendListings(val listingUiModels: List<ListingUiModel>, val page: Int) : Message
+        data class ReplaceListings(val listingUiModels: List<ListingUiModel>) : Message
+        data class SetInlineError(val message: UiText?) : Message
+        data class SetPaginationError(val message: UiText?) : Message
+        data class SetAuthenticated(val isAuthenticated: Boolean) : Message
+        data class SetEndReached(val endReached: Boolean) : Message
+        data object ResetState : Message
+    }
+
+    private sealed interface FetchTrigger {
+        data object InitialLoad : FetchTrigger
+        data object UserPullToRefresh : FetchTrigger
+        data object LoadMore : FetchTrigger
+        data object DataChanged : FetchTrigger
+    }
+
+    private sealed interface LoadingIndicator {
+        data object Fullscreen : LoadingIndicator
+        data object Overlay : LoadingIndicator
+        data object Pagination : LoadingIndicator
+        data object Linear : LoadingIndicator
+    }
+
+    private class ListingFeedBootstrapper : CoroutineBootstrapper<Action>() {
+        override fun invoke() {
+            dispatch(Action.ObserveAuthentication)
+            dispatch(Action.ObserveSessionInvalidation)
+            dispatch(Action.ObserveExternalUpdates)
+            dispatch(Action.LoadInitialPage)
+        }
+    }
+
+    private inner class ListingFeedExecutor : CoroutineExecutor<Intent, Action, State, Message, Label>() {
+        private val pageSize = 20
+
+        override fun executeAction(action: Action) {
+            when (action) {
+                is Action.ListingsLoaded -> {
+                    val uiModels = action.listings.map { it.toListingUiModel() }
+
+                    if (action.page == 0) {
+                        dispatch(Message.ReplaceListings(uiModels))
+                    } else {
+                        dispatch(Message.AppendListings(uiModels, action.page))
+                    }
+
+                    if (action.listings.isEmpty()) {
+                        dispatch(Message.SetEndReached(true))
+                    }
+                }
+
+                is Action.ListingsError -> {
+                    val uiText = ErrorMessageMapper.map(action.error)
+                    if (action.isPagination) {
+                        dispatch(Message.SetPaginationError(uiText))
+                    } else if (state().listingUiModels.isEmpty()) {
+                        dispatch(Message.SetInlineError(uiText))
+                    } else {
+                        publish(Label.DisplayError(action.error))
+                    }
+                }
+
+                Action.ObserveAuthentication -> observeAuthentication()
+                Action.ObserveSessionInvalidation -> observeSessionInvalidation()
+                Action.ObserveExternalUpdates -> observeExternalUpdates()
+                Action.ExternalUpdateReceived -> fetchListingsPage(0, FetchTrigger.DataChanged)
+                Action.DataPurged -> dispatch(Message.ResetState)
+                Action.LoadInitialPage -> fetchListingsPage(0, FetchTrigger.InitialLoad)
+            }
+        }
+
+        override fun executeIntent(intent: Intent) {
+            when (intent) {
+                Intent.RefreshListingsRequested -> fetchListingsPage(0, FetchTrigger.UserPullToRefresh)
+                is Intent.ListingClicked -> publish(Label.NavigateToListingDetails(intent.listingId))
+                Intent.LoadNextPage -> {
+                    val state = state()
+                    if (!state.isLoading && !state.endReached) {
+                        fetchListingsPage(state.currentPage + 1, FetchTrigger.LoadMore)
+                    }
+                }
+            }
+        }
+
+        private fun fetchListingsPage(page: Int, trigger: FetchTrigger) {
+            val currentListingUiModels = state().listingUiModels
+            val loadingIndicator = resolveLoadingIndicator(trigger, currentListingUiModels)
+            val startTimeMilliseconds = System.now().toEpochMilliseconds()
+            val minimumRefreshDurationMilliseconds = 375L
+
+            scope.launch {
+                val forceRefresh = trigger == FetchTrigger.UserPullToRefresh || trigger == FetchTrigger.DataChanged
+
+                listingRepository.getListingsPageStream(
+                    page = page,
+                    size = pageSize,
+                    forceRefresh = forceRefresh,
+                    category = category
+                )
+                    .catch { throwable ->
+                        val appError = AppError.UnknownError(throwable.message ?: "Unknown stream error")
+                        forward(Action.ListingsError(appError, isPagination = trigger == FetchTrigger.LoadMore))
+                        dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
+                    }
+                    .collect { streamResult ->
+                        when (streamResult) {
+                            is DataStream.Loading -> {
+                                dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = true))
+                            }
+
+                            is DataStream.Data -> {
+                                forward(Action.ListingsLoaded(streamResult.value, page))
+                            }
+
+                            is DataStream.Error -> {
+                                forward(
+                                    Action.ListingsError(
+                                        streamResult.error,
+                                        isPagination = trigger == FetchTrigger.LoadMore
+                                    )
+                                )
+                                dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
+                            }
+                        }
+                    }
+
+                if (trigger is FetchTrigger.UserPullToRefresh) {
+                    val elapsedTimeMilliseconds = System.now().toEpochMilliseconds() - startTimeMilliseconds
+                    if (elapsedTimeMilliseconds < minimumRefreshDurationMilliseconds) {
+                        delay(minimumRefreshDurationMilliseconds - elapsedTimeMilliseconds)
+                    }
+                }
+            }
+        }
+
+        private fun resolveLoadingIndicator(
+            trigger: FetchTrigger,
+            currentListingUiModels: List<ListingUiModel>
+        ): LoadingIndicator {
+            return if (trigger == FetchTrigger.LoadMore) {
+                LoadingIndicator.Pagination
+            } else if (trigger == FetchTrigger.DataChanged) {
+                LoadingIndicator.Linear
+            } else if (currentListingUiModels.isEmpty()) {
+                LoadingIndicator.Fullscreen
+            } else {
+                LoadingIndicator.Overlay
+            }
+        }
+
+        private fun observeAuthentication() {
+            scope.launch {
+                sessionManager.authenticationState.collectLatest { authenticationState ->
+                    when (authenticationState) {
+                        is AuthenticationState.LoggedIn -> dispatch(Message.SetAuthenticated(true))
+                        is AuthenticationState.LoggedOut,
+                        is AuthenticationState.SessionExpired,
+                        is AuthenticationState.InitializationFailed -> dispatch(Message.SetAuthenticated(false))
+
+                        AuthenticationState.Unknown -> {}
+                    }
+                }
+            }
+        }
+
+        private fun observeSessionInvalidation() {
+            scope.launch {
+                sessionManager.sessionInvalidated.collect {
+                    forward(Action.DataPurged)
+                }
+            }
+        }
+
+        private fun observeExternalUpdates() {
+            scope.launch {
+                listingRepository.updates.collect {
+                    forward(Action.ExternalUpdateReceived)
+                }
+            }
+        }
+    }
+
+    private object ListingFeedReducer : Reducer<State, Message> {
+        override fun State.reduce(msg: Message): State =
+            when (msg) {
+                is Message.LoadingStateChanged -> {
+                    when (msg.loadingIndicator) {
+                        LoadingIndicator.Fullscreen -> copy(isLoading = msg.isActive)
+                        LoadingIndicator.Overlay -> copy(isRefreshing = msg.isActive)
+                        LoadingIndicator.Pagination -> copy(isLoading = msg.isActive)
+                        LoadingIndicator.Linear -> copy(isSyncing = msg.isActive)
+                    }
+                }
+
+                is Message.ReplaceListings -> copy(
+                    listingUiModels = msg.listingUiModels,
+                    currentPage = 0,
+                    isLoading = false,
+                    isRefreshing = false,
+                    isSyncing = false,
+                    inlineError = null,
+                    paginationError = null,
+                    hasLoadedSuccessfully = true
+                )
+
+                is Message.AppendListings -> copy(
+                    listingUiModels = listingUiModels + msg.listingUiModels,
+                    currentPage = msg.page,
+                    isLoading = false,
+                    isRefreshing = false,
+                    isSyncing = false,
+                    paginationError = null,
+                    hasLoadedSuccessfully = true
+                )
+
+                is Message.SetInlineError -> copy(
+                    inlineError = msg.message,
+                    isLoading = false,
+                    isRefreshing = false,
+                    isSyncing = false
+                )
+
+                is Message.SetPaginationError -> copy(
+                    paginationError = msg.message,
+                    isLoading = false,
+                    isRefreshing = false,
+                    isSyncing = false
+                )
+
+                is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
+                is Message.SetEndReached -> copy(endReached = msg.endReached)
+                Message.ResetState -> copy(
+                    listingUiModels = emptyList(),
+                    currentPage = 0,
+                    endReached = false,
+                    isLoading = false,
+                    isRefreshing = false,
+                    isSyncing = false,
+                    inlineError = null,
+                    paginationError = null,
+                    hasLoadedSuccessfully = false
+                )
+            }
+    }
+
+    private fun Listing.toListingUiModel(): ListingUiModel {
+        val category = when (this) {
+            is Listing.Item -> ListingCategory.Item
+            is Listing.Event -> ListingCategory.Event
+            is Listing.Service -> ListingCategory.Service
+        }
+        return ListingUiModel(
+            id = this.id,
+            title = this.title,
+            price = this.price,
+            imageUrl = this.imageLinks.firstOrNull(),
+            category = category,
+            description = this.description
+        )
+    }
+}

@@ -8,8 +8,8 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.availelabs.availe.di.createApplicationContainer
-import com.availelabs.availe.features.root.RootComponent
 import com.availelabs.availe.platform.PlatformActivity
+import com.availelabs.availe.root.RootComponent
 
 fun main() = application {
     val windowState = rememberWindowState()

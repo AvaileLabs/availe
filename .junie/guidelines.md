@@ -2,10 +2,20 @@
 
 **Project Structure**
 
-* **:client:composeApp**: The Presentation Layer. Contains Compose Multiplatform UI, Decompose Components, and MVI
-  Stores. It consumes the Domain layer and orchestrates the UI lifecycle.
+* **:client:composeApp**: The Root Assembler. Contains platform entry points (`MainActivity`, `App.kt`) and Dependency
+  Injection wiring. Strictly no business logic.
+* **:client:features:app-shell**: The UI Orchestrator. Manages the global navigation tree, Dashboard, and high-level
+  layout logic.
+* **:client:features:session**: Global Session State. Manages shared authentication status and user session data to
+  prevent circular dependencies between features.
+* **:client:features:* **: Vertical Feature Slices (e.g., `auth`, `home`, `chat`, `profile`). Encapsulated modules
+  containing Screens, MVI Stores, and Decompose Components.
+* **:client:uiComponents**: The Bridge Layer. Contains domain-aware UI widgets (e.g., `ListingCard`) and shared UI
+  utilities. Connects the Domain layer to the Design System.
+* **:client:designSystem**: The Foundation Layer. Contains pure UI primitives (Atoms), Theme, Colors, Typography, and
+  Resources (`strings.xml`). Strictly domain-agnostic.
 * **:client:domain**: The Domain Layer. Contains pure business logic, Repository Interfaces, and Models. **Strictly no
-  UI dependencies (no Decompose, no Essenty).** It exposes data streams using standard Kotlin `StateFlow`.
+  UI dependencies (no Decompose, no Essenty).**
 * **:client:data**: The Data Layer. Contains Repository implementations, Database logic, and Network clients. All
   implementation classes must be `internal`; only the Dependency Injection factory is public.
 * **:client:core**: Contains platform-specific utilities and abstractions.
@@ -17,17 +27,23 @@
 
 **Architectural Rules**
 
-* **Domain Purity**: The Domain layer must remain framework-agnostic. Do not import Decompose, Essenty, or
-  Android-specific libraries into `:client:domain`.
+* **Dependency Flow**: Dependencies must flow downwards. `App Shell` -> `Features` -> `Session` / `UI Components` ->
+  `Design System` / `Domain`.
+* **Feature Isolation**: Feature modules must not depend on each other directly. Communication must be orchestrated by
+  the `App Shell` or via shared `Domain`/`Session` layers.
+* **Visibility Control**:
+    * **Data Layer**: All implementation classes must be `internal`.
+    * **Feature Layers**: Store implementations (`Executor`, `Reducer`, `Bootstrapper`) and concrete Component classes
+      should be `internal`. Only Component Interfaces and Factories/Constructors should be public.
+* **UI Separation**:
+    * `designSystem` must remain pure and never import `domain`.
+    * `uiComponents` is the designated place for UI code that requires `domain` models.
 * **Reactive Flow**:
-* **Repositories (Data/Domain)** must return `StateFlow<T>` or `Flow<T>`.
-* **Components (Presentation)** must convert these Flows to `Value<T>` using `asValue(lifecycle)` for UI consumption.
-
-
-* **Visibility**: In `:client:data`, all classes (Repositories, Data Sources, Services) must be `internal`. Only
-  interfaces and the DI Factory should be exposed.
-* **Lifecycle Management**: The Presentation layer (`:client:composeApp`) is solely responsible for managing coroutine
-  scopes and lifecycles via Essenty.
+    * **Repositories (Data/Domain)** must return `StateFlow<T>` or `Flow<T>`.
+    * **Components (Presentation)** must convert these Flows to `Value<T>` using `asValue(lifecycle)` for UI
+      consumption.
+* **Lifecycle Management**: Feature Components are responsible for managing their own coroutine scopes and lifecycles
+  via Essenty/Decompose.
 
 **Coding Standards**
 
@@ -38,6 +54,4 @@
 * Use sealed interfaces to enforce type safety and prevent invalid states.
 * Always use value classes whenever possible to improve type safety.
 * Reference `shared/logic/src/commonMain/kotlin/com/availelabs/availe/domain/model/ValueObjects.kt` for definitions.
-
-
 * Code should only be placed in `:shared` directories if it is genuinely shared between the Client and the Server.

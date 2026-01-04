@@ -11,10 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.availelabs.availe.features.appshell.AppShellScreen
-import com.availelabs.availe.features.appshell.MainStore
-import com.availelabs.availe.features.root.IRootComponent
-import com.availelabs.availe.features.root.RootChildComponent
+import com.availelabs.availe.appshell.AppShellScreen
+import com.availelabs.availe.features.session.IMainStore
+import com.availelabs.availe.root.IRootComponent
+import com.availelabs.availe.root.RootChildComponent
 import com.availelabs.availe.ui.animation.appStackAnimation
 import com.availelabs.availe.ui.components.dialogs.LoginGuardModal
 import com.availelabs.availe.ui.components.feedback.ToastOverlay
@@ -68,7 +68,7 @@ fun App(rootComponent: IRootComponent) {
                     LoginGuardModal(
                         onConfirm = {
                             rootComponent.dismissLoginOverlay()
-                            rootComponent.onAuthenticationIntent(MainStore.Intent.LoginRequested)
+                            rootComponent.onAuthenticationIntent(IMainStore.Intent.LoginRequested)
                         },
                         onDismiss = rootComponent::dismissLoginOverlay
                     )

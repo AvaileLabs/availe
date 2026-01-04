@@ -33,13 +33,6 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
-
-//            export(projects.shared.logic)
-//            export(projects.shared.configuration)
-//            export(libs.decompose)
-//            export(libs.decompose.extensions.compose)
-//            export(libs.essenty.lifecycle)
-//            export(libs.essenty.lifecycle.coroutines)
         }
     }
 
@@ -61,6 +54,18 @@ kotlin {
             api(libs.androidx.activity.compose)
         }
         commonMain.dependencies {
+            // Decompose
+            api(libs.decompose)
+            api(libs.decompose.extensions.compose)
+            api(libs.essenty.lifecycle)
+            api(libs.essenty.lifecycle.coroutines)
+            implementation(libs.decompose.extensions.compose.experimental)
+            implementation(libs.kotlinx.coroutines.core)
+
+            // MVIKotlin
+            implementation(libs.mvikotlin)
+            implementation(libs.mvikotlin.main)
+            implementation(libs.mvikotlin.coroutines)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

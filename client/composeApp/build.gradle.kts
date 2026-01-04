@@ -116,6 +116,10 @@ kotlin {
             implementation(projects.client.core)
             implementation(projects.client.domain)
             implementation(projects.client.data)
+            implementation(projects.client.designSystem)
+            implementation(projects.client.uiComponents)
+            implementation(projects.client.features.appShell)
+            implementation(projects.client.features.session)
 
             // Ktor
             implementation(libs.ktor.client.core)

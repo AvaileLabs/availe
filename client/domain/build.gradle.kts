@@ -53,7 +53,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.shared.logic)
+            api(projects.shared.logic)
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)

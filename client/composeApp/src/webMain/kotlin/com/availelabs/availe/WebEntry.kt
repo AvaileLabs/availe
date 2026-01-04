@@ -9,8 +9,8 @@ import com.arkivanov.essenty.lifecycle.resume
 import com.arkivanov.essenty.lifecycle.stop
 import com.arkivanov.essenty.statekeeper.StateKeeper
 import com.availelabs.availe.di.createApplicationContainer
-import com.availelabs.availe.features.root.RootComponent
 import com.availelabs.availe.platform.PlatformActivity
+import com.availelabs.availe.root.RootComponent
 import kotlinx.browser.window
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch

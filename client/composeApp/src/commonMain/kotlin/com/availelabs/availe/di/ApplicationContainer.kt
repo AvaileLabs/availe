@@ -10,15 +10,6 @@ import com.availelabs.availe.repositories.IMessagingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
 
-interface IApplicationContainer {
-    val sessionManager: ISessionRepository
-    val authenticationRepository: IAuthenticationRepository
-    val listingRepository: IListingRepository
-    val messagingRepository: IMessagingRepository
-    val messageService: IMessageService
-    val inAppBrowserLauncher: IInAppBrowserLauncher
-}
-
 fun createApplicationContainer(
     lifecycle: Lifecycle,
     activity: PlatformActivity
