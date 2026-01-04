@@ -9,7 +9,7 @@
   Complex components here are split by responsibility (`component/`, `router/`, `model/`, `ui/`).
 * **:client:features:session**: Global Session State. Manages shared authentication status and user session data to
   prevent circular dependencies between features.
-* **:client:features:* **: Vertical Feature Slices (e.g., `auth`, `home`, `chat`, `profile`). Encapsulated modules
+* **:client:features:**: Vertical Feature Slices (e.g., `auth`, `home`, `chat`, `profile`). Encapsulated modules
   containing Screens, MVI Stores, and Decompose Components. Each feature defines its own Navigation Contract.
 * **:client:uiComponents**: The Bridge Layer. Contains domain-aware UI widgets (e.g., `ListingCard`) and shared UI
   utilities. Connects the Domain layer to the Design System.
