@@ -1,12 +1,15 @@
 package com.availelabs.availe.appshell.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.*
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -25,9 +28,12 @@ import com.composables.icons.lucide.MessageCircle
 import com.composables.icons.lucide.User
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.IconButton
+import com.composables.uikit.components.PrimaryButton
 import com.composables.uikit.components.Text
 import com.composables.uikit.styling.accent
 import com.composables.uikit.styling.colors
+import com.composables.uikit.styling.onBackground
+import com.composables.uikit.styling.textStyles
 import com.composeunstyled.theme.Theme
 import org.jetbrains.compose.resources.stringResource
 
@@ -99,18 +105,16 @@ actual fun AppShellLayout(
                             }
 
                             // Profile
-                            if (authenticationState is AuthenticationState.LoggedIn) {
-                                IconButton(
-                                    onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
-                                    backgroundColor = if (selectedIndex == 2) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                            IconButton(
+                                onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
+                                backgroundColor = if (selectedIndex == 2) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(Lucide.User, null)
-                                        Text(stringResource(Res.string.navigation_profile))
-                                    }
+                                    Icon(Lucide.User, null)
+                                    Text(stringResource(Res.string.navigation_profile))
                                 }
                             }
                         }
@@ -148,7 +152,6 @@ actual fun AppShellLayout(
 
                 if (shouldShowChatOverlay && chatOverlay.child != null) {
                     val overlayInstance = chatOverlay.child!!.instance
-                    // Use a Box to align bottom-end
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -159,9 +162,47 @@ actual fun AppShellLayout(
                             onExpand = appShellComponent::expandChatOverlay,
                             onClose = appShellComponent::dismissChatOverlay,
                             content = {
-                                ChatRootScreen(
-                                    component = overlayInstance.component
-                                )
+                                if (authenticationState is AuthenticationState.LoggedIn) {
+                                    ChatRootScreen(
+                                        component = overlayInstance.component
+                                    )
+                                } else {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Lucide.MessageCircle,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(48.dp).background(
+                                                Theme[colors][accent].copy(alpha = 0.1f),
+                                                CircleShape
+                                            ).padding(12.dp)
+                                        )
+                                        Spacer(Modifier.height(16.dp))
+                                        Text(
+                                            text = stringResource(Res.string.authentication_guard_title),
+                                            style = Theme[textStyles][com.composables.uikit.styling.title],
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            text = stringResource(Res.string.authentication_guard_body),
+                                            style = Theme[textStyles][com.composables.uikit.styling.body].copy(
+                                                color = Theme[colors][onBackground].copy(alpha = 0.7f)
+                                            ),
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(24.dp))
+                                        PrimaryButton(
+                                            onClick = { appShellComponent.onLoginClicked() },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(stringResource(Res.string.authentication_log_in))
+                                        }
+                                    }
+                                }
                             }
                         )
                     }

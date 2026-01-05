@@ -83,7 +83,7 @@ class DashboardComponent(
         childSelector = { child ->
             when (val instance = child.instance) {
                 is DashboardChildComponent.HomeNav -> instance.component
-                is DashboardChildComponent.ChatRoot -> null // Chat root navigation handled internally if needed
+                is DashboardChildComponent.ChatRoot -> null
                 is DashboardChildComponent.ProfileNav -> instance.component
             }
         }
@@ -97,22 +97,20 @@ class DashboardComponent(
             currentChildActionsCancellation?.cancel()
             currentChildBackStateCancellation?.cancel()
 
-            // Update Actions based on active tab
             val newChildActionsValue = when (activeChildInstance) {
                 is DashboardChildComponent.HomeNav -> activeChildInstance.component.actions
                 is DashboardChildComponent.ProfileNav -> activeChildInstance.component.actions
-                is DashboardChildComponent.ChatRoot -> MutableValue(emptyList()) // Chat usually handles its own top bar or has none
+                is DashboardChildComponent.ChatRoot -> MutableValue(emptyList())
                 null -> MutableValue(emptyList())
             }
             currentChildActionsCancellation = newChildActionsValue.subscribe { newActions ->
                 _actions.value = newActions
             }
 
-            // Update Back Navigation capability
             val newChildBackStateValue = when (activeChildInstance) {
                 is DashboardChildComponent.HomeNav -> activeChildInstance.component.canNavigateBack
                 is DashboardChildComponent.ProfileNav -> activeChildInstance.component.canNavigateBack
-                is DashboardChildComponent.ChatRoot -> MutableValue(false)
+                is DashboardChildComponent.ChatRoot -> activeChildInstance.component.canNavigateBack
                 null -> MutableValue(false)
             }
             currentChildBackStateCancellation = newChildBackStateValue.subscribe { canGoBack ->
@@ -141,7 +139,15 @@ class DashboardComponent(
         scope.launch {
             val userProfile = sessionManager.getCurrentUserProfile()
             if (userProfile != null) {
-                navigation.select(1)
+                val currentIndex = pages.value.selectedIndex
+                val chatIndex = pages.value.items.indexOfFirst { it.configuration is DashboardConfiguration.Chat }
+
+                if (currentIndex == chatIndex && chatIndex != -1) {
+                    val chatInstance = pages.value.items[chatIndex].instance as? DashboardChildComponent.ChatRoot
+                    chatInstance?.component?.reset()
+                } else if (chatIndex != -1) {
+                    navigation.select(chatIndex)
+                }
             } else {
                 onShowLoginGuard()
             }
@@ -187,7 +193,12 @@ class DashboardComponent(
         when (val activeInstance = pages.value.items[selectedIndex].instance) {
             is DashboardChildComponent.HomeNav -> activeInstance.component.onBackClicked()
             is DashboardChildComponent.ProfileNav -> activeInstance.component.onBackClicked()
-            is DashboardChildComponent.ChatRoot -> {}
+            is DashboardChildComponent.ChatRoot -> {
+                if (activeInstance.component.canNavigateBack.value) {
+                    activeInstance.component.onBackClicked()
+                }
+            }
+
             null -> {}
         }
     }

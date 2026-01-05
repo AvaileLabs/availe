@@ -57,7 +57,7 @@ fun AppShellScreen(
     val windowSize = rememberWindowSize()
 
     val layoutMode = when (windowSize) {
-        WindowSizeClass.Expanded -> LayoutMode.MultiPane
+        WindowSizeClass.Expanded, WindowSizeClass.Medium -> LayoutMode.MultiPane
         else -> LayoutMode.SinglePane
     }
 

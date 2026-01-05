@@ -143,16 +143,6 @@ class AppShellComponent(
     init {
         lifecycle.doOnDestroy { scope.cancel() }
 
-        scope.launch {
-            appContainer.sessionManager.authenticationState.collect { state ->
-                if (state !is AuthenticationState.LoggedIn) {
-                    chatOverlayNavigation.dismiss()
-                } else if (layoutMode == LayoutMode.MultiPane) {
-                    chatOverlayNavigation.activate(AppShellConfiguration.ChatOverlay())
-                }
-            }
-        }
-
         childStack.subscribe { stack ->
             updateBackArrowState(stack)
             updateOverlayVisibility(stack)
@@ -218,7 +208,7 @@ class AppShellComponent(
             if (activeConfiguration is AppShellConfiguration.Chat) {
                 childStackNavigation.pop()
                 chatOverlayNavigation.activate(AppShellConfiguration.ChatOverlay(activeConfiguration.recipientJid))
-            } else if (authenticationState.value is AuthenticationState.LoggedIn) {
+            } else {
                 chatOverlayNavigation.activate(AppShellConfiguration.ChatOverlay())
             }
         }
