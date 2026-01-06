@@ -158,15 +158,7 @@ class DashboardComponent(
         scope.launch {
             val userProfile = sessionManager.getCurrentUserProfile()
             if (userProfile != null) {
-                if (pages.value.items.none { it.configuration is DashboardConfiguration.Profile }) {
-                    updatePages(
-                        listOf(
-                            DashboardConfiguration.Home,
-                            DashboardConfiguration.Chat(),
-                            DashboardConfiguration.Profile(userProfile.id)
-                        )
-                    )
-                }
+                ensureProfilePageExists(userProfile.id)
 
                 val profileIndex = pages.value.items.indexOfFirst { it.configuration is DashboardConfiguration.Profile }
                 val currentIndex = pages.value.selectedIndex
@@ -207,15 +199,7 @@ class DashboardComponent(
         scope.launch {
             val userProfile = sessionManager.getCurrentUserProfile()
             if (userProfile != null) {
-                if (pages.value.items.none { it.configuration is DashboardConfiguration.Profile }) {
-                    updatePages(
-                        listOf(
-                            DashboardConfiguration.Home,
-                            DashboardConfiguration.Chat(),
-                            DashboardConfiguration.Profile(userProfile.id)
-                        )
-                    )
-                }
+                ensureProfilePageExists(userProfile.id)
 
                 val profileIndex = pages.value.items.indexOfFirst { it.configuration is DashboardConfiguration.Profile }
                 if (profileIndex != -1) {
@@ -236,6 +220,18 @@ class DashboardComponent(
             navigation.select(chatIndex)
             val chatInstance = pages.value.items[chatIndex].instance as? DashboardChildComponent.ChatRoot
             chatInstance?.component?.selectConversation(jid)
+        }
+    }
+
+    private fun ensureProfilePageExists(userId: UserId) {
+        if (pages.value.items.none { it.configuration is DashboardConfiguration.Profile }) {
+            updatePages(
+                listOf(
+                    DashboardConfiguration.Home,
+                    DashboardConfiguration.Chat(),
+                    DashboardConfiguration.Profile(userId)
+                )
+            )
         }
     }
 
