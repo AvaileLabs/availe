@@ -15,6 +15,8 @@ import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.homenav.HomeNavConfiguration
 import com.availelabs.availe.homenav.IHomeNavComponent
+import com.availelabs.availe.platform.Platform
+import com.availelabs.availe.platform.PlatformInfo
 import com.availelabs.availe.profilenav.IProfileNavComponent
 import com.availelabs.availe.profilenav.ProfileNavConfiguration
 import com.availelabs.availe.repositories.ISessionRepository
@@ -127,11 +129,19 @@ class DashboardComponent(
 
     override fun onHomeTabClicked() {
         val currentIndex = pages.value.selectedIndex
-        if (currentIndex == 0) {
-            val homeInstance = pages.value.items[0].instance as? DashboardChildComponent.HomeNav
+        val homeIndex = 0
+
+        if (PlatformInfo.current == Platform.Web) {
+            navigation.select(homeIndex)
+            val homeInstance = pages.value.items[homeIndex].instance as? DashboardChildComponent.HomeNav
             homeInstance?.component?.reset()
         } else {
-            navigation.select(0)
+            if (currentIndex == homeIndex) {
+                val homeInstance = pages.value.items[homeIndex].instance as? DashboardChildComponent.HomeNav
+                homeInstance?.component?.reset()
+            } else {
+                navigation.select(homeIndex)
+            }
         }
     }
 
@@ -142,11 +152,20 @@ class DashboardComponent(
                 val currentIndex = pages.value.selectedIndex
                 val chatIndex = pages.value.items.indexOfFirst { it.configuration is DashboardConfiguration.Chat }
 
-                if (currentIndex == chatIndex && chatIndex != -1) {
-                    val chatInstance = pages.value.items[chatIndex].instance as? DashboardChildComponent.ChatRoot
-                    chatInstance?.component?.reset()
-                } else if (chatIndex != -1) {
-                    navigation.select(chatIndex)
+                if (chatIndex != -1) {
+                    if (PlatformInfo.current == Platform.Web) {
+                        navigation.select(chatIndex)
+                        val chatInstance = pages.value.items[chatIndex].instance as? DashboardChildComponent.ChatRoot
+                        chatInstance?.component?.reset()
+                    } else {
+                        if (currentIndex == chatIndex) {
+                            val chatInstance =
+                                pages.value.items[chatIndex].instance as? DashboardChildComponent.ChatRoot
+                            chatInstance?.component?.reset()
+                        } else {
+                            navigation.select(chatIndex)
+                        }
+                    }
                 }
             } else {
                 onShowLoginGuard()
@@ -163,12 +182,21 @@ class DashboardComponent(
                 val profileIndex = pages.value.items.indexOfFirst { it.configuration is DashboardConfiguration.Profile }
                 val currentIndex = pages.value.selectedIndex
 
-                if (currentIndex == profileIndex && profileIndex != -1) {
-                    val profileInstance =
-                        pages.value.items[profileIndex].instance as? DashboardChildComponent.ProfileNav
-                    profileInstance?.component?.reset()
-                } else if (profileIndex != -1) {
-                    navigation.select(profileIndex)
+                if (profileIndex != -1) {
+                    if (PlatformInfo.current == Platform.Web) {
+                        navigation.select(profileIndex)
+                        val profileInstance =
+                            pages.value.items[profileIndex].instance as? DashboardChildComponent.ProfileNav
+                        profileInstance?.component?.reset()
+                    } else {
+                        if (currentIndex == profileIndex) {
+                            val profileInstance =
+                                pages.value.items[profileIndex].instance as? DashboardChildComponent.ProfileNav
+                            profileInstance?.component?.reset()
+                        } else {
+                            navigation.select(profileIndex)
+                        }
+                    }
                 }
             } else {
                 onShowLoginGuard()

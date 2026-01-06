@@ -30,26 +30,41 @@ internal class SessionRepository(
 
     init {
         coroutineScope.launch {
+            val storedTokens = runCatching { authenticationRemoteDataSource.getTokens() }.getOrNull()
+            val hasLocalSession = storedTokens?.accessToken != null
+
+            if (hasLocalSession) {
+                val optimisticToken = AuthToken(storedTokens.accessToken)
+                updateState(AuthenticationState.LoggedIn(optimisticToken, isOffline = false))
+            }
+
             try {
                 authenticationRemoteDataSource.discover()
-                val storedTokens = authenticationRemoteDataSource.getTokens()
-
-                if (storedTokens != null && storedTokens.refreshToken != null) {
-                    try {
-                        val newTokens = authenticationRemoteDataSource.refreshTokens(storedTokens.refreshToken!!)
-                        authenticationRemoteDataSource.saveTokens(newTokens)
-                        val authToken = AuthToken(newTokens.access_token)
-                        updateState(AuthenticationState.LoggedIn(authToken))
-                    } catch (_: OpenIdConnectException) {
-                        handleExpiredSession()
-                    } catch (_: Exception) {
-                        handleExpiredSession()
-                    }
-                } else {
-                    updateState(AuthenticationState.LoggedOut)
-                }
             } catch (exception: Exception) {
-                updateState(AuthenticationState.InitializationFailed(exception))
+                if (hasLocalSession) {
+                    val token = AuthToken(storedTokens.accessToken)
+                    updateState(AuthenticationState.LoggedIn(token, isOffline = true))
+                    return@launch
+                } else {
+                    updateState(AuthenticationState.InitializationFailed(exception))
+                    return@launch
+                }
+            }
+
+            if (hasLocalSession && storedTokens.refreshToken != null) {
+                try {
+                    val newTokens = authenticationRemoteDataSource.refreshTokens(storedTokens.refreshToken!!)
+                    authenticationRemoteDataSource.saveTokens(newTokens)
+                    val newToken = AuthToken(newTokens.access_token)
+                    updateState(AuthenticationState.LoggedIn(newToken, isOffline = false))
+                } catch (_: OpenIdConnectException) {
+                    handleExpiredSession()
+                } catch (_: Exception) {
+                    val token = AuthToken(storedTokens.accessToken)
+                    updateState(AuthenticationState.LoggedIn(token, isOffline = true))
+                }
+            } else if (!hasLocalSession) {
+                updateState(AuthenticationState.LoggedOut)
             }
         }
     }

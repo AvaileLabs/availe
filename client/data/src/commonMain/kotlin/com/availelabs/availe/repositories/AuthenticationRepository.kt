@@ -3,6 +3,7 @@ package com.availelabs.availe.repositories
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.auth.LoginResult
 import com.availelabs.availe.auth.LogoutResult
+import com.availelabs.availe.domain.model.AuthToken
 import com.availelabs.availe.sources.remote.IAuthenticationRemoteDataSource
 
 internal class AuthenticationRepository(
@@ -22,5 +23,14 @@ internal class AuthenticationRepository(
         val logoutResult = authenticationRemoteDataSource.logout()
         sessionManager.onLogoutSuccess()
         return logoutResult
+    }
+
+    override suspend fun validateSession(token: AuthToken): Boolean {
+        return try {
+            val tokens = authenticationRemoteDataSource.getTokens()
+            tokens?.accessToken != null && tokens.accessToken == token.value
+        } catch (_: Exception) {
+            false
+        }
     }
 }
