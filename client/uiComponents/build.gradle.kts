@@ -82,6 +82,7 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.client.designSystem)
             implementation(projects.client.domain)
+            implementation(projects.client.core)
 
             implementation(compose.runtime)
             implementation(compose.foundation)

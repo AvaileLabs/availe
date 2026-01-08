@@ -20,9 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.*
+import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.profile.ProfileStore.Intent
 import com.availelabs.availe.ui.RefreshStateHolder
 import com.availelabs.availe.ui.components.ListingCard
+import com.availelabs.availe.ui.components.listings.ListingContextMenu
 import com.availelabs.availe.ui.model.asString
 import com.availelabs.availe.ui.modifiers.refreshTrigger
 import com.availelabs.availe.ui.util.InfiniteListHandler
@@ -95,14 +97,17 @@ fun ProfileScreen(
                 }
             } else {
                 items(state.listings, key = { it.id.value }) { listing ->
-                    ListingCard(
-                        title = listing.title,
-                        price = listing.price,
-                        imageUrl = listing.imageUrl,
-                        category = listing.category,
-                        description = listing.description,
-                        onClick = { component.onIntent(Intent.ListingClicked(listing.id)) }
-                    )
+                    val listingUrl = "http://${NetworkConstants.HOST_IP}:8080/listing/${listing.id.value}"
+                    ListingContextMenu(url = listingUrl) {
+                        ListingCard(
+                            title = listing.title,
+                            price = listing.price,
+                            imageUrl = listing.imageUrl,
+                            category = listing.category,
+                            description = listing.description,
+                            onClick = { component.onIntent(Intent.ListingClicked(listing.id)) }
+                        )
+                    }
                 }
             }
 

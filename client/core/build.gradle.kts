@@ -1,4 +1,5 @@
 import com.android.build.api.dsl.androidLibrary
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -49,7 +50,26 @@ kotlin {
         binaries.executable()
     }
 
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    applyDefaultHierarchyTemplate()
+
     sourceSets {
+        val commonMain by getting
+        val commonTest by getting
+
+        val androidMain by getting
+        val jvmMain by getting
+        val iosMain by getting
+        val webMain by getting
+
+        val nonWebMain by creating {
+            dependsOn(commonMain)
+        }
+
+        androidMain.dependsOn(nonWebMain)
+        jvmMain.dependsOn(nonWebMain)
+        iosMain.dependsOn(nonWebMain)
+
         androidMain.dependencies {
             api(libs.androidx.activity.compose)
         }
@@ -66,6 +86,9 @@ kotlin {
             implementation(libs.mvikotlin)
             implementation(libs.mvikotlin.main)
             implementation(libs.mvikotlin.coroutines)
+        }
+        webMain.dependencies {
+            implementation(libs.kotlinx.browser)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

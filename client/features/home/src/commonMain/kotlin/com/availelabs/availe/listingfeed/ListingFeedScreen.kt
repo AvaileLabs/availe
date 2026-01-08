@@ -31,9 +31,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.*
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.ui.RefreshStateHolder
 import com.availelabs.availe.ui.components.ListingCard
+import com.availelabs.availe.ui.components.listings.ListingContextMenu
 import com.availelabs.availe.ui.layout.WindowSizeClass
 import com.availelabs.availe.ui.layout.rememberWindowSize
 import com.availelabs.availe.ui.model.asString
@@ -191,14 +193,17 @@ private fun DesktopGridLayout(
             }
         } else {
             items(state.listingUiModels, key = { it.id.value }) { listingUiModel ->
-                ListingCard(
-                    title = listingUiModel.title,
-                    price = listingUiModel.price,
-                    imageUrl = listingUiModel.imageUrl,
-                    category = listingUiModel.category,
-                    description = listingUiModel.description,
-                    onClick = { onListingClick(listingUiModel.id) }
-                )
+                val listingUrl = "http://${NetworkConstants.HOST_IP}:8080/listing/${listingUiModel.id.value}"
+                ListingContextMenu(url = listingUrl) {
+                    ListingCard(
+                        title = listingUiModel.title,
+                        price = listingUiModel.price,
+                        imageUrl = listingUiModel.imageUrl,
+                        category = listingUiModel.category,
+                        description = listingUiModel.description,
+                        onClick = { onListingClick(listingUiModel.id) }
+                    )
+                }
             }
 
             if (state.isLoading) {
@@ -270,14 +275,17 @@ private fun MobileListLayout(
             }
         } else {
             items(state.listingUiModels, key = { it.id.value }) { listingUiModel ->
-                ListingCard(
-                    title = listingUiModel.title,
-                    price = listingUiModel.price,
-                    imageUrl = listingUiModel.imageUrl,
-                    category = listingUiModel.category,
-                    description = listingUiModel.description,
-                    onClick = { onListingClick(listingUiModel.id) }
-                )
+                val listingUrl = "http://${NetworkConstants.HOST_IP}/listing/${listingUiModel.id.value}"
+                ListingContextMenu(url = listingUrl) {
+                    ListingCard(
+                        title = listingUiModel.title,
+                        price = listingUiModel.price,
+                        imageUrl = listingUiModel.imageUrl,
+                        category = listingUiModel.category,
+                        description = listingUiModel.description,
+                        onClick = { onListingClick(listingUiModel.id) }
+                    )
+                }
             }
             if (state.isLoading) {
                 item {
