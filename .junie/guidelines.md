@@ -10,15 +10,17 @@
   prevent circular dependencies between features.
 * **:client:features:**: Vertical Feature Slices (e.g., `auth`, `home`, `chat`, `profile`). Encapsulated modules
   containing Screens, MVI Stores, and Decompose Components. Each feature defines its own Navigation Contract.
-* **:client:uiComponents**: The Bridge Layer. Contains domain-aware UI widgets (e.g., `ListingCard`) and shared UI
-  utilities. Connects the Domain layer to the Design System.
+* **:client:uiComponents**: The Bridge Layer. Contains domain-aware UI widgets (e.g., `ListingCard`,
+  `LinkContextMenuArea`)
+  and shared UI utilities. Connects the Domain layer to the Design System.
 * **:client:designSystem**: The Foundation Layer. Contains pure UI primitives (Atoms), Theme, Colors, Typography, and
   Resources (`strings.xml`). Strictly domain-agnostic.
 * **:client:domain**: The Domain Layer. Contains pure business logic, Repository Interfaces, and Models. **Strictly no
   UI dependencies (no Decompose, no Essenty).**
 * **:client:data**: The Data Layer. Contains Repository implementations, Database logic, and Network clients. All
   implementation classes must be `internal`; only the Dependency Injection factory is public.
-* **:client:core**: Contains platform-specific utilities and abstractions.
+* **:client:core**: Contains platform-specific utilities and Shared Navigation Contracts (`DeepLinkRoute`). Acts as the
+  single source of truth for URL structures.
 * **:backend:server**: The module for the http4k server.
 * **:backend:infrastructure**: Sets up the Postgres database and Keycloak Podman containers.
 * **:shared:configuration**: Contains constant variables for connecting to Keycloak and Postgres. All modules use this
@@ -57,6 +59,19 @@
       consumption.
 * **Lifecycle Management**: Feature Components are responsible for managing their own coroutine scopes and lifecycles
   via Essenty/Decompose.
+
+**Interaction & UX Standards**
+
+* **Selectable Text**: All semantic text (Headers, Body, Error Messages) must be wrapped in `SelectionContainer` to
+  ensure it can be copied by the user. Exceptions are interactive elements (Buttons, Tabs) where selection interferes
+  with click actions.
+* **Link Behavior**: Any UI element that navigates to a new route (Cards, Navigation Items, Icons) must use
+  `LinkContextMenuArea` to support standard browser interactions (Right-click "Copy Link", Middle-click "Open in New
+  Tab").
+* **Type-Safe Routing**: Do not use raw URL strings for navigation or link generation. Use the `DeepLinkRoute` sealed
+  interfaces defined in `:client:core`. This ensures a single source of truth for both link generation (
+  `DeepLinkBuilder`)
+  and parsing (`RootNavigationMapper`).
 
 **Coding Standards**
 
