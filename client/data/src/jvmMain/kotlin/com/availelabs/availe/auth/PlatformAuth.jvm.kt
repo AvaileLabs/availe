@@ -56,6 +56,13 @@ actual suspend fun platformLogin(
         return LoginResult.Failed(loginError)
     }
 
+    val userProfile = accessTokenResponse.id_token?.let { JwtUserProfileMapper.decodeUserProfile(it) }
+
+    if (userProfile == null) {
+        onStateUpdate(AuthenticationState.LoggedOut)
+        return LoginResult.Failed(LoginError.Unexpected("Failed to decode user profile from ID token"))
+    }
+
     try {
         tokenStore.saveTokens(accessTokenResponse)
     } catch (exception: Exception) {
@@ -63,7 +70,12 @@ actual suspend fun platformLogin(
         return LoginResult.Failed(LoginError.Unexpected("Token storage failed: ${exception.message}"))
     }
 
-    onStateUpdate(AuthenticationState.LoggedIn(AuthToken(accessTokenResponse.access_token)))
+    onStateUpdate(
+        AuthenticationState.LoggedIn(
+            accessToken = AuthToken(accessTokenResponse.access_token),
+            userId = userProfile.id
+        )
+    )
     return LoginResult.Success
 }
 

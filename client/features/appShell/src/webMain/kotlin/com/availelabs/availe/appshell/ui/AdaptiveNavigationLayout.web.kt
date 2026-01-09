@@ -3,6 +3,7 @@ package com.availelabs.availe.appshell.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -20,6 +21,8 @@ import com.availelabs.availe.appshell.component.IAppShellComponent
 import com.availelabs.availe.appshell.model.AppShellConfiguration
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.chat.root.ChatRootScreen
+import com.availelabs.availe.navigation.DeepLinkRoute
+import com.availelabs.availe.ui.components.LinkContextMenuArea
 import com.availelabs.availe.ui.components.dialogs.ChatOverlayWindow
 import com.availelabs.availe.ui.layout.AppTopNavigation
 import com.composables.icons.lucide.House
@@ -77,45 +80,59 @@ actual fun AppShellLayout(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // Home
-                            IconButton(
-                                onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
-                                backgroundColor = if (selectedIndex == 0) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                            LinkContextMenuArea(route = DeepLinkRoute.Home) {
+                                IconButton(
+                                    onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
+                                    backgroundColor = if (selectedIndex == 0) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
                                 ) {
-                                    Icon(Lucide.House, null)
-                                    Text(stringResource(Res.string.navigation_home))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Lucide.House, null)
+                                        Text(stringResource(Res.string.navigation_home))
+                                    }
                                 }
                             }
 
                             // Chat
-                            IconButton(
-                                onClick = { navigateToTab { dashboardComponent.onChatTabClicked() } },
-                                backgroundColor = if (selectedIndex == 1) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                            LinkContextMenuArea(route = DeepLinkRoute.Chat()) {
+                                IconButton(
+                                    onClick = { navigateToTab { dashboardComponent.onChatTabClicked() } },
+                                    backgroundColor = if (selectedIndex == 1) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
                                 ) {
-                                    Icon(Lucide.MessageCircle, null)
-                                    Text(stringResource(Res.string.navigation_chat))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Lucide.MessageCircle, null)
+                                        Text(stringResource(Res.string.navigation_chat))
+                                    }
                                 }
                             }
 
                             // Profile
-                            IconButton(
-                                onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
-                                backgroundColor = if (selectedIndex == 2) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                            val profileButton = @Composable {
+                                IconButton(
+                                    onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
+                                    backgroundColor = if (selectedIndex == 2) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
                                 ) {
-                                    Icon(Lucide.User, null)
-                                    Text(stringResource(Res.string.navigation_profile))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Lucide.User, null)
+                                        Text(stringResource(Res.string.navigation_profile))
+                                    }
                                 }
+                            }
+
+                            if (authenticationState is AuthenticationState.LoggedIn) {
+                                LinkContextMenuArea(route = DeepLinkRoute.Profile(authenticationState.userId)) {
+                                    profileButton()
+                                }
+                            } else {
+                                profileButton()
                             }
                         }
                     }
@@ -181,19 +198,23 @@ actual fun AppShellLayout(
                                             ).padding(12.dp)
                                         )
                                         Spacer(Modifier.height(16.dp))
-                                        Text(
-                                            text = stringResource(Res.string.authentication_guard_title),
-                                            style = Theme[textStyles][com.composables.uikit.styling.title],
-                                            textAlign = TextAlign.Center
-                                        )
+                                        SelectionContainer {
+                                            Text(
+                                                text = stringResource(Res.string.authentication_guard_title),
+                                                style = Theme[textStyles][com.composables.uikit.styling.title],
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
                                         Spacer(Modifier.height(8.dp))
-                                        Text(
-                                            text = stringResource(Res.string.authentication_guard_body),
-                                            style = Theme[textStyles][com.composables.uikit.styling.body].copy(
-                                                color = Theme[colors][onBackground].copy(alpha = 0.7f)
-                                            ),
-                                            textAlign = TextAlign.Center
-                                        )
+                                        SelectionContainer {
+                                            Text(
+                                                text = stringResource(Res.string.authentication_guard_body),
+                                                style = Theme[textStyles][com.composables.uikit.styling.body].copy(
+                                                    color = Theme[colors][onBackground].copy(alpha = 0.7f)
+                                                ),
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
                                         Spacer(Modifier.height(24.dp))
                                         PrimaryButton(
                                             onClick = { appShellComponent.onLoginClicked() },

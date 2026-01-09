@@ -1,6 +1,7 @@
 package com.availelabs.availe.auth
 
 import com.availelabs.availe.domain.model.AuthToken
+import com.availelabs.availe.domain.model.UserId
 
 sealed interface AuthenticationState {
     data object Unknown : AuthenticationState
@@ -9,6 +10,7 @@ sealed interface AuthenticationState {
 
     data class LoggedIn(
         val accessToken: AuthToken,
+        val userId: UserId,
         val isOffline: Boolean = false
     ) : AuthenticationState
 

@@ -6,17 +6,13 @@ import com.availelabs.availe.appshell.model.AppShellIntent
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.navigation.DeepLinkRoute
 import io.ktor.http.*
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 object RootNavigationMapper {
     private const val CHAT_QUERY_PARAMETER = "chat_jid"
-
-    // Route segment constants previously defined in AppShellConfiguration
-    private const val ROUTE_LISTING = "listing"
-    private const val ROUTE_CHAT = "chat"
-    private const val ROUTE_PROFILE = "profile"
 
     fun getInitialIntent(deepLinkUrl: String?): RootConfiguration {
         if (deepLinkUrl == null) {
@@ -33,15 +29,15 @@ object RootNavigationMapper {
             } else {
                 val rootSegment = pathSegments.first()
                 when (rootSegment) {
-                    ROUTE_LISTING -> {
+                    DeepLinkRoute.ListingDetails.PATH -> {
                         parseListingIntent(pathSegments, chatJidValue)
                     }
 
-                    ROUTE_CHAT -> {
+                    DeepLinkRoute.Chat.PATH -> {
                         parseChatIntent(pathSegments)
                     }
 
-                    ROUTE_PROFILE -> {
+                    DeepLinkRoute.Profile.PATH -> {
                         parseProfileIntent(pathSegments)
                     }
 

@@ -74,6 +74,9 @@ kotlin {
             api(libs.androidx.activity.compose)
         }
         commonMain.dependencies {
+            implementation(projects.client.domain)
+            implementation(projects.shared.configuration)
+
             // Decompose
             api(libs.decompose)
             api(libs.decompose.extensions.compose)

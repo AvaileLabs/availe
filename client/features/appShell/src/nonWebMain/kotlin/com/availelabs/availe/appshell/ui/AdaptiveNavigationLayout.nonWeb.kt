@@ -13,6 +13,8 @@ import com.availelabs.availe.appshell.component.AppShellChildComponent
 import com.availelabs.availe.appshell.component.IAppShellComponent
 import com.availelabs.availe.appshell.model.AppShellConfiguration
 import com.availelabs.availe.auth.AuthenticationState
+import com.availelabs.availe.navigation.DeepLinkRoute
+import com.availelabs.availe.ui.components.LinkContextMenuArea
 import com.availelabs.availe.ui.layout.*
 import com.availelabs.availe.ui.mapper.NavigationUiMapper
 import com.availelabs.availe.ui.model.AppBarAction
@@ -70,29 +72,48 @@ actual fun AppShellLayout(
                 val selectedIndex = pages.selectedIndex
 
                 AppBottomNavigation {
-                    ShellNavigationItem(
-                        selected = selectedIndex == 0,
-                        onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
-                        icon = { Icon(Lucide.House, null) },
-                        label = { Text(stringResource(Res.string.navigation_home)) },
-                        modifier = Modifier.weight(1f)
-                    )
+                    LinkContextMenuArea(route = DeepLinkRoute.Home, modifier = Modifier.weight(1f)) {
+                        ShellNavigationItem(
+                            selected = selectedIndex == 0,
+                            onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
+                            icon = { Icon(Lucide.House, null) },
+                            label = { Text(stringResource(Res.string.navigation_home)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
-                    ShellNavigationItem(
-                        selected = selectedIndex == 1,
-                        onClick = { navigateToTab { dashboardComponent.onChatTabClicked() } },
-                        icon = { Icon(Lucide.MessageCircle, null) },
-                        label = { Text(stringResource(Res.string.navigation_chat)) },
-                        modifier = Modifier.weight(1f)
-                    )
+                    LinkContextMenuArea(route = DeepLinkRoute.Chat(), modifier = Modifier.weight(1f)) {
+                        ShellNavigationItem(
+                            selected = selectedIndex == 1,
+                            onClick = { navigateToTab { dashboardComponent.onChatTabClicked() } },
+                            icon = { Icon(Lucide.MessageCircle, null) },
+                            label = { Text(stringResource(Res.string.navigation_chat)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
-                    ShellNavigationItem(
-                        selected = selectedIndex == 2 || (selectedIndex == 1 && activeConfiguration is AppShellConfiguration.Dashboard && pages.items.size < 3),
-                        onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
-                        icon = { Icon(Lucide.User, null) },
-                        label = { Text(stringResource(Res.string.navigation_profile)) },
-                        modifier = Modifier.weight(1f)
-                    )
+                    val profileItem = @Composable {
+                        ShellNavigationItem(
+                            selected = selectedIndex == 2 || (selectedIndex == 1 && activeConfiguration is AppShellConfiguration.Dashboard && pages.items.size < 3),
+                            onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
+                            icon = { Icon(Lucide.User, null) },
+                            label = { Text(stringResource(Res.string.navigation_profile)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    if (authenticationState is AuthenticationState.LoggedIn) {
+                        LinkContextMenuArea(
+                            route = DeepLinkRoute.Profile(authenticationState.userId),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            profileItem()
+                        }
+                    } else {
+                        Box(modifier = Modifier.weight(1f)) {
+                            profileItem()
+                        }
+                    }
                 }
             }
         } else null,
@@ -102,23 +123,37 @@ actual fun AppShellLayout(
                 val selectedIndex = pages.selectedIndex
 
                 AppNavigationRail {
-                    ShellRailNavigationItem(
-                        selected = selectedIndex == 0,
-                        onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
-                        icon = { Icon(Lucide.House, null) }
-                    )
+                    LinkContextMenuArea(route = DeepLinkRoute.Home) {
+                        ShellRailNavigationItem(
+                            selected = selectedIndex == 0,
+                            onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
+                            icon = { Icon(Lucide.House, null) }
+                        )
+                    }
 
-                    ShellRailNavigationItem(
-                        selected = selectedIndex == 1,
-                        onClick = { navigateToTab { dashboardComponent.onChatTabClicked() } },
-                        icon = { Icon(Lucide.MessageCircle, null) }
-                    )
+                    LinkContextMenuArea(route = DeepLinkRoute.Chat()) {
+                        ShellRailNavigationItem(
+                            selected = selectedIndex == 1,
+                            onClick = { navigateToTab { dashboardComponent.onChatTabClicked() } },
+                            icon = { Icon(Lucide.MessageCircle, null) }
+                        )
+                    }
 
-                    ShellRailNavigationItem(
-                        selected = selectedIndex == 2,
-                        onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
-                        icon = { Icon(Lucide.User, null) }
-                    )
+                    val profileRailItem = @Composable {
+                        ShellRailNavigationItem(
+                            selected = selectedIndex == 2,
+                            onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
+                            icon = { Icon(Lucide.User, null) }
+                        )
+                    }
+
+                    if (authenticationState is AuthenticationState.LoggedIn) {
+                        LinkContextMenuArea(route = DeepLinkRoute.Profile(authenticationState.userId)) {
+                            profileRailItem()
+                        }
+                    } else {
+                        profileRailItem()
+                    }
                 }
             }
         } else null

@@ -31,11 +31,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.*
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.navigation.DeepLinkRoute
 import com.availelabs.availe.ui.RefreshStateHolder
+import com.availelabs.availe.ui.components.LinkContextMenuArea
 import com.availelabs.availe.ui.components.ListingCard
-import com.availelabs.availe.ui.components.listings.ListingContextMenu
 import com.availelabs.availe.ui.layout.WindowSizeClass
 import com.availelabs.availe.ui.layout.rememberWindowSize
 import com.availelabs.availe.ui.model.asString
@@ -193,17 +193,10 @@ private fun DesktopGridLayout(
             }
         } else {
             items(state.listingUiModels, key = { it.id.value }) { listingUiModel ->
-                val listingUrl = "http://${NetworkConstants.HOST_IP}:8080/listing/${listingUiModel.id.value}"
-                ListingContextMenu(url = listingUrl) {
-                    ListingCard(
-                        title = listingUiModel.title,
-                        price = listingUiModel.price,
-                        imageUrl = listingUiModel.imageUrl,
-                        category = listingUiModel.category,
-                        description = listingUiModel.description,
-                        onClick = { onListingClick(listingUiModel.id) }
-                    )
-                }
+                ListingItem(
+                    listingUiModel = listingUiModel,
+                    onListingClick = onListingClick
+                )
             }
 
             if (state.isLoading) {
@@ -275,17 +268,10 @@ private fun MobileListLayout(
             }
         } else {
             items(state.listingUiModels, key = { it.id.value }) { listingUiModel ->
-                val listingUrl = "http://${NetworkConstants.HOST_IP}/listing/${listingUiModel.id.value}"
-                ListingContextMenu(url = listingUrl) {
-                    ListingCard(
-                        title = listingUiModel.title,
-                        price = listingUiModel.price,
-                        imageUrl = listingUiModel.imageUrl,
-                        category = listingUiModel.category,
-                        description = listingUiModel.description,
-                        onClick = { onListingClick(listingUiModel.id) }
-                    )
-                }
+                ListingItem(
+                    listingUiModel = listingUiModel,
+                    onListingClick = onListingClick
+                )
             }
             if (state.isLoading) {
                 item {
@@ -306,6 +292,23 @@ private fun MobileListLayout(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ListingItem(
+    listingUiModel: ListingUiModel,
+    onListingClick: (ListingId) -> Unit
+) {
+    LinkContextMenuArea(route = DeepLinkRoute.ListingDetails(listingUiModel.id)) {
+        ListingCard(
+            title = listingUiModel.title,
+            price = listingUiModel.price,
+            imageUrl = listingUiModel.imageUrl,
+            category = listingUiModel.category,
+            description = listingUiModel.description,
+            onClick = { onListingClick(listingUiModel.id) }
+        )
     }
 }
 

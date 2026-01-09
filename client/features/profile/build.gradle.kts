@@ -41,6 +41,7 @@ kotlin {
             implementation(projects.client.designSystem)
             implementation(projects.client.uiComponents)
             implementation(projects.client.features.session)
+            implementation(projects.client.core)
 
             implementation(libs.decompose)
             implementation(libs.mvikotlin)

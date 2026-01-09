@@ -1,13 +1,14 @@
-package com.availelabs.availe.ui.components.listings
+package com.availelabs.availe.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import com.availelabs.availe.navigation.DeepLinkBuilder
+import com.availelabs.availe.navigation.DeepLinkRoute
 import com.availelabs.availe.platform.Platform
 import com.availelabs.availe.platform.PlatformInfo
 import com.availelabs.availe.platform.UrlHandler
-import com.availelabs.availe.ui.components.ContextMenuArea
 import com.composables.icons.lucide.Copy
 import com.composables.icons.lucide.ExternalLink
 import com.composables.icons.lucide.Lucide
@@ -16,12 +17,13 @@ import com.composables.uikit.components.Icon
 import com.composables.uikit.components.Text
 
 @Composable
-fun ListingContextMenu(
-    url: String,
+fun LinkContextMenuArea(
+    route: DeepLinkRoute,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
+    val url = DeepLinkBuilder.build(route)
 
     ContextMenuArea(
         modifier = modifier,

@@ -32,18 +32,31 @@ internal class SessionRepository(
         coroutineScope.launch {
             val storedTokens = runCatching { authenticationRemoteDataSource.getTokens() }.getOrNull()
             val hasLocalSession = storedTokens?.accessToken != null
+            val storedUserId = storedTokens?.idToken?.let { JwtUserProfileMapper.decodeUserProfile(it) }?.id
 
-            if (hasLocalSession) {
+            if (hasLocalSession && storedUserId != null) {
                 val optimisticToken = AuthToken(storedTokens.accessToken)
-                updateState(AuthenticationState.LoggedIn(optimisticToken, isOffline = false))
+                updateState(
+                    AuthenticationState.LoggedIn(
+                        accessToken = optimisticToken,
+                        userId = storedUserId,
+                        isOffline = false
+                    )
+                )
             }
 
             try {
                 authenticationRemoteDataSource.discover()
             } catch (exception: Exception) {
-                if (hasLocalSession) {
+                if (hasLocalSession && storedUserId != null) {
                     val token = AuthToken(storedTokens.accessToken)
-                    updateState(AuthenticationState.LoggedIn(token, isOffline = true))
+                    updateState(
+                        AuthenticationState.LoggedIn(
+                            accessToken = token,
+                            userId = storedUserId,
+                            isOffline = true
+                        )
+                    )
                     return@launch
                 } else {
                     updateState(AuthenticationState.InitializationFailed(exception))
@@ -51,17 +64,34 @@ internal class SessionRepository(
                 }
             }
 
-            if (hasLocalSession && storedTokens.refreshToken != null) {
+            if (hasLocalSession && storedTokens.refreshToken != null && storedUserId != null) {
                 try {
                     val newTokens = authenticationRemoteDataSource.refreshTokens(storedTokens.refreshToken!!)
                     authenticationRemoteDataSource.saveTokens(newTokens)
+
                     val newToken = AuthToken(newTokens.access_token)
-                    updateState(AuthenticationState.LoggedIn(newToken, isOffline = false))
+                    // Try to get new ID from refresh response, fallback to stored ID if not returned (rare but possible in some flows)
+                    val newUserId =
+                        newTokens.id_token?.let { JwtUserProfileMapper.decodeUserProfile(it) }?.id ?: storedUserId
+
+                    updateState(
+                        AuthenticationState.LoggedIn(
+                            accessToken = newToken,
+                            userId = newUserId,
+                            isOffline = false
+                        )
+                    )
                 } catch (_: OpenIdConnectException) {
                     handleExpiredSession()
                 } catch (_: Exception) {
                     val token = AuthToken(storedTokens.accessToken)
-                    updateState(AuthenticationState.LoggedIn(token, isOffline = true))
+                    updateState(
+                        AuthenticationState.LoggedIn(
+                            accessToken = token,
+                            userId = storedUserId,
+                            isOffline = true
+                        )
+                    )
                 }
             } else if (!hasLocalSession) {
                 updateState(AuthenticationState.LoggedOut)

@@ -75,11 +75,22 @@ actual suspend fun platformResumeLogin(
 
     try {
         val tokenResponse = client.exchangeToken(authenticationCodeRequest, code)
-        tokenStore.saveTokens(tokenResponse)
-        AuthStorage.clear()
-        onStateUpdate(AuthenticationState.LoggedIn(AuthToken(tokenResponse.access_token)))
+        val userProfile = tokenResponse.id_token?.let { JwtUserProfileMapper.decodeUserProfile(it) }
 
-        window.history.replaceState(null, "", "/")
+        if (userProfile != null) {
+            tokenStore.saveTokens(tokenResponse)
+            AuthStorage.clear()
+            onStateUpdate(
+                AuthenticationState.LoggedIn(
+                    accessToken = AuthToken(tokenResponse.access_token),
+                    userId = userProfile.id
+                )
+            )
+            window.history.replaceState(null, "", "/")
+        } else {
+            console.error("Failed to decode user profile from ID token")
+            onStateUpdate(AuthenticationState.InitializationFailed(Exception("Failed to decode identity")))
+        }
     } catch (exception: Exception) {
         console.error("Failed to exchange token: ${exception.message}")
         onStateUpdate(AuthenticationState.InitializationFailed(Exception("Login failed")))

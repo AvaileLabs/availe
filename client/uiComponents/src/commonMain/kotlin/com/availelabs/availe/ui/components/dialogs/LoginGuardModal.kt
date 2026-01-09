@@ -3,6 +3,7 @@ package com.availelabs.availe.ui.components.dialogs
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,21 +57,25 @@ fun LoginGuardModal(
 
             Spacer(Modifier.height(16.dp))
 
-            Text(
-                text = stringResource(Res.string.authentication_guard_title),
-                style = Theme[textStyles][title],
-                textAlign = TextAlign.Center
-            )
+            SelectionContainer {
+                Text(
+                    text = stringResource(Res.string.authentication_guard_title),
+                    style = Theme[textStyles][title],
+                    textAlign = TextAlign.Center
+                )
+            }
 
             Spacer(Modifier.height(8.dp))
 
-            Text(
-                text = stringResource(Res.string.authentication_guard_body),
-                style = Theme[textStyles][body].copy(
-                    color = Theme[colors][onBackground].copy(alpha = 0.7f)
-                ),
-                textAlign = TextAlign.Center
-            )
+            SelectionContainer {
+                Text(
+                    text = stringResource(Res.string.authentication_guard_body),
+                    style = Theme[textStyles][body].copy(
+                        color = Theme[colors][onBackground].copy(alpha = 0.7f)
+                    ),
+                    textAlign = TextAlign.Center
+                )
+            }
 
             Spacer(Modifier.height(24.dp))
 
