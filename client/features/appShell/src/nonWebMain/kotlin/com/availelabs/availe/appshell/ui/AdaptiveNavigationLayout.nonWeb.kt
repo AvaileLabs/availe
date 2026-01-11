@@ -94,7 +94,7 @@ actual fun AppShellLayout(
 
                     val profileItem = @Composable {
                         ShellNavigationItem(
-                            selected = selectedIndex == 2 || (selectedIndex == 1 && activeConfiguration is AppShellConfiguration.Dashboard && pages.items.size < 3),
+                            selected = selectedIndex == 2,
                             onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
                             icon = { Icon(Lucide.User, null) },
                             label = { Text(stringResource(Res.string.navigation_profile)) },

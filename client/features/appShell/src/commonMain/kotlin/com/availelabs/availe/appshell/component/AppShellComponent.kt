@@ -17,11 +17,11 @@ import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.appshell.model.AppShellConfiguration
 import com.availelabs.availe.appshell.model.AppShellIntent
 import com.availelabs.availe.appshell.router.AppShellRouter
+import com.availelabs.availe.appshell.strategy.AppShellNavigationStrategy
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.chat.details.ChatComponent
 import com.availelabs.availe.chat.root.ChatRootComponent
 import com.availelabs.availe.chat.root.IChatNavigator
-import com.availelabs.availe.dashboard.DashboardComponent
 import com.availelabs.availe.dashboard.DashboardConfiguration
 import com.availelabs.availe.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
@@ -34,7 +34,6 @@ import com.availelabs.availe.homenav.HomeNavComponent
 import com.availelabs.availe.listingdetails.IListingDetailsNavigator
 import com.availelabs.availe.listingdetails.ListingDetailsComponent
 import com.availelabs.availe.listingeditor.IListingEditorNavigator
-import com.availelabs.availe.listingeditor.ListingEditorComponent
 import com.availelabs.availe.login.ILoginNavigator
 import com.availelabs.availe.profile.IProfileNavigator
 import com.availelabs.availe.profile.ProfileComponent
@@ -63,6 +62,9 @@ interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     fun onCancelLoginClicked()
     fun onLogoutClicked()
     fun onSettingsClicked()
+    fun onHomeTabClicked()
+    fun onChatTabClicked()
+    fun onProfileTabClicked()
 }
 
 @OptIn(ExperimentalUuidApi::class)
@@ -89,27 +91,32 @@ class AppShellComponent(
     private val chatOverlayNavigation = SlotNavigation<AppShellConfiguration.ChatOverlay>()
     private var layoutMode = LayoutMode.SinglePane
 
+    // Router is initialized FIRST, passed a provider lambda to get the stack later.
     private val router = AppShellRouter(
         stackNavigation = childStackNavigation,
         overlayNavigation = chatOverlayNavigation,
         layoutModeProvider = { layoutMode },
         inAppBrowserLauncher = appContainer.inAppBrowserLauncher,
         onExplicitLoginCallback = onExplicitLogin,
-        onCancelLoginCallback = onCancelLogin
+        onCancelLoginCallback = onCancelLogin,
+        childStackProvider = { childStack }
     )
+
+    // Stack is initialized SECOND, using the router in the child factory.
+    private val _childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>> = childStack(
+        source = childStackNavigation,
+        serializer = AppShellConfiguration.serializer(),
+        initialStack = { AppShellNavigationStrategy.calculateInitialStack(initialIntent) },
+        handleBackButton = true,
+        childFactory = ::createChildComponent
+    )
+
+    override val childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>> = _childStack
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
 
     override val authenticationState: Value<AuthenticationState> =
         appContainer.sessionManager.authenticationState.asValue(lifecycle)
-
-    override val childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>> = childStack(
-        source = childStackNavigation,
-        serializer = AppShellConfiguration.serializer(),
-        initialStack = { calculateInitialStack(initialIntent) },
-        handleBackButton = true,
-        childFactory = ::createChildComponent
-    )
 
     override val chatOverlay: Value<ChildSlot<AppShellConfiguration.ChatOverlay, AppShellChildComponent.ChatOverlay>> =
         childSlot(
@@ -136,7 +143,11 @@ class AppShellComponent(
         serializer = AppShellConfiguration.serializer(),
         pathMapper = { child -> child.configuration.toUrlPath() },
         childSelector = { child ->
-            (child.instance as? AppShellChildComponent.Dashboard)?.component
+            when (val instance = child.instance) {
+                is AppShellChildComponent.Dashboard -> instance.component
+                is AppShellChildComponent.Chat -> instance.component
+                else -> null
+            }
         }
     )
 
@@ -205,7 +216,7 @@ class AppShellComponent(
             }
         } else {
             val activeConfiguration = childStack.value.active.configuration
-            if (activeConfiguration is AppShellConfiguration.Chat) {
+            if (activeConfiguration is AppShellConfiguration.Chat && activeConfiguration.recipientJid != null) {
                 childStackNavigation.pop()
                 chatOverlayNavigation.activate(AppShellConfiguration.ChatOverlay(activeConfiguration.recipientJid))
             } else {
@@ -263,7 +274,31 @@ class AppShellComponent(
         router.onSettingsClicked()
     }
 
-    // --- Delegates to Router ---
+    override fun onHomeTabClicked() {
+        router.navigateToHome()
+    }
+
+    override fun onChatTabClicked() {
+        scope.launch {
+            val userProfile = appContainer.sessionManager.getCurrentUserProfile()
+            if (userProfile != null) {
+                router.navigateToChat(userProfile.jid)
+            } else {
+                onShowLoginGuard()
+            }
+        }
+    }
+
+    override fun onProfileTabClicked() {
+        scope.launch {
+            val userProfile = appContainer.sessionManager.getCurrentUserProfile()
+            if (userProfile != null) {
+                router.navigateToProfile(userProfile.id)
+            } else {
+                onShowLoginGuard()
+            }
+        }
+    }
 
     override fun navigateToListingDetails(listingId: ListingId) = router.navigateToListingDetails(listingId)
     override fun navigateToCreateListing() = router.navigateToCreateListing()
@@ -271,7 +306,6 @@ class AppShellComponent(
     override fun navigateToChat(jid: Jid) {
         router.navigateToChat(jid)
         if (layoutMode == LayoutMode.MultiPane) {
-            // Specific logic to update overlay state if needed after activation
             val overlay = chatOverlay.value.child?.instance
             overlay?.component?.selectConversation(jid)
         }
@@ -284,195 +318,140 @@ class AppShellComponent(
     override fun openUrl(url: String) = router.openUrl(url)
     override fun dismissLogin() = router.dismissLogin()
 
-    private fun calculateInitialStack(intent: AppShellIntent): List<AppShellConfiguration> {
-        return when (intent) {
-            is AppShellIntent.ListingEditor -> listOf(
-                AppShellConfiguration.Dashboard,
-                AppShellConfiguration.ListingEditor(intent.listingId)
-            )
-
-            is AppShellIntent.Chatting -> listOf(
-                AppShellConfiguration.Dashboard,
-                AppShellConfiguration.Chat(intent.recipientJid)
-            )
-
-            is AppShellIntent.ViewingListing -> listOf(
-                AppShellConfiguration.Dashboard,
-                AppShellConfiguration.ListingDetails(intent.listingId)
-            )
-
-            is AppShellIntent.ViewingListingWithChat -> listOf(
-                AppShellConfiguration.Dashboard,
-                AppShellConfiguration.ListingDetails(intent.listingId)
-            )
-
-            is AppShellIntent.ViewingProfile -> listOf(
-                AppShellConfiguration.Dashboard,
-                AppShellConfiguration.Profile(intent.userId)
-            )
-
-            is AppShellIntent.Settings -> listOf(
-                AppShellConfiguration.Dashboard,
-                AppShellConfiguration.Settings
-            )
-
-            else -> listOf(AppShellConfiguration.Dashboard)
-        }
-    }
-
     private fun createChildComponent(
         configuration: AppShellConfiguration,
         componentContext: ComponentContext
     ): AppShellChildComponent {
-        return when (configuration) {
-            AppShellConfiguration.Dashboard -> AppShellChildComponent.Dashboard(
-                DashboardComponent(
-                    componentContext = componentContext,
-                    sessionManager = appContainer.sessionManager,
-                    onShowLoginGuard = onShowLoginGuard,
-                    initialIntent = initialIntent,
-                    homeNavFactory = { ctx, initialStack ->
-                        HomeNavComponent(
-                            componentContext = ctx,
-                            initialStack = initialStack,
-                            homeFactory = { childCtx ->
-                                HomeComponent(
-                                    componentContext = childCtx,
-                                    listingRepository = appContainer.listingRepository,
-                                    sessionManager = appContainer.sessionManager,
-                                    messageService = appContainer.messageService,
-                                    navigator = this
-                                )
-                            },
-                            listingDetailsFactory = { childCtx, listingId ->
-                                ListingDetailsComponent(
-                                    componentContext = childCtx,
-                                    listingId = listingId,
-                                    listingRepository = appContainer.listingRepository,
-                                    navigator = this
-                                )
-                            },
-                            profileFactory = { childCtx, userId ->
-                                ProfileComponent(
-                                    componentContext = childCtx,
-                                    targetUserId = userId,
-                                    listingRepository = appContainer.listingRepository,
-                                    sessionManager = appContainer.sessionManager,
-                                    messageService = appContainer.messageService,
-                                    navigator = this
-                                )
-                            }
-                        )
-                    },
-                    chatRootFactory = { ctx, jid ->
-                        ChatRootComponent(
-                            componentContext = ctx,
-                            messagingRepository = appContainer.messagingRepository,
+        val context = AppShellChildFactoryContext(
+            componentContext = componentContext,
+            appContainer = appContainer,
+            navigator = router,
+            initialIntent = initialIntent,
+            onShowLoginGuard = onShowLoginGuard,
+            homeNavFactory = { ctx, initialStack ->
+                HomeNavComponent(
+                    componentContext = ctx,
+                    initialStack = initialStack,
+                    homeFactory = { childCtx ->
+                        HomeComponent(
+                            componentContext = childCtx,
+                            listingRepository = appContainer.listingRepository,
                             sessionManager = appContainer.sessionManager,
-                            initialJid = jid,
-                            navigator = this
+                            messageService = appContainer.messageService,
+                            navigator = router
                         )
                     },
-                    profileNavFactory = { ctx, userId, initialStack ->
-                        ProfileNavComponent(
-                            componentContext = ctx,
-                            userId = userId,
-                            initialStack = initialStack,
-                            profileFactory = { childCtx, targetUserId ->
-                                ProfileComponent(
-                                    componentContext = childCtx,
-                                    targetUserId = targetUserId,
-                                    listingRepository = appContainer.listingRepository,
-                                    sessionManager = appContainer.sessionManager,
-                                    messageService = appContainer.messageService,
-                                    navigator = this
-                                )
-                            },
-                            listingDetailsFactory = { childCtx, listingId ->
-                                ListingDetailsComponent(
-                                    componentContext = childCtx,
-                                    listingId = listingId,
-                                    listingRepository = appContainer.listingRepository,
-                                    navigator = this
-                                )
-                            },
-                            settingsFactory = { childCtx ->
-                                SettingsComponent(
-                                    componentContext = childCtx,
-                                    storeFactory = DefaultStoreFactory(),
-                                    sessionManager = appContainer.sessionManager,
-                                    authenticationRepository = appContainer.authenticationRepository,
-                                    navigator = this
-                                )
-                            }
+                    listingDetailsFactory = { childCtx, listingId ->
+                        ListingDetailsComponent(
+                            componentContext = childCtx,
+                            listingId = listingId,
+                            listingRepository = appContainer.listingRepository,
+                            navigator = router
+                        )
+                    },
+                    profileFactory = { childCtx, userId ->
+                        ProfileComponent(
+                            componentContext = childCtx,
+                            targetUserId = userId,
+                            listingRepository = appContainer.listingRepository,
+                            sessionManager = appContainer.sessionManager,
+                            messageService = appContainer.messageService,
+                            navigator = router
                         )
                     }
                 )
-            )
-
-            is AppShellConfiguration.Chat -> AppShellChildComponent.Chat(
-                ChatComponent(
-                    componentContext = componentContext,
-                    recipientJid = configuration.recipientJid,
-                    sessionManager = appContainer.sessionManager,
+            },
+            chatRootFactory = { ctx, jid ->
+                ChatRootComponent(
+                    componentContext = ctx,
                     messagingRepository = appContainer.messagingRepository,
-                    onNavigateBack = { router.navigateBack() }
+                    sessionManager = appContainer.sessionManager,
+                    initialJid = jid,
+                    navigator = router
                 )
-            )
-
-            is AppShellConfiguration.ListingEditor -> AppShellChildComponent.ListingEditor(
-                ListingEditorComponent(
-                    componentContext = componentContext,
-                    listingId = configuration.listingId,
+            },
+            profileNavFactory = { ctx, userId, initialStack ->
+                ProfileNavComponent(
+                    componentContext = ctx,
+                    userId = userId,
+                    initialStack = initialStack,
+                    profileFactory = { childCtx, targetUserId ->
+                        ProfileComponent(
+                            componentContext = childCtx,
+                            targetUserId = targetUserId,
+                            listingRepository = appContainer.listingRepository,
+                            sessionManager = appContainer.sessionManager,
+                            messageService = appContainer.messageService,
+                            navigator = router
+                        )
+                    },
+                    listingDetailsFactory = { childCtx, listingId ->
+                        ListingDetailsComponent(
+                            componentContext = childCtx,
+                            listingId = listingId,
+                            listingRepository = appContainer.listingRepository,
+                            navigator = router
+                        )
+                    },
+                    settingsFactory = { childCtx ->
+                        SettingsComponent(
+                            componentContext = childCtx,
+                            storeFactory = DefaultStoreFactory(),
+                            sessionManager = appContainer.sessionManager,
+                            authenticationRepository = appContainer.authenticationRepository,
+                            navigator = router
+                        )
+                    }
+                )
+            },
+            homeFactory = { ctx ->
+                HomeComponent(
+                    componentContext = ctx,
                     listingRepository = appContainer.listingRepository,
                     sessionManager = appContainer.sessionManager,
                     messageService = appContainer.messageService,
-                    navigator = this
+                    navigator = router
                 )
-            )
-
-            is AppShellConfiguration.ListingDetails -> AppShellChildComponent.ListingDetails(
+            },
+            listingDetailsFactory = { ctx, listingId ->
                 ListingDetailsComponent(
-                    componentContext = componentContext,
-                    listingId = configuration.listingId,
+                    componentContext = ctx,
+                    listingId = listingId,
                     listingRepository = appContainer.listingRepository,
-                    navigator = this
+                    navigator = router
                 )
-            )
-
-            is AppShellConfiguration.Profile -> AppShellChildComponent.Profile(
+            },
+            profileFactory = { ctx, userId ->
                 ProfileComponent(
-                    componentContext = componentContext,
-                    targetUserId = configuration.userId,
+                    componentContext = ctx,
+                    targetUserId = userId,
                     listingRepository = appContainer.listingRepository,
                     sessionManager = appContainer.sessionManager,
                     messageService = appContainer.messageService,
-                    navigator = this
+                    navigator = router
                 )
-            )
-
-            AppShellConfiguration.Settings -> AppShellChildComponent.Settings(
+            },
+            settingsFactory = { ctx ->
                 SettingsComponent(
-                    componentContext = componentContext,
+                    componentContext = ctx,
                     storeFactory = DefaultStoreFactory(),
                     sessionManager = appContainer.sessionManager,
                     authenticationRepository = appContainer.authenticationRepository,
-                    navigator = this
+                    navigator = router
                 )
-            )
-
-            is AppShellConfiguration.ChatOverlay -> {
-                AppShellChildComponent.ChatOverlay(
-                    ChatRootComponent(
-                        componentContext = componentContext,
-                        messagingRepository = appContainer.messagingRepository,
-                        sessionManager = appContainer.sessionManager,
-                        initialJid = configuration.initialJid,
-                        navigator = this
-                    )
+            },
+            chatFactory = { ctx, jid ->
+                ChatComponent(
+                    componentContext = ctx,
+                    recipientJid = jid,
+                    messagingRepository = appContainer.messagingRepository,
+                    sessionManager = appContainer.sessionManager,
+                    onNavigateBack = { router.navigateBack() }
                 )
             }
-        }
+        )
+
+        return AppShellNavigationStrategy.createChild(configuration, context)
     }
 
     private fun createChatOverlayComponent(
@@ -485,7 +464,7 @@ class AppShellComponent(
                 messagingRepository = appContainer.messagingRepository,
                 sessionManager = appContainer.sessionManager,
                 initialJid = configuration.initialJid,
-                navigator = this
+                navigator = router
             )
         )
     }

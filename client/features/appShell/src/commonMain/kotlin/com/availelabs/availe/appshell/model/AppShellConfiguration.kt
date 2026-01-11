@@ -19,10 +19,16 @@ sealed interface AppShellConfiguration {
     }
 
     @Serializable
-    data class Chat(val recipientJid: Jid) : AppShellConfiguration {
+    data object Home : AppShellConfiguration {
+        override fun toUrlPath(): String = ""
+    }
+
+    @Serializable
+    data class Chat(val recipientJid: Jid? = null) : AppShellConfiguration {
         override val canonicalParent: AppShellConfiguration = Dashboard
 
-        override fun toUrlPath(): String = "/$ROUTE_SEGMENT_NAME/${recipientJid.value}"
+        override fun toUrlPath(): String =
+            if (recipientJid != null) "/$ROUTE_SEGMENT_NAME/${recipientJid.value}" else "/$ROUTE_SEGMENT_NAME"
 
         companion object {
             const val ROUTE_SEGMENT_NAME = "chat"

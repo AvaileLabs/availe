@@ -51,17 +51,14 @@ actual fun AppShellLayout(
     val activeInstance = childStack.active.instance
     val childActions by activeInstance.actions.subscribeAsState()
     val shouldShowChatOverlay by appShellComponent.shouldShowChatOverlay.subscribeAsState()
+    val activeConfig = childStack.active.configuration
 
-    val dashboardComponent = childStack.items
-        .map { it.instance }
-        .filterIsInstance<AppShellChildComponent.Dashboard>()
-        .firstOrNull()?.component
-
-    val navigateToTab: (() -> Unit) -> Unit = { performTabAction ->
-        if (activeInstance !is AppShellChildComponent.Dashboard) {
-            appShellComponent.onBackClicked()
-        }
-        performTabAction()
+    val selectedIndex = when (activeConfig) {
+        is AppShellConfiguration.Home -> 0
+        is AppShellConfiguration.Dashboard -> 0
+        is AppShellConfiguration.Chat -> 1
+        is AppShellConfiguration.Profile -> 2
+        else -> -1
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -71,69 +68,64 @@ actual fun AppShellLayout(
                     Text("Availe", fontWeight = FontWeight.Bold)
                 },
                 navigationItems = {
-                    if (dashboardComponent != null) {
-                        val pages by dashboardComponent.pages.subscribeAsState()
-                        val selectedIndex = pages.selectedIndex
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Home
-                            LinkContextMenuArea(route = DeepLinkRoute.Home) {
-                                IconButton(
-                                    onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
-                                    backgroundColor = if (selectedIndex == 0) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Home
+                        LinkContextMenuArea(route = DeepLinkRoute.Home) {
+                            IconButton(
+                                onClick = { appShellComponent.onHomeTabClicked() },
+                                backgroundColor = if (selectedIndex == 0) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(Lucide.House, null)
-                                        Text(stringResource(Res.string.navigation_home))
-                                    }
+                                    Icon(Lucide.House, null)
+                                    Text(stringResource(Res.string.navigation_home))
                                 }
                             }
+                        }
 
-                            // Chat
-                            LinkContextMenuArea(route = DeepLinkRoute.Chat()) {
-                                IconButton(
-                                    onClick = { navigateToTab { dashboardComponent.onChatTabClicked() } },
-                                    backgroundColor = if (selectedIndex == 1) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                        // Chat
+                        LinkContextMenuArea(route = DeepLinkRoute.Chat()) {
+                            IconButton(
+                                onClick = { appShellComponent.onChatTabClicked() },
+                                backgroundColor = if (selectedIndex == 1) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(Lucide.MessageCircle, null)
-                                        Text(stringResource(Res.string.navigation_chat))
-                                    }
+                                    Icon(Lucide.MessageCircle, null)
+                                    Text(stringResource(Res.string.navigation_chat))
                                 }
                             }
+                        }
 
-                            // Profile
-                            val profileButton = @Composable {
-                                IconButton(
-                                    onClick = { navigateToTab { dashboardComponent.onProfileTabClicked() } },
-                                    backgroundColor = if (selectedIndex == 2) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                        // Profile
+                        val profileButton = @Composable {
+                            IconButton(
+                                onClick = { appShellComponent.onProfileTabClicked() },
+                                backgroundColor = if (selectedIndex == 2) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(Lucide.User, null)
-                                        Text(stringResource(Res.string.navigation_profile))
-                                    }
+                                    Icon(Lucide.User, null)
+                                    Text(stringResource(Res.string.navigation_profile))
                                 }
                             }
+                        }
 
-                            if (authenticationState is AuthenticationState.LoggedIn) {
-                                LinkContextMenuArea(route = DeepLinkRoute.Profile(authenticationState.userId)) {
-                                    profileButton()
-                                }
-                            } else {
+                        if (authenticationState is AuthenticationState.LoggedIn) {
+                            LinkContextMenuArea(route = DeepLinkRoute.Profile(authenticationState.userId)) {
                                 profileButton()
                             }
+                        } else {
+                            profileButton()
                         }
                     }
                 },

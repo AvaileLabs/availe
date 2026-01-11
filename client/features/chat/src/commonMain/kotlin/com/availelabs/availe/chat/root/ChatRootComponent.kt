@@ -3,6 +3,8 @@ package com.availelabs.availe.chat.root
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.panels.*
+import com.arkivanov.decompose.router.webhistory.WebNavigation
+import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.operator.map
 import com.availelabs.availe.chat.details.ChatComponent
@@ -14,7 +16,8 @@ import com.availelabs.availe.repositories.IMessagingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import kotlinx.serialization.ExperimentalSerializationApi
 
-interface IChatRootComponent {
+@OptIn(ExperimentalDecomposeApi::class)
+interface IChatRootComponent : WebNavigationOwner {
     @OptIn(ExperimentalDecomposeApi::class)
     val panels: Value<ChildPanels<ChatRootConfiguration, IChatListComponent, ChatRootConfiguration, IChatComponent, Nothing, Nothing>>
     val canNavigateBack: Value<Boolean>
@@ -37,32 +40,46 @@ class ChatRootComponent(
 
     private val navigation = PanelsNavigation<ChatRootConfiguration.List, ChatRootConfiguration.Details, Nothing>()
 
+    // We keep a private typed reference to allow childPanelsWebNavigation to match types correctly with the navigator.
+    // The public property upcasts to the sealed interface.
+    @OptIn(ExperimentalSerializationApi::class)
+    private val _panels = childPanels(
+        source = navigation,
+        serializers = ChatRootConfiguration.List.serializer() to ChatRootConfiguration.Details.serializer(),
+        initialPanels = {
+            if (initialJid != null) {
+                Panels(
+                    main = ChatRootConfiguration.List,
+                    details = ChatRootConfiguration.Details(initialJid),
+                    mode = ChildPanelsMode.DUAL
+                )
+            } else {
+                Panels(
+                    main = ChatRootConfiguration.List,
+                    mode = ChildPanelsMode.SINGLE
+                )
+            }
+        },
+        mainFactory = ::createList,
+        detailsFactory = ::createDetails
+    )
+
     @OptIn(ExperimentalSerializationApi::class)
     override val panels: Value<ChildPanels<ChatRootConfiguration, IChatListComponent, ChatRootConfiguration, IChatComponent, Nothing, Nothing>> =
-        childPanels(
-            source = navigation,
-            serializers = ChatRootConfiguration.List.serializer() to ChatRootConfiguration.Details.serializer(),
-            initialPanels = {
-                if (initialJid != null) {
-                    Panels(
-                        main = ChatRootConfiguration.List,
-                        details = ChatRootConfiguration.Details(initialJid),
-                        mode = ChildPanelsMode.DUAL
-                    )
-                } else {
-                    Panels(
-                        main = ChatRootConfiguration.List,
-                        mode = ChildPanelsMode.SINGLE
-                    )
-                }
-            },
-            mainFactory = ::createList,
-            detailsFactory = ::createDetails
-        )
+        _panels as Value<ChildPanels<ChatRootConfiguration, IChatListComponent, ChatRootConfiguration, IChatComponent, Nothing, Nothing>>
 
     override val canNavigateBack: Value<Boolean> = panels.map { state ->
         state.mode == ChildPanelsMode.SINGLE && state.details != null
     }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    override val webNavigation: WebNavigation<*> = childPanelsWebNavigation(
+        navigator = navigation,
+        panels = _panels,
+        serializers = ChatRootConfiguration.List.serializer() to ChatRootConfiguration.Details.serializer(),
+        pathMapper = { state -> state.details?.configuration?.jid?.value },
+        childSelector = { null }
+    )
 
     override fun setMode(mode: ChildPanelsMode) {
         navigation.setMode(mode)

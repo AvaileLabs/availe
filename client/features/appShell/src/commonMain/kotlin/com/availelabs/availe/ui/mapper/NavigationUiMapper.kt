@@ -14,6 +14,12 @@ object NavigationUiMapper {
                 contentDescription = Res.string.accessibility_navigation_home
             )
 
+            is AppShellConfiguration.Home -> NavigationUiState(
+                title = Res.string.navigation_home,
+                icon = Lucide.House,
+                contentDescription = Res.string.accessibility_navigation_home
+            )
+
             is AppShellConfiguration.Chat,
             is AppShellConfiguration.ChatOverlay -> NavigationUiState(
                 title = Res.string.navigation_chat,

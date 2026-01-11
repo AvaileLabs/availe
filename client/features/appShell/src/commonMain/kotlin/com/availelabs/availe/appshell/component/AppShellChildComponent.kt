@@ -2,9 +2,9 @@ package com.availelabs.availe.appshell.component
 
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.availelabs.availe.chat.details.IChatComponent
 import com.availelabs.availe.chat.root.IChatRootComponent
 import com.availelabs.availe.dashboard.IDashboardComponent
+import com.availelabs.availe.home.IHomeComponent
 import com.availelabs.availe.listingdetails.IListingDetailsComponent
 import com.availelabs.availe.listingeditor.IListingEditorComponent
 import com.availelabs.availe.profile.IProfileComponent
@@ -18,8 +18,12 @@ sealed interface AppShellChildComponent {
         override val actions: Value<List<AppBarAction>> = component.actions
     }
 
-    data class Chat(val component: IChatComponent) : AppShellChildComponent {
+    data class Home(val component: IHomeComponent) : AppShellChildComponent {
         override val actions: Value<List<AppBarAction>> = component.actions
+    }
+
+    data class Chat(val component: IChatRootComponent) : AppShellChildComponent {
+        override val actions: Value<List<AppBarAction>> = MutableValue(emptyList())
     }
 
     data class ListingEditor(val component: IListingEditorComponent) : AppShellChildComponent {

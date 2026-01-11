@@ -18,9 +18,9 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.appshell.component.AppShellChildComponent
 import com.availelabs.availe.appshell.component.IAppShellComponent
 import com.availelabs.availe.auth.AuthenticationState
-import com.availelabs.availe.chat.details.ChatScreen
 import com.availelabs.availe.chat.root.ChatRootScreen
 import com.availelabs.availe.dashboard.DashboardScreen
+import com.availelabs.availe.home.HomeScreen
 import com.availelabs.availe.listingdetails.ListingDetailsScreen
 import com.availelabs.availe.listingeditor.ListingEditorScreen
 import com.availelabs.availe.profile.ProfileScreen
@@ -180,9 +180,14 @@ private fun AppShellChildComponent.Render(
             isSwipeEnabled = isSwipeEnabled
         )
 
-        is AppShellChildComponent.Chat -> ChatScreen(
-            component = this.component,
-            isOverlay = false
+        is AppShellChildComponent.Home -> HomeScreen(
+            homeComponent = this.component,
+            onSearchClick = {},
+            onNotificationClick = {}
+        )
+
+        is AppShellChildComponent.Chat -> ChatRootScreen(
+            component = this.component
         )
 
         is AppShellChildComponent.ListingEditor -> ListingEditorScreen(
