@@ -39,11 +39,20 @@
     * **App Shell** implements these interfaces, acting as the central router.
     * **Dependency Injection** passes the App Shell implementation down to the features via the Component Context or
       constructor.
+* **Platform-Adaptive Navigation (Strategy Pattern)**:
+    * When navigation topologies differ significantly between platforms (e.g., Mobile uses `Dashboard/Pages` vs. Web
+      uses `Home/Stack` + Browser History), use **Navigation Strategies**.
+    * Split the Router logic and Initial Stack calculation into `expect/actual` implementations within the feature
+      module (specifically `app-shell`).
+    * This isolates platform-specific routing verbs (e.g., `push` vs `select`) while keeping the high-level Component
+      interface shared.
 * **Component Composition (The Factory Rule)**:
     * Intermediate components (e.g., `Dashboard`) must acts as "Dumb Containers". They must not accept dependencies
       intended for their children.
     * Use **Component Factories** (e.g., `(ComponentContext) -> IChildComponent`) to pass child creation logic down
       the tree.
+    * **Context Objects**: If a factory requires many dependencies, encapsulate them in a **Context Data Class** (e.g.,
+      `ChildFactoryContext`) rather than passing a long list of parameters.
     * The `App Shell` is responsible for constructing these factories and injecting the necessary dependencies (like
       Navigators).
 * **Visibility Control**:
@@ -68,6 +77,12 @@
 * **Link Behavior**: Any UI element that navigates to a new route (Cards, Navigation Items, Icons) must use
   `LinkContextMenuArea` to support standard browser interactions (Right-click "Copy Link", Middle-click "Open in New
   Tab").
+* **Web Navigation**:
+    * Web targets must implement `WebNavigationOwner` to ensure the browser URL and history synchronize with the
+      internal navigation state.
+    * **Stack Management**: On Web, use `bringToFront` or `pushToFront` instead of `push` for top-level navigation
+      items. This prevents duplicate configurations in the back stack, which causes crashes and logic errors in browser
+      history management.
 * **Type-Safe Routing**: Do not use raw URL strings for navigation or link generation. Use the `DeepLinkRoute` sealed
   interfaces defined in `:client:core`. This ensures a single source of truth for both link generation (
   `DeepLinkBuilder`)
