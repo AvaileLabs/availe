@@ -18,8 +18,15 @@ interface IListingRepository {
         size: Int,
         forceRefresh: Boolean,
         publisherId: UserId? = null,
-        category: ListingCategory? = null
+        filter: ListingCategoryFilter = ListingCategoryFilter.All
     ): Flow<DataStream<List<Listing>>>
+
+    suspend fun prefetchListings(
+        page: Int,
+        size: Int,
+        publisherId: UserId? = null,
+        filter: ListingCategoryFilter = ListingCategoryFilter.All
+    )
 
     suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>>
     suspend fun existsById(id: ListingId): RepositoryOperationResult<Boolean>
@@ -30,5 +37,5 @@ interface IListingRepository {
     ): RepositoryOperationResult<UpdateResult<Listing>>
 
     suspend fun deleteListing(id: ListingId): RepositoryOperationResult<DeleteResult>
-    suspend fun isListingCacheStale(): Boolean
+    suspend fun isListingCacheStale(filter: ListingCategoryFilter = ListingCategoryFilter.All): Boolean
 }

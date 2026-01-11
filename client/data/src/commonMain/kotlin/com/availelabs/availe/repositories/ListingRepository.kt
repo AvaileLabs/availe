@@ -21,6 +21,7 @@ import org.mobilenativefoundation.store.core5.ExperimentalStoreApi
 import org.mobilenativefoundation.store.store5.StoreReadRequest
 import org.mobilenativefoundation.store.store5.StoreReadResponse
 import org.mobilenativefoundation.store.store5.StoreReadResponseOrigin
+import org.mobilenativefoundation.store.store5.impl.extensions.fresh
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -42,14 +43,12 @@ internal class ListingRepository(
         size: Int,
         forceRefresh: Boolean,
         publisherId: UserId?,
-        category: ListingCategory?
+        filter: ListingCategoryFilter
     ): Flow<DataStream<List<Listing>>> = flow {
         emit(DataStream.Loading)
 
-        // TODO: Implement category filtering. Currently, the category parameter is ignored to allow UI refactoring without breaking the app.
-        // The API endpoint and Local Data Source need to be updated to support filtering by ListingCategory.
-        val shouldRefresh = if (forceRefresh) true else isListingCacheStale()
-        val key = ListingStoreKey(page, size, publisherId)
+        val shouldRefresh = if (forceRefresh) true else isListingCacheStale(filter)
+        val key = ListingStoreKey(page, size, publisherId, filter)
 
         val request = if (shouldRefresh) {
             StoreReadRequest.cached(key, refresh = true)
@@ -63,7 +62,10 @@ internal class ListingRepository(
             .transform { response ->
                 if (response.origin is StoreReadResponseOrigin.Fetcher && response is StoreReadResponse.Data) {
                     try {
-                        listingPreferences.updateLastListingsFetchTime(Clock.System.now().toEpochMilliseconds())
+                        listingPreferences.updateLastListingsFetchTime(
+                            timestampMilliseconds = Clock.System.now().toEpochMilliseconds(),
+                            filter = key.filter
+                        )
                     } catch (_: Exception) {
                     }
                 }
@@ -98,6 +100,23 @@ internal class ListingRepository(
             }
 
         emitAll(stream)
+    }
+
+    override suspend fun prefetchListings(
+        page: Int,
+        size: Int,
+        publisherId: UserId?,
+        filter: ListingCategoryFilter
+    ) {
+        val key = ListingStoreKey(page, size, publisherId, filter)
+        try {
+            store.fresh(key)
+            listingPreferences.updateLastListingsFetchTime(
+                timestampMilliseconds = Clock.System.now().toEpochMilliseconds(),
+                filter = filter
+            )
+        } catch (_: Exception) {
+        }
     }
 
     override suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>> {
@@ -172,14 +191,14 @@ internal class ListingRepository(
         return result
     }
 
-    override suspend fun isListingCacheStale(): Boolean {
+    override suspend fun isListingCacheStale(filter: ListingCategoryFilter): Boolean {
         return try {
             if (localDataSource.isListingDatabaseEmpty()) {
                 return true
             }
 
             val lastFetchTimeMilliseconds =
-                listingPreferences.getLastListingsFetchTimeMilliseconds() ?: return true
+                listingPreferences.getLastListingsFetchTimeMilliseconds(filter) ?: return true
 
             val currentTimestampMilliseconds = Clock.System.now().toEpochMilliseconds()
             val stalenessThresholdMilliseconds = 15 * 60 * 1000

@@ -182,7 +182,7 @@ internal class ListingFeedStoreFactory(
                     page = page,
                     size = pageSize,
                     forceRefresh = forceRefresh,
-                    category = category
+                    filter = ListingCategoryFilter.of(category)
                 )
                     .catch { throwable ->
                         val appError = AppError.UnknownError(throwable.message ?: "Unknown stream error")

@@ -14,6 +14,7 @@ import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.mappers.toDomainListing
 import com.availelabs.availe.mappers.toMoneta
 import com.availelabs.availe.repositories.listing.helpers.creators.IListingCreator
+import com.example.jooq.enums.ListingTypeEnum
 import com.example.jooq.tables.references.LISTINGS
 import com.example.jooq.tables.references.LISTING_EVENT_DETAILS
 import com.example.jooq.tables.references.LISTING_ITEM_DETAILS
@@ -32,7 +33,13 @@ interface IListingRepository {
     fun getListingById(id: ListingId): FindResult<Listing>
     fun existsById(id: ListingId): Boolean
     fun getAllListings(): List<Listing>
-    fun getListingsPage(pageNumber: Int, pageSize: Int, publisherId: UserId? = null): List<Listing>
+    fun getListingsPage(
+        pageNumber: Int,
+        pageSize: Int,
+        publisherId: UserId? = null,
+        filter: ListingCategoryFilter = ListingCategoryFilter.All
+    ): List<Listing>
+
     fun updateListing(
         id: ListingId,
         patch: TypeV1ListingDtoPatchRequest
@@ -106,12 +113,28 @@ internal class ListingRepository(
             }
     }
 
-    override fun getListingsPage(pageNumber: Int, pageSize: Int, publisherId: UserId?): List<Listing> {
+    override fun getListingsPage(
+        pageNumber: Int,
+        pageSize: Int,
+        publisherId: UserId?,
+        filter: ListingCategoryFilter
+    ): List<Listing> {
         val offset = pageNumber * pageSize
-        val condition = if (publisherId != null) {
-            LISTINGS.PUBLISHER_ID.eq(publisherId.value.toJavaUuid())
-        } else {
-            DSL.noCondition()
+        var condition = DSL.noCondition()
+
+        if (publisherId != null) {
+            condition = condition.and(LISTINGS.PUBLISHER_ID.eq(publisherId.value.toJavaUuid()))
+        }
+
+        if (!filter.isAll) {
+            val databaseCategories = filter.categories.map { category ->
+                when (category) {
+                    ListingCategory.Item -> ListingTypeEnum.item
+                    ListingCategory.Event -> ListingTypeEnum.event
+                    ListingCategory.Service -> ListingTypeEnum.service
+                }
+            }
+            condition = condition.and(LISTINGS.LISTING_TYPE.`in`(databaseCategories))
         }
 
         return baseQuery()

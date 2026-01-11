@@ -9,6 +9,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.domain.model.ListingCategoryFilter
 import com.availelabs.availe.listingfeed.IListingFeedComponent
 import com.availelabs.availe.listingfeed.ListingFeedComponent
 import com.availelabs.availe.repositories.IListingRepository
@@ -59,6 +60,8 @@ class HomeComponent(
         val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
         lifecycle.doOnDestroy { scope.cancel() }
 
+        prefetchTabs(scope)
+
         scope.launch {
             sessionManager.authenticationState.collect { authenticationState ->
                 if (authenticationState is AuthenticationState.LoggedIn) {
@@ -72,6 +75,19 @@ class HomeComponent(
                 } else {
                     _actions.value = emptyList()
                 }
+            }
+        }
+    }
+
+    private fun prefetchTabs(scope: CoroutineScope) {
+        val categories = listOf(ListingCategory.Item, ListingCategory.Event, ListingCategory.Service)
+        categories.forEach { category ->
+            scope.launch {
+                listingRepository.prefetchListings(
+                    page = 0,
+                    size = 20,
+                    filter = ListingCategoryFilter.of(category)
+                )
             }
         }
     }

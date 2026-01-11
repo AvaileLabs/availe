@@ -5,10 +5,7 @@ package com.availelabs.availe.sources.remote
 import com.availelabs.availe.ApiMediaTypes
 import com.availelabs.availe.ApiParameters
 import com.availelabs.availe.ApiRoutes
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
@@ -27,7 +24,13 @@ import kotlinx.serialization.json.Json
 import kotlin.uuid.ExperimentalUuidApi
 
 internal interface IListingRemoteDataSource {
-    suspend fun getListingsPage(page: Int, size: Int, publisherId: UserId? = null): List<Listing>
+    suspend fun getListingsPage(
+        page: Int,
+        size: Int,
+        publisherId: UserId? = null,
+        filter: ListingCategoryFilter
+    ): List<Listing>
+
     suspend fun getListingById(id: ListingId): FindResult<Listing>
     suspend fun existsById(id: ListingId): Boolean
     suspend fun createListing(listing: NewListing): InsertResult<Listing>
@@ -44,12 +47,22 @@ internal class ListingRemoteDataSource(
     private val json: Json
 ) : IListingRemoteDataSource {
 
-    override suspend fun getListingsPage(page: Int, size: Int, publisherId: UserId?): List<Listing> {
+    override suspend fun getListingsPage(
+        page: Int,
+        size: Int,
+        publisherId: UserId?,
+        filter: ListingCategoryFilter
+    ): List<Listing> {
         val response = httpClient.get(ApiRoutes.LISTINGS) {
             parameter(ApiParameters.PAGE_NUMBER, page)
             parameter(ApiParameters.PAGE_SIZE, size)
             if (publisherId != null) {
                 parameter(ApiParameters.PUBLISHER_ID, publisherId.value.toString())
+            }
+            if (!filter.isAll) {
+                filter.categories.forEach { category ->
+                    parameter(ApiParameters.CATEGORIES, category.name)
+                }
             }
         }
         ensureSuccess(response)

@@ -1,5 +1,6 @@
 package com.availelabs.availe.repositories.model
 
+import com.availelabs.availe.domain.model.ListingCategoryFilter
 import com.availelabs.availe.domain.model.UserId
 import kotlinx.serialization.Serializable
 import org.mobilenativefoundation.store.core5.ExperimentalStoreApi
@@ -12,6 +13,7 @@ internal data class ListingStoreKey(
     override val page: Int,
     override val size: Int,
     val publisherId: UserId? = null,
+    val filter: ListingCategoryFilter = ListingCategoryFilter.All,
     override val sort: StoreKey.Sort? = null,
     override val filters: List<StoreKey.Filter<*>>? = null
 ) : StoreKey.Collection.Page {

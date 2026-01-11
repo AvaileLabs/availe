@@ -54,21 +54,14 @@ upsertServiceDetails:
 INSERT OR REPLACE INTO listing_service_details(listing_id)
 VALUES (?);
 
-selectPage:
+selectListings:
 SELECT *
 FROM listings
 LEFT JOIN listing_item_details ON listings.primary_key_id = listing_item_details.listing_id
 LEFT JOIN listing_event_details ON listings.primary_key_id = listing_event_details.listing_id
 LEFT JOIN listing_service_details ON listings.primary_key_id = listing_service_details.listing_id
-LIMIT :limit OFFSET :offset;
-
-selectByPublisherId:
-SELECT *
-FROM listings
-LEFT JOIN listing_item_details ON listings.primary_key_id = listing_item_details.listing_id
-LEFT JOIN listing_event_details ON listings.primary_key_id = listing_event_details.listing_id
-LEFT JOIN listing_service_details ON listings.primary_key_id = listing_service_details.listing_id
-WHERE listings.publisher_id = ?
+WHERE (:publisher_id IS NULL OR listings.publisher_id = :publisher_id)
+AND (listings.listing_type IN :categories)
 LIMIT :limit OFFSET :offset;
 
 selectById:
@@ -83,12 +76,10 @@ deleteById:
 DELETE FROM listings
 WHERE primary_key_id = ?;
 
-deleteByPublisherId:
+deleteListings:
 DELETE FROM listings
-WHERE publisher_id = ?;
-
-deleteAll:
-DELETE FROM listings;
+WHERE (:publisher_id IS NULL OR listings.publisher_id = :publisher_id)
+AND (listings.listing_type IN :categories);
 
 countListings:
 SELECT count(*) FROM listings;

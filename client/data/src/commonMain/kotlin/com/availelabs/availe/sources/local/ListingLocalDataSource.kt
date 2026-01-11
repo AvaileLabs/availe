@@ -5,19 +5,20 @@ import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import com.availelabs.availe.database.IDatabaseProvider
 import com.availelabs.availe.database.toDomain
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.ListingCategory
-import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.*
 
 interface IListingLocalDataSource {
     suspend fun upsertListing(listing: Listing)
-    suspend fun getListingsPage(limit: Long, offset: Long): List<Listing>
-    suspend fun getListingsByPublisherId(publisherId: UserId, limit: Long, offset: Long): List<Listing>
+    suspend fun getListings(
+        limit: Long,
+        offset: Long,
+        publisherId: UserId?,
+        filter: ListingCategoryFilter
+    ): List<Listing>
+
     suspend fun getListingById(id: ListingId): Listing?
     suspend fun deleteListingById(id: ListingId)
-    suspend fun deleteListingsByPublisherId(publisherId: UserId)
-    suspend fun deleteAllListings()
+    suspend fun deleteListings(publisherId: UserId?, filter: ListingCategoryFilter)
     suspend fun isListingDatabaseEmpty(): Boolean
 }
 
@@ -53,18 +54,27 @@ internal class ListingLocalDataSource(
         }
     }
 
-    override suspend fun getListingsPage(limit: Long, offset: Long): List<Listing> {
+    override suspend fun getListings(
+        limit: Long,
+        offset: Long,
+        publisherId: UserId?,
+        filter: ListingCategoryFilter
+    ): List<Listing> {
         val database = databaseProvider.getDatabase()
-        return database.listingsQueries.selectPage(limit, offset)
-            .awaitAsList()
-            .map { selectPage -> selectPage.toDomain() }
-    }
+        val categories = if (filter.isAll) {
+            ListingCategory.entries
+        } else {
+            filter.categories.toList()
+        }
 
-    override suspend fun getListingsByPublisherId(publisherId: UserId, limit: Long, offset: Long): List<Listing> {
-        val database = databaseProvider.getDatabase()
-        return database.listingsQueries.selectByPublisherId(publisherId, limit, offset)
+        return database.listingsQueries.selectListings(
+            publisher_id = publisherId,
+            categories = categories,
+            limit = limit,
+            offset = offset
+        )
             .awaitAsList()
-            .map { selectByPublisherId -> selectByPublisherId.toDomain() }
+            .map { selectListings -> selectListings.toDomain() }
     }
 
     override suspend fun getListingById(id: ListingId): Listing? {
@@ -79,14 +89,18 @@ internal class ListingLocalDataSource(
         database.listingsQueries.deleteById(id)
     }
 
-    override suspend fun deleteListingsByPublisherId(publisherId: UserId) {
+    override suspend fun deleteListings(publisherId: UserId?, filter: ListingCategoryFilter) {
         val database = databaseProvider.getDatabase()
-        database.listingsQueries.deleteByPublisherId(publisherId)
-    }
+        val categories = if (filter.isAll) {
+            ListingCategory.entries
+        } else {
+            filter.categories.toList()
+        }
 
-    override suspend fun deleteAllListings() {
-        val database = databaseProvider.getDatabase()
-        database.listingsQueries.deleteAll()
+        database.listingsQueries.deleteListings(
+            publisher_id = publisherId,
+            categories = categories
+        )
     }
 
     override suspend fun isListingDatabaseEmpty(): Boolean {

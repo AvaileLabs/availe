@@ -3,10 +3,7 @@
 package com.availelabs.availe.service
 
 import com.availelabs.availe.domain.extensions.canBeModifiedBy
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.NewListing
-import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
@@ -19,7 +16,13 @@ interface IListingService {
     fun createListing(newListing: NewListing): InsertResult<Listing>
     fun getListingById(id: ListingId): FindResult<Listing>
     fun getAllListings(): List<Listing>
-    fun getListingsPage(pageNumber: Int, pageSize: Int, publisherId: UserId? = null): List<Listing>
+    fun getListingsPage(
+        pageNumber: Int,
+        pageSize: Int,
+        publisherId: UserId? = null,
+        filter: ListingCategoryFilter = ListingCategoryFilter.All
+    ): List<Listing>
+
     fun updateListing(
         listingId: ListingId,
         patch: TypeV1ListingDtoPatchRequest,
@@ -42,8 +45,13 @@ class ListingService(
 
     override fun getAllListings(): List<Listing> = listingRepository.getAllListings()
 
-    override fun getListingsPage(pageNumber: Int, pageSize: Int, publisherId: UserId?): List<Listing> {
-        return listingRepository.getListingsPage(pageNumber, pageSize, publisherId)
+    override fun getListingsPage(
+        pageNumber: Int,
+        pageSize: Int,
+        publisherId: UserId?,
+        filter: ListingCategoryFilter
+    ): List<Listing> {
+        return listingRepository.getListingsPage(pageNumber, pageSize, publisherId, filter)
     }
 
     override fun updateListing(

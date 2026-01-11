@@ -25,10 +25,7 @@ import org.http4k.contract.meta
 import org.http4k.core.*
 import org.http4k.events.Events
 import org.http4k.format.KotlinxSerialization.auto
-import org.http4k.lens.Path
-import org.http4k.lens.Query
-import org.http4k.lens.int
-import org.http4k.lens.uuid
+import org.http4k.lens.*
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -50,6 +47,7 @@ internal class ListingController(
     private val publisherIdQueryLens = Query.uuid()
         .map({ UserId(it.toKotlinUuid()) }, { it.value.toJavaUuid() })
         .optional(ApiParameters.PUBLISHER_ID)
+    private val categoriesQueryLens = Query.enum<ListingCategory>().multi.optional(ApiParameters.CATEGORIES)
 
     private val examplePrice = Price(PriceAmount("10.00"), CurrencyCode("USD"))
     private val exampleResponseItem = ListingItemDtoSchema.V1.Data(
@@ -158,17 +156,26 @@ internal class ListingController(
     fun listAllListings(): ContractRoute {
         return ApiRoutes.LISTINGS meta {
             summary = "Get all listings."
-            description = "Returns a paginated list of all listings, optionally filtered by publisher ID."
+            description =
+                "Returns a paginated list of all listings, optionally filtered by publisher ID and/or categories."
             queries += pageNumberQueryLens
             queries += pageSizeQueryLens
             queries += publisherIdQueryLens
+            queries += categoriesQueryLens
             returning(Status.OK, listResponseBodyLens to listOf(exampleResponseItem))
         } bindContract Method.GET to { request: Request ->
             val pageNumber = pageNumberQueryLens(request)
             val pageSize = pageSizeQueryLens(request)
             val publisherId = publisherIdQueryLens(request)
+            val categoriesList = categoriesQueryLens(request)
 
-            val listings = listingService.getListingsPage(pageNumber, pageSize, publisherId)
+            val filter = if (categoriesList.isNullOrEmpty()) {
+                ListingCategoryFilter.All
+            } else {
+                ListingCategoryFilter.of(*categoriesList.toTypedArray())
+            }
+
+            val listings = listingService.getListingsPage(pageNumber, pageSize, publisherId, filter)
             val responseDto = listings.map { it.toDataDto() }
             Response(Status.OK).with(listResponseBodyLens of responseDto)
         }

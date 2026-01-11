@@ -9,6 +9,7 @@ object ApiParameters {
     const val PAGE_NUMBER = "page"
     const val PAGE_SIZE = "size"
     const val PUBLISHER_ID = "publisherId"
+    const val CATEGORIES = "categories"
 }
 
 object ApiMediaTypes {

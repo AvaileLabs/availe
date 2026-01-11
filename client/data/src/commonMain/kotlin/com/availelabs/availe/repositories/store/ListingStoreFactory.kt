@@ -18,7 +18,12 @@ internal class ListingStoreFactory(
     fun create(): Store<ListingStoreKey, List<Listing>> {
         return StoreBuilder.Companion.from<ListingStoreKey, List<Listing>, List<Listing>>(
             fetcher = Fetcher.Companion.of { key ->
-                remoteDataSource.getListingsPage(key.page, key.size, key.publisherId)
+                remoteDataSource.getListingsPage(
+                    page = key.page,
+                    size = key.size,
+                    publisherId = key.publisherId,
+                    filter = key.filter
+                )
             },
             sourceOfTruth = SourceOfTruth.Companion.of(
                 nonFlowReader = { key ->
@@ -26,11 +31,12 @@ internal class ListingStoreFactory(
                         val offset = (key.page * key.size).toLong()
                         val limit = key.size.toLong()
 
-                        if (key.publisherId != null) {
-                            localDataSource.getListingsByPublisherId(key.publisherId, limit, offset)
-                        } else {
-                            localDataSource.getListingsPage(limit, offset)
-                        }
+                        localDataSource.getListings(
+                            limit = limit,
+                            offset = offset,
+                            publisherId = key.publisherId,
+                            filter = key.filter
+                        )
                     } catch (_: Exception) {
                         localDataCleaner.clearAllData()
                         null
@@ -39,11 +45,7 @@ internal class ListingStoreFactory(
                 writer = { key, listings ->
                     try {
                         if (key.page == 0) {
-                            if (key.publisherId != null) {
-                                localDataSource.deleteListingsByPublisherId(key.publisherId)
-                            } else {
-                                localDataSource.deleteAllListings()
-                            }
+                            localDataSource.deleteListings(key.publisherId, key.filter)
                         }
                         listings.forEach { listing ->
                             localDataSource.upsertListing(listing)
