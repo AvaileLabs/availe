@@ -9,9 +9,10 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.ListingCategory
-import com.availelabs.availe.domain.model.ListingCategoryFilter
 import com.availelabs.availe.listingfeed.IListingFeedComponent
 import com.availelabs.availe.listingfeed.ListingFeedComponent
+import com.availelabs.availe.model.ListingFeedType
+import com.availelabs.availe.model.toListingCategoryFilter
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
@@ -31,7 +32,8 @@ class HomeComponent(
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionRepository,
     private val messageService: IMessageService,
-    private val navigator: IHomeNavigator
+    private val navigator: IHomeNavigator,
+    private val initialFeedType: ListingFeedType = ListingFeedType.Latest
 ) : IHomeComponent, ComponentContext by componentContext {
 
     private val navigation = PagesNavigation<HomeConfiguration>()
@@ -41,13 +43,18 @@ class HomeComponent(
             source = navigation,
             serializer = HomeConfiguration.serializer(),
             initialPages = {
+                val feedTypes = listOf(
+                    ListingFeedType.Latest,
+                    ListingFeedType.Category(ListingCategory.Item),
+                    ListingFeedType.Category(ListingCategory.Event),
+                    ListingFeedType.Category(ListingCategory.Service)
+                )
+
+                val initialIndex = feedTypes.indexOf(initialFeedType).coerceAtLeast(0)
+
                 Pages(
-                    items = listOf(
-                        HomeConfiguration.Feed(ListingCategory.Item),
-                        HomeConfiguration.Feed(ListingCategory.Event),
-                        HomeConfiguration.Feed(ListingCategory.Service)
-                    ),
-                    selectedIndex = 0
+                    items = feedTypes.map { HomeConfiguration.Feed(it) },
+                    selectedIndex = initialIndex
                 )
             },
             childFactory = ::createChild
@@ -60,7 +67,7 @@ class HomeComponent(
         val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
         lifecycle.doOnDestroy { scope.cancel() }
 
-        prefetchTabs(scope)
+        runStructuredPrefetching(scope)
 
         scope.launch {
             sessionManager.authenticationState.collect { authenticationState ->
@@ -79,15 +86,36 @@ class HomeComponent(
         }
     }
 
-    private fun prefetchTabs(scope: CoroutineScope) {
-        val categories = listOf(ListingCategory.Item, ListingCategory.Event, ListingCategory.Service)
-        categories.forEach { category ->
-            scope.launch {
-                listingRepository.prefetchListings(
-                    page = 0,
-                    size = 20,
-                    filter = ListingCategoryFilter.of(category)
-                )
+    private fun runStructuredPrefetching(scope: CoroutineScope) {
+        val allFeedTypes = listOf(
+            ListingFeedType.Latest,
+            ListingFeedType.Category(ListingCategory.Item),
+            ListingFeedType.Category(ListingCategory.Event),
+            ListingFeedType.Category(ListingCategory.Service)
+        )
+
+        scope.launch(Dispatchers.Default) {
+            for (feedType in allFeedTypes) {
+                val currentPages = pages.value
+                val activeIndex = currentPages.selectedIndex
+                val activeConfig = currentPages.items[activeIndex].configuration
+
+                if (activeConfig is HomeConfiguration.Feed && activeConfig.type == feedType) {
+                    continue
+                }
+
+                try {
+                    val filter = feedType.toListingCategoryFilter()
+                    if (listingRepository.isListingCacheStale(filter)) {
+                        listingRepository.prefetchListings(
+                            page = 0,
+                            size = 20,
+                            filter = filter
+                        )
+                    }
+                } catch (_: Exception) {
+                    // Ignore prefetch errors to not disrupt the main flow
+                }
             }
         }
     }
@@ -103,7 +131,7 @@ class HomeComponent(
         return when (configuration) {
             is HomeConfiguration.Feed -> ListingFeedComponent(
                 componentContext = componentContext,
-                category = configuration.category,
+                feedType = configuration.type,
                 listingRepository = listingRepository,
                 sessionManager = sessionManager,
                 messageService = messageService,

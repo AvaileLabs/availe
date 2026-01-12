@@ -2,6 +2,8 @@ package com.availelabs.availe.dashboard
 
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.model.ListingFeedType
+import com.availelabs.availe.navigation.FeedTypeMapper
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -11,8 +13,9 @@ sealed interface DashboardConfiguration {
     fun toUrlPath(): String
 
     @Serializable
-    data object Home : DashboardConfiguration {
-        override fun toUrlPath(): String = ""
+    data class Home(val feedType: ListingFeedType) : DashboardConfiguration {
+        @OptIn(ExperimentalUuidApi::class)
+        override fun toUrlPath(): String = FeedTypeMapper.toPathSegment(feedType)
     }
 
     @Serializable

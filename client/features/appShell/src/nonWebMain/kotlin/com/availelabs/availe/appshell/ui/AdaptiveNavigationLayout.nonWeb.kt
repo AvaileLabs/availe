@@ -72,7 +72,7 @@ actual fun AppShellLayout(
                 val selectedIndex = pages.selectedIndex
 
                 AppBottomNavigation {
-                    LinkContextMenuArea(route = DeepLinkRoute.Home, modifier = Modifier.weight(1f)) {
+                    LinkContextMenuArea(route = DeepLinkRoute.Home(), modifier = Modifier.weight(1f)) {
                         ShellNavigationItem(
                             selected = selectedIndex == 0,
                             onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },
@@ -123,7 +123,7 @@ actual fun AppShellLayout(
                 val selectedIndex = pages.selectedIndex
 
                 AppNavigationRail {
-                    LinkContextMenuArea(route = DeepLinkRoute.Home) {
+                    LinkContextMenuArea(route = DeepLinkRoute.Home()) {
                         ShellRailNavigationItem(
                             selected = selectedIndex == 0,
                             onClick = { navigateToTab { dashboardComponent.onHomeTabClicked() } },

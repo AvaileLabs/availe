@@ -73,7 +73,7 @@ actual fun AppShellLayout(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Home
-                        LinkContextMenuArea(route = DeepLinkRoute.Home) {
+                        LinkContextMenuArea(route = DeepLinkRoute.Home()) {
                             IconButton(
                                 onClick = { appShellComponent.onHomeTabClicked() },
                                 backgroundColor = if (selectedIndex == 0) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent

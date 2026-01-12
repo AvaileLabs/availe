@@ -33,6 +33,10 @@ actual object AppShellNavigationStrategy {
                 )
             )
 
+            is AppShellConfiguration.Home -> {
+                throw IllegalStateException("Home is not a valid root in non-web platform")
+            }
+
             is AppShellConfiguration.Chat -> AppShellChildComponent.Chat(
                 context.chatRootFactory(context.componentContext, configuration.recipientJid)
             )
@@ -80,10 +84,6 @@ actual object AppShellNavigationStrategy {
 
             is AppShellConfiguration.ChatOverlay -> {
                 throw IllegalStateException("ChatOverlay should be handled by the SlotNavigation, not StackNavigation")
-            }
-
-            AppShellConfiguration.Home -> {
-                throw IllegalStateException("Home is not a valid root in non-web platform")
             }
         }
     }

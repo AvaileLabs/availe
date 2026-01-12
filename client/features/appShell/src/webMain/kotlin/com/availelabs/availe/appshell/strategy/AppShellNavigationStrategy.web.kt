@@ -4,40 +4,41 @@ import com.availelabs.availe.appshell.component.AppShellChildComponent
 import com.availelabs.availe.appshell.component.AppShellChildFactoryContext
 import com.availelabs.availe.appshell.model.AppShellConfiguration
 import com.availelabs.availe.appshell.model.AppShellIntent
+import com.availelabs.availe.model.ListingFeedType
 
 actual object AppShellNavigationStrategy {
     actual fun calculateInitialStack(intent: AppShellIntent): List<AppShellConfiguration> {
         return when (intent) {
-            AppShellIntent.Home -> listOf(AppShellConfiguration.Home)
+            is AppShellIntent.Home -> listOf(AppShellConfiguration.Home(intent.feedType))
 
             is AppShellIntent.ViewingListing -> listOf(
-                AppShellConfiguration.Home,
+                AppShellConfiguration.Home(ListingFeedType.Latest),
                 AppShellConfiguration.ListingDetails(intent.listingId)
             )
 
             is AppShellIntent.ViewingListingWithChat -> listOf(
-                AppShellConfiguration.Home,
+                AppShellConfiguration.Home(ListingFeedType.Latest),
                 AppShellConfiguration.ListingDetails(intent.listingId),
                 AppShellConfiguration.Chat(intent.recipientJid)
             )
 
             is AppShellIntent.Chatting -> listOf(
-                AppShellConfiguration.Home,
+                AppShellConfiguration.Home(ListingFeedType.Latest),
                 AppShellConfiguration.Chat(intent.recipientJid)
             )
 
             is AppShellIntent.ListingEditor -> listOf(
-                AppShellConfiguration.Home,
+                AppShellConfiguration.Home(ListingFeedType.Latest),
                 AppShellConfiguration.ListingEditor(intent.listingId)
             )
 
             is AppShellIntent.ViewingProfile -> listOf(
-                AppShellConfiguration.Home,
+                AppShellConfiguration.Home(ListingFeedType.Latest),
                 AppShellConfiguration.Profile(intent.userId)
             )
 
             AppShellIntent.Settings -> listOf(
-                AppShellConfiguration.Home,
+                AppShellConfiguration.Home(ListingFeedType.Latest),
                 AppShellConfiguration.Settings
             )
         }
@@ -48,8 +49,8 @@ actual object AppShellNavigationStrategy {
         context: AppShellChildFactoryContext
     ): AppShellChildComponent {
         return when (configuration) {
-            AppShellConfiguration.Home -> AppShellChildComponent.Home(
-                context.homeFactory(context.componentContext)
+            is AppShellConfiguration.Home -> AppShellChildComponent.Home(
+                context.homeFactory(context.componentContext, configuration.feedType)
             )
 
             is AppShellConfiguration.Chat -> AppShellChildComponent.Chat(

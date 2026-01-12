@@ -13,6 +13,7 @@ import com.availelabs.availe.home.IHomeComponent
 import com.availelabs.availe.homenav.HomeNavConfiguration
 import com.availelabs.availe.homenav.IHomeNavComponent
 import com.availelabs.availe.listingdetails.IListingDetailsComponent
+import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.profile.IProfileComponent
 import com.availelabs.availe.profilenav.IProfileNavComponent
 import com.availelabs.availe.profilenav.ProfileNavConfiguration
@@ -27,7 +28,7 @@ data class AppShellChildFactoryContext(
     val homeNavFactory: (ComponentContext, List<HomeNavConfiguration>) -> IHomeNavComponent,
     val chatRootFactory: (ComponentContext, Jid?) -> IChatRootComponent,
     val profileNavFactory: (ComponentContext, UserId, List<ProfileNavConfiguration>) -> IProfileNavComponent,
-    val homeFactory: (ComponentContext) -> IHomeComponent,
+    val homeFactory: (ComponentContext, ListingFeedType) -> IHomeComponent,
     val listingDetailsFactory: (ComponentContext, ListingId) -> IListingDetailsComponent,
     val profileFactory: (ComponentContext, UserId) -> IProfileComponent,
     val settingsFactory: (ComponentContext) -> ISettingsComponent,

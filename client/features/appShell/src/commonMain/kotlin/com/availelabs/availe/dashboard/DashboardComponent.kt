@@ -15,6 +15,7 @@ import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.homenav.HomeNavConfiguration
 import com.availelabs.availe.homenav.IHomeNavComponent
+import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.platform.Platform
 import com.availelabs.availe.platform.PlatformInfo
 import com.availelabs.availe.profilenav.IProfileNavComponent
@@ -255,7 +256,7 @@ class DashboardComponent(
         if (pages.value.items.none { it.configuration is DashboardConfiguration.Profile }) {
             updatePages(
                 listOf(
-                    DashboardConfiguration.Home,
+                    DashboardConfiguration.Home(ListingFeedType.Latest),
                     DashboardConfiguration.Chat(),
                     DashboardConfiguration.Profile(userId)
                 )
@@ -271,21 +272,21 @@ class DashboardComponent(
             is DashboardConfiguration.Home -> {
                 val initialStack = when (initialIntent) {
                     is AppShellIntent.ViewingListing -> listOf(
-                        HomeNavConfiguration.HomeFeed,
+                        HomeNavConfiguration.HomeFeed(configuration.feedType),
                         HomeNavConfiguration.ListingDetails(initialIntent.listingId)
                     )
 
                     is AppShellIntent.ViewingListingWithChat -> listOf(
-                        HomeNavConfiguration.HomeFeed,
+                        HomeNavConfiguration.HomeFeed(configuration.feedType),
                         HomeNavConfiguration.ListingDetails(initialIntent.listingId)
                     )
 
                     is AppShellIntent.ViewingProfile -> listOf(
-                        HomeNavConfiguration.HomeFeed,
+                        HomeNavConfiguration.HomeFeed(configuration.feedType),
                         HomeNavConfiguration.Profile(initialIntent.userId)
                     )
 
-                    else -> listOf(HomeNavConfiguration.HomeFeed)
+                    else -> listOf(HomeNavConfiguration.HomeFeed(configuration.feedType))
                 }
 
                 DashboardChildComponent.HomeNav(
@@ -317,9 +318,11 @@ class DashboardComponent(
     }
 
     private fun calculateInitialPages(intent: AppShellIntent?): Pages<DashboardConfiguration> {
+        val homeFeedType = if (intent is AppShellIntent.Home) intent.feedType else ListingFeedType.Latest
+
         return Pages(
             items = listOf(
-                DashboardConfiguration.Home,
+                DashboardConfiguration.Home(homeFeedType),
                 DashboardConfiguration.Chat()
             ),
             selectedIndex = 0

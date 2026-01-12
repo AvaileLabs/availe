@@ -2,6 +2,8 @@ package com.availelabs.availe.homenav
 
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.model.ListingFeedType
+import com.availelabs.availe.navigation.FeedTypeMapper
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -11,9 +13,9 @@ sealed interface HomeNavConfiguration {
     fun toUrlPath(): String
 
     @Serializable
-    data object HomeFeed : HomeNavConfiguration {
+    data class HomeFeed(val feedType: ListingFeedType) : HomeNavConfiguration {
         @OptIn(ExperimentalUuidApi::class)
-        override fun toUrlPath(): String = ""
+        override fun toUrlPath(): String = FeedTypeMapper.toPathSegment(feedType)
     }
 
     @Serializable

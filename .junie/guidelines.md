@@ -68,6 +68,11 @@
       consumption.
 * **Lifecycle Management**: Feature Components are responsible for managing their own coroutine scopes and lifecycles
   via Essenty/Decompose.
+* **Structured Concurrency**:
+    * Background tasks (e.g., prefetching) must be launched within a `CoroutineScope` tied to the Component's
+      lifecycle.
+    * Use sequential execution for background queues to avoid overloading the system, while prioritizing active user
+      actions.
 
 **Interaction & UX Standards**
 
@@ -83,10 +88,17 @@
     * **Stack Management**: On Web, use `bringToFront` or `pushToFront` instead of `push` for top-level navigation
       items. This prevents duplicate configurations in the back stack, which causes crashes and logic errors in browser
       history management.
-* **Type-Safe Routing**: Do not use raw URL strings for navigation or link generation. Use the `DeepLinkRoute` sealed
-  interfaces defined in `:client:core`. This ensures a single source of truth for both link generation (
-  `DeepLinkBuilder`)
-  and parsing (`RootNavigationMapper`).
+* **Type-Safe Routing (The Boundary Transformation Pattern)**:
+    * **Strict No Strings**: Do not use raw URL strings for navigation or link generation inside feature modules.
+    * **Centralized Mappers**: URL string segments (e.g., "items", "events") must be isolated in a centralized Mapper
+      (e.g., `FeedTypeMapper`) within `:client:core`.
+    * **Uni-Directional Parsing**: External URLs are parsed immediately into Domain Types (e.g., `ListingFeedType`) at
+      the application boundary (`RootNavigationMapper`). Features receive only Type-Safe objects.
+    * Use the `DeepLinkRoute` sealed interfaces defined in `:client:core` as the single source of truth for both link
+      generation (`DeepLinkBuilder`) and parsing.
+* **State-Driven UI**:
+    * UI elements like Tabs or Lists must be derived from the Component State (e.g., Decompose `ChildPages`), not
+      hardcoded in Composable lists. This ensures the UI is always in sync with the actual navigation hierarchy.
 
 **Coding Standards**
 

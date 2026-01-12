@@ -16,6 +16,7 @@ import com.availelabs.availe.home.IHomeNavigator
 import com.availelabs.availe.listingdetails.IListingDetailsNavigator
 import com.availelabs.availe.listingeditor.IListingEditorNavigator
 import com.availelabs.availe.login.ILoginNavigator
+import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.profile.IProfileNavigator
 import com.availelabs.availe.settings.ISettingsNavigator
 import com.availelabs.availe.ui.model.LayoutMode
@@ -79,8 +80,9 @@ actual class AppShellRouter actual constructor(
         onCancelLoginCallback()
     }
 
+    @OptIn(DelicateDecomposeApi::class)
     actual fun navigateToHome() {
-        stackNavigation.bringToFront(AppShellConfiguration.Home)
+        stackNavigation.bringToFront(AppShellConfiguration.Home(ListingFeedType.Latest))
     }
 
     @OptIn(DelicateDecomposeApi::class)

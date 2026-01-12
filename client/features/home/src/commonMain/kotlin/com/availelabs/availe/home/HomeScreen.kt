@@ -10,8 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.Child
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.listingfeed.IListingFeedComponent
 import com.availelabs.availe.listingfeed.ListingFeedScreen
 import com.availelabs.availe.ui.util.rememberSyncedPagerState
 import com.composables.uikit.components.Text
@@ -20,6 +21,7 @@ import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.onBackground
 import com.composables.uikit.styling.primary
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun HomeScreen(
@@ -38,6 +40,7 @@ fun HomeScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         HomeTabRow(
+            pages = childPages,
             selectedIndex = selectedIndex,
             onTabSelected = { index ->
                 homeComponent.onTabClicked(index)
@@ -62,11 +65,10 @@ fun HomeScreen(
 
 @Composable
 private fun HomeTabRow(
+    pages: List<Child<HomeConfiguration, IListingFeedComponent>>,
     selectedIndex: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    val tabs = listOf(ListingCategory.Item, ListingCategory.Event, ListingCategory.Service)
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -74,7 +76,11 @@ private fun HomeTabRow(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        tabs.forEachIndexed { index, category ->
+        pages.forEachIndexed { index, child ->
+            val configuration = child.configuration as HomeConfiguration.Feed
+            val feedType = configuration.type
+            val title = stringResource(feedType.toUiTitle())
+
             val isSelected = index == selectedIndex
             val color = if (isSelected) Theme[colors][primary] else Theme[colors][onBackground].copy(alpha = 0.6f)
             val fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
@@ -88,7 +94,7 @@ private fun HomeTabRow(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = category.name,
+                        text = title,
                         color = color,
                         fontWeight = fontWeight,
                         modifier = Modifier.padding(vertical = 12.dp)

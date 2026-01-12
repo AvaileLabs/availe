@@ -328,30 +328,31 @@ class AppShellComponent(
             navigator = router,
             initialIntent = initialIntent,
             onShowLoginGuard = onShowLoginGuard,
-            homeNavFactory = { ctx, initialStack ->
+            homeNavFactory = { context, initialStack ->
                 HomeNavComponent(
-                    componentContext = ctx,
+                    componentContext = context,
                     initialStack = initialStack,
-                    homeFactory = { childCtx ->
+                    homeFactory = { childContext, feedType ->
                         HomeComponent(
-                            componentContext = childCtx,
+                            componentContext = childContext,
                             listingRepository = appContainer.listingRepository,
                             sessionManager = appContainer.sessionManager,
                             messageService = appContainer.messageService,
-                            navigator = router
+                            navigator = router,
+                            initialFeedType = feedType
                         )
                     },
-                    listingDetailsFactory = { childCtx, listingId ->
+                    listingDetailsFactory = { childContext, listingId ->
                         ListingDetailsComponent(
-                            componentContext = childCtx,
+                            componentContext = childContext,
                             listingId = listingId,
                             listingRepository = appContainer.listingRepository,
                             navigator = router
                         )
                     },
-                    profileFactory = { childCtx, userId ->
+                    profileFactory = { childContext, userId ->
                         ProfileComponent(
-                            componentContext = childCtx,
+                            componentContext = childContext,
                             targetUserId = userId,
                             listingRepository = appContainer.listingRepository,
                             sessionManager = appContainer.sessionManager,
@@ -361,23 +362,23 @@ class AppShellComponent(
                     }
                 )
             },
-            chatRootFactory = { ctx, jid ->
+            chatRootFactory = { context, jid ->
                 ChatRootComponent(
-                    componentContext = ctx,
+                    componentContext = context,
                     messagingRepository = appContainer.messagingRepository,
                     sessionManager = appContainer.sessionManager,
                     initialJid = jid,
                     navigator = router
                 )
             },
-            profileNavFactory = { ctx, userId, initialStack ->
+            profileNavFactory = { context, userId, initialStack ->
                 ProfileNavComponent(
-                    componentContext = ctx,
+                    componentContext = context,
                     userId = userId,
                     initialStack = initialStack,
-                    profileFactory = { childCtx, targetUserId ->
+                    profileFactory = { childContext, targetUserId ->
                         ProfileComponent(
-                            componentContext = childCtx,
+                            componentContext = childContext,
                             targetUserId = targetUserId,
                             listingRepository = appContainer.listingRepository,
                             sessionManager = appContainer.sessionManager,
@@ -385,17 +386,17 @@ class AppShellComponent(
                             navigator = router
                         )
                     },
-                    listingDetailsFactory = { childCtx, listingId ->
+                    listingDetailsFactory = { childContext, listingId ->
                         ListingDetailsComponent(
-                            componentContext = childCtx,
+                            componentContext = childContext,
                             listingId = listingId,
                             listingRepository = appContainer.listingRepository,
                             navigator = router
                         )
                     },
-                    settingsFactory = { childCtx ->
+                    settingsFactory = { childContext ->
                         SettingsComponent(
-                            componentContext = childCtx,
+                            componentContext = childContext,
                             storeFactory = DefaultStoreFactory(),
                             sessionManager = appContainer.sessionManager,
                             authenticationRepository = appContainer.authenticationRepository,
@@ -404,26 +405,27 @@ class AppShellComponent(
                     }
                 )
             },
-            homeFactory = { ctx ->
+            homeFactory = { context, feedType ->
                 HomeComponent(
-                    componentContext = ctx,
+                    componentContext = context,
                     listingRepository = appContainer.listingRepository,
                     sessionManager = appContainer.sessionManager,
                     messageService = appContainer.messageService,
-                    navigator = router
+                    navigator = router,
+                    initialFeedType = feedType
                 )
             },
-            listingDetailsFactory = { ctx, listingId ->
+            listingDetailsFactory = { context, listingId ->
                 ListingDetailsComponent(
-                    componentContext = ctx,
+                    componentContext = context,
                     listingId = listingId,
                     listingRepository = appContainer.listingRepository,
                     navigator = router
                 )
             },
-            profileFactory = { ctx, userId ->
+            profileFactory = { context, userId ->
                 ProfileComponent(
-                    componentContext = ctx,
+                    componentContext = context,
                     targetUserId = userId,
                     listingRepository = appContainer.listingRepository,
                     sessionManager = appContainer.sessionManager,
@@ -431,18 +433,18 @@ class AppShellComponent(
                     navigator = router
                 )
             },
-            settingsFactory = { ctx ->
+            settingsFactory = { context ->
                 SettingsComponent(
-                    componentContext = ctx,
+                    componentContext = context,
                     storeFactory = DefaultStoreFactory(),
                     sessionManager = appContainer.sessionManager,
                     authenticationRepository = appContainer.authenticationRepository,
                     navigator = router
                 )
             },
-            chatFactory = { ctx, jid ->
+            chatFactory = { context, jid ->
                 ChatComponent(
-                    componentContext = ctx,
+                    componentContext = context,
                     recipientJid = jid,
                     messagingRepository = appContainer.messagingRepository,
                     sessionManager = appContainer.sessionManager,

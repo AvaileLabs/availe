@@ -9,7 +9,9 @@ import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.listingfeed.ListingFeedStore.*
 import com.availelabs.availe.model.DataStream
+import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.model.error.AppError
+import com.availelabs.availe.model.toListingCategoryFilter
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
@@ -60,12 +62,12 @@ internal class ListingFeedStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionRepository,
-    private val category: ListingCategory
+    private val feedType: ListingFeedType
 ) {
 
     fun create(): ListingFeedStore =
         object : ListingFeedStore, Store<Intent, State, Label> by storeFactory.create(
-            name = "${ListingFeedStore::class.simpleName}_${category.name}",
+            name = "${ListingFeedStore::class.simpleName}_$feedType",
             initialState = State(),
             bootstrapper = ListingFeedBootstrapper(),
             executorFactory = { ListingFeedExecutor() },
@@ -182,7 +184,7 @@ internal class ListingFeedStoreFactory(
                     page = page,
                     size = pageSize,
                     forceRefresh = forceRefresh,
-                    filter = ListingCategoryFilter.of(category)
+                    filter = feedType.toListingCategoryFilter()
                 )
                     .catch { throwable ->
                         val appError = AppError.UnknownError(throwable.message ?: "Unknown stream error")

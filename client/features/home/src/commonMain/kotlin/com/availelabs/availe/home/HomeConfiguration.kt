@@ -1,10 +1,10 @@
 package com.availelabs.availe.home
 
-import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.model.ListingFeedType
 import kotlinx.serialization.Serializable
 
 @Serializable
 sealed interface HomeConfiguration {
     @Serializable
-    data class Feed(val category: ListingCategory) : HomeConfiguration
+    data class Feed(val type: ListingFeedType) : HomeConfiguration
 }

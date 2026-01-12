@@ -8,8 +8,8 @@ import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.decompose.asValue
-import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.model.ToastMessage
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
@@ -23,7 +23,7 @@ interface IListingFeedComponent {
 
 class ListingFeedComponent(
     componentContext: ComponentContext,
-    private val category: ListingCategory,
+    private val feedType: ListingFeedType,
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionRepository,
     private val messageService: IMessageService,
@@ -35,7 +35,7 @@ class ListingFeedComponent(
             storeFactory = DefaultStoreFactory(),
             listingRepository = listingRepository,
             sessionManager = sessionManager,
-            category = category
+            feedType = feedType
         ).create()
     }
 

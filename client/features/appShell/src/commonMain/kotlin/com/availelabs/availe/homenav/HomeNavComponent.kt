@@ -14,6 +14,7 @@ import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.home.IHomeComponent
 import com.availelabs.availe.listingdetails.IListingDetailsComponent
+import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.profile.IProfileComponent
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlin.uuid.ExperimentalUuidApi
@@ -36,11 +37,24 @@ sealed interface HomeNavChildComponent {
 
 class HomeNavComponent(
     componentContext: ComponentContext,
-    private val homeFactory: (ComponentContext) -> IHomeComponent,
+    private val homeFactory: (ComponentContext, ListingFeedType) -> IHomeComponent,
     private val listingDetailsFactory: (ComponentContext, ListingId) -> IListingDetailsComponent,
     private val profileFactory: (ComponentContext, UserId) -> IProfileComponent,
-    private val initialStack: List<HomeNavConfiguration> = listOf(HomeNavConfiguration.HomeFeed)
+    private val initialStack: List<HomeNavConfiguration>
 ) : IHomeNavComponent, ComponentContext by componentContext {
+
+    constructor(
+        componentContext: ComponentContext,
+        homeFactory: (ComponentContext, ListingFeedType) -> IHomeComponent,
+        listingDetailsFactory: (ComponentContext, ListingId) -> IListingDetailsComponent,
+        profileFactory: (ComponentContext, UserId) -> IProfileComponent
+    ) : this(
+        componentContext,
+        homeFactory,
+        listingDetailsFactory,
+        profileFactory,
+        listOf(HomeNavConfiguration.HomeFeed(ListingFeedType.Latest))
+    )
 
     private val navigation = StackNavigation<HomeNavConfiguration>()
 
@@ -99,7 +113,7 @@ class HomeNavComponent(
     ): HomeNavChildComponent {
         return when (configuration) {
             is HomeNavConfiguration.HomeFeed -> HomeNavChildComponent.HomeFeed(
-                homeFactory(componentContext)
+                homeFactory(componentContext, configuration.feedType)
             )
 
             is HomeNavConfiguration.ListingDetails -> HomeNavChildComponent.ListingDetails(

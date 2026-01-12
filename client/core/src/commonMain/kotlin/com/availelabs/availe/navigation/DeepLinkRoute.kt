@@ -3,14 +3,15 @@ package com.availelabs.availe.navigation
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.model.ListingFeedType
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 sealed interface DeepLinkRoute {
     val relativePath: String
 
-    data object Home : DeepLinkRoute {
-        override val relativePath: String = ""
+    data class Home(val feedType: ListingFeedType = ListingFeedType.Latest) : DeepLinkRoute {
+        override val relativePath: String = FeedTypeMapper.toPathSegment(feedType)
     }
 
     data class ListingDetails(val id: ListingId) : DeepLinkRoute {

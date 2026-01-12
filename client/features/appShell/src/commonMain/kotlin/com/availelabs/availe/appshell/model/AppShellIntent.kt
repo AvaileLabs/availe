@@ -3,12 +3,13 @@ package com.availelabs.availe.appshell.model
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.model.ListingFeedType
 import kotlinx.serialization.Serializable
 
 @Serializable
 sealed interface AppShellIntent {
     @Serializable
-    data object Home : AppShellIntent
+    data class Home(val feedType: ListingFeedType) : AppShellIntent
 
     @Serializable
     data class ViewingListing(
