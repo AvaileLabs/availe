@@ -4,7 +4,6 @@ import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.model.ListingFeedType
-import com.availelabs.availe.navigation.FeedTypeMapper
 import kotlinx.serialization.Serializable
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -22,7 +21,7 @@ sealed interface AppShellConfiguration {
 
     @Serializable
     data class Home(val feedType: ListingFeedType) : AppShellConfiguration {
-        override fun toUrlPath(): String = FeedTypeMapper.toPathSegment(feedType)
+        override fun toUrlPath(): String = ""
     }
 
     @Serializable

@@ -3,7 +3,10 @@ package com.availelabs.availe.home
 import availe.client.designsystem.generated.resources.Res
 import availe.client.designsystem.generated.resources.accessibility_action_add
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.pages.*
+import com.arkivanov.decompose.router.webhistory.WebNavigation
+import com.arkivanov.decompose.router.webhistory.WebNavigationOwner
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
@@ -13,6 +16,7 @@ import com.availelabs.availe.listingfeed.IListingFeedComponent
 import com.availelabs.availe.listingfeed.ListingFeedComponent
 import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.model.toListingCategoryFilter
+import com.availelabs.availe.navigation.FeedTypeMapper
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
@@ -21,7 +25,8 @@ import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.*
 
-interface IHomeComponent {
+@OptIn(ExperimentalDecomposeApi::class)
+interface IHomeComponent : WebNavigationOwner {
     val pages: Value<ChildPages<HomeConfiguration, IListingFeedComponent>>
     val actions: Value<List<AppBarAction>>
     fun onTabClicked(index: Int)
@@ -59,6 +64,18 @@ class HomeComponent(
             },
             childFactory = ::createChild
         )
+
+    @OptIn(ExperimentalDecomposeApi::class)
+    override val webNavigation: WebNavigation<*> = childPagesWebNavigation(
+        navigator = navigation,
+        pages = pages,
+        serializer = HomeConfiguration.serializer(),
+        pathMapper = { pages ->
+            val selectedChild = pages.items[pages.selectedIndex]
+            val configuration = selectedChild.configuration as HomeConfiguration.Feed
+            FeedTypeMapper.toPathSegment(configuration.feedType)
+        }
+    )
 
     private val _actions = MutableValue<List<AppBarAction>>(emptyList())
     override val actions: Value<List<AppBarAction>> = _actions
@@ -100,7 +117,7 @@ class HomeComponent(
                 val activeIndex = currentPages.selectedIndex
                 val activeConfig = currentPages.items[activeIndex].configuration
 
-                if (activeConfig is HomeConfiguration.Feed && activeConfig.type == feedType) {
+                if (activeConfig is HomeConfiguration.Feed && activeConfig.feedType == feedType) {
                     continue
                 }
 
@@ -131,7 +148,7 @@ class HomeComponent(
         return when (configuration) {
             is HomeConfiguration.Feed -> ListingFeedComponent(
                 componentContext = componentContext,
-                feedType = configuration.type,
+                feedType = configuration.feedType,
                 listingRepository = listingRepository,
                 sessionManager = sessionManager,
                 messageService = messageService,

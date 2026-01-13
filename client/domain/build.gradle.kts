@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kreplica)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 group = "com.availelabs"

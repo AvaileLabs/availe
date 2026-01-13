@@ -6,5 +6,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface HomeConfiguration {
     @Serializable
-    data class Feed(val type: ListingFeedType) : HomeConfiguration
+    data class Feed(val feedType: ListingFeedType) : HomeConfiguration
 }

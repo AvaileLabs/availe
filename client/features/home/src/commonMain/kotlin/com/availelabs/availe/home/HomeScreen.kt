@@ -78,7 +78,7 @@ private fun HomeTabRow(
     ) {
         pages.forEachIndexed { index, child ->
             val configuration = child.configuration as HomeConfiguration.Feed
-            val feedType = configuration.type
+            val feedType = configuration.feedType
             val title = stringResource(feedType.toUiTitle())
 
             val isSelected = index == selectedIndex

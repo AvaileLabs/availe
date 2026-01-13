@@ -146,6 +146,7 @@ class AppShellComponent(
             when (val instance = child.instance) {
                 is AppShellChildComponent.Dashboard -> instance.component
                 is AppShellChildComponent.Chat -> instance.component
+                is AppShellChildComponent.Home -> instance.component
                 else -> null
             }
         }

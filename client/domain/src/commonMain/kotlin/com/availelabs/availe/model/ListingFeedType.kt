@@ -15,7 +15,7 @@ sealed interface ListingFeedType {
 
 fun ListingFeedType.toListingCategoryFilter(): ListingCategoryFilter {
     return when (this) {
-        is ListingFeedType.Latest -> ListingCategoryFilter.Companion.All
-        is ListingFeedType.Category -> ListingCategoryFilter.Companion.of(this.category)
+        is ListingFeedType.Latest -> ListingCategoryFilter.All
+        is ListingFeedType.Category -> ListingCategoryFilter.of(this.category)
     }
 }
