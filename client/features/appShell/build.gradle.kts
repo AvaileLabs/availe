@@ -82,9 +82,9 @@ kotlin {
             implementation(libs.mvikotlin.main)
             implementation(libs.mvikotlin.coroutines)
 
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.ui)
+            implementation(libs.runtime)
+            implementation(libs.foundation)
+            implementation(libs.ui)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.coil.compose)
 

@@ -1,6 +1,5 @@
 import com.android.build.api.dsl.androidLibrary
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.internal.platform.wasm.WasmPlatforms.wasmJs
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -48,9 +47,9 @@ kotlin {
             implementation(libs.mvikotlin.main)
             implementation(libs.mvikotlin.coroutines)
 
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.ui)
+            implementation(libs.runtime)
+            implementation(libs.foundation)
+            implementation(libs.ui)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.coil.compose)
         }
