@@ -30,18 +30,14 @@
 **Build & Gradle Conventions**
 
 * **Build Logic Location**:
-    * Shared Gradle conventions live in `buildLogic/` and are wired via `settings.gradle.kts` using
-      `pluginManagement { includeBuild("buildLogic") }`.
-    * `buildSrc/` is not used in this repository. Keep it absent and place all build logic in `buildLogic/`.
+    * All shared Gradle conventions and build utilities live in `buildLogic/`.
+    * This project uses an Included Build (`pluginManagement { includeBuild("buildLogic") }`) rather than `buildSrc` to
+      improve build performance and cacheability.
     * Keep `build.gradle.kts` files focused on module-specific configuration and dependencies.
 * **Convention Plugins (DRY KMP setup)**:
-    * Apply Availe convention plugins via `gradle/libs.versions.toml` using `alias(libs.plugins.availe...)`.
-    * Avoid `id("availe...")` in module build scripts.
-    * Prefer explicit plugin aliases like `alias(libs.plugins.availe.kmp.android)` /
-      `alias(libs.plugins.availe.kmp.targets)`.
-    * If a non-Availe module (e.g., `:client:androidApp`) needs to import build helpers from
-      `com.availelabs.buildlogic`,
-      apply `alias(libs.plugins.availe.buildutils)` to put `buildLogic` on the buildscript classpath.
+    * Apply convention plugins exclusively using the Version Catalog accessors defined in `gradle/libs.versions.toml`.
+    * **Syntax**: Use `alias(libs.plugins.availe.kmp.android)` or `alias(libs.plugins.availe.kmp.targets)` within the
+      `plugins {}` block.
 * **When to use which plugin**:
     * `availe.kmp.targets`: standard KMP targets + toolchain/hierarchy.
     * `availe.kmp.android`: `availe.kmp.targets` + Android KMP library support (compile/min SDK from
