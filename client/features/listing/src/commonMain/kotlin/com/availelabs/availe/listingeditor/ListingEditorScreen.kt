@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,13 +16,17 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.availelabs.availe.ListingEditorIntent
+import com.availelabs.availe.ListingEditorState
 import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.ui.layout.WindowSizeClass
+import com.availelabs.availe.ui.layout.rememberWindowSize
 import com.composables.icons.lucide.ChevronDown
 import com.composables.icons.lucide.Image
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
 import com.composeunstyled.DropdownPanelAnchor
+import com.composeunstyled.Text
 import com.composeunstyled.theme.Theme
 
 @Composable
@@ -29,7 +34,8 @@ fun ListingEditorScreen(
     component: IListingEditorComponent
 ) {
     val state by component.state.collectAsState()
-    val scrollState = rememberScrollState()
+    val wizardState by component.wizardState.collectAsState()
+    val windowSize = rememberWindowSize()
 
     AppScaffold {
         Box(
@@ -37,130 +43,39 @@ fun ListingEditorScreen(
                 .fillMaxSize()
                 .background(Theme[colors][background])
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    TextField(
-                        value = state.title.value,
-                        onValueChange = { component.onIntent(ListingEditorIntent.ChangeTitle(ListingTitle(it))) },
-                        label = { Text("Title") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+            val isMultiPane = windowSize !is WindowSizeClass.Compact
+            if (isMultiPane) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    ListingEditorWizardStepList(
+                        wizardState = wizardState,
+                        onStepClicked = { component.onWizardIntent(ListingEditorWizardIntent.NavigateTo(it)) },
+                        modifier = Modifier
+                            .width(240.dp)
+                            .fillMaxHeight()
+                            .padding(16.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        TextField(
-                            value = state.priceAmount.value,
-                            onValueChange = { component.onIntent(ListingEditorIntent.ChangePrice(PriceAmount(it))) },
-                            label = { Text("Price") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                        )
-
-                        CurrencyDropdown(
-                            selectedCurrency = state.priceCurrency,
-                            onCurrencySelected = { component.onIntent(ListingEditorIntent.ChangeCurrency(it)) }
-                        )
-                    }
-                }
-
-                Card(modifier = Modifier.fillMaxWidth(), title = { Text("Category") }) {
-                    RadioGroup(
-                        value = state.type.name,
-                        onValueChange = {
-                            val category = ListingCategory.valueOf(it)
-                            component.onIntent(ListingEditorIntent.ChangeType(category))
-                        }
-                    ) {
-                        ListingCategory.entries.forEach { category ->
-                            RadioButton(
-                                option = category.name,
-                                selected = state.type == category
-                            ) {
-                                Text(category.name)
-                            }
-                        }
-                    }
-                }
-
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    TextField(
-                        value = state.description.value,
-                        onValueChange = { component.onIntent(ListingEditorIntent.ChangeDescription(ListingDescription(it))) },
-                        label = { Text("Description") },
-                        modifier = Modifier.fillMaxWidth().height(120.dp),
-                        singleLine = false
+                    ListingEditorWizardContent(
+                        editorState = state,
+                        wizardState = wizardState,
+                        onEditorIntent = component::onIntent,
+                        onWizardIntent = component::onWizardIntent,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(16.dp)
                     )
                 }
-
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    TextField(
-                        value = state.imageUrl.value,
-                        onValueChange = { component.onIntent(ListingEditorIntent.ChangeImage(ImageUrl(it))) },
-                        label = { Text("Image URL") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (state.imageUrl.value.isNotBlank()) {
-                        AsyncImage(
-                            model = state.imageUrl.value,
-                            contentDescription = "Listing Image Preview",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(Theme[shapes][medium]),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(Theme[shapes][medium])
-                                .background(Theme[colors][outline].copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Lucide.Image,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(32.dp),
-                                    tint = Theme[colors][outline]
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "No image preview",
-                                    color = Theme[colors][outline]
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (state.error != null) {
-                    Text(
-                        text = state.error!!,
-                        color = Theme[colors][destructive],
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
-                }
-
-                // Extra spacer for bottom bar / FAB area
-                Spacer(modifier = Modifier.height(80.dp))
+            } else {
+                ListingEditorWizardContent(
+                    editorState = state,
+                    wizardState = wizardState,
+                    onEditorIntent = component::onIntent,
+                    onWizardIntent = component::onWizardIntent,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                )
             }
 
             if (state.isSubmitting) {
@@ -172,6 +87,356 @@ fun ListingEditorScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     IntermediateProgressIndicator()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListingEditorWizardStepList(
+    wizardState: ListingEditorWizardState,
+    onStepClicked: (ListingEditorWizardStep) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(modifier = modifier, title = {
+        SelectionContainer {
+            Text("Steps")
+        }
+    }) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            wizardState.steps.forEach { step ->
+                val isSelected = step == wizardState.currentStep
+                val isEnabled =
+                    wizardState.isEditingFlow || wizardState.selectedCategory != null || step == ListingEditorWizardStep.ChooseType
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(Theme[shapes][small])
+                        .background(
+                            if (isSelected) Theme[colors][outline].copy(alpha = 0.12f) else Theme[colors][background]
+                        )
+                        .clickable(enabled = isEnabled) { onStepClicked(step) }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = step.title,
+                        color = if (isEnabled) Theme[colors][onBackground] else Theme[colors][outline]
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListingEditorWizardContent(
+    editorState: ListingEditorState,
+    wizardState: ListingEditorWizardState,
+    onEditorIntent: (ListingEditorIntent) -> Unit,
+    onWizardIntent: (ListingEditorWizardIntent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollState = rememberScrollState()
+    val currentErrorMessage = getBlockingStepErrorMessage(wizardState, editorState)
+
+    Box(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            SelectionContainer {
+                Text(
+                    text = "${wizardState.currentStep.title} (${wizardState.currentStepIndex + 1} of ${wizardState.steps.size})"
+                )
+            }
+
+            when (wizardState.currentStep) {
+                ListingEditorWizardStep.ChooseType -> ListingEditorChooseTypeStep(
+                    selectedCategory = wizardState.selectedCategory,
+                    onCategorySelected = { onWizardIntent(ListingEditorWizardIntent.SelectType(it)) }
+                )
+
+                ListingEditorWizardStep.Basics -> ListingEditorBasicsStep(
+                    title = editorState.title,
+                    description = editorState.description,
+                    onTitleChanged = { onEditorIntent(ListingEditorIntent.ChangeTitle(it)) },
+                    onDescriptionChanged = { onEditorIntent(ListingEditorIntent.ChangeDescription(it)) }
+                )
+
+                ListingEditorWizardStep.Pricing -> ListingEditorPricingStep(
+                    priceAmount = editorState.priceAmount,
+                    priceCurrency = editorState.priceCurrency,
+                    onPriceChanged = { onEditorIntent(ListingEditorIntent.ChangePrice(it)) },
+                    onCurrencySelected = { onEditorIntent(ListingEditorIntent.ChangeCurrency(it)) }
+                )
+
+                ListingEditorWizardStep.Media -> ListingEditorMediaStep(
+                    imageUrl = editorState.imageUrl,
+                    onImageUrlChanged = { onEditorIntent(ListingEditorIntent.ChangeImage(it)) }
+                )
+
+                ListingEditorWizardStep.Review -> ListingEditorReviewStep(
+                    editorState = editorState,
+                    isEditingFlow = wizardState.isEditingFlow,
+                    selectedCategory = wizardState.selectedCategory
+                )
+            }
+
+            if (editorState.error != null) {
+                SelectionContainer {
+                    Text(
+                        text = editorState.error!!,
+                        color = Theme[colors][destructive]
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(Theme[colors][background])
+                .padding(top = 12.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val isBackVisible = wizardState.currentStepIndex > 0
+            val isNextEnabled = currentErrorMessage == null
+            val primaryLabel = if (wizardState.currentStep == ListingEditorWizardStep.Review) {
+                if (wizardState.isEditingFlow) "Save" else "Publish"
+            } else {
+                "Next"
+            }
+
+            if (isBackVisible) {
+                OutlinedButton(
+                    onClick = { onWizardIntent(ListingEditorWizardIntent.Back) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Back")
+                }
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+
+            PrimaryButton(
+                onClick = { onWizardIntent(ListingEditorWizardIntent.Next) },
+                enabled = isNextEnabled,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(primaryLabel)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListingEditorChooseTypeStep(
+    selectedCategory: ListingCategory?,
+    onCategorySelected: (ListingCategory) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth(), title = {
+        SelectionContainer {
+            Text("Listing type")
+        }
+    }) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            ListingEditorTypeOption(
+                title = "Item",
+                isSelected = selectedCategory == ListingCategory.Item,
+                onClick = { onCategorySelected(ListingCategory.Item) }
+            )
+            ListingEditorTypeOption(
+                title = "Event",
+                isSelected = selectedCategory == ListingCategory.Event,
+                onClick = { onCategorySelected(ListingCategory.Event) }
+            )
+            ListingEditorTypeOption(
+                title = "Service",
+                isSelected = selectedCategory == ListingCategory.Service,
+                onClick = { onCategorySelected(ListingCategory.Service) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ListingEditorTypeOption(
+    title: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(Theme[shapes][medium])
+            .background(
+                if (isSelected) Theme[colors][outline].copy(alpha = 0.12f) else Theme[colors][background]
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = title)
+    }
+}
+
+@Composable
+private fun ListingEditorBasicsStep(
+    title: ListingTitle,
+    description: ListingDescription,
+    onTitleChanged: (ListingTitle) -> Unit,
+    onDescriptionChanged: (ListingDescription) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        TextField(
+            value = title.value,
+            onValueChange = { onTitleChanged(ListingTitle(it)) },
+            label = { Text("Title") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        TextField(
+            value = description.value,
+            onValueChange = { onDescriptionChanged(ListingDescription(it)) },
+            label = { Text("Description") },
+            modifier = Modifier.fillMaxWidth().height(120.dp),
+            singleLine = false
+        )
+    }
+}
+
+@Composable
+private fun ListingEditorPricingStep(
+    priceAmount: PriceAmount,
+    priceCurrency: SupportedCurrency,
+    onPriceChanged: (PriceAmount) -> Unit,
+    onCurrencySelected: (SupportedCurrency) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            TextField(
+                value = priceAmount.value,
+                onValueChange = { onPriceChanged(PriceAmount(it)) },
+                label = { Text("Price") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+
+            CurrencyDropdown(
+                selectedCurrency = priceCurrency,
+                onCurrencySelected = onCurrencySelected
+            )
+        }
+    }
+}
+
+@Composable
+private fun ListingEditorMediaStep(
+    imageUrl: ImageUrl,
+    onImageUrlChanged: (ImageUrl) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        TextField(
+            value = imageUrl.value,
+            onValueChange = { onImageUrlChanged(ImageUrl(it)) },
+            label = { Text("Image URL") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (imageUrl.value.isNotBlank()) {
+            AsyncImage(
+                model = imageUrl.value,
+                contentDescription = "Listing Image Preview",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(Theme[shapes][medium]),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(Theme[shapes][medium])
+                    .background(Theme[colors][outline].copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Lucide.Image,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = Theme[colors][outline]
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SelectionContainer {
+                        Text(
+                            text = "No image preview",
+                            color = Theme[colors][outline]
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListingEditorReviewStep(
+    editorState: ListingEditorState,
+    isEditingFlow: Boolean,
+    selectedCategory: ListingCategory?
+) {
+    val categoryText = when {
+        isEditingFlow -> editorState.type.name
+        selectedCategory != null -> selectedCategory.name
+        else -> ""
+    }
+
+    Card(modifier = Modifier.fillMaxWidth(), title = {
+        SelectionContainer {
+            Text("Review")
+        }
+    }) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (categoryText.isNotBlank()) {
+                SelectionContainer {
+                    Text("Type: $categoryText")
+                }
+            }
+            SelectionContainer {
+                Text("Title: ${editorState.title.value}")
+            }
+            SelectionContainer {
+                Text("Price: ${editorState.priceCurrency.symbol}${editorState.priceAmount.value}")
+            }
+            if (editorState.description.value.isNotBlank()) {
+                SelectionContainer {
+                    Text("Description: ${editorState.description.value}")
+                }
+            }
+            if (editorState.imageUrl.value.isNotBlank()) {
+                SelectionContainer {
+                    Text("Image URL: ${editorState.imageUrl.value}")
                 }
             }
         }

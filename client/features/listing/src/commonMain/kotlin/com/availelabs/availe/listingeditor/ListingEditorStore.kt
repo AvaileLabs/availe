@@ -61,7 +61,6 @@ internal class ListingEditorStoreFactory(
                         }
 
                         is RepositoryOperationResult.Failure -> {
-                            // Handled by UI via error state or retry mechanism in future
                         }
                     }
                 }

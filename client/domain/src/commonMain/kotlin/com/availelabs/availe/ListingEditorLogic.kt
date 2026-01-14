@@ -58,26 +58,26 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
             )
         }
 
-        is ListingEditorIntent.ChangeTitle -> state.copy(title = intent.title)
-        is ListingEditorIntent.ChangeDescription -> state.copy(description = intent.value)
+        is ListingEditorIntent.ChangeTitle -> state.copy(title = intent.title, error = null)
+        is ListingEditorIntent.ChangeDescription -> state.copy(description = intent.value, error = null)
         is ListingEditorIntent.ChangePrice -> {
             if (intent.amount.isValid()) {
-                state.copy(priceAmount = intent.amount)
+                state.copy(priceAmount = intent.amount, error = null)
             } else {
                 state
             }
         }
 
-        is ListingEditorIntent.ChangeCurrency -> state.copy(priceCurrency = intent.currency)
+        is ListingEditorIntent.ChangeCurrency -> state.copy(priceCurrency = intent.currency, error = null)
         is ListingEditorIntent.ChangeType -> {
             if (!state.isEditing) {
-                state.copy(type = intent.type)
+                state.copy(type = intent.type, error = null)
             } else {
                 state
             }
         }
 
-        is ListingEditorIntent.ChangeImage -> state.copy(imageUrl = intent.url)
+        is ListingEditorIntent.ChangeImage -> state.copy(imageUrl = intent.url, error = null)
         is ListingEditorIntent.Submit -> {
             if (!state.title.isValid()) {
                 state.copy(error = "Title is invalid")

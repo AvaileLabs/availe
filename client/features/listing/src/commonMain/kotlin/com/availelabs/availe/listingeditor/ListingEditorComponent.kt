@@ -21,12 +21,15 @@ import com.availelabs.availe.ui.model.ActionIcon
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 interface IListingEditorComponent {
     val state: StateFlow<ListingEditorState>
+    val wizardState: StateFlow<ListingEditorWizardState>
     val actions: Value<List<AppBarAction>>
     fun onIntent(intent: ListingEditorIntent)
+    fun onWizardIntent(intent: ListingEditorWizardIntent)
     fun onBackClicked()
 }
 
@@ -51,20 +54,19 @@ class ListingEditorComponent(
     @OptIn(ExperimentalCoroutinesApi::class)
     override val state: StateFlow<ListingEditorState> = store.stateFlow
 
-    private val _actions = MutableValue(
-        listOf(
-            AppBarAction(
-                icon = ActionIcon.ADD, // Reusing ADD icon for Save until specific Save icon is available
-                label = UiText.ResourceString(Res.string.generic_save),
-                onClick = { store.accept(ListingEditorIntent.Submit) }
-            )
-        )
+    private val mutableWizardState = MutableStateFlow(
+        ListingEditorWizardState.initial(isEditingFlow = listingId != null)
     )
+    override val wizardState: StateFlow<ListingEditorWizardState> = mutableWizardState
+
+    private val _actions = MutableValue(emptyList<AppBarAction>())
     override val actions: Value<List<AppBarAction>> = _actions
 
     init {
         val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
         lifecycle.doOnDestroy { scope.cancel() }
+
+        updateActions(mutableWizardState.value)
 
         scope.launch {
             store.labels.collect { label ->
@@ -85,10 +87,52 @@ class ListingEditorComponent(
                 }
             }
         }
+
+        scope.launch {
+            state.collect { editorState ->
+                if (listingId != null) {
+                    val currentWizardState = mutableWizardState.value
+                    if (currentWizardState.selectedCategory != editorState.type) {
+                        mutableWizardState.value = currentWizardState.copy(selectedCategory = editorState.type)
+                    }
+                }
+            }
+        }
+
+        scope.launch {
+            wizardState.collect { updateActions(it) }
+        }
+    }
+
+    private fun updateActions(wizardState: ListingEditorWizardState) {
+        _actions.value = if (wizardState.currentStep == ListingEditorWizardStep.Review) {
+            listOf(
+                AppBarAction(
+                    icon = ActionIcon.ADD,
+                    label = UiText.ResourceString(Res.string.generic_save),
+                    onClick = { store.accept(ListingEditorIntent.Submit) }
+                )
+            )
+        } else {
+            emptyList()
+        }
     }
 
     override fun onIntent(intent: ListingEditorIntent) {
         store.accept(intent)
+    }
+
+    override fun onWizardIntent(intent: ListingEditorWizardIntent) {
+        val reduction = reduceListingEditorWizard(
+            wizardState = mutableWizardState.value,
+            editorState = store.state,
+            intent = intent
+        )
+
+        mutableWizardState.value = reduction.state
+        if (reduction.editorIntent != null) {
+            store.accept(reduction.editorIntent)
+        }
     }
 
     override fun onBackClicked() {
