@@ -174,3 +174,9 @@ kreplica = { id = "io.availe.kreplica", version.ref = "kreplica" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 gradle-buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "gradle-buildconfig" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+
+availe-kmp-targets = { id = "availe.kmp.targets" }
+availe-kmp-android = { id = "availe.kmp.android" }
+availe-kmp-sourcesets-nonAndroidNonWeb = { id = "availe.kmp.sourcesets.nonAndroidNonWeb" }
+availe-kmp-sourcesets-nonWeb = { id = "availe.kmp.sourcesets.nonWeb" }
+availe-buildutils = { id = "availe.build.utils" }

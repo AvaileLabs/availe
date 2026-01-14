@@ -27,6 +27,37 @@
   as the source of truth.
 * **:shared:logic**: Contains pure logic shared between both the Server and the Client (e.g., validation rules).
 
+**Build & Gradle Conventions**
+
+* **Build Logic Location**:
+    * Shared Gradle conventions live in `buildLogic/` and are wired via `settings.gradle.kts` using
+      `pluginManagement { includeBuild("buildLogic") }`.
+    * `buildSrc/` is not used in this repository. Keep it absent and place all build logic in `buildLogic/`.
+    * Keep `build.gradle.kts` files focused on module-specific configuration and dependencies.
+* **Convention Plugins (DRY KMP setup)**:
+    * Apply Availe convention plugins via `gradle/libs.versions.toml` using `alias(libs.plugins.availe...)`.
+    * Avoid `id("availe...")` in module build scripts.
+    * Prefer explicit plugin aliases like `alias(libs.plugins.availe.kmp.android)` /
+      `alias(libs.plugins.availe.kmp.targets)`.
+    * If a non-Availe module (e.g., `:client:androidApp`) needs to import build helpers from
+      `com.availelabs.buildlogic`,
+      apply `alias(libs.plugins.availe.buildutils)` to put `buildLogic` on the buildscript classpath.
+* **When to use which plugin**:
+    * `availe.kmp.targets`: standard KMP targets + toolchain/hierarchy.
+    * `availe.kmp.android`: `availe.kmp.targets` + Android KMP library support (compile/min SDK from
+      `libs.versions.toml`,
+      Android resources enabled, JVM target).
+        * Modules must still set `namespace` explicitly in `androidLibrary { namespace = "..." }`.
+    * `availe.kmp.sourcesets.nonWeb`: adds a shared `nonWebMain` source set wired into `androidMain`, `jvmMain`, and
+      `iosMain`.
+    * `availe.kmp.sourcesets.nonAndroidNonWeb`: adds `nonAndroidMain` and `nonWebMain` to model the most common sharing
+      pattern across Android, iOS, JVM, and Web.
+* **iOS Framework Configuration**:
+    * Use `configureIosFramework(...)` from
+      `buildLogic/src/main/kotlin/com/availelabs/buildlogic/KotlinMultiplatformIosFramework.kt` to configure the iOS
+      framework boilerplate.
+    * Keep the `export(...)` list explicit in the final framework module (especially `:client:composeApp`).
+
 **Architectural Rules**
 
 * **Dependency Flow**: Dependencies must flow downwards. `App Shell` -> `Features` -> `Session` / `UI Components` ->

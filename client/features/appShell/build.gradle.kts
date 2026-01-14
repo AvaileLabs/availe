@@ -1,10 +1,7 @@
 import com.android.build.api.dsl.androidLibrary
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.availe.kmp.sourcesets.nonAndroidNonWeb)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
@@ -13,58 +10,10 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
     androidLibrary {
         namespace = "com.availelabs.availe.features.chat"
-
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
-        minSdk = libs.versions.android.minSdk.get().toInt()
     }
-
-    iosArm64()
-    iosSimulatorArm64()
-    jvm()
-
-    js {
-        browser()
-        binaries.executable()
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
-    }
-
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    applyDefaultHierarchyTemplate()
-
     sourceSets {
-        val commonMain by getting
-        val commonTest by getting
-
-        val androidMain by getting
-        val jvmMain by getting
-        val iosMain by getting
-        val webMain by getting
-
-
-        val nonAndroidMain by creating {
-            dependsOn(commonMain)
-        }
-
-        val nonWebMain by creating {
-            dependsOn(commonMain)
-        }
-
-        jvmMain.dependsOn(nonAndroidMain)
-        iosMain.dependsOn(nonAndroidMain)
-        webMain.dependsOn(nonAndroidMain)
-
-        androidMain.dependsOn(nonWebMain)
-        jvmMain.dependsOn(nonWebMain)
-        iosMain.dependsOn(nonWebMain)
-
         commonMain.dependencies {
             implementation(projects.client.domain)
             implementation(projects.client.designSystem)

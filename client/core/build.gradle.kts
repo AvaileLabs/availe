@@ -1,75 +1,21 @@
 import com.android.build.api.dsl.androidLibrary
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.availelabs.buildlogic.configureIosFramework
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.availe.kmp.sourcesets.nonWeb)
 }
 
 group = "com.availelabs"
 version = "1.0.0"
 
 kotlin {
-    jvmToolchain(21)
     androidLibrary {
         namespace = "com.availelabs.availe"
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
-        minSdk = libs.versions.android.minSdk.get().toInt()
-
-        androidResources {
-            enable = true
-        }
-
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
-        }
     }
 
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "ComposeApp"
-            isStatic = true
-        }
-    }
-
-    jvm()
-
-    js {
-        browser()
-        binaries.executable()
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
-    }
-
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    applyDefaultHierarchyTemplate()
+    configureIosFramework()
 
     sourceSets {
-        val commonMain by getting
-        val commonTest by getting
-
-        val androidMain by getting
-        val jvmMain by getting
-        val iosMain by getting
-        val webMain by getting
-
-        val nonWebMain by creating {
-            dependsOn(commonMain)
-        }
-
-        androidMain.dependsOn(nonWebMain)
-        jvmMain.dependsOn(nonWebMain)
-        iosMain.dependsOn(nonWebMain)
-
         androidMain.dependencies {
             api(libs.androidx.activity.compose)
         }

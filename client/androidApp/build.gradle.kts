@@ -1,6 +1,7 @@
 import com.availelabs.buildlogic.HostIpValueSource
 
 plugins {
+    alias(libs.plugins.availe.buildutils)
     id("org.jetbrains.kotlin.android")
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)

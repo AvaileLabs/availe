@@ -1,11 +1,9 @@
+import com.android.build.api.dsl.androidLibrary
 import com.availelabs.buildlogic.HostIpValueSource
 import com.github.gmazzo.buildconfig.BuildConfigSourceSet
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.availe.kmp.android)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kreplica)
@@ -15,29 +13,8 @@ plugins {
 val useLocalIp = providers.gradleProperty("availe.dev.useLocalIp").getOrElse("false").toBoolean()
 
 kotlin {
-    jvmToolchain(21)
-
-    android {
+    androidLibrary {
         namespace = "com.availelabs.availe.logic"
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
-        minSdk = libs.versions.android.minSdk.get().toInt()
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
-        }
-    }
-
-    iosArm64()
-    iosSimulatorArm64()
-
-    jvm()
-
-    js {
-        browser()
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
     }
 
     sourceSets {
