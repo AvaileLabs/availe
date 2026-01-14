@@ -191,7 +191,9 @@ class AppShellComponent(
         val activeInstance = stack.active.instance
         if (activeInstance !is AppShellChildComponent.Dashboard) {
             _shouldShowChatOverlay.value = true
-            if (stack.active.configuration is AppShellConfiguration.Chat) {
+            if (stack.active.configuration is AppShellConfiguration.Chat ||
+                stack.active.configuration is AppShellConfiguration.ListingEditor
+            ) {
                 _shouldShowChatOverlay.value = false
             }
             return

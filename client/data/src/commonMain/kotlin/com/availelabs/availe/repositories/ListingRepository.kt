@@ -8,6 +8,7 @@ import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.extensions.toAppError
 import com.availelabs.availe.model.DataStream
+import com.availelabs.availe.model.ListingDraft
 import com.availelabs.availe.network.ISafeNetworkCaller
 import com.availelabs.availe.network.toAppError
 import com.availelabs.availe.preferences.IListingPreferences
@@ -17,6 +18,7 @@ import com.availelabs.availe.sources.local.IListingLocalDataSource
 import com.availelabs.availe.sources.remote.IListingRemoteDataSource
 import com.availelabs.availe.types.RepositoryOperationResult
 import kotlinx.coroutines.flow.*
+import kotlinx.serialization.json.Json
 import org.mobilenativefoundation.store.core5.ExperimentalStoreApi
 import org.mobilenativefoundation.store.store5.StoreReadRequest
 import org.mobilenativefoundation.store.store5.StoreReadResponse
@@ -37,6 +39,7 @@ internal class ListingRepository(
     private val store = storeFactory.create()
     private val _updates = MutableSharedFlow<Unit>()
     override val updates: Flow<Unit> = _updates.asSharedFlow()
+    private val json = Json { ignoreUnknownKeys = true }
 
     override fun getListingsPageStream(
         page: Int,
@@ -137,6 +140,7 @@ internal class ListingRepository(
                     localDataSource.upsertListing(insertResult.value)
                     store.clear()
                     _updates.emit(Unit)
+                    clearDraft()
                 } catch (_: Exception) {
                 }
             }
@@ -166,6 +170,7 @@ internal class ListingRepository(
                     localDataSource.upsertListing(updateResult.value)
                     store.clear()
                     _updates.emit(Unit)
+                    clearDraft()
                 } catch (_: Exception) {
                 }
             }
@@ -206,6 +211,32 @@ internal class ListingRepository(
             (currentTimestampMilliseconds - lastFetchTimeMilliseconds) > stalenessThresholdMilliseconds
         } catch (_: Exception) {
             true
+        }
+    }
+
+    override suspend fun saveDraft(draft: ListingDraft) {
+        try {
+            val jsonString = json.encodeToString(draft)
+            listingPreferences.saveDraft(jsonString)
+        } catch (_: Exception) {
+            // Ignore persistence errors for drafts
+        }
+    }
+
+    override suspend fun getDraft(): ListingDraft? {
+        return try {
+            val jsonString = listingPreferences.getDraft() ?: return null
+            json.decodeFromString<ListingDraft>(jsonString)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    override suspend fun clearDraft() {
+        try {
+            listingPreferences.clearDraft()
+        } catch (_: Exception) {
+            // Ignore persistence errors
         }
     }
 }

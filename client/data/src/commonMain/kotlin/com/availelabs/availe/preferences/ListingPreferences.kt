@@ -7,6 +7,10 @@ internal interface IListingPreferences {
     suspend fun getLastListingsFetchTimeMilliseconds(filter: ListingCategoryFilter): Long?
     suspend fun updateLastListingsFetchTime(timestampMilliseconds: Long, filter: ListingCategoryFilter)
     suspend fun clear()
+
+    suspend fun saveDraft(json: String)
+    suspend fun getDraft(): String?
+    suspend fun clearDraft()
 }
 
 internal class ListingPreferences(
@@ -31,6 +35,25 @@ internal class ListingPreferences(
         keysToRemove.forEach { key ->
             settings.remove(key)
         }
+        clearDraft()
+    }
+
+    override suspend fun saveDraft(json: String) {
+        settings.putString(KEY_DRAFT, json)
+    }
+
+    override suspend fun getDraft(): String? {
+        return if (settings.hasKey(KEY_DRAFT)) {
+            settings.getString(KEY_DRAFT, "")
+        } else {
+            null
+        }
+    }
+
+    override suspend fun clearDraft() {
+        if (settings.hasKey(KEY_DRAFT)) {
+            settings.remove(KEY_DRAFT)
+        }
     }
 
     private fun generateKey(filter: ListingCategoryFilter): String {
@@ -43,5 +66,6 @@ internal class ListingPreferences(
 
     companion object {
         private const val KEY_PREFIX = "last_listing_fetch_timestamp_"
+        private const val KEY_DRAFT = "listing_editor_draft"
     }
 }

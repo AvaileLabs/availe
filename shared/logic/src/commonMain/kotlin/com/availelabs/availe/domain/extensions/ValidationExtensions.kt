@@ -21,3 +21,7 @@ fun ListingTitle.isValid(): Boolean {
 fun ImageUrl.isValid(): Boolean {
     return this.value.isNotBlank()
 }
+
+fun List<ImageUrl>.isValid(): Boolean {
+    return this.all { it.isValid() }
+}

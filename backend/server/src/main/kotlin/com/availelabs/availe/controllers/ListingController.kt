@@ -93,6 +93,9 @@ internal class ListingController(
             if (!newListing.price.amount.isValid()) {
                 return@then Response(Status.BAD_REQUEST).body("Invalid Price")
             }
+            if (!newListing.imageLinks.isValid()) {
+                return@then Response(Status.BAD_REQUEST).body("Invalid or missing Images")
+            }
 
             when (val result = listingService.createListing(newListing)) {
                 is InsertResult.Inserted<Listing> -> {
@@ -103,8 +106,6 @@ internal class ListingController(
                 }
 
                 is InsertResult.AlreadyExists -> Response(Status.CONFLICT)
-
-
             }
         }
     }
@@ -197,6 +198,9 @@ internal class ListingController(
             authenticationFilter.then { request ->
                 val patchDto = patchBodyLens(request)
                 val authenticatedUser = SecurityContexts.authenticatedUserLens(request)
+
+                // Optional: You could validate individual patch fields here if needed using shared logic
+                // e.g. if (patchDto.title is Patchable.Set && !patchDto.title.value.isValid()) ...
 
                 when (val result = listingService.updateListing(listingId, patchDto, authenticatedUser.id)) {
                     is UpdateResult.Updated -> {

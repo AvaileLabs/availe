@@ -6,6 +6,7 @@ import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingServiceDtoSchema
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import com.availelabs.availe.model.ListingDraft
 import io.availe.models.Patchable
 
 data class ListingEditorState(
@@ -17,11 +18,13 @@ data class ListingEditorState(
     val imageUrl: ImageUrl = ImageUrl(""),
     val type: ListingCategory = ListingCategory.Item,
     val isSubmitting: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showClearConfirmationDialog: Boolean = false
 )
 
 sealed interface ListingEditorIntent {
     data class LoadData(val listing: Listing) : ListingEditorIntent
+    data class RestoreDraft(val draft: ListingDraft) : ListingEditorIntent
     data class ChangeTitle(val title: ListingTitle) : ListingEditorIntent
     data class ChangeDescription(val value: ListingDescription) : ListingEditorIntent
     data class ChangePrice(val amount: PriceAmount) : ListingEditorIntent
@@ -31,30 +34,27 @@ sealed interface ListingEditorIntent {
     data object Submit : ListingEditorIntent
     data class SetSubmitting(val isSubmitting: Boolean) : ListingEditorIntent
     data class SetError(val message: String?) : ListingEditorIntent
+    data object AskToClear : ListingEditorIntent
+    data object CancelClear : ListingEditorIntent
+    data object ConfirmClear : ListingEditorIntent
 }
 
 fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent): ListingEditorState {
     return when (intent) {
         is ListingEditorIntent.LoadData -> {
-            val commonData = intent.listing.commonData
-            val category = when (intent.listing) {
-                is Listing.Item -> ListingCategory.Item
-                is Listing.Event -> ListingCategory.Event
-                is Listing.Service -> ListingCategory.Service
-            }
+            intent.listing.toEditorState()
+        }
 
-            val currency = SupportedCurrency.fromCode(commonData.price.currency) ?: SupportedCurrency.USD
-
+        is ListingEditorIntent.RestoreDraft -> {
+            val currency = SupportedCurrency.fromCode(intent.draft.priceCurrencyCode) ?: SupportedCurrency.USD
             state.copy(
-                isEditing = true,
-                title = commonData.title,
-                description = commonData.description ?: ListingDescription(""),
-                priceAmount = commonData.price.amount,
+                title = intent.draft.title,
+                description = intent.draft.description,
+                priceAmount = intent.draft.priceAmount,
                 priceCurrency = currency,
-                imageUrl = commonData.imageLinks.firstOrNull() ?: ImageUrl(""),
-                type = category,
-                error = null,
-                isSubmitting = false
+                imageUrl = intent.draft.imageUrl,
+                type = intent.draft.type,
+                error = null
             )
         }
 
@@ -90,6 +90,19 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
 
         is ListingEditorIntent.SetSubmitting -> state.copy(isSubmitting = intent.isSubmitting)
         is ListingEditorIntent.SetError -> state.copy(error = intent.message, isSubmitting = false)
+
+        ListingEditorIntent.AskToClear -> state.copy(showClearConfirmationDialog = true)
+        ListingEditorIntent.CancelClear -> state.copy(showClearConfirmationDialog = false)
+        ListingEditorIntent.ConfirmClear -> state.copy(
+            showClearConfirmationDialog = false,
+            title = ListingTitle(""),
+            description = ListingDescription(""),
+            priceAmount = PriceAmount(""),
+            priceCurrency = SupportedCurrency.USD,
+            imageUrl = ImageUrl(""),
+            type = if (state.isEditing) state.type else ListingCategory.Item,
+            error = null
+        )
     }
 }
 
@@ -141,4 +154,39 @@ fun ListingEditorState.toPatchRequest(): TypeV1ListingDtoPatchRequest {
             imageLinks = Patchable.Set(imageLinks)
         )
     }
+}
+
+fun ListingEditorState.toDraft(): ListingDraft {
+    return ListingDraft(
+        title = this.title,
+        description = this.description,
+        priceAmount = this.priceAmount,
+        priceCurrencyCode = this.priceCurrency.code,
+        imageUrl = this.imageUrl,
+        type = this.type
+    )
+}
+
+private fun Listing.toEditorState(): ListingEditorState {
+    val commonData = this.commonData
+    val category = when (this) {
+        is Listing.Item -> ListingCategory.Item
+        is Listing.Event -> ListingCategory.Event
+        is Listing.Service -> ListingCategory.Service
+    }
+
+    val currency = SupportedCurrency.fromCode(commonData.price.currency) ?: SupportedCurrency.USD
+
+    return ListingEditorState(
+        isEditing = true,
+        title = commonData.title,
+        description = commonData.description ?: ListingDescription(""),
+        priceAmount = commonData.price.amount,
+        priceCurrency = currency,
+        imageUrl = commonData.imageLinks.firstOrNull() ?: ImageUrl(""),
+        type = category,
+        error = null,
+        isSubmitting = false,
+        showClearConfirmationDialog = false
+    )
 }

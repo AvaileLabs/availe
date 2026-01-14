@@ -7,6 +7,7 @@ import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.model.DataStream
+import com.availelabs.availe.model.ListingDraft
 import com.availelabs.availe.types.RepositoryOperationResult
 import kotlinx.coroutines.flow.Flow
 
@@ -38,4 +39,8 @@ interface IListingRepository {
 
     suspend fun deleteListing(id: ListingId): RepositoryOperationResult<DeleteResult>
     suspend fun isListingCacheStale(filter: ListingCategoryFilter = ListingCategoryFilter.All): Boolean
+
+    suspend fun saveDraft(draft: ListingDraft)
+    suspend fun getDraft(): ListingDraft?
+    suspend fun clearDraft()
 }

@@ -35,7 +35,7 @@ class ListingEditorWizardTest {
     }
 
     @Test
-    fun selectingTypeAdvancesToBasicsAndDispatchesChangeType() {
+    fun selectingTypeDoesNotAdvanceAndDispatchesChangeType() {
         val wizardState = ListingEditorWizardState.initial(isEditingFlow = false)
         val reduction = reduceListingEditorWizard(
             wizardState = wizardState,
@@ -44,8 +44,27 @@ class ListingEditorWizardTest {
         )
 
         assertEquals(ListingCategory.Event, reduction.state.selectedCategory)
-        assertEquals(ListingEditorWizardStep.Basics, reduction.state.currentStep)
+        assertEquals(ListingEditorWizardStep.ChooseType, reduction.state.currentStep)
         assertEquals(ListingEditorIntent.ChangeType(ListingCategory.Event), reduction.editorIntent)
+    }
+
+    @Test
+    fun canNavigateToAnyStepAfterSelectingType() {
+        val initial = ListingEditorWizardState.initial(isEditingFlow = false)
+        val selectedTypeReduction = reduceListingEditorWizard(
+            wizardState = initial,
+            editorState = ListingEditorState(),
+            intent = ListingEditorWizardIntent.SelectType(ListingCategory.Item)
+        )
+
+        val navigationReduction = reduceListingEditorWizard(
+            wizardState = selectedTypeReduction.state,
+            editorState = ListingEditorState(),
+            intent = ListingEditorWizardIntent.NavigateTo(ListingEditorWizardStep.Pricing)
+        )
+
+        assertEquals(ListingEditorWizardStep.Pricing, navigationReduction.state.currentStep)
+        assertNull(navigationReduction.editorIntent)
     }
 
     @Test

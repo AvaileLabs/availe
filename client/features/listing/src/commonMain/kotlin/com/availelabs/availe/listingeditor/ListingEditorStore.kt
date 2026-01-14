@@ -17,6 +17,8 @@ import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.types.RepositoryOperationResult
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 interface IListingEditorStore : Store<ListingEditorIntent, ListingEditorState, ListingEditorLabel>
@@ -24,7 +26,9 @@ interface IListingEditorStore : Store<ListingEditorIntent, ListingEditorState, L
 sealed interface ListingEditorLabel {
     data object ListingCreated : ListingEditorLabel
     data object ListingUpdated : ListingEditorLabel
+    data object ListingCleared : ListingEditorLabel
     data class ErrorOccurred(val error: AppError) : ListingEditorLabel
+    data object DraftRestored : ListingEditorLabel
 }
 
 internal class ListingEditorStoreFactory(
@@ -46,6 +50,7 @@ internal class ListingEditorStoreFactory(
 
     private sealed interface Action {
         data class PopulateListing(val listing: Listing) : Action
+        data object RestoreDraft : Action
     }
 
     private inner class ListingEditorBootstrapper : CoroutineBootstrapper<Action>() {
@@ -64,16 +69,36 @@ internal class ListingEditorStoreFactory(
                         }
                     }
                 }
+            } else {
+                scope.launch {
+                    val draft = listingRepository.getDraft()
+                    if (draft != null) {
+                        dispatch(Action.RestoreDraft)
+                    }
+                }
             }
         }
     }
 
     private inner class ListingEditorExecutor :
         CoroutineExecutor<ListingEditorIntent, Action, ListingEditorState, ListingEditorIntent, ListingEditorLabel>() {
+
+        private var autoSaveJob: Job? = null
+
         override fun executeAction(action: Action) {
             when (action) {
                 is Action.PopulateListing -> {
                     dispatch(ListingEditorIntent.LoadData(action.listing))
+                }
+
+                Action.RestoreDraft -> {
+                    scope.launch {
+                        val draft = listingRepository.getDraft()
+                        if (draft != null) {
+                            dispatch(ListingEditorIntent.RestoreDraft(draft))
+                            publish(ListingEditorLabel.DraftRestored)
+                        }
+                    }
                 }
             }
         }
@@ -81,8 +106,38 @@ internal class ListingEditorStoreFactory(
         override fun executeIntent(intent: ListingEditorIntent) {
             dispatch(intent)
 
-            if (intent is ListingEditorIntent.Submit) {
-                handleSubmit()
+            when (intent) {
+                is ListingEditorIntent.Submit -> handleSubmit()
+                ListingEditorIntent.ConfirmClear -> handleClear()
+                is ListingEditorIntent.ChangeTitle,
+                is ListingEditorIntent.ChangeDescription,
+                is ListingEditorIntent.ChangePrice,
+                is ListingEditorIntent.ChangeCurrency,
+                is ListingEditorIntent.ChangeImage,
+                is ListingEditorIntent.ChangeType -> triggerAutoSave()
+
+                else -> {}
+            }
+        }
+
+        private fun triggerAutoSave() {
+            if (listingId != null) return // Don't auto-save drafts when editing existing listings, for now.
+
+            autoSaveJob?.cancel()
+            autoSaveJob = scope.launch {
+                delay(500) // Debounce
+                val currentState = state()
+                // Only save if it has some meaningful data
+                if (currentState.title.value.isNotEmpty() || currentState.priceAmount.value.isNotEmpty()) {
+                    listingRepository.saveDraft(currentState.toDraft())
+                }
+            }
+        }
+
+        private fun handleClear() {
+            scope.launch {
+                listingRepository.clearDraft()
+                publish(ListingEditorLabel.ListingCleared)
             }
         }
 
@@ -119,6 +174,7 @@ internal class ListingEditorStoreFactory(
                 is RepositoryOperationResult.Success -> {
                     when (result.value) {
                         is InsertResult.Inserted -> {
+                            listingRepository.clearDraft() // Clear draft on success
                             publish(ListingEditorLabel.ListingCreated)
                             dispatch(ListingEditorIntent.SetSubmitting(false))
                         }

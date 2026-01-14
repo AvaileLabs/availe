@@ -18,6 +18,7 @@ import coil3.compose.AsyncImage
 import com.availelabs.availe.ListingEditorIntent
 import com.availelabs.availe.ListingEditorState
 import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.ui.components.dialogs.DestructiveActionModal
 import com.availelabs.availe.ui.layout.WindowSizeClass
 import com.availelabs.availe.ui.layout.rememberWindowSize
 import com.composables.icons.lucide.ChevronDown
@@ -47,10 +48,11 @@ fun ListingEditorScreen(
             if (isMultiPane) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     ListingEditorWizardStepList(
+                        editorState = state,
                         wizardState = wizardState,
                         onStepClicked = { component.onWizardIntent(ListingEditorWizardIntent.NavigateTo(it)) },
                         modifier = Modifier
-                            .width(240.dp)
+                            .width(280.dp)
                             .fillMaxHeight()
                             .padding(16.dp)
                     )
@@ -60,6 +62,7 @@ fun ListingEditorScreen(
                         wizardState = wizardState,
                         onEditorIntent = component::onIntent,
                         onWizardIntent = component::onWizardIntent,
+                        shouldShowProgressBar = false,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -72,6 +75,7 @@ fun ListingEditorScreen(
                     wizardState = wizardState,
                     onEditorIntent = component::onIntent,
                     onWizardIntent = component::onWizardIntent,
+                    shouldShowProgressBar = true,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp)
@@ -89,41 +93,21 @@ fun ListingEditorScreen(
                     IntermediateProgressIndicator()
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun ListingEditorWizardStepList(
-    wizardState: ListingEditorWizardState,
-    onStepClicked: (ListingEditorWizardStep) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(modifier = modifier, title = {
-        SelectionContainer {
-            Text("Steps")
-        }
-    }) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            wizardState.steps.forEach { step ->
-                val isSelected = step == wizardState.currentStep
-                val isEnabled =
-                    wizardState.isEditingFlow || wizardState.selectedCategory != null || step == ListingEditorWizardStep.ChooseType
-
-                Row(
+            if (state.showClearConfirmationDialog) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(Theme[shapes][small])
-                        .background(
-                            if (isSelected) Theme[colors][outline].copy(alpha = 0.12f) else Theme[colors][background]
-                        )
-                        .clickable(enabled = isEnabled) { onStepClicked(step) }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxSize()
+                        .background(Theme[colors][scrim])
+                        .clickable(enabled = false) {},
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = step.title,
-                        color = if (isEnabled) Theme[colors][onBackground] else Theme[colors][outline]
+                    DestructiveActionModal(
+                        title = "Clear all changes?",
+                        message = "This will remove all details you have entered. This action cannot be undone.",
+                        confirmText = "Clear",
+                        onConfirm = { component.onIntent(ListingEditorIntent.ConfirmClear) },
+                        onDismiss = { component.onIntent(ListingEditorIntent.CancelClear) }
                     )
                 }
             }
@@ -137,6 +121,7 @@ private fun ListingEditorWizardContent(
     wizardState: ListingEditorWizardState,
     onEditorIntent: (ListingEditorIntent) -> Unit,
     onWizardIntent: (ListingEditorWizardIntent) -> Unit,
+    shouldShowProgressBar: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -150,6 +135,15 @@ private fun ListingEditorWizardContent(
                 .padding(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            if (shouldShowProgressBar) {
+                ListingEditorSegmentedProgressBar(
+                    editorState = editorState,
+                    wizardState = wizardState,
+                    onStepClicked = { onWizardIntent(ListingEditorWizardIntent.NavigateTo(it)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             SelectionContainer {
                 Text(
                     text = "${wizardState.currentStep.title} (${wizardState.currentStepIndex + 1} of ${wizardState.steps.size})"
@@ -191,7 +185,7 @@ private fun ListingEditorWizardContent(
             if (editorState.error != null) {
                 SelectionContainer {
                     Text(
-                        text = editorState.error!!,
+                        text = editorState.error,
                         color = Theme[colors][destructive]
                     )
                 }
