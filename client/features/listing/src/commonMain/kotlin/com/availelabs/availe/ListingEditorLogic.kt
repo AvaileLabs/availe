@@ -19,7 +19,8 @@ data class ListingEditorState(
     val type: ListingCategory = ListingCategory.Item,
     val isSubmitting: Boolean = false,
     val error: String? = null,
-    val showClearConfirmationDialog: Boolean = false
+    val showDiscardDraftDialog: Boolean = false,
+    val showPublishConfirmationDialog: Boolean = false
 )
 
 sealed interface ListingEditorIntent {
@@ -31,12 +32,14 @@ sealed interface ListingEditorIntent {
     data class ChangeCurrency(val currency: SupportedCurrency) : ListingEditorIntent
     data class ChangeType(val type: ListingCategory) : ListingEditorIntent
     data class ChangeImage(val url: ImageUrl) : ListingEditorIntent
-    data object Submit : ListingEditorIntent
+    data object AskToPublish : ListingEditorIntent
+    data object CancelPublish : ListingEditorIntent
+    data object ConfirmPublish : ListingEditorIntent
     data class SetSubmitting(val isSubmitting: Boolean) : ListingEditorIntent
     data class SetError(val message: String?) : ListingEditorIntent
-    data object AskToClear : ListingEditorIntent
-    data object CancelClear : ListingEditorIntent
-    data object ConfirmClear : ListingEditorIntent
+    data object AskToDiscardDraft : ListingEditorIntent
+    data object CancelDiscardDraft : ListingEditorIntent
+    data object ConfirmDiscardDraft : ListingEditorIntent
 }
 
 fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent): ListingEditorState {
@@ -78,23 +81,27 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
         }
 
         is ListingEditorIntent.ChangeImage -> state.copy(imageUrl = intent.url, error = null)
-        is ListingEditorIntent.Submit -> {
+
+        ListingEditorIntent.AskToPublish -> {
             if (!state.title.isValid()) {
                 state.copy(error = "Title is invalid")
             } else if (state.priceAmount.value.isBlank()) {
                 state.copy(error = "Price is required")
             } else {
-                state.copy(isSubmitting = true, error = null)
+                state.copy(showPublishConfirmationDialog = true, error = null)
             }
         }
+
+        ListingEditorIntent.CancelPublish -> state.copy(showPublishConfirmationDialog = false)
+        ListingEditorIntent.ConfirmPublish -> state.copy(showPublishConfirmationDialog = false, isSubmitting = true)
 
         is ListingEditorIntent.SetSubmitting -> state.copy(isSubmitting = intent.isSubmitting)
         is ListingEditorIntent.SetError -> state.copy(error = intent.message, isSubmitting = false)
 
-        ListingEditorIntent.AskToClear -> state.copy(showClearConfirmationDialog = true)
-        ListingEditorIntent.CancelClear -> state.copy(showClearConfirmationDialog = false)
-        ListingEditorIntent.ConfirmClear -> state.copy(
-            showClearConfirmationDialog = false,
+        ListingEditorIntent.AskToDiscardDraft -> state.copy(showDiscardDraftDialog = true)
+        ListingEditorIntent.CancelDiscardDraft -> state.copy(showDiscardDraftDialog = false)
+        ListingEditorIntent.ConfirmDiscardDraft -> state.copy(
+            showDiscardDraftDialog = false,
             title = ListingTitle(""),
             description = ListingDescription(""),
             priceAmount = PriceAmount(""),
@@ -156,14 +163,15 @@ fun ListingEditorState.toPatchRequest(): TypeV1ListingDtoPatchRequest {
     }
 }
 
-fun ListingEditorState.toDraft(): ListingDraft {
+fun ListingEditorState.toDraft(stepIndex: Int): ListingDraft {
     return ListingDraft(
         title = this.title,
         description = this.description,
         priceAmount = this.priceAmount,
         priceCurrencyCode = this.priceCurrency.code,
         imageUrl = this.imageUrl,
-        type = this.type
+        type = this.type,
+        stepIndex = stepIndex
     )
 }
 
@@ -187,6 +195,7 @@ private fun Listing.toEditorState(): ListingEditorState {
         type = category,
         error = null,
         isSubmitting = false,
-        showClearConfirmationDialog = false
+        showDiscardDraftDialog = false,
+        showPublishConfirmationDialog = false
     )
 }

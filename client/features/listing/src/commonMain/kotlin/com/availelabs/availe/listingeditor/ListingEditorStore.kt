@@ -17,8 +17,6 @@ import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.types.RepositoryOperationResult
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 interface IListingEditorStore : Store<ListingEditorIntent, ListingEditorState, ListingEditorLabel>
@@ -66,6 +64,7 @@ internal class ListingEditorStoreFactory(
                         }
 
                         is RepositoryOperationResult.Failure -> {
+                            // Handle load failure if necessary, or just leave state empty
                         }
                     }
                 }
@@ -82,8 +81,6 @@ internal class ListingEditorStoreFactory(
 
     private inner class ListingEditorExecutor :
         CoroutineExecutor<ListingEditorIntent, Action, ListingEditorState, ListingEditorIntent, ListingEditorLabel>() {
-
-        private var autoSaveJob: Job? = null
 
         override fun executeAction(action: Action) {
             when (action) {
@@ -104,47 +101,28 @@ internal class ListingEditorStoreFactory(
         }
 
         override fun executeIntent(intent: ListingEditorIntent) {
-            dispatch(intent)
-
             when (intent) {
-                is ListingEditorIntent.Submit -> handleSubmit()
-                ListingEditorIntent.ConfirmClear -> handleClear()
-                is ListingEditorIntent.ChangeTitle,
-                is ListingEditorIntent.ChangeDescription,
-                is ListingEditorIntent.ChangePrice,
-                is ListingEditorIntent.ChangeCurrency,
-                is ListingEditorIntent.ChangeImage,
-                is ListingEditorIntent.ChangeType -> triggerAutoSave()
-
-                else -> {}
+                is ListingEditorIntent.ConfirmPublish -> submitListing()
+                is ListingEditorIntent.ConfirmDiscardDraft -> discardDraft()
+                else -> dispatch(intent)
             }
         }
 
-        private fun triggerAutoSave() {
-            if (listingId != null) return // Don't auto-save drafts when editing existing listings, for now.
-
-            autoSaveJob?.cancel()
-            autoSaveJob = scope.launch {
-                delay(500) // Debounce
-                val currentState = state()
-                // Only save if it has some meaningful data
-                if (currentState.title.value.isNotEmpty() || currentState.priceAmount.value.isNotEmpty()) {
-                    listingRepository.saveDraft(currentState.toDraft())
-                }
-            }
-        }
-
-        private fun handleClear() {
+        private fun discardDraft() {
             scope.launch {
                 listingRepository.clearDraft()
+                dispatch(ListingEditorIntent.ConfirmDiscardDraft)
                 publish(ListingEditorLabel.ListingCleared)
             }
         }
 
-        private fun handleSubmit() {
+        private fun submitListing() {
+            dispatch(ListingEditorIntent.ConfirmPublish) // Sets isSubmitting = true
+
+            // We get the state *after* dispatching to ensure isSubmitting is true and any validation errors are cleared/checked
             val currentState = state()
 
-            if (!currentState.isSubmitting || currentState.error != null) {
+            if (currentState.error != null) {
                 return
             }
 
@@ -174,7 +152,7 @@ internal class ListingEditorStoreFactory(
                 is RepositoryOperationResult.Success -> {
                     when (result.value) {
                         is InsertResult.Inserted -> {
-                            listingRepository.clearDraft() // Clear draft on success
+                            listingRepository.clearDraft()
                             publish(ListingEditorLabel.ListingCreated)
                             dispatch(ListingEditorIntent.SetSubmitting(false))
                         }

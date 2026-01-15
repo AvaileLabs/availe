@@ -13,8 +13,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.router.pages.ChildPages
 import com.availelabs.availe.ListingEditorState
-import com.composables.icons.lucide.Check
+import com.availelabs.availe.domain.extensions.isValid
 import com.composables.icons.lucide.CircleAlert
 import com.composables.icons.lucide.CircleCheck
 import com.composables.icons.lucide.Lucide
@@ -26,9 +27,9 @@ import com.composeunstyled.theme.Theme
 
 @Composable
 internal fun ListingEditorWizardStepList(
+    pages: ChildPages<ListingEditorPageConfig, ListingEditorPage>,
     editorState: ListingEditorState,
-    wizardState: ListingEditorWizardState,
-    onStepClicked: (ListingEditorWizardStep) -> Unit,
+    onStepClicked: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -40,21 +41,23 @@ internal fun ListingEditorWizardStepList(
         }
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            wizardState.steps.forEach { step ->
-                val uiState = remember(step, wizardState, editorState) {
-                    buildListingEditorWizardStepUiState(
-                        step = step,
-                        wizardState = wizardState,
+            val stepConfigs = pages.items.map { it.configuration }
+            stepConfigs.forEachIndexed { index, config ->
+                val uiState = remember(index, pages.selectedIndex, editorState) {
+                    buildStepUiState(
+                        index = index,
+                        selectedIndex = pages.selectedIndex,
+                        config = config,
                         editorState = editorState
                     )
                 }
 
                 ListingEditorWizardStepListItem(
-                    title = step.title,
+                    title = getStepTitle(config),
                     isSelected = uiState.isSelected,
                     isEnabled = uiState.isEnabled,
                     status = uiState.status,
-                    onClick = { onStepClicked(step) }
+                    onClick = { onStepClicked(index) }
                 )
             }
         }
@@ -63,9 +66,8 @@ internal fun ListingEditorWizardStepList(
 
 @Composable
 internal fun ListingEditorSegmentedProgressBar(
+    pages: ChildPages<ListingEditorPageConfig, ListingEditorPage>,
     editorState: ListingEditorState,
-    wizardState: ListingEditorWizardState,
-    onStepClicked: (ListingEditorWizardStep) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -73,18 +75,20 @@ internal fun ListingEditorSegmentedProgressBar(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        wizardState.steps.forEach { step ->
-            val uiState = buildListingEditorWizardStepUiState(
-                step = step,
-                wizardState = wizardState,
-                editorState = editorState
-            )
+        val stepConfigs = pages.items.map { it.configuration }
+        stepConfigs.forEachIndexed { index, config ->
+            val uiState = remember(index, pages.selectedIndex, editorState) {
+                buildStepUiState(
+                    index = index,
+                    selectedIndex = pages.selectedIndex,
+                    config = config,
+                    editorState = editorState
+                )
+            }
 
             ListingEditorProgressBarSegment(
                 isSelected = uiState.isSelected,
                 status = uiState.status,
-                isEnabled = uiState.isEnabled,
-                onClick = { onStepClicked(step) },
                 modifier = Modifier
                     .weight(1f)
                     .height(4.dp)
@@ -93,48 +97,82 @@ internal fun ListingEditorSegmentedProgressBar(
     }
 }
 
-private data class ListingEditorWizardStepUiState(
+private data class StepUiState(
     val isSelected: Boolean,
     val isEnabled: Boolean,
-    val status: ListingEditorStepStatus
+    val status: StepStatus
 )
 
-private fun buildListingEditorWizardStepUiState(
-    step: ListingEditorWizardStep,
-    wizardState: ListingEditorWizardState,
-    editorState: ListingEditorState
-): ListingEditorWizardStepUiState {
-    val isSelected = step == wizardState.currentStep
-    val isEnabled =
-        wizardState.isEditingFlow || wizardState.selectedCategory != null || step == ListingEditorWizardStep.ChooseType
-    val status = getListingEditorStepStatus(
-        step = step,
-        wizardState = wizardState,
-        editorState = editorState
-    )
+internal enum class StepStatus {
+    Locked,
+    Pending,
+    Valid,
+    Complete,
+    Invalid
+}
 
-    return ListingEditorWizardStepUiState(
+private fun buildStepUiState(
+    index: Int,
+    selectedIndex: Int,
+    config: ListingEditorPageConfig,
+    editorState: ListingEditorState
+): StepUiState {
+    val isSelected = index == selectedIndex
+
+    // Simple logic: allow clicking any previous step, or the current step.
+    // Future steps are locked unless valid. For now, strict linear progression.
+    val isEnabled = index <= selectedIndex || (editorState.isEditing && index < selectedIndex + 2)
+
+    val status = when {
+        index < selectedIndex -> {
+            // Check if past steps are valid
+            if (isValid(config, editorState)) StepStatus.Complete else StepStatus.Invalid
+        }
+
+        index == selectedIndex -> {
+            if (isValid(config, editorState)) StepStatus.Valid else StepStatus.Pending
+        }
+
+        else -> StepStatus.Locked
+    }
+
+    return StepUiState(
         isSelected = isSelected,
         isEnabled = isEnabled,
         status = status
     )
 }
 
+private fun isValid(config: ListingEditorPageConfig, state: ListingEditorState): Boolean {
+    return when (config) {
+        ListingEditorPageConfig.Type -> true // Always valid if selected
+        ListingEditorPageConfig.Basics -> state.title.isValid()
+        ListingEditorPageConfig.Pricing -> state.priceAmount.isValid() && state.priceAmount.value.isNotBlank()
+        ListingEditorPageConfig.Media -> true // Optional
+        ListingEditorPageConfig.Review -> true
+    }
+}
+
+private fun getStepTitle(config: ListingEditorPageConfig): String {
+    return when (config) {
+        ListingEditorPageConfig.Type -> "Type"
+        ListingEditorPageConfig.Basics -> "Basics"
+        ListingEditorPageConfig.Pricing -> "Pricing"
+        ListingEditorPageConfig.Media -> "Media"
+        ListingEditorPageConfig.Review -> "Review"
+    }
+}
+
 @Composable
 private fun ListingEditorProgressBarSegment(
     isSelected: Boolean,
-    status: ListingEditorStepStatus,
-    isEnabled: Boolean,
-    onClick: () -> Unit,
+    status: StepStatus,
     modifier: Modifier = Modifier
 ) {
     val color = when {
         isSelected -> Theme[colors][primary]
-        status == ListingEditorStepStatus.Complete || status == ListingEditorStepStatus.Valid -> Theme[colors][primary].copy(
-            alpha = 0.5f
-        )
-
-        status == ListingEditorStepStatus.Invalid -> Theme[colors][destructive].copy(alpha = 0.5f)
+        status == StepStatus.Complete || status == StepStatus.Valid -> Theme[colors][primary].copy(alpha = 0.5f)
+        status == StepStatus.Invalid -> Theme[colors][destructive].copy(alpha = 0.5f)
         else -> Theme[colors][outline].copy(alpha = 0.2f)
     }
 
@@ -142,7 +180,6 @@ private fun ListingEditorProgressBarSegment(
         modifier = modifier
             .clip(CircleShape)
             .background(color)
-            .clickable(enabled = isEnabled) { onClick() }
     )
 }
 
@@ -151,7 +188,7 @@ private fun ListingEditorWizardStepListItem(
     title: String,
     isSelected: Boolean,
     isEnabled: Boolean,
-    status: ListingEditorStepStatus,
+    status: StepStatus,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -186,13 +223,13 @@ private fun ListingEditorWizardStepListItem(
         Text(
             text = title,
             style = Theme[textStyles][body],
-            color = if (status == ListingEditorStepStatus.Locked) textColor.copy(alpha = 0.5f) else textColor,
+            color = if (status == StepStatus.Locked) textColor.copy(alpha = 0.5f) else textColor,
             fontWeight = fontWeight,
             modifier = Modifier.weight(1f)
         )
 
         when (status) {
-            ListingEditorStepStatus.Complete -> {
+            StepStatus.Complete -> {
                 Icon(
                     imageVector = Lucide.CircleCheck,
                     contentDescription = "Complete",
@@ -201,16 +238,7 @@ private fun ListingEditorWizardStepListItem(
                 )
             }
 
-            ListingEditorStepStatus.Valid -> {
-                Icon(
-                    imageVector = Lucide.Check,
-                    contentDescription = "Valid",
-                    tint = successColor,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-
-            ListingEditorStepStatus.Invalid -> {
+            StepStatus.Invalid -> {
                 Icon(
                     imageVector = Lucide.CircleAlert,
                     contentDescription = "Invalid",
@@ -222,7 +250,7 @@ private fun ListingEditorWizardStepListItem(
             else -> Unit
         }
 
-        if (status != ListingEditorStepStatus.Pending && status != ListingEditorStepStatus.Locked) {
+        if (status != StepStatus.Pending && status != StepStatus.Locked) {
             Spacer(Modifier.width(12.dp))
         }
     }

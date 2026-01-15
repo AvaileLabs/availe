@@ -10,5 +10,6 @@ data class ListingDraft(
     val priceAmount: PriceAmount,
     val priceCurrencyCode: CurrencyCode,
     val imageUrl: ImageUrl,
-    val type: ListingCategory
+    val type: ListingCategory,
+    val stepIndex: Int
 )
