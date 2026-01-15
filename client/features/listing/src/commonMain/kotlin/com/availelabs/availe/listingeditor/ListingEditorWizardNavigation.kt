@@ -47,12 +47,12 @@ internal fun ListingEditorWizardStepList(
                     buildStepUiState(
                         index = index,
                         selectedIndex = pages.selectedIndex,
-                        config = config,
+                        allConfigs = stepConfigs,
                         editorState = editorState
                     )
                 }
 
-                ListingEditorWizardStepListItem(
+                ListingStepRow(
                     title = getStepTitle(config),
                     isSelected = uiState.isSelected,
                     isEnabled = uiState.isEnabled,
@@ -81,7 +81,7 @@ internal fun ListingEditorSegmentedProgressBar(
                 buildStepUiState(
                     index = index,
                     selectedIndex = pages.selectedIndex,
-                    config = config,
+                    allConfigs = stepConfigs,
                     editorState = editorState
                 )
             }
@@ -97,7 +97,7 @@ internal fun ListingEditorSegmentedProgressBar(
     }
 }
 
-private data class StepUiState(
+internal data class StepUiState(
     val isSelected: Boolean,
     val isEnabled: Boolean,
     val status: StepStatus
@@ -105,35 +105,31 @@ private data class StepUiState(
 
 internal enum class StepStatus {
     Locked,
-    Pending,
-    Valid,
+    Current,
     Complete,
     Invalid
 }
 
-private fun buildStepUiState(
+internal fun buildStepUiState(
     index: Int,
     selectedIndex: Int,
-    config: ListingEditorPageConfig,
+    allConfigs: List<ListingEditorPageConfig>,
     editorState: ListingEditorState
 ): StepUiState {
     val isSelected = index == selectedIndex
+    val config = allConfigs[index]
 
-    // Simple logic: allow clicking any previous step, or the current step.
-    // Future steps are locked unless valid. For now, strict linear progression.
-    val isEnabled = index <= selectedIndex || (editorState.isEditing && index < selectedIndex + 2)
+    val isValid = isStepValid(config, editorState)
+
+    val isEnabled = (0 until index).all { i ->
+        isStepValid(allConfigs[i], editorState)
+    }
 
     val status = when {
-        index < selectedIndex -> {
-            // Check if past steps are valid
-            if (isValid(config, editorState)) StepStatus.Complete else StepStatus.Invalid
-        }
-
-        index == selectedIndex -> {
-            if (isValid(config, editorState)) StepStatus.Valid else StepStatus.Pending
-        }
-
-        else -> StepStatus.Locked
+        isSelected -> StepStatus.Current
+        !isEnabled -> StepStatus.Locked
+        isValid -> StepStatus.Complete
+        else -> StepStatus.Invalid
     }
 
     return StepUiState(
@@ -143,17 +139,20 @@ private fun buildStepUiState(
     )
 }
 
-private fun isValid(config: ListingEditorPageConfig, state: ListingEditorState): Boolean {
+internal fun isStepValid(config: ListingEditorPageConfig, state: ListingEditorState): Boolean {
     return when (config) {
-        ListingEditorPageConfig.Type -> true // Always valid if selected
+        ListingEditorPageConfig.Type -> true
         ListingEditorPageConfig.Basics -> state.title.isValid()
         ListingEditorPageConfig.Pricing -> state.priceAmount.isValid() && state.priceAmount.value.isNotBlank()
-        ListingEditorPageConfig.Media -> true // Optional
-        ListingEditorPageConfig.Review -> true
+        ListingEditorPageConfig.Media -> true
+        ListingEditorPageConfig.Review -> {
+            isStepValid(ListingEditorPageConfig.Basics, state) &&
+                    isStepValid(ListingEditorPageConfig.Pricing, state)
+        }
     }
 }
 
-private fun getStepTitle(config: ListingEditorPageConfig): String {
+internal fun getStepTitle(config: ListingEditorPageConfig): String {
     return when (config) {
         ListingEditorPageConfig.Type -> "Type"
         ListingEditorPageConfig.Basics -> "Basics"
@@ -171,7 +170,7 @@ private fun ListingEditorProgressBarSegment(
 ) {
     val color = when {
         isSelected -> Theme[colors][primary]
-        status == StepStatus.Complete || status == StepStatus.Valid -> Theme[colors][primary].copy(alpha = 0.5f)
+        status == StepStatus.Complete -> Theme[colors][primary].copy(alpha = 0.5f)
         status == StepStatus.Invalid -> Theme[colors][destructive].copy(alpha = 0.5f)
         else -> Theme[colors][outline].copy(alpha = 0.2f)
     }
@@ -184,7 +183,7 @@ private fun ListingEditorProgressBarSegment(
 }
 
 @Composable
-private fun ListingEditorWizardStepListItem(
+internal fun ListingStepRow(
     title: String,
     isSelected: Boolean,
     isEnabled: Boolean,
@@ -250,7 +249,7 @@ private fun ListingEditorWizardStepListItem(
             else -> Unit
         }
 
-        if (status != StepStatus.Pending && status != StepStatus.Locked) {
+        if (status != StepStatus.Current && status != StepStatus.Locked) {
             Spacer(Modifier.width(12.dp))
         }
     }

@@ -24,13 +24,13 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.pages.ChildPages
 import com.arkivanov.decompose.value.Value
 import com.availelabs.availe.ListingEditorState
-import com.availelabs.availe.domain.extensions.isValid
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.ui.components.dialogs.DestructiveActionModal
-import com.availelabs.availe.ui.components.sheets.ListingStepsBottomSheet
 import com.availelabs.availe.ui.layout.WindowSizeClass
 import com.availelabs.availe.ui.layout.rememberWindowSize
 import com.availelabs.availe.ui.util.rememberSyncedPagerState
+import com.composables.core.SheetDetent
+import com.composables.core.rememberModalBottomSheetState
 import com.composables.icons.lucide.ChevronDown
 import com.composables.icons.lucide.CloudUpload
 import com.composables.icons.lucide.Image
@@ -40,6 +40,7 @@ import com.composables.uikit.styling.*
 import com.composeunstyled.DropdownPanelAnchor
 import com.composeunstyled.Text
 import com.composeunstyled.theme.Theme
+import kotlinx.coroutines.launch
 
 @Composable
 fun ListingEditorScreen(
@@ -157,18 +158,14 @@ private fun ListingEditorWizardContent(
     val stepNames = listOf("Type", "Basics", "Pricing", "Media", "Review")
     val currentStepIndex = pagesState.selectedIndex
     val currentStepName = stepNames.getOrElse(currentStepIndex) { "" }
-    var showStepsOverlay by remember { mutableStateOf(false) }
 
-    // Validation logic for "Next" button
+    val sheetState = rememberModalBottomSheetState(initialDetent = SheetDetent.Hidden)
+    val scope = rememberCoroutineScope()
+
+    // Unified Validation Logic for "Next" button
     val isNextEnabled = remember(state, currentStepIndex) {
         val config = pagesState.items[currentStepIndex].configuration
-        when (config) {
-            ListingEditorPageConfig.Type -> true
-            ListingEditorPageConfig.Basics -> state.title.isValid()
-            ListingEditorPageConfig.Pricing -> state.priceAmount.isValid() && state.priceAmount.value.isNotBlank()
-            ListingEditorPageConfig.Media -> true
-            ListingEditorPageConfig.Review -> state.title.isValid() && state.priceAmount.value.isNotBlank()
-        }
+        isStepValid(config, state)
     }
 
     Box(modifier = modifier) {
@@ -184,7 +181,9 @@ private fun ListingEditorWizardContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { showStepsOverlay = true }
+                        .clickable {
+                            scope.launch { sheetState.targetDetent = SheetDetent.FullyExpanded }
+                        }
                         .padding(vertical = 8.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -309,23 +308,16 @@ private fun ListingEditorWizardContent(
             }
         }
 
-        // Bottom Sheet Overlay
-        if (showStepsOverlay) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Theme[colors][scrim])
-                    .clickable { showStepsOverlay = false },
-                contentAlignment = Alignment.BottomCenter
-            ) {
+        // Native Modal Bottom Sheet
+        if (shouldShowProgressBar) {
+            ModalBottomSheet(state = sheetState) {
                 ListingStepsBottomSheet(
-                    currentStepIndex = currentStepIndex,
-                    steps = stepNames,
+                    pages = pagesState,
+                    editorState = state,
                     onStepSelected = {
                         component.onPageSelected(it)
-                        showStepsOverlay = false
-                    },
-                    modifier = Modifier.clickable(enabled = false) {}
+                        scope.launch { sheetState.targetDetent = SheetDetent.Hidden }
+                    }
                 )
             }
         }
