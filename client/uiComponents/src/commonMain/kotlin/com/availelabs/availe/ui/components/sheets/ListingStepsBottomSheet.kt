@@ -15,8 +15,11 @@ import com.composables.icons.lucide.CircleDot
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.Text
+import com.composables.uikit.styling.card
 import com.composables.uikit.styling.colors
+import com.composables.uikit.styling.onCard
 import com.composables.uikit.styling.primary
+import com.composeunstyled.ProvideContentColor
 import com.composeunstyled.theme.Theme
 
 @Composable
@@ -29,49 +32,51 @@ fun ListingStepsBottomSheet(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(Theme[colors][primary], RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            .background(Theme[colors][card], RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             .padding(vertical = 24.dp)
     ) {
-        Text(
-            text = "Listing Steps",
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
-        )
+        ProvideContentColor(Theme[colors][onCard]) {
+            Text(
+                text = "Listing Steps",
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+            )
 
-        steps.forEachIndexed { index, stepName ->
-            val isCompleted = index < currentStepIndex
-            val isCurrent = index == currentStepIndex
+            steps.forEachIndexed { index, stepName ->
+                val isCompleted = index < currentStepIndex
+                val isCurrent = index == currentStepIndex
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onStepSelected(index) }
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val icon = when {
-                    isCompleted -> Lucide.Check
-                    isCurrent -> Lucide.CircleDot
-                    else -> Lucide.Circle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onStepSelected(index) }
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val icon = when {
+                        isCompleted -> Lucide.Check
+                        isCurrent -> Lucide.CircleDot
+                        else -> Lucide.Circle
+                    }
+
+                    val tint =
+                        if (isCompleted || isCurrent) Theme[colors][primary] else Theme[colors][onCard].copy(alpha = 0.3f)
+
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = tint,
+                        modifier = Modifier.size(20.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Text(
+                        text = stepName,
+                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isCurrent) Theme[colors][primary] else Theme[colors][onCard].copy(alpha = 0.7f)
+                    )
                 }
-
-                val tint =
-                    if (isCompleted || isCurrent) Theme[colors][primary] else Theme[colors][primary].copy(alpha = 0.3f)
-
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = tint,
-                    modifier = Modifier.size(20.dp)
-                )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Text(
-                    text = stepName,
-                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isCurrent) Theme[colors][primary] else Theme[colors][primary].copy(alpha = 0.7f)
-                )
             }
         }
     }

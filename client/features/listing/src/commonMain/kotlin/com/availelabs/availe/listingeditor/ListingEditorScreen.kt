@@ -1,17 +1,19 @@
 package com.availelabs.availe.listingeditor
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -107,20 +109,36 @@ fun ListingEditorScreen(
 
             // Modals
             if (state.showDiscardDraftDialog) {
-                DestructiveActionModal(
-                    title = "Discard Draft?",
-                    message = "Are you sure you want to discard this draft? All progress will be lost.",
-                    confirmText = "Discard",
-                    onConfirm = component::onConfirmDiscardDraft,
-                    onDismiss = component::onCancelDiscardDraft
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Theme[colors][scrim])
+                        .clickable(enabled = false) {}, // Block underlying clicks
+                    contentAlignment = Alignment.Center
+                ) {
+                    DestructiveActionModal(
+                        title = "Discard Draft?",
+                        message = "Are you sure you want to discard this draft? All progress will be lost.",
+                        confirmText = "Discard",
+                        onConfirm = component::onConfirmDiscardDraft,
+                        onDismiss = component::onCancelDiscardDraft
+                    )
+                }
             }
 
             if (state.showPublishConfirmationDialog) {
-                PublishConfirmationDialog(
-                    onConfirm = component::onConfirmPublish,
-                    onDismiss = component::onCancelPublish
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Theme[colors][scrim])
+                        .clickable(enabled = false) {}, // Block underlying clicks
+                    contentAlignment = Alignment.Center
+                ) {
+                    PublishConfirmationDialog(
+                        onConfirm = component::onConfirmPublish,
+                        onDismiss = component::onCancelPublish
+                    )
+                }
             }
         }
     }
@@ -161,16 +179,12 @@ private fun ListingEditorWizardContent(
                 .padding(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Header: Progress Bar with Long Press Interaction
+            // Header: Progress Bar with Click Interaction
             if (shouldShowProgressBar) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        // Combined clickable for Long Press interaction
-                        .combinedClickable(
-                            onClick = { /* No-op or toast "Long press to see steps" */ },
-                            onLongClick = { showStepsOverlay = true }
-                        )
+                        .clickable { showStepsOverlay = true }
                         .padding(vertical = 8.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -300,7 +314,7 @@ private fun ListingEditorWizardContent(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f))
+                    .background(Theme[colors][scrim])
                     .clickable { showStepsOverlay = false },
                 contentAlignment = Alignment.BottomCenter
             ) {
