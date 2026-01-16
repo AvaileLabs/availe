@@ -13,9 +13,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import availe.client.designsystem.generated.resources.Res
+import availe.client.designsystem.generated.resources.listing_editor_steps_title
 import com.arkivanov.decompose.router.pages.ChildPages
 import com.availelabs.availe.ListingEditorState
-import com.availelabs.availe.domain.extensions.isValid
+import com.composables.icons.lucide.Circle
 import com.composables.icons.lucide.CircleAlert
 import com.composables.icons.lucide.CircleCheck
 import com.composables.icons.lucide.Lucide
@@ -24,6 +26,7 @@ import com.composables.uikit.components.Icon
 import com.composables.uikit.styling.*
 import com.composeunstyled.Text
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun ListingEditorWizardStepList(
@@ -36,7 +39,7 @@ internal fun ListingEditorWizardStepList(
         modifier = modifier,
         title = {
             SelectionContainer {
-                Text("Steps")
+                Text(stringResource(Res.string.listing_editor_steps_title))
             }
         }
     ) {
@@ -52,11 +55,14 @@ internal fun ListingEditorWizardStepList(
                     )
                 }
 
+                val isActuallyValid = getStepValidationStatus(config, editorState)
+                val visualStatus = if (isActuallyValid) StepStatus.Complete else uiState.status
+
                 ListingStepRow(
-                    title = getStepTitle(config),
+                    title = stringResource(config.titleRes),
                     isSelected = uiState.isSelected,
                     isEnabled = uiState.isEnabled,
-                    status = uiState.status,
+                    status = visualStatus,
                     onClick = { onStepClicked(index) }
                 )
             }
@@ -104,8 +110,7 @@ internal data class StepUiState(
 )
 
 internal enum class StepStatus {
-    Locked,
-    Current,
+    Pending,
     Complete,
     Invalid
 }
@@ -119,17 +124,13 @@ internal fun buildStepUiState(
     val isSelected = index == selectedIndex
     val config = allConfigs[index]
 
-    val isValid = isStepValid(config, editorState)
+    val isValid = getStepValidationStatus(config, editorState)
 
-    val isEnabled = (0 until index).all { i ->
-        isStepValid(allConfigs[i], editorState)
-    }
+    val isEnabled = true
 
     val status = when {
-        isSelected -> StepStatus.Current
-        !isEnabled -> StepStatus.Locked
         isValid -> StepStatus.Complete
-        else -> StepStatus.Invalid
+        else -> StepStatus.Pending
     }
 
     return StepUiState(
@@ -139,26 +140,13 @@ internal fun buildStepUiState(
     )
 }
 
-internal fun isStepValid(config: ListingEditorPageConfig, state: ListingEditorState): Boolean {
+internal fun getStepValidationStatus(config: ListingEditorPageConfig, state: ListingEditorState): Boolean {
     return when (config) {
         ListingEditorPageConfig.Type -> true
-        ListingEditorPageConfig.Basics -> state.title.isValid()
-        ListingEditorPageConfig.Pricing -> state.priceAmount.isValid() && state.priceAmount.value.isNotBlank()
+        ListingEditorPageConfig.Basics -> state.isBasicsStepValid
+        ListingEditorPageConfig.Pricing -> state.isPricingStepValid
         ListingEditorPageConfig.Media -> true
-        ListingEditorPageConfig.Review -> {
-            isStepValid(ListingEditorPageConfig.Basics, state) &&
-                    isStepValid(ListingEditorPageConfig.Pricing, state)
-        }
-    }
-}
-
-internal fun getStepTitle(config: ListingEditorPageConfig): String {
-    return when (config) {
-        ListingEditorPageConfig.Type -> "Type"
-        ListingEditorPageConfig.Basics -> "Basics"
-        ListingEditorPageConfig.Pricing -> "Pricing"
-        ListingEditorPageConfig.Media -> "Media"
-        ListingEditorPageConfig.Review -> "Review"
+        ListingEditorPageConfig.Review -> state.isBasicsStepValid && state.isPricingStepValid
     }
 }
 
@@ -196,6 +184,7 @@ internal fun ListingStepRow(
     val fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
     val successColor = Color(0xFF10B981)
     val errorColor = Theme[colors][destructive]
+    val pendingColor = Theme[colors][outline].copy(alpha = 0.3f)
 
     Row(
         modifier = modifier
@@ -221,8 +210,8 @@ internal fun ListingStepRow(
 
         Text(
             text = title,
-            style = Theme[textStyles][body],
-            color = if (status == StepStatus.Locked) textColor.copy(alpha = 0.5f) else textColor,
+            style = Theme[textStyles][com.composables.uikit.styling.body],
+            color = textColor,
             fontWeight = fontWeight,
             modifier = Modifier.weight(1f)
         )
@@ -246,11 +235,16 @@ internal fun ListingStepRow(
                 )
             }
 
-            else -> Unit
+            StepStatus.Pending -> {
+                Icon(
+                    imageVector = Lucide.Circle,
+                    contentDescription = "Pending",
+                    tint = pendingColor,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
 
-        if (status != StepStatus.Current && status != StepStatus.Locked) {
-            Spacer(Modifier.width(12.dp))
-        }
+        Spacer(Modifier.width(12.dp))
     }
 }

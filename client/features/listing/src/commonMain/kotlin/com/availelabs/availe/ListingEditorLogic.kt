@@ -6,8 +6,15 @@ import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.dto.kreplica.ListingServiceDtoSchema
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import com.availelabs.availe.listingeditor.ListingEditorPageConfig
 import com.availelabs.availe.model.ListingDraft
 import io.availe.models.Patchable
+
+sealed interface ListingEditorError {
+    data object TitleInvalid : ListingEditorError
+    data object PriceRequired : ListingEditorError
+    data class Generic(val message: String) : ListingEditorError
+}
 
 data class ListingEditorState(
     val isEditing: Boolean = false,
@@ -18,9 +25,12 @@ data class ListingEditorState(
     val imageUrl: ImageUrl = ImageUrl(""),
     val type: ListingCategory = ListingCategory.Item,
     val isSubmitting: Boolean = false,
-    val error: String? = null,
+    val error: ListingEditorError? = null,
     val showDiscardDraftDialog: Boolean = false,
-    val showPublishConfirmationDialog: Boolean = false
+    val showDeleteDraftConfirmation: Boolean = false,
+    val showPublishConfirmationDialog: Boolean = false,
+    val isBasicsStepValid: Boolean = false,
+    val isPricingStepValid: Boolean = false
 )
 
 sealed interface ListingEditorIntent {
@@ -36,16 +46,19 @@ sealed interface ListingEditorIntent {
     data object CancelPublish : ListingEditorIntent
     data object ConfirmPublish : ListingEditorIntent
     data class SetSubmitting(val isSubmitting: Boolean) : ListingEditorIntent
-    data class SetError(val message: String?) : ListingEditorIntent
+    data class SetError(val error: ListingEditorError?) : ListingEditorIntent
     data object AskToDiscardDraft : ListingEditorIntent
     data object CancelDiscardDraft : ListingEditorIntent
+    data object RequestDeleteDraft : ListingEditorIntent
+    data object CancelDeleteDraft : ListingEditorIntent
     data object ConfirmDiscardDraft : ListingEditorIntent
+    data class ClearCurrentStep(val config: ListingEditorPageConfig) : ListingEditorIntent
 }
 
 fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent): ListingEditorState {
     return when (intent) {
         is ListingEditorIntent.LoadData -> {
-            intent.listing.toEditorState()
+            intent.listing.toEditorState().recalculateValidation()
         }
 
         is ListingEditorIntent.RestoreDraft -> {
@@ -58,35 +71,46 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
                 imageUrl = intent.draft.imageUrl,
                 type = intent.draft.type,
                 error = null
-            )
+            ).recalculateValidation()
         }
 
-        is ListingEditorIntent.ChangeTitle -> state.copy(title = intent.title, error = null)
-        is ListingEditorIntent.ChangeDescription -> state.copy(description = intent.value, error = null)
+        is ListingEditorIntent.ChangeTitle -> {
+            state.copy(title = intent.title, error = null).recalculateValidation()
+        }
+
+        is ListingEditorIntent.ChangeDescription -> {
+            state.copy(description = intent.value, error = null).recalculateValidation()
+        }
+
         is ListingEditorIntent.ChangePrice -> {
             if (intent.amount.isValid()) {
-                state.copy(priceAmount = intent.amount, error = null)
+                state.copy(priceAmount = intent.amount, error = null).recalculateValidation()
             } else {
                 state
             }
         }
 
-        is ListingEditorIntent.ChangeCurrency -> state.copy(priceCurrency = intent.currency, error = null)
+        is ListingEditorIntent.ChangeCurrency -> {
+            state.copy(priceCurrency = intent.currency, error = null).recalculateValidation()
+        }
+
         is ListingEditorIntent.ChangeType -> {
             if (!state.isEditing) {
-                state.copy(type = intent.type, error = null)
+                state.copy(type = intent.type, error = null).recalculateValidation()
             } else {
                 state
             }
         }
 
-        is ListingEditorIntent.ChangeImage -> state.copy(imageUrl = intent.url, error = null)
+        is ListingEditorIntent.ChangeImage -> {
+            state.copy(imageUrl = intent.url, error = null).recalculateValidation()
+        }
 
         ListingEditorIntent.AskToPublish -> {
-            if (!state.title.isValid()) {
-                state.copy(error = "Title is invalid")
-            } else if (state.priceAmount.value.isBlank()) {
-                state.copy(error = "Price is required")
+            if (!state.isBasicsStepValid) {
+                state.copy(error = ListingEditorError.TitleInvalid)
+            } else if (!state.isPricingStepValid) {
+                state.copy(error = ListingEditorError.PriceRequired)
             } else {
                 state.copy(showPublishConfirmationDialog = true, error = null)
             }
@@ -96,12 +120,21 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
         ListingEditorIntent.ConfirmPublish -> state.copy(showPublishConfirmationDialog = false, isSubmitting = true)
 
         is ListingEditorIntent.SetSubmitting -> state.copy(isSubmitting = intent.isSubmitting)
-        is ListingEditorIntent.SetError -> state.copy(error = intent.message, isSubmitting = false)
+        is ListingEditorIntent.SetError -> state.copy(error = intent.error, isSubmitting = false)
 
         ListingEditorIntent.AskToDiscardDraft -> state.copy(showDiscardDraftDialog = true)
         ListingEditorIntent.CancelDiscardDraft -> state.copy(showDiscardDraftDialog = false)
+
+        ListingEditorIntent.RequestDeleteDraft -> state.copy(
+            showDiscardDraftDialog = false,
+            showDeleteDraftConfirmation = true
+        )
+
+        ListingEditorIntent.CancelDeleteDraft -> state.copy(showDeleteDraftConfirmation = false)
+
         ListingEditorIntent.ConfirmDiscardDraft -> state.copy(
             showDiscardDraftDialog = false,
+            showDeleteDraftConfirmation = false,
             title = ListingTitle(""),
             description = ListingDescription(""),
             priceAmount = PriceAmount(""),
@@ -109,8 +142,46 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
             imageUrl = ImageUrl(""),
             type = if (state.isEditing) state.type else ListingCategory.Item,
             error = null
-        )
+        ).recalculateValidation()
+
+        is ListingEditorIntent.ClearCurrentStep -> {
+            val newState = when (intent.config) {
+                ListingEditorPageConfig.Type -> {
+                    if (!state.isEditing) {
+                        state.copy(type = ListingCategory.Item)
+                    } else {
+                        state
+                    }
+                }
+
+                ListingEditorPageConfig.Basics -> state.copy(
+                    title = ListingTitle(""),
+                    description = ListingDescription("")
+                )
+
+                ListingEditorPageConfig.Pricing -> state.copy(
+                    priceAmount = PriceAmount("")
+                )
+
+                ListingEditorPageConfig.Media -> state.copy(
+                    imageUrl = ImageUrl("")
+                )
+
+                ListingEditorPageConfig.Review -> state
+            }
+            newState.copy(showDiscardDraftDialog = false, error = null).recalculateValidation()
+        }
     }
+}
+
+private fun ListingEditorState.recalculateValidation(): ListingEditorState {
+    val basicsValid = this.title.isValid()
+    val pricingValid = this.priceAmount.isValid() && this.priceAmount.value.isNotBlank()
+
+    return this.copy(
+        isBasicsStepValid = basicsValid,
+        isPricingStepValid = pricingValid
+    )
 }
 
 fun ListingEditorState.toNewListing(publisherId: UserId, publisherEmail: Email): NewListing {

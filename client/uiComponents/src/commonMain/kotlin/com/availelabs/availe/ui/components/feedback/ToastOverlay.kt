@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
+import availe.client.designsystem.generated.resources.Res
+import availe.client.designsystem.generated.resources.accessibility_action_dismiss
 import com.availelabs.availe.model.ToastId
 import com.availelabs.availe.model.ToastMessage
 import com.availelabs.availe.ui.mapper.ToastUiMapper
@@ -25,6 +27,7 @@ import com.composables.uikit.components.Icon
 import com.composables.uikit.components.Text
 import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ToastOverlay(
@@ -100,7 +103,7 @@ private fun Toast(
 
             Icon(
                 imageVector = Lucide.X,
-                contentDescription = "Dismiss",
+                contentDescription = stringResource(Res.string.accessibility_action_dismiss),
                 tint = Theme[colors][outline],
                 modifier = Modifier
                     .size(20.dp)

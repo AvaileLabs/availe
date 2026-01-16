@@ -19,7 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import availe.client.designsystem.generated.resources.*
+import availe.client.designsystem.generated.resources.Res
+import availe.client.designsystem.generated.resources.generic_retry
+import availe.client.designsystem.generated.resources.home_empty_state
+import availe.client.designsystem.generated.resources.navigation_chat
+import availe.client.designsystem.generated.resources.navigation_settings
+import availe.client.designsystem.generated.resources.profile_title
 import com.availelabs.availe.navigation.DeepLinkRoute
 import com.availelabs.availe.profile.ProfileStore.Intent
 import com.availelabs.availe.ui.RefreshStateHolder
@@ -161,7 +166,7 @@ private fun ProfileHeader(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "User Profile",
+            text = stringResource(Res.string.profile_title),
             style = Theme[textStyles][title]
         )
         Text(

@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.Res
+import availe.client.designsystem.generated.resources.generic_collapse
 import availe.client.designsystem.generated.resources.generic_expand
 import com.composables.icons.lucide.*
 import com.composables.uikit.components.Avatar
@@ -82,9 +83,16 @@ fun ChatOverlayWindow(
                 onClick = { isCollapsed = !isCollapsed },
                 modifier = Modifier.size(32.dp)
             ) {
+                val icon = if (isCollapsed) Lucide.ChevronUp else Lucide.ChevronDown
+                val description = if (isCollapsed) {
+                    stringResource(Res.string.generic_expand)
+                } else {
+                    stringResource(Res.string.generic_collapse)
+                }
+
                 Icon(
-                    imageVector = if (isCollapsed) Lucide.ChevronUp else Lucide.ChevronDown,
-                    contentDescription = if (isCollapsed) "Expand" else "Collapse",
+                    imageVector = icon,
+                    contentDescription = description,
                     modifier = Modifier.size(18.dp)
                 )
             }

@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import availe.client.designsystem.generated.resources.Res
+import availe.client.designsystem.generated.resources.accessibility_favorite
 import coil3.compose.AsyncImage
 import com.availelabs.availe.domain.model.*
 import com.composables.icons.lucide.*
@@ -21,6 +23,7 @@ import com.composables.uikit.styling.card
 import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.outline
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ListingCard(
@@ -111,7 +114,7 @@ private fun ListingContent(
             Spacer(Modifier.width(8.dp))
             Text(category.name.uppercase())
             Spacer(Modifier.weight(1f))
-            Icon(Lucide.Heart, "Favorite", Modifier.size(20.dp))
+            Icon(Lucide.Heart, stringResource(Res.string.accessibility_favorite), Modifier.size(20.dp))
         }
         Spacer(Modifier.height(8.dp))
         SelectionContainer {

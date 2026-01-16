@@ -1,10 +1,15 @@
 package com.availelabs.availe.listingeditor
 
+import availe.client.designsystem.generated.resources.Res
+import availe.client.designsystem.generated.resources.generic_options
+import availe.client.designsystem.generated.resources.listing_editor_draft_discarded
+import availe.client.designsystem.generated.resources.listing_editor_publish_success
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.router.pages.*
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.essenty.lifecycle.doOnPause
 import com.arkivanov.essenty.lifecycle.doOnResume
 import com.arkivanov.mvikotlin.core.rx.Observer
@@ -22,11 +27,9 @@ import com.availelabs.availe.toDraft
 import com.availelabs.availe.ui.model.ActionIcon
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.getString
 
 interface IListingEditorComponent {
     val state: Value<ListingEditorState>
@@ -45,6 +48,9 @@ interface IListingEditorComponent {
     fun onDiscardDraftClicked()
     fun onConfirmDiscardDraft()
     fun onCancelDiscardDraft()
+    fun onRequestDeleteDraft()
+    fun onCancelDeleteDraft()
+    fun onClearStep(config: ListingEditorPageConfig)
     fun onBackClicked()
 }
 
@@ -83,6 +89,8 @@ class ListingEditorComponent(
     private val messageService: IMessageService,
     private val navigator: IListingEditorNavigator
 ) : IListingEditorComponent, ComponentContext by componentContext {
+
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     private val store: IListingEditorStore = ListingEditorStoreFactory(
         storeFactory = DefaultStoreFactory(),
@@ -125,17 +133,17 @@ class ListingEditorComponent(
         listOf(
             AppBarAction(
                 icon = ActionIcon.DELETE,
-                label = UiText.VerbatimString("Discard"),
+                label = UiText.ResourceString(Res.string.generic_options),
                 onClick = { store.accept(ListingEditorIntent.AskToDiscardDraft) }
             )
         )
     )
 
     init {
+        lifecycle.doOnDestroy { scope.cancel() }
+
         lifecycle.doOnResume {
             if (listingId == null) {
-                // If creating new listing, check for draft
-                val scope = CoroutineScope(Dispatchers.Main)
                 scope.launch {
                     val draft = listingRepository.getDraft()
                     if (draft != null && !store.state.isEditing) {
@@ -154,34 +162,36 @@ class ListingEditorComponent(
             override fun onNext(value: ListingEditorLabel) {
                 when (value) {
                     is ListingEditorLabel.ListingCreated, is ListingEditorLabel.ListingUpdated -> {
-                        messageService.show(ToastMessage.Success("Listing published successfully"))
-                        navigator.navigateBack()
+                        scope.launch {
+                            val message = getString(Res.string.listing_editor_publish_success)
+                            messageService.show(ToastMessage.Success(message))
+                            navigator.navigateBack()
+                        }
                     }
 
                     is ListingEditorLabel.ListingCleared -> {
-                        messageService.show(ToastMessage.Info("Draft discarded"))
-                        navigator.navigateBack()
+                        scope.launch {
+                            val message = getString(Res.string.listing_editor_draft_discarded)
+                            messageService.show(ToastMessage.Info(message))
+                            navigator.navigateBack()
+                        }
                     }
 
                     is ListingEditorLabel.DraftRestored -> {
-                        // handled in onResume logic for navigation sync
                     }
 
                     is ListingEditorLabel.ErrorOccurred -> {
-                        // handled in UI via state
                     }
                 }
             }
 
             override fun onComplete() {
-                // no-op
             }
         })
     }
 
     private fun saveDraft() {
         if (listingId == null && !store.state.isSubmitting) {
-            val scope = CoroutineScope(Dispatchers.Main)
             scope.launch {
                 val currentIndex = pages.value.selectedIndex
                 val draft = store.state.toDraft(currentIndex)
@@ -241,6 +251,18 @@ class ListingEditorComponent(
 
     override fun onCancelDiscardDraft() {
         store.accept(ListingEditorIntent.CancelDiscardDraft)
+    }
+
+    override fun onRequestDeleteDraft() {
+        store.accept(ListingEditorIntent.RequestDeleteDraft)
+    }
+
+    override fun onCancelDeleteDraft() {
+        store.accept(ListingEditorIntent.CancelDeleteDraft)
+    }
+
+    override fun onClearStep(config: ListingEditorPageConfig) {
+        store.accept(ListingEditorIntent.ClearCurrentStep(config))
     }
 
     override fun onBackClicked() {

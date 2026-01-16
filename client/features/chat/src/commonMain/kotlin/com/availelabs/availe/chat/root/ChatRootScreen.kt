@@ -8,6 +8,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import availe.client.designsystem.generated.resources.Res
+import availe.client.designsystem.generated.resources.chat_empty_details_state
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.panels.ChildPanelsMode
@@ -19,6 +21,7 @@ import com.composables.uikit.components.Text
 import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.outline
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalDecomposeApi::class)
 @Composable
@@ -79,7 +82,7 @@ fun ChatRootScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Select a conversation to start messaging",
+                                text = stringResource(Res.string.chat_empty_details_state),
                                 color = Theme[colors][outline]
                             )
                         }

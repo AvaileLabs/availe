@@ -129,7 +129,7 @@ internal class ListingEditorStoreFactory(
             scope.launch {
                 val userProfile = sessionManager.getCurrentUserProfile()
                 if (userProfile == null) {
-                    dispatch(ListingEditorIntent.SetError("User not authenticated"))
+                    dispatch(ListingEditorIntent.SetError(ListingEditorError.Generic("User not authenticated")))
                     return@launch
                 }
 
@@ -158,7 +158,7 @@ internal class ListingEditorStoreFactory(
                         }
 
                         is InsertResult.AlreadyExists -> {
-                            dispatch(ListingEditorIntent.SetError("Listing already exists"))
+                            dispatch(ListingEditorIntent.SetError(ListingEditorError.Generic("Listing already exists")))
                         }
                     }
                 }
@@ -182,11 +182,11 @@ internal class ListingEditorStoreFactory(
                         }
 
                         is UpdateResult.NotFound -> {
-                            dispatch(ListingEditorIntent.SetError("Listing not found"))
+                            dispatch(ListingEditorIntent.SetError(ListingEditorError.Generic("Listing not found")))
                         }
 
                         is UpdateResult.Forbidden -> {
-                            dispatch(ListingEditorIntent.SetError("Operation forbidden"))
+                            dispatch(ListingEditorIntent.SetError(ListingEditorError.Generic("Operation forbidden")))
                         }
                     }
                 }

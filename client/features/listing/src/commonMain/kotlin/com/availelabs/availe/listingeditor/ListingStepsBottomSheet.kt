@@ -1,13 +1,13 @@
 package com.availelabs.availe.listingeditor
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import availe.client.designsystem.generated.resources.Res
+import availe.client.designsystem.generated.resources.listing_editor_steps_title
 import com.arkivanov.decompose.router.pages.ChildPages
 import com.availelabs.availe.ListingEditorState
 import com.composables.uikit.components.Text
@@ -15,6 +15,7 @@ import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.onCard
 import com.composeunstyled.ProvideContentColor
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun ListingStepsBottomSheet(
@@ -30,31 +31,41 @@ internal fun ListingStepsBottomSheet(
     ) {
         ProvideContentColor(Theme[colors][onCard]) {
             Text(
-                text = "Listing Steps",
+                text = stringResource(Res.string.listing_editor_steps_title),
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
             )
 
             val stepConfigs = pages.items.map { it.configuration }
-            stepConfigs.forEachIndexed { index, config ->
-                val uiState = remember(index, pages.selectedIndex, editorState) {
-                    buildStepUiState(
-                        index = index,
-                        selectedIndex = pages.selectedIndex,
-                        allConfigs = stepConfigs,
-                        editorState = editorState
+
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                stepConfigs.forEachIndexed { index, config ->
+                    val uiState = remember(index, pages.selectedIndex, editorState) {
+                        buildStepUiState(
+                            index = index,
+                            selectedIndex = pages.selectedIndex,
+                            allConfigs = stepConfigs,
+                            editorState = editorState
+                        )
+                    }
+
+                    val isActuallyValid = getStepValidationStatus(config, editorState)
+                    val visualStatus = if (isActuallyValid) StepStatus.Complete else uiState.status
+
+                    ListingStepRow(
+                        title = stringResource(config.titleRes),
+                        isSelected = uiState.isSelected,
+                        isEnabled = uiState.isEnabled,
+                        status = visualStatus,
+                        onClick = { onStepSelected(index) },
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
                 }
-
-                ListingStepRow(
-                    title = getStepTitle(config),
-                    isSelected = uiState.isSelected,
-                    isEnabled = uiState.isEnabled,
-                    status = uiState.status,
-                    onClick = { onStepSelected(index) },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
             }
+
+            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         }
     }
 }

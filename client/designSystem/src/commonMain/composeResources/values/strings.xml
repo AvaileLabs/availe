@@ -7,7 +7,11 @@
     <string name="generic_back">Back</string>
     <string name="generic_close">Close</string>
     <string name="generic_expand">Expand</string>
+    <string name="generic_collapse">Collapse</string>
     <string name="generic_save">Save</string>
+    <string name="generic_delete">Delete</string>
+    <string name="generic_options">Options</string>
+    <string name="generic_actions">Actions</string>
 
     <string name="accessibility_navigation_home">Home Screen</string>
     <string name="accessibility_navigation_details">Details Screen</string>
@@ -82,6 +86,8 @@
     <string name="chat_status_authentication_failed">Authentication Failed</string>
     <string name="chat_status_disconnected">Disconnected</string>
     <string name="chat_status_online">Online</string>
+    <string name="chat_empty_details_state">Select a conversation to start messaging</string>
+
 
     <string name="error_no_internet">No internet connection. Please check your network.</string>
     <string name="error_request_timeout">The connection timed out. Please try again.</string>
@@ -92,4 +98,51 @@
     <string name="error_resource_not_found">Unable to load this data. It may have been removed.</string>
     <string name="error_operation_forbidden">You do not have permission to perform this action.</string>
     <string name="error_unknown">An unexpected error occurred.</string>
+
+    <string name="action_copy_link">Copy link</string>
+    <string name="action_open_in_new_tab">Open in new tab</string>
+
+    <string name="category_item">Item</string>
+    <string name="category_event">Event</string>
+    <string name="category_service">Service</string>
+
+    <string name="profile_title">User Profile</string>
+    
+    <string name="listing_editor_step_type">Type</string>
+    <string name="listing_editor_step_basics">Basics</string>
+    <string name="listing_editor_step_pricing">Pricing</string>
+    <string name="listing_editor_step_media">Media</string>
+    <string name="listing_editor_step_review">Review</string>
+    <string name="listing_editor_steps_title">Steps</string>
+    <string name="listing_editor_step_progress_format">%s (%d of %d)</string>
+
+    <string name="listing_editor_label_type">Listing type</string>
+    <string name="listing_editor_label_title">Title</string>
+    <string name="listing_editor_label_description">Description</string>
+    <string name="listing_editor_label_price">Price</string>
+    <string name="listing_editor_label_image_url">Image URL</string>
+    <string name="listing_editor_no_image_preview">No image preview</string>
+    <string name="listing_editor_image_preview_desc">Listing Image Preview</string>
+
+    <string name="listing_editor_review_type_format">Type: %s</string>
+    <string name="listing_editor_review_title_format">Title: %s</string>
+    <string name="listing_editor_review_price_format">Price: %s</string>
+    <string name="listing_editor_review_description_format">Description: %s</string>
+    <string name="listing_editor_review_image_url_format">Image URL: %s</string>
+
+    <string name="listing_editor_action_next">Next</string>
+    <string name="listing_editor_action_publish">Publish</string>
+
+    <string name="listing_editor_draft_action_clear_step_format">Clear %s</string>
+    <string name="listing_editor_draft_action_delete">Delete Draft</string>
+
+    <string name="listing_editor_delete_confirm_title">Delete Draft?</string>
+    <string name="listing_editor_delete_confirm_body">This cannot be undone. All progress will be lost.</string>
+
+    <string name="listing_editor_publish_confirm_title">Publish Listing?</string>
+    <string name="listing_editor_publish_confirm_body">Your listing will be visible to everyone. You can edit it
+        later.
+    </string>
+    <string name="listing_editor_publish_success">Listing published successfully</string>
+    <string name="listing_editor_draft_discarded">Draft discarded</string>
 </resources>

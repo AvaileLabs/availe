@@ -14,33 +14,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import availe.client.designsystem.generated.resources.*
 import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.pages.ChildPages
 import com.arkivanov.decompose.value.Value
 import com.availelabs.availe.ListingEditorState
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.ui.components.dialogs.DestructiveActionModal
+import com.availelabs.availe.ui.components.dialogs.ActionConfirmationModal
 import com.availelabs.availe.ui.layout.WindowSizeClass
 import com.availelabs.availe.ui.layout.rememberWindowSize
+import com.availelabs.availe.ui.model.asString
 import com.availelabs.availe.ui.util.rememberSyncedPagerState
 import com.composables.core.SheetDetent
 import com.composables.core.rememberModalBottomSheetState
-import com.composables.icons.lucide.ChevronDown
-import com.composables.icons.lucide.CloudUpload
-import com.composables.icons.lucide.Image
-import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
 import com.composeunstyled.DropdownPanelAnchor
 import com.composeunstyled.Text
 import com.composeunstyled.theme.Theme
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ListingEditorScreen(
@@ -50,96 +57,137 @@ fun ListingEditorScreen(
     val pages by component.pages.subscribeAsState()
     val windowSize = rememberWindowSize()
 
-    AppScaffold {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Theme[colors][background])
-        ) {
-            val isMultiPane = windowSize !is WindowSizeClass.Compact
+    val shouldShowProgressBar = windowSize is WindowSizeClass.Compact
+    val sheetState = rememberModalBottomSheetState(initialDetent = SheetDetent.Hidden)
+    val scope = rememberCoroutineScope()
 
-            if (isMultiPane) {
-                // Desktop / Tablet Layout
-                Row(modifier = Modifier.fillMaxSize()) {
-                    ListingEditorWizardStepList(
-                        pages = pages,
-                        editorState = state,
-                        onStepClicked = component::onPageSelected,
-                        modifier = Modifier
-                            .width(280.dp)
-                            .fillMaxHeight()
-                            .padding(16.dp)
-                    )
+    val currentStepIndex = pages.selectedIndex
+    val currentConfig = pages.items[currentStepIndex].configuration
+    val currentStepName = stringResource(currentConfig.titleRes)
 
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Theme[colors][background])
+    ) {
+        AppScaffold {
+            Box(modifier = Modifier.fillMaxSize()) {
+                val isMultiPane = windowSize !is WindowSizeClass.Compact
+
+                if (isMultiPane) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        ListingEditorWizardStepList(
+                            pages = pages,
+                            editorState = state,
+                            onStepClicked = component::onPageSelected,
+                            modifier = Modifier
+                                .width(280.dp)
+                                .fillMaxHeight()
+                                .padding(16.dp)
+                        )
+
+                        ListingEditorWizardContent(
+                            component = component,
+                            state = state,
+                            pages = component.pages,
+                            shouldShowProgressBar = false,
+                            onOpenSteps = {},
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(16.dp)
+                        )
+                    }
+                } else {
                     ListingEditorWizardContent(
                         component = component,
                         state = state,
                         pages = component.pages,
-                        shouldShowProgressBar = false,
+                        shouldShowProgressBar = true,
+                        onOpenSteps = {
+                            scope.launch { sheetState.targetDetent = SheetDetent.FullyExpanded }
+                        },
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
+                            .fillMaxSize()
                             .padding(16.dp)
                     )
                 }
-            } else {
-                // Mobile Layout
-                ListingEditorWizardContent(
-                    component = component,
-                    state = state,
-                    pages = component.pages,
-                    shouldShowProgressBar = true,
+            }
+        }
+
+        if (shouldShowProgressBar) {
+            ModalBottomSheet(state = sheetState) {
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
+                        .fillMaxWidth()
+                        .background(Theme[colors][card])
+                ) {
+                    ListingStepsBottomSheet(
+                        pages = pages,
+                        editorState = state,
+                        onStepSelected = {
+                            component.onPageSelected(it)
+                            scope.launch { sheetState.targetDetent = SheetDetent.Hidden }
+                        }
+                    )
+                }
+            }
+        }
+
+        if (state.isSubmitting) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Theme[colors][scrim])
+                    .clickable(enabled = false) {},
+                contentAlignment = Alignment.Center
+            ) {
+                IntermediateProgressIndicator()
+            }
+        }
+
+        if (state.showDiscardDraftDialog) {
+            DimmedDialog(onDismissRequest = component::onCancelDiscardDraft) {
+                DraftOptionsDialog(
+                    stepName = currentStepName,
+                    onClearStep = { component.onClearStep(currentConfig) },
+                    onRequestDeleteDraft = component::onRequestDeleteDraft,
+                    onDismiss = component::onCancelDiscardDraft
                 )
             }
+        }
 
-            // Global Loading Indicator
-            if (state.isSubmitting) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Theme[colors][scrim])
-                        .clickable(enabled = false) {},
-                    contentAlignment = Alignment.Center
-                ) {
-                    IntermediateProgressIndicator()
-                }
+        if (state.showDeleteDraftConfirmation) {
+            DimmedDialog(onDismissRequest = component::onCancelDeleteDraft) {
+                ActionConfirmationModal(
+                    icon = Lucide.TriangleAlert,
+                    iconContentColor = Theme[colors][destructive],
+                    iconBackgroundColor = Theme[colors][destructive].copy(alpha = 0.1f),
+                    title = stringResource(Res.string.listing_editor_delete_confirm_title),
+                    message = stringResource(Res.string.listing_editor_delete_confirm_body),
+                    confirmText = stringResource(Res.string.generic_delete),
+                    cancelText = stringResource(Res.string.generic_cancel),
+                    onConfirm = component::onConfirmDiscardDraft,
+                    onDismiss = component::onCancelDeleteDraft,
+                    confirmButtonColor = Theme[colors][destructive],
+                    confirmButtonContentColor = Theme[colors][onPrimary]
+                )
             }
+        }
 
-            // Modals
-            if (state.showDiscardDraftDialog) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Theme[colors][scrim])
-                        .clickable(enabled = false) {}, // Block underlying clicks
-                    contentAlignment = Alignment.Center
-                ) {
-                    DestructiveActionModal(
-                        title = "Discard Draft?",
-                        message = "Are you sure you want to discard this draft? All progress will be lost.",
-                        confirmText = "Discard",
-                        onConfirm = component::onConfirmDiscardDraft,
-                        onDismiss = component::onCancelDiscardDraft
-                    )
-                }
-            }
-
-            if (state.showPublishConfirmationDialog) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Theme[colors][scrim])
-                        .clickable(enabled = false) {}, // Block underlying clicks
-                    contentAlignment = Alignment.Center
-                ) {
-                    PublishConfirmationDialog(
-                        onConfirm = component::onConfirmPublish,
-                        onDismiss = component::onCancelPublish
-                    )
-                }
+        if (state.showPublishConfirmationDialog) {
+            DimmedDialog(onDismissRequest = component::onCancelPublish) {
+                ActionConfirmationModal(
+                    icon = Lucide.CloudUpload,
+                    iconContentColor = Theme[colors][primary],
+                    iconBackgroundColor = Theme[colors][primary].copy(alpha = 0.1f),
+                    title = stringResource(Res.string.listing_editor_publish_confirm_title),
+                    message = stringResource(Res.string.listing_editor_publish_confirm_body),
+                    confirmText = stringResource(Res.string.listing_editor_action_publish),
+                    cancelText = stringResource(Res.string.generic_cancel),
+                    onConfirm = component::onConfirmPublish,
+                    onDismiss = component::onCancelPublish
+                )
             }
         }
     }
@@ -151,24 +199,48 @@ private fun ListingEditorWizardContent(
     state: ListingEditorState,
     pages: Value<ChildPages<ListingEditorPageConfig, ListingEditorPage>>,
     shouldShowProgressBar: Boolean,
+    onOpenSteps: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val pagesState by pages.subscribeAsState()
     val scrollState = rememberScrollState()
-    val stepNames = listOf("Type", "Basics", "Pricing", "Media", "Review")
     val currentStepIndex = pagesState.selectedIndex
-    val currentStepName = stepNames.getOrElse(currentStepIndex) { "" }
+    val currentStepName = stringResource(pagesState.items[currentStepIndex].configuration.titleRes)
+    val totalSteps = pagesState.items.size
 
-    val sheetState = rememberModalBottomSheetState(initialDetent = SheetDetent.Hidden)
-    val scope = rememberCoroutineScope()
-
-    // Unified Validation Logic for "Next" button
     val isNextEnabled = remember(state, currentStepIndex) {
         val config = pagesState.items[currentStepIndex].configuration
-        isStepValid(config, state)
+        getStepValidationStatus(config, state)
     }
 
-    Box(modifier = modifier) {
+    val swipeUpConnection = remember(shouldShowProgressBar, onOpenSteps) {
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                if (shouldShowProgressBar && source == NestedScrollSource.UserInput && available.y < -20f) {
+                    onOpenSteps()
+                    return available
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(
+                consumed: Velocity,
+                available: Velocity
+            ): Velocity {
+                if (shouldShowProgressBar && available.y < -1000f) {
+                    onOpenSteps()
+                    return available
+                }
+                return Velocity.Zero
+            }
+        }
+    }
+
+    Box(modifier = modifier.nestedScroll(swipeUpConnection)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -176,14 +248,11 @@ private fun ListingEditorWizardContent(
                 .padding(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Header: Progress Bar with Click Interaction
             if (shouldShowProgressBar) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            scope.launch { sheetState.targetDetent = SheetDetent.FullyExpanded }
-                        }
+                        .clickable { onOpenSteps() }
                         .padding(vertical = 8.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -193,10 +262,14 @@ private fun ListingEditorWizardContent(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        // Text label below progress bar to indicate context
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "$currentStepName (${currentStepIndex + 1} of ${stepNames.size})",
+                                text = stringResource(
+                                    Res.string.listing_editor_step_progress_format,
+                                    currentStepName,
+                                    currentStepIndex + 1,
+                                    totalSteps
+                                ),
                                 style = Theme[textStyles][body],
                                 fontWeight = FontWeight.Bold,
                                 color = Theme[colors][onBackground].copy(alpha = 0.7f)
@@ -207,16 +280,19 @@ private fun ListingEditorWizardContent(
                     }
                 }
             } else {
-                // Desktop Header Title
                 SelectionContainer {
                     Text(
-                        text = "$currentStepName (${currentStepIndex + 1} of ${stepNames.size})",
+                        text = stringResource(
+                            Res.string.listing_editor_step_progress_format,
+                            currentStepName,
+                            currentStepIndex + 1,
+                            totalSteps
+                        ),
                         style = Theme[textStyles][title]
                     )
                 }
             }
 
-            // Form Content
             val pagerState = rememberSyncedPagerState(
                 pagesValue = pages,
                 onPageSelected = component::onPageSelected
@@ -262,14 +338,13 @@ private fun ListingEditorWizardContent(
             if (state.error != null) {
                 SelectionContainer {
                     Text(
-                        text = state.error,
+                        text = mapListingEditorError(state.error).asString(),
                         color = Theme[colors][destructive]
                     )
                 }
             }
         }
 
-        // Bottom Bar (Back / Next / Publish)
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -280,14 +355,17 @@ private fun ListingEditorWizardContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val isBackVisible = currentStepIndex > 0
-            val primaryLabel = if (currentStepIndex == stepNames.lastIndex) "Publish" else "Next"
+            val primaryLabel = if (currentStepIndex == totalSteps - 1)
+                stringResource(Res.string.listing_editor_action_publish)
+            else
+                stringResource(Res.string.listing_editor_action_next)
 
             if (isBackVisible) {
                 OutlinedButton(
                     onClick = { component.onPageSelected(currentStepIndex - 1) },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Back")
+                    Text(stringResource(Res.string.generic_back))
                 }
             } else {
                 Spacer(modifier = Modifier.weight(1f))
@@ -295,7 +373,7 @@ private fun ListingEditorWizardContent(
 
             PrimaryButton(
                 onClick = {
-                    if (currentStepIndex < stepNames.lastIndex) {
+                    if (currentStepIndex < totalSteps - 1) {
                         component.onPageSelected(currentStepIndex + 1)
                     } else {
                         component.onPublishClicked()
@@ -307,24 +385,95 @@ private fun ListingEditorWizardContent(
                 Text(primaryLabel)
             }
         }
+    }
+}
 
-        // Native Modal Bottom Sheet
-        if (shouldShowProgressBar) {
-            ModalBottomSheet(state = sheetState) {
-                ListingStepsBottomSheet(
-                    pages = pagesState,
-                    editorState = state,
-                    onStepSelected = {
-                        component.onPageSelected(it)
-                        scope.launch { sheetState.targetDetent = SheetDetent.Hidden }
-                    }
+@Composable
+private fun DraftOptionsDialog(
+    stepName: String,
+    onClearStep: () -> Unit,
+    onRequestDeleteDraft: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .width(320.dp)
+            .shadow(
+                elevation = 16.dp,
+                shape = RoundedCornerShape(16.dp),
+                spotColor = Theme[shadows][modal].color
+            )
+            .clip(RoundedCornerShape(16.dp))
+            .background(Theme[colors][card])
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(Res.string.generic_options),
+                    style = Theme[textStyles][title],
+                    fontWeight = FontWeight.Bold
                 )
+                IconButton(onClick = onDismiss, modifier = Modifier.size(35.dp)) {
+                    Icon(Lucide.X, null, tint = Theme[colors][onBackground].copy(alpha = 0.5f))
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Theme[colors][outline].copy(alpha = 0.1f))
+            )
+
+            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                DropdownMenuItem(onClick = onClearStep) {
+                    Icon(Lucide.Eraser, null, Modifier.size(20.dp))
+                    Text(stringResource(Res.string.listing_editor_draft_action_clear_step_format, stepName))
+                }
+
+                DropdownMenuItem(onClick = onRequestDeleteDraft) {
+                    Icon(Lucide.Trash2, null, Modifier.size(20.dp), tint = Theme[colors][destructive])
+                    Text(
+                        text = stringResource(Res.string.listing_editor_draft_action_delete),
+                        color = Theme[colors][destructive],
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }
 }
 
-// --- Restored Step Composables ---
+@Composable
+private fun DimmedDialog(
+    onDismissRequest: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.8f))
+                .clickable(enabled = true, onClick = onDismissRequest),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(modifier = Modifier.clickable(enabled = false) {}) {
+                content()
+            }
+        }
+    }
+}
 
 @Composable
 private fun ListingEditorChooseTypeStep(
@@ -333,25 +482,17 @@ private fun ListingEditorChooseTypeStep(
 ) {
     Card(modifier = Modifier.fillMaxWidth(), title = {
         SelectionContainer {
-            Text("Listing type")
+            Text(stringResource(Res.string.listing_editor_label_type))
         }
     }) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            ListingEditorTypeOption(
-                title = "Item",
-                isSelected = selectedCategory == ListingCategory.Item,
-                onClick = { onCategorySelected(ListingCategory.Item) }
-            )
-            ListingEditorTypeOption(
-                title = "Event",
-                isSelected = selectedCategory == ListingCategory.Event,
-                onClick = { onCategorySelected(ListingCategory.Event) }
-            )
-            ListingEditorTypeOption(
-                title = "Service",
-                isSelected = selectedCategory == ListingCategory.Service,
-                onClick = { onCategorySelected(ListingCategory.Service) }
-            )
+            ListingCategory.entries.forEach { category ->
+                ListingEditorTypeOption(
+                    title = stringResource(category.titleRes),
+                    isSelected = selectedCategory == category,
+                    onClick = { onCategorySelected(category) }
+                )
+            }
         }
     }
 }
@@ -388,7 +529,7 @@ private fun ListingEditorBasicsStep(
         TextField(
             value = title.value,
             onValueChange = onTitleChanged,
-            label = { Text("Title") },
+            label = { Text(stringResource(Res.string.listing_editor_label_title)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -398,8 +539,10 @@ private fun ListingEditorBasicsStep(
         TextField(
             value = description.value,
             onValueChange = onDescriptionChanged,
-            label = { Text("Description") },
-            modifier = Modifier.fillMaxWidth().height(120.dp),
+            label = { Text(stringResource(Res.string.listing_editor_label_description)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
             singleLine = false
         )
     }
@@ -420,7 +563,7 @@ private fun ListingEditorPricingStep(
             TextField(
                 value = priceAmount.value,
                 onValueChange = onPriceChanged,
-                label = { Text("Price") },
+                label = { Text(stringResource(Res.string.listing_editor_label_price)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -484,7 +627,7 @@ private fun ListingEditorMediaStep(
         TextField(
             value = imageUrl.value,
             onValueChange = onImageUrlChanged,
-            label = { Text("Image URL") },
+            label = { Text(stringResource(Res.string.listing_editor_label_image_url)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -494,7 +637,7 @@ private fun ListingEditorMediaStep(
         if (imageUrl.value.isNotBlank()) {
             AsyncImage(
                 model = imageUrl.value,
-                contentDescription = "Listing Image Preview",
+                contentDescription = stringResource(Res.string.listing_editor_image_preview_desc),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
@@ -520,7 +663,7 @@ private fun ListingEditorMediaStep(
                     Spacer(modifier = Modifier.height(8.dp))
                     SelectionContainer {
                         Text(
-                            text = "No image preview",
+                            text = stringResource(Res.string.listing_editor_no_image_preview),
                             color = Theme[colors][outline]
                         )
                     }
@@ -536,111 +679,37 @@ private fun ListingEditorReviewStep(
 ) {
     Card(modifier = Modifier.fillMaxWidth(), title = {
         SelectionContainer {
-            Text("Review")
+            Text(stringResource(Res.string.listing_editor_step_review))
         }
     }) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SelectionContainer {
-                Text("Type: ${editorState.type.name}")
+                Text(stringResource(Res.string.listing_editor_review_type_format, editorState.type.name))
             }
             SelectionContainer {
-                Text("Title: ${editorState.title.value}")
+                Text(stringResource(Res.string.listing_editor_review_title_format, editorState.title.value))
             }
             SelectionContainer {
-                Text("Price: ${editorState.priceCurrency.symbol}${editorState.priceAmount.value}")
+                Text(
+                    stringResource(
+                        Res.string.listing_editor_review_price_format,
+                        "${editorState.priceCurrency.symbol}${editorState.priceAmount.value}"
+                    )
+                )
             }
             if (editorState.description.value.isNotBlank()) {
                 SelectionContainer {
-                    Text("Description: ${editorState.description.value}")
+                    Text(
+                        stringResource(
+                            Res.string.listing_editor_review_description_format,
+                            editorState.description.value
+                        )
+                    )
                 }
             }
             if (editorState.imageUrl.value.isNotBlank()) {
                 SelectionContainer {
-                    Text("Image URL: ${editorState.imageUrl.value}")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PublishConfirmationDialog(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .width(320.dp)
-            .shadow(
-                elevation = 16.dp,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = Theme[shadows][modal].color
-            )
-            .clip(RoundedCornerShape(16.dp))
-            .background(Theme[colors][card])
-            .padding(24.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(Theme[colors][primary].copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Lucide.CloudUpload,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = Theme[colors][primary]
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            SelectionContainer {
-                Text(
-                    text = "Publish Listing?",
-                    style = Theme[textStyles][title],
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            SelectionContainer {
-                Text(
-                    text = "Your listing will be visible to everyone. You can edit it later.",
-                    style = Theme[textStyles][body].copy(
-                        color = Theme[colors][onBackground].copy(alpha = 0.7f)
-                    ),
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                PrimaryButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                    backgroundColor = Theme[colors][card],
-                    contentColor = Theme[colors][onBackground],
-                    borderWidth = 1.dp,
-                    borderColor = Theme[colors][outline].copy(alpha = 0.2f)
-                ) {
-                    Text("Cancel")
-                }
-
-                PrimaryButton(
-                    onClick = onConfirm,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Publish")
+                    Text(stringResource(Res.string.listing_editor_review_image_url_format, editorState.imageUrl.value))
                 }
             }
         }
