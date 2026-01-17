@@ -1,16 +1,6 @@
 package com.availelabs.availe.listingeditor
 
-import availe.client.designsystem.generated.resources.Res
-import availe.client.designsystem.generated.resources.category_event
-import availe.client.designsystem.generated.resources.category_item
-import availe.client.designsystem.generated.resources.category_service
-import availe.client.designsystem.generated.resources.listing_editor_price_required
-import availe.client.designsystem.generated.resources.listing_editor_step_basics
-import availe.client.designsystem.generated.resources.listing_editor_step_media
-import availe.client.designsystem.generated.resources.listing_editor_step_pricing
-import availe.client.designsystem.generated.resources.listing_editor_step_review
-import availe.client.designsystem.generated.resources.listing_editor_step_type
-import availe.client.designsystem.generated.resources.listing_editor_title_invalid
+import availe.client.designsystem.generated.resources.*
 import com.availelabs.availe.ListingEditorError
 import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.ui.model.UiText
@@ -36,6 +26,10 @@ fun mapListingEditorError(error: ListingEditorError): UiText {
     return when (error) {
         ListingEditorError.TitleInvalid -> UiText.ResourceString(Res.string.listing_editor_title_invalid)
         ListingEditorError.PriceRequired -> UiText.ResourceString(Res.string.listing_editor_price_required)
+        ListingEditorError.AuthenticationRequired -> UiText.ResourceString(Res.string.error_authentication_required)
+        ListingEditorError.ListingExists -> UiText.ResourceString(Res.string.error_listing_exists)
+        ListingEditorError.NotFound -> UiText.ResourceString(Res.string.error_listing_not_found)
+        ListingEditorError.Forbidden -> UiText.ResourceString(Res.string.error_operation_forbidden)
         is ListingEditorError.Generic -> UiText.VerbatimString(error.message)
     }
 }

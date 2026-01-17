@@ -65,7 +65,10 @@ actual fun AppShellLayout(
         Column(modifier = Modifier.fillMaxSize()) {
             AppTopNavigation(
                 logo = {
-                    Text("Availe", fontWeight = FontWeight.Bold)
+                    Text(
+                        text = stringResource(Res.string.application_name),
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 navigationItems = {
                     Row(

@@ -98,6 +98,9 @@
     <string name="error_resource_not_found">Unable to load this data. It may have been removed.</string>
     <string name="error_operation_forbidden">You do not have permission to perform this action.</string>
     <string name="error_unknown">An unexpected error occurred.</string>
+    <string name="error_authentication_required">User not authenticated</string>
+    <string name="error_listing_exists">Listing already exists</string>
+    <string name="error_listing_not_found">Listing not found</string>
 
     <string name="action_copy_link">Copy link</string>
     <string name="action_open_in_new_tab">Open in new tab</string>
@@ -107,14 +110,14 @@
     <string name="category_service">Service</string>
 
     <string name="profile_title">User Profile</string>
-    
+
     <string name="listing_editor_step_type">Type</string>
     <string name="listing_editor_step_basics">Basics</string>
     <string name="listing_editor_step_pricing">Pricing</string>
     <string name="listing_editor_step_media">Media</string>
     <string name="listing_editor_step_review">Review</string>
     <string name="listing_editor_steps_title">Steps</string>
-    <string name="listing_editor_step_progress_format">%s (%d of %d)</string>
+    <string name="listing_editor_step_progress_format">%1$s (%2$d of %3$d)</string>
 
     <string name="listing_editor_label_type">Listing type</string>
     <string name="listing_editor_label_title">Title</string>
@@ -145,4 +148,5 @@
     </string>
     <string name="listing_editor_publish_success">Listing published successfully</string>
     <string name="listing_editor_draft_discarded">Draft discarded</string>
+    <string name="currency_display_format">%1$s (%2$s)</string>
 </resources>

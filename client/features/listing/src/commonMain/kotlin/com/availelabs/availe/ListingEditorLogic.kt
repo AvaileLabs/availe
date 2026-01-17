@@ -13,6 +13,10 @@ import io.availe.models.Patchable
 sealed interface ListingEditorError {
     data object TitleInvalid : ListingEditorError
     data object PriceRequired : ListingEditorError
+    data object AuthenticationRequired : ListingEditorError
+    data object ListingExists : ListingEditorError
+    data object NotFound : ListingEditorError
+    data object Forbidden : ListingEditorError
     data class Generic(val message: String) : ListingEditorError
 }
 

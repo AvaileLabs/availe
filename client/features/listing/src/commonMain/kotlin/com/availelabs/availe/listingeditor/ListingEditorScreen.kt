@@ -595,7 +595,13 @@ private fun CurrencyDropdown(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = "${selectedCurrency.code.value} (${selectedCurrency.symbol})")
+            Text(
+                text = stringResource(
+                    Res.string.currency_display_format,
+                    selectedCurrency.code.value,
+                    selectedCurrency.symbol
+                )
+            )
             Icon(Lucide.ChevronDown, null, modifier = Modifier.size(16.dp))
         }
 
@@ -611,7 +617,13 @@ private fun CurrencyDropdown(
                         expanded = false
                     }
                 ) {
-                    Text(text = "${currency.code.value} (${currency.symbol})")
+                    Text(
+                        text = stringResource(
+                            Res.string.currency_display_format,
+                            currency.code.value,
+                            currency.symbol
+                        )
+                    )
                 }
             }
         }

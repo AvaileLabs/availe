@@ -207,7 +207,10 @@ private fun SharedTopAppBar(
         },
         title = {
             if (isDashboard) {
-                Text("Availe", fontWeight = FontWeight.Bold)
+                Text(
+                    text = stringResource(Res.string.application_name),
+                    fontWeight = FontWeight.Bold
+                )
             } else {
                 val navState = NavigationUiMapper.map(activeConfiguration)
                 Text(stringResource(navState.title))
