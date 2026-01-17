@@ -51,14 +51,11 @@ internal fun ListingStepsBottomSheet(
                         )
                     }
 
-                    val isActuallyValid = getStepValidationStatus(config, editorState)
-                    val visualStatus = if (isActuallyValid) StepStatus.Complete else uiState.status
-
                     ListingStepRow(
                         title = stringResource(config.titleRes),
                         isSelected = uiState.isSelected,
                         isEnabled = uiState.isEnabled,
-                        status = visualStatus,
+                        status = uiState.status,
                         onClick = { onStepSelected(index) },
                         modifier = Modifier.padding(horizontal = 12.dp)
                     )

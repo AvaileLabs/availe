@@ -17,8 +17,8 @@ import availe.client.designsystem.generated.resources.Res
 import availe.client.designsystem.generated.resources.listing_editor_steps_title
 import com.arkivanov.decompose.router.pages.ChildPages
 import com.availelabs.availe.ListingEditorState
+import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Circle
-import com.composables.icons.lucide.CircleAlert
 import com.composables.icons.lucide.CircleCheck
 import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.Card
@@ -55,14 +55,11 @@ internal fun ListingEditorWizardStepList(
                     )
                 }
 
-                val isActuallyValid = getStepValidationStatus(config, editorState)
-                val visualStatus = if (isActuallyValid) StepStatus.Complete else uiState.status
-
                 ListingStepRow(
                     title = stringResource(config.titleRes),
                     isSelected = uiState.isSelected,
                     isEnabled = uiState.isEnabled,
-                    status = visualStatus,
+                    status = uiState.status,
                     onClick = { onStepClicked(index) }
                 )
             }
@@ -110,9 +107,9 @@ internal data class StepUiState(
 )
 
 internal enum class StepStatus {
-    Pending,
-    Complete,
-    Invalid
+    Incomplete,
+    Satisfied,
+    Complete
 }
 
 internal fun buildStepUiState(
@@ -124,14 +121,8 @@ internal fun buildStepUiState(
     val isSelected = index == selectedIndex
     val config = allConfigs[index]
 
-    val isValid = getStepValidationStatus(config, editorState)
-
+    val status = getStepStatus(config, editorState)
     val isEnabled = true
-
-    val status = when {
-        isValid -> StepStatus.Complete
-        else -> StepStatus.Pending
-    }
 
     return StepUiState(
         isSelected = isSelected,
@@ -140,6 +131,47 @@ internal fun buildStepUiState(
     )
 }
 
+internal fun getStepStatus(config: ListingEditorPageConfig, state: ListingEditorState): StepStatus {
+    return when (config) {
+        ListingEditorPageConfig.Type -> StepStatus.Complete
+
+        ListingEditorPageConfig.Basics -> {
+            if (!state.isBasicsStepValid) {
+                StepStatus.Incomplete
+            } else if (state.description.value.isBlank()) {
+                StepStatus.Satisfied
+            } else {
+                StepStatus.Complete
+            }
+        }
+
+        ListingEditorPageConfig.Pricing -> {
+            if (state.isPricingStepValid) {
+                StepStatus.Complete
+            } else {
+                StepStatus.Incomplete
+            }
+        }
+
+        ListingEditorPageConfig.Media -> {
+            if (state.imageUrl.value.isBlank()) {
+                StepStatus.Incomplete
+            } else {
+                StepStatus.Complete
+            }
+        }
+
+        ListingEditorPageConfig.Review -> {
+            if (state.isBasicsStepValid && state.isPricingStepValid) {
+                StepStatus.Complete
+            } else {
+                StepStatus.Incomplete
+            }
+        }
+    }
+}
+
+// Kept for compatibility with existing calls, though Logic logic doesn't use it anymore for UI
 internal fun getStepValidationStatus(config: ListingEditorPageConfig, state: ListingEditorState): Boolean {
     return when (config) {
         ListingEditorPageConfig.Type -> true
@@ -159,7 +191,7 @@ private fun ListingEditorProgressBarSegment(
     val color = when {
         isSelected -> Theme[colors][primary]
         status == StepStatus.Complete -> Theme[colors][primary].copy(alpha = 0.5f)
-        status == StepStatus.Invalid -> Theme[colors][destructive].copy(alpha = 0.5f)
+        status == StepStatus.Satisfied -> Theme[colors][primary].copy(alpha = 0.5f)
         else -> Theme[colors][outline].copy(alpha = 0.2f)
     }
 
@@ -183,7 +215,6 @@ internal fun ListingStepRow(
     val textColor = if (isSelected) Theme[colors][primary] else Theme[colors][onBackground]
     val fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
     val successColor = Color(0xFF10B981)
-    val errorColor = Theme[colors][destructive]
     val pendingColor = Theme[colors][outline].copy(alpha = 0.3f)
 
     Row(
@@ -226,19 +257,19 @@ internal fun ListingStepRow(
                 )
             }
 
-            StepStatus.Invalid -> {
+            StepStatus.Satisfied -> {
                 Icon(
-                    imageVector = Lucide.CircleAlert,
-                    contentDescription = "Invalid",
-                    tint = errorColor,
+                    imageVector = Lucide.Check,
+                    contentDescription = "Satisfied",
+                    tint = successColor,
                     modifier = Modifier.size(16.dp)
                 )
             }
 
-            StepStatus.Pending -> {
+            StepStatus.Incomplete -> {
                 Icon(
                     imageVector = Lucide.Circle,
-                    contentDescription = "Pending",
+                    contentDescription = "Incomplete",
                     tint = pendingColor,
                     modifier = Modifier.size(16.dp)
                 )

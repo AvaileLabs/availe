@@ -127,11 +127,11 @@
     <string name="listing_editor_no_image_preview">No image preview</string>
     <string name="listing_editor_image_preview_desc">Listing Image Preview</string>
 
-    <string name="listing_editor_review_type_format">Type: %s</string>
-    <string name="listing_editor_review_title_format">Title: %s</string>
-    <string name="listing_editor_review_price_format">Price: %s</string>
-    <string name="listing_editor_review_description_format">Description: %s</string>
-    <string name="listing_editor_review_image_url_format">Image URL: %s</string>
+    <string name="listing_editor_review_type_format">Type: %1$s</string>
+    <string name="listing_editor_review_title_format">Title: %1$s</string>
+    <string name="listing_editor_review_price_format">Price: %1$s</string>
+    <string name="listing_editor_review_description_format">Description: %1$s</string>
+    <string name="listing_editor_review_image_url_format">Image URL: %1$s</string>
 
     <string name="listing_editor_action_next">Next</string>
     <string name="listing_editor_action_publish">Publish</string>
