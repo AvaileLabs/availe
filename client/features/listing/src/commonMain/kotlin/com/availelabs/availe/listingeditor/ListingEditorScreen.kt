@@ -703,13 +703,15 @@ private fun ListingEditorReviewStep(
             SelectionContainer {
                 Text(stringResource(Res.string.listing_editor_review_title_format, editorState.title.value))
             }
-            SelectionContainer {
-                Text(
-                    stringResource(
-                        Res.string.listing_editor_review_price_format,
-                        "${editorState.priceCurrency.symbol}${editorState.priceAmount.value}"
+            if (editorState.priceAmount.value.isNotBlank()) {
+                SelectionContainer {
+                    Text(
+                        stringResource(
+                            Res.string.listing_editor_review_price_format,
+                            "${editorState.priceCurrency.symbol}${editorState.priceAmount.value}"
+                        )
                     )
-                )
+                }
             }
             if (editorState.description.value.isNotBlank()) {
                 SelectionContainer {
