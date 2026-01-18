@@ -388,9 +388,6 @@ private fun ListingEditorWizardContent(
     }
 }
 
-// ... Dialogs and Step Components omitted for brevity as they are unchanged unless I modify them below ...
-// Re-including Dialogs and Steps since the prompt asked for full files.
-
 @Composable
 private fun DraftOptionsDialog(
     stepName: String,
@@ -480,7 +477,7 @@ private fun DimmedDialog(
 
 @Composable
 private fun ListingEditorChooseTypeStep(
-    selectedCategory: ListingCategory,
+    selectedCategory: ListingCategory?,
     onCategorySelected: (ListingCategory) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth(), title = {
@@ -692,6 +689,8 @@ private fun ListingEditorMediaStep(
 private fun ListingEditorReviewStep(
     editorState: ListingEditorState
 ) {
+    val typeName = editorState.type?.name ?: ""
+
     Card(modifier = Modifier.fillMaxWidth(), title = {
         SelectionContainer {
             Text(stringResource(Res.string.listing_editor_step_review))
@@ -699,7 +698,7 @@ private fun ListingEditorReviewStep(
     }) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SelectionContainer {
-                Text(stringResource(Res.string.listing_editor_review_type_format, editorState.type.name))
+                Text(stringResource(Res.string.listing_editor_review_type_format, typeName))
             }
             SelectionContainer {
                 Text(stringResource(Res.string.listing_editor_review_title_format, editorState.title.value))

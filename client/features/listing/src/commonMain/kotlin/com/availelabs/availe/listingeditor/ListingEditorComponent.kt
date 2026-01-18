@@ -28,7 +28,6 @@ import com.availelabs.availe.ui.model.ActionIcon
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.*
-import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.getString
 
 interface IListingEditorComponent {
@@ -52,32 +51,6 @@ interface IListingEditorComponent {
     fun onCancelDeleteDraft()
     fun onClearStep(config: ListingEditorPageConfig)
     fun onBackClicked()
-}
-
-sealed interface ListingEditorPage {
-    data object Type : ListingEditorPage
-    data object Basics : ListingEditorPage
-    data object Pricing : ListingEditorPage
-    data object Media : ListingEditorPage
-    data object Review : ListingEditorPage
-}
-
-@Serializable
-sealed interface ListingEditorPageConfig {
-    @Serializable
-    data object Type : ListingEditorPageConfig
-
-    @Serializable
-    data object Basics : ListingEditorPageConfig
-
-    @Serializable
-    data object Pricing : ListingEditorPageConfig
-
-    @Serializable
-    data object Media : ListingEditorPageConfig
-
-    @Serializable
-    data object Review : ListingEditorPageConfig
 }
 
 @OptIn(ExperimentalDecomposeApi::class, ExperimentalCoroutinesApi::class)
@@ -108,13 +81,7 @@ class ListingEditorComponent(
         serializer = ListingEditorPageConfig.serializer(),
         initialPages = {
             Pages(
-                items = listOf(
-                    ListingEditorPageConfig.Type,
-                    ListingEditorPageConfig.Basics,
-                    ListingEditorPageConfig.Pricing,
-                    ListingEditorPageConfig.Media,
-                    ListingEditorPageConfig.Review
-                ),
+                items = ListingFlowDefinition.getSteps(null),
                 selectedIndex = 0
             )
         },
@@ -148,7 +115,7 @@ class ListingEditorComponent(
                     val draft = listingRepository.getDraft()
                     if (draft != null && !store.state.isEditing) {
                         store.accept(ListingEditorIntent.RestoreDraft(draft))
-                        pagesNavigation.select(draft.stepIndex)
+                        // Navigation will be updated by the state subscriber below
                     }
                 }
             }
@@ -178,6 +145,8 @@ class ListingEditorComponent(
                     }
 
                     is ListingEditorLabel.DraftRestored -> {
+                        val draftStepIndex = store.state.toDraft(0)?.stepIndex ?: 0
+                        pagesNavigation.select(draftStepIndex)
                     }
 
                     is ListingEditorLabel.ErrorOccurred -> {
@@ -188,14 +157,41 @@ class ListingEditorComponent(
             override fun onComplete() {
             }
         })
+
+        // Observe state changes to update available pages
+        scope.launch {
+            var currentType: ListingCategory? = null
+            store.stateFlow.collect { state ->
+                if (state.type != currentType) {
+                    currentType = state.type
+                    val newSteps = ListingFlowDefinition.getSteps(currentType)
+
+                    pagesNavigation.navigate { currentPages ->
+                        val newIndex = if (currentPages.selectedIndex < newSteps.size) {
+                            currentPages.selectedIndex
+                        } else {
+                            0
+                        }
+
+                        Pages(
+                            items = newSteps,
+                            selectedIndex = newIndex
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun saveDraft() {
-        if (listingId == null && !store.state.isSubmitting) {
+        val state = store.state
+        if (listingId == null && !state.isSubmitting && state.type != null) {
             scope.launch {
                 val currentIndex = pages.value.selectedIndex
-                val draft = store.state.toDraft(currentIndex)
-                listingRepository.saveDraft(draft)
+                val draft = state.toDraft(currentIndex)
+                if (draft != null) {
+                    listingRepository.saveDraft(draft)
+                }
             }
         }
     }
@@ -218,6 +214,12 @@ class ListingEditorComponent(
 
     override fun onTypeSelected(type: ListingCategory) {
         store.accept(ListingEditorIntent.ChangeType(type))
+        scope.launch {
+            delay(50)
+            if (pages.value.selectedIndex == 0) {
+                onPageSelected(1)
+            }
+        }
     }
 
     override fun onImageUrlChanged(url: String) {

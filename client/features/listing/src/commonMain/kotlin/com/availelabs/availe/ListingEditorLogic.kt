@@ -27,7 +27,7 @@ data class ListingEditorState(
     val priceAmount: PriceAmount = PriceAmount(""),
     val priceCurrency: SupportedCurrency = SupportedCurrency.USD,
     val imageUrl: ImageUrl = ImageUrl(""),
-    val type: ListingCategory = ListingCategory.Item,
+    val type: ListingCategory? = null,
     val isSubmitting: Boolean = false,
     val error: ListingEditorError? = null,
     val showDiscardDraftDialog: Boolean = false,
@@ -144,7 +144,7 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
             priceAmount = PriceAmount(""),
             priceCurrency = SupportedCurrency.USD,
             imageUrl = ImageUrl(""),
-            type = if (state.isEditing) state.type else ListingCategory.Item,
+            type = if (state.isEditing) state.type else null,
             error = null
         ).recalculateValidation()
 
@@ -152,7 +152,7 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
             val newState = when (intent.config) {
                 ListingEditorPageConfig.Type -> {
                     if (!state.isEditing) {
-                        state.copy(type = ListingCategory.Item)
+                        state.copy(type = null)
                     } else {
                         state
                     }
@@ -188,7 +188,8 @@ private fun ListingEditorState.recalculateValidation(): ListingEditorState {
     )
 }
 
-fun ListingEditorState.toNewListing(publisherId: UserId, publisherEmail: Email): NewListing {
+fun ListingEditorState.toNewListing(publisherId: UserId, publisherEmail: Email): NewListing? {
+    val type = this.type ?: return null
     val price = Price(this.priceAmount, this.priceCurrency.code)
     val imageLinks = if (this.imageUrl.value.isNotBlank()) listOf(this.imageUrl) else emptyList()
 
@@ -201,20 +202,21 @@ fun ListingEditorState.toNewListing(publisherId: UserId, publisherEmail: Email):
         publisherEmail = publisherEmail
     )
 
-    return when (this.type) {
+    return when (type) {
         ListingCategory.Item -> NewListing.Item(commonData)
         ListingCategory.Event -> NewListing.Event(commonData)
         ListingCategory.Service -> NewListing.Service(commonData)
     }
 }
 
-fun ListingEditorState.toPatchRequest(): TypeV1ListingDtoPatchRequest {
+fun ListingEditorState.toPatchRequest(): TypeV1ListingDtoPatchRequest? {
+    val type = this.type ?: return null
     val imageLinks = if (this.imageUrl.value.isNotBlank()) listOf(this.imageUrl) else emptyList()
     val descriptionValue = if (this.description.value.isBlank()) null else this.description
 
     val priceObj = Price(this.priceAmount, this.priceCurrency.code)
 
-    return when (this.type) {
+    return when (type) {
         ListingCategory.Item -> ListingItemDtoSchema.V1.PatchRequest(
             title = Patchable.Set(this.title),
             description = Patchable.Set(descriptionValue),
@@ -238,14 +240,15 @@ fun ListingEditorState.toPatchRequest(): TypeV1ListingDtoPatchRequest {
     }
 }
 
-fun ListingEditorState.toDraft(stepIndex: Int): ListingDraft {
+fun ListingEditorState.toDraft(stepIndex: Int): ListingDraft? {
+    val type = this.type ?: return null
     return ListingDraft(
         title = this.title,
         description = this.description,
         priceAmount = this.priceAmount,
         priceCurrencyCode = this.priceCurrency.code,
         imageUrl = this.imageUrl,
-        type = this.type,
+        type = type,
         stepIndex = stepIndex
     )
 }

@@ -146,55 +146,59 @@ internal class ListingEditorStoreFactory(
             userId: UserId,
             email: Email
         ) {
-            val newListing = state.toNewListing(userId, email)
+            state.toNewListing(userId, email)?.let { newListing ->
+                when (val result = listingRepository.createListing(newListing)) {
+                    is RepositoryOperationResult.Success -> {
+                        when (result.value) {
+                            is InsertResult.Inserted -> {
+                                listingRepository.clearDraft()
+                                publish(ListingEditorLabel.ListingCreated)
+                                dispatch(ListingEditorIntent.SetSubmitting(false))
+                            }
 
-            when (val result = listingRepository.createListing(newListing)) {
-                is RepositoryOperationResult.Success -> {
-                    when (result.value) {
-                        is InsertResult.Inserted -> {
-                            listingRepository.clearDraft()
-                            publish(ListingEditorLabel.ListingCreated)
-                            dispatch(ListingEditorIntent.SetSubmitting(false))
-                        }
-
-                        is InsertResult.AlreadyExists -> {
-                            dispatch(ListingEditorIntent.SetError(ListingEditorError.ListingExists))
+                            is InsertResult.AlreadyExists -> {
+                                dispatch(ListingEditorIntent.SetError(ListingEditorError.ListingExists))
+                            }
                         }
                     }
-                }
 
-                is RepositoryOperationResult.Failure -> {
-                    publish(ListingEditorLabel.ErrorOccurred(result.error))
-                    dispatch(ListingEditorIntent.SetSubmitting(false))
+                    is RepositoryOperationResult.Failure -> {
+                        publish(ListingEditorLabel.ErrorOccurred(result.error))
+                        dispatch(ListingEditorIntent.SetSubmitting(false))
+                    }
                 }
+            } ?: run {
+                dispatch(ListingEditorIntent.SetError(ListingEditorError.Generic("Invalid listing state")))
             }
         }
 
         private suspend fun updateListing(id: ListingId, state: ListingEditorState) {
-            val patch = state.toPatchRequest()
+            state.toPatchRequest()?.let { patch ->
+                when (val result = listingRepository.updateListing(id, patch)) {
+                    is RepositoryOperationResult.Success -> {
+                        when (result.value) {
+                            is UpdateResult.Updated -> {
+                                publish(ListingEditorLabel.ListingUpdated)
+                                dispatch(ListingEditorIntent.SetSubmitting(false))
+                            }
 
-            when (val result = listingRepository.updateListing(id, patch)) {
-                is RepositoryOperationResult.Success -> {
-                    when (result.value) {
-                        is UpdateResult.Updated -> {
-                            publish(ListingEditorLabel.ListingUpdated)
-                            dispatch(ListingEditorIntent.SetSubmitting(false))
-                        }
+                            is UpdateResult.NotFound -> {
+                                dispatch(ListingEditorIntent.SetError(ListingEditorError.NotFound))
+                            }
 
-                        is UpdateResult.NotFound -> {
-                            dispatch(ListingEditorIntent.SetError(ListingEditorError.NotFound))
-                        }
-
-                        is UpdateResult.Forbidden -> {
-                            dispatch(ListingEditorIntent.SetError(ListingEditorError.Forbidden))
+                            is UpdateResult.Forbidden -> {
+                                dispatch(ListingEditorIntent.SetError(ListingEditorError.Forbidden))
+                            }
                         }
                     }
-                }
 
-                is RepositoryOperationResult.Failure -> {
-                    publish(ListingEditorLabel.ErrorOccurred(result.error))
-                    dispatch(ListingEditorIntent.SetSubmitting(false))
+                    is RepositoryOperationResult.Failure -> {
+                        publish(ListingEditorLabel.ErrorOccurred(result.error))
+                        dispatch(ListingEditorIntent.SetSubmitting(false))
+                    }
                 }
+            } ?: run {
+                dispatch(ListingEditorIntent.SetError(ListingEditorError.Generic("Invalid listing state")))
             }
         }
     }

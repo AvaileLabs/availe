@@ -133,7 +133,9 @@ internal fun buildStepUiState(
 
 internal fun getStepStatus(config: ListingEditorPageConfig, state: ListingEditorState): StepStatus {
     return when (config) {
-        ListingEditorPageConfig.Type -> StepStatus.Complete
+        ListingEditorPageConfig.Type -> {
+            if (state.type != null) StepStatus.Complete else StepStatus.Incomplete
+        }
 
         ListingEditorPageConfig.Basics -> {
             if (!state.isBasicsStepValid) {
@@ -162,7 +164,7 @@ internal fun getStepStatus(config: ListingEditorPageConfig, state: ListingEditor
         }
 
         ListingEditorPageConfig.Review -> {
-            if (state.isBasicsStepValid && state.isPricingStepValid) {
+            if (state.isBasicsStepValid && state.isPricingStepValid && state.type != null) {
                 StepStatus.Complete
             } else {
                 StepStatus.Incomplete
@@ -171,14 +173,14 @@ internal fun getStepStatus(config: ListingEditorPageConfig, state: ListingEditor
     }
 }
 
-// Kept for compatibility with existing calls, though Logic logic doesn't use it anymore for UI
+// Used for button enablement ("Can I click next?")
 internal fun getStepValidationStatus(config: ListingEditorPageConfig, state: ListingEditorState): Boolean {
     return when (config) {
-        ListingEditorPageConfig.Type -> true
+        ListingEditorPageConfig.Type -> state.type != null
         ListingEditorPageConfig.Basics -> state.isBasicsStepValid
         ListingEditorPageConfig.Pricing -> state.isPricingStepValid
-        ListingEditorPageConfig.Media -> true
-        ListingEditorPageConfig.Review -> state.isBasicsStepValid && state.isPricingStepValid
+        ListingEditorPageConfig.Media -> true // Media is optional, so always valid to proceed
+        ListingEditorPageConfig.Review -> state.isBasicsStepValid && state.isPricingStepValid && state.type != null
     }
 }
 
@@ -241,7 +243,7 @@ internal fun ListingStepRow(
 
         Text(
             text = title,
-            style = Theme[textStyles][com.composables.uikit.styling.body],
+            style = Theme[textStyles][body],
             color = textColor,
             fontWeight = fontWeight,
             modifier = Modifier.weight(1f)
