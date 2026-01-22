@@ -22,6 +22,7 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.shared.logic)
             implementation(projects.client.core)
+            implementation(projects.client.xmpp)
             implementation(projects.shared.configuration)
             implementation(projects.client.domain)
             implementation(libs.multiplatform.settings.no.arg)

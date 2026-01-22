@@ -23,10 +23,10 @@ interface IChatComponent {
 
 class ChatComponent(
     componentContext: ComponentContext,
-    private val recipientJid: Jid,
-    private val messagingRepository: IMessagingRepository,
-    private val sessionManager: ISessionRepository,
-    private val onNavigateBack: () -> Unit // Kept as lambda for internal panel navigation
+    recipientJid: Jid,
+    messagingRepository: IMessagingRepository,
+    sessionManager: ISessionRepository,
+    private val onNavigateBack: () -> Unit
 ) : IChatComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
@@ -46,7 +46,6 @@ class ChatComponent(
     init {
         val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
         lifecycle.doOnDestroy { scope.cancel() }
-        store.accept(ChatStore.Intent.Connect)
     }
 
     override fun onIntent(intent: ChatStore.Intent) {
@@ -54,7 +53,6 @@ class ChatComponent(
     }
 
     override fun onBackClicked() {
-        store.accept(ChatStore.Intent.Disconnect)
         onNavigateBack()
     }
 }

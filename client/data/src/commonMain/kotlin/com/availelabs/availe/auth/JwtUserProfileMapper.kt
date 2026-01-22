@@ -36,7 +36,20 @@ internal object JwtUserProfileMapper {
 
     private fun JwtPayloadDto.toUserProfile(): UserProfile {
         val email = this.email ?: throw IllegalArgumentException("Email claim is required")
-        val jid = this.jid ?: Jid("${email.value}@${SharedNetworkConstants.XMPP_DOMAIN}")
+        val jid = this.jid
+            ?.let { tokenJid ->
+                val localpart = tokenJid.value
+                    .substringBefore("/")
+                    .substringBefore("@")
+                    .trim()
+                require(localpart.isNotBlank()) { "Invalid jid claim" }
+                Jid("$localpart@${SharedNetworkConstants.XMPP_DOMAIN}")
+            }
+            ?: run {
+                val localpart = email.value.substringBefore("@").trim()
+                require(localpart.isNotBlank()) { "Invalid email claim" }
+                Jid("$localpart@${SharedNetworkConstants.XMPP_DOMAIN}")
+            }
 
         return UserProfile(
             id = this.subject,

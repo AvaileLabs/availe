@@ -145,11 +145,13 @@ private fun UserInfoHeader(
                             .background(statusColor)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = statusText,
-                        fontSize = 12.sp,
-                        color = Theme[colors][outline].copy(alpha = 0.8f)
-                    )
+                    SelectionContainer {
+                        Text(
+                            text = statusText,
+                            fontSize = 12.sp,
+                            color = Theme[colors][outline].copy(alpha = 0.8f)
+                        )
+                    }
                 }
             }
         }

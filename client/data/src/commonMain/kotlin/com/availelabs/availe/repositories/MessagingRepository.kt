@@ -22,9 +22,9 @@ internal class MessagingRepository(
     @OptIn(ExperimentalUuidApi::class)
     override val messages: Flow<ChatMessage> = messagingRemoteDataSource.incomingMessages.map { stanza ->
         ChatMessage(
-            id = ChatMessageId(Uuid.random().toString()),
-            content = MessageContent(stanza.body ?: ""),
-            senderJid = Jid(stanza.from ?: ""),
+            id = ChatMessageId(stanza.identifier?.value ?: Uuid.random().toString()),
+            content = MessageContent(stanza.body?.value ?: ""),
+            senderJid = Jid(stanza.senderJid?.value ?: ""),
             isMine = false,
             timestamp = Clock.System.now()
         )

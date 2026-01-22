@@ -1,11 +1,15 @@
 package com.availelabs.availe.chat.list
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -17,14 +21,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import availe.client.designsystem.generated.resources.Res
+import availe.client.designsystem.generated.resources.chat_status_authentication_failed
+import availe.client.designsystem.generated.resources.chat_status_connecting
+import availe.client.designsystem.generated.resources.chat_status_disconnected
 import coil3.compose.AsyncImage
 import com.availelabs.availe.model.ChatConversation
+import com.availelabs.availe.repositories.MessagingConnectionState
 import com.composables.uikit.components.Text
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.onBackground
-import com.composables.uikit.styling.outline
-import com.composables.uikit.styling.primary
+import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ChatListScreen(
@@ -33,16 +40,75 @@ fun ChatListScreen(
 ) {
     val state by component.state.collectAsState()
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 8.dp)
+    Column(modifier = modifier.fillMaxSize()) {
+        ConnectionStatusHeader(state.connectionStatus)
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(vertical = 8.dp)
+        ) {
+            items(state.conversations, key = { it.jid.value }) { conversation ->
+                ChatListItem(
+                    conversation = conversation,
+                    isSelected = conversation.jid == state.selectedJid,
+                    onClick = { component.onConversationSelected(conversation.jid) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConnectionStatusHeader(status: MessagingConnectionState) {
+    val (backgroundColor, textColor, message) = when (status) {
+        MessagingConnectionState.Connecting,
+        MessagingConnectionState.Handshaking -> Triple(
+            Color(0xFFEAB308), // Yellow-500
+            Color.Black,
+            stringResource(Res.string.chat_status_connecting)
+        )
+
+        is MessagingConnectionState.Error -> Triple(
+            Theme[colors][destructive],
+            Theme[colors][onDestructive],
+            status.message
+        )
+
+        MessagingConnectionState.AuthenticationFailed -> Triple(
+            Theme[colors][destructive],
+            Theme[colors][onDestructive],
+            stringResource(Res.string.chat_status_authentication_failed)
+        )
+
+        MessagingConnectionState.Disconnected -> Triple(
+            Theme[colors][outline],
+            Theme[colors][onBackground],
+            stringResource(Res.string.chat_status_disconnected)
+        )
+
+        MessagingConnectionState.Authenticated -> Triple(Color.Transparent, Color.Transparent, "")
+    }
+
+    AnimatedVisibility(
+        visible = status !is MessagingConnectionState.Authenticated,
+        enter = expandVertically(),
+        exit = shrinkVertically()
     ) {
-        items(state.conversations, key = { it.jid.value }) { conversation ->
-            ChatListItem(
-                conversation = conversation,
-                isSelected = conversation.jid == state.selectedJid,
-                onClick = { component.onConversationSelected(conversation.jid) }
-            )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(backgroundColor)
+                .padding(vertical = 4.dp, horizontal = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            SelectionContainer {
+                Text(
+                    text = message,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textColor
+                )
+            }
         }
     }
 }

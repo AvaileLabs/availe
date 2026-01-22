@@ -8,6 +8,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.repositories.IMessagingRepository
+import com.availelabs.availe.repositories.ISessionRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
 
@@ -19,13 +20,15 @@ interface IChatListComponent {
 class ChatListComponent(
     componentContext: ComponentContext,
     messagingRepository: IMessagingRepository,
+    sessionManager: ISessionRepository,
     private val onConversationSelectedCallback: (Jid) -> Unit
 ) : IChatListComponent, ComponentContext by componentContext {
 
     private val store = instanceKeeper.getStore {
         ChatListStoreFactory(
             storeFactory = DefaultStoreFactory(),
-            messagingRepository = messagingRepository
+            messagingRepository = messagingRepository,
+            sessionManager = sessionManager
         ).create()
     }
 

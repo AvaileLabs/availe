@@ -21,8 +21,6 @@ import kotlin.uuid.ExperimentalUuidApi
 
 interface ChatStore : Store<Intent, State, Label> {
     sealed interface Intent {
-        data object Connect : Intent
-        data object Disconnect : Intent
         data class SendMessage(val body: MessageContent) : Intent
     }
 
@@ -72,6 +70,14 @@ internal class ChatStoreFactory(
                     dispatch(Action.MessageReceived(msg))
                 }
             }
+            scope.launch {
+                val userProfile = sessionManager.getCurrentUserProfile()
+                val authState = sessionManager.authenticationState.value
+
+                if (userProfile != null && authState is AuthenticationState.LoggedIn) {
+                    messagingRepository.connect(userProfile.jid, authState.accessToken)
+                }
+            }
         }
     }
 
@@ -85,27 +91,7 @@ internal class ChatStoreFactory(
 
         override fun executeIntent(intent: Intent) {
             when (intent) {
-                Intent.Connect -> connect()
-                Intent.Disconnect -> disconnect()
                 is Intent.SendMessage -> sendMessage(intent.body)
-            }
-        }
-
-        private fun connect() {
-            scope.launch {
-                val state = sessionManager.authenticationState.value
-                if (state is AuthenticationState.LoggedIn) {
-                    val userProfile = sessionManager.getCurrentUserProfile()
-                    if (userProfile != null) {
-                        messagingRepository.connect(userProfile.jid, state.accessToken)
-                    }
-                }
-            }
-        }
-
-        private fun disconnect() {
-            scope.launch {
-                messagingRepository.disconnect()
             }
         }
 

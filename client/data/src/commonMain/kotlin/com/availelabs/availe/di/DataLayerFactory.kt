@@ -21,6 +21,7 @@ import com.availelabs.availe.sources.local.LocalDataCleaner
 import com.availelabs.availe.sources.remote.AuthenticationRemoteDataSource
 import com.availelabs.availe.sources.remote.ListingRemoteDataSource
 import com.availelabs.availe.sources.remote.MessagingRemoteDataSource
+import com.availelabs.availe.xmpp.session.XmppSession
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
 import io.ktor.client.plugins.*
@@ -161,8 +162,10 @@ object DataLayerFactory {
             json = json
         )
 
+        val xmppSession = XmppSession(httpClient)
+
         val messagingRemoteDataSource = MessagingRemoteDataSource(
-            httpClient = httpClient
+            xmppSession = xmppSession
         )
 
         val messagingRepository = MessagingRepository(
