@@ -2,7 +2,7 @@ package com.availelabs.availe.xmpp.session
 
 import com.availelabs.availe.xmpp.model.XmppJid
 import io.ktor.client.*
-import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.websocket.*
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -21,6 +21,7 @@ class XmppSessionFailureNotMaskedTest {
 
         session.connect(
             xmppJid = XmppJid("user@localhost"),
+            authIdentity = "user",
             password = "password",
             host = "localhost",
             port = 5280

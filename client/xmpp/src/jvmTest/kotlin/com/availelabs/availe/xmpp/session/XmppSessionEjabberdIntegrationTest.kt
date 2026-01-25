@@ -1,17 +1,12 @@
 package com.availelabs.availe.xmpp.session
 
 import com.availelabs.availe.xmpp.model.XmppJid
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.websocket.WebSockets
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.cancelAndJoin
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.websocket.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -41,8 +36,12 @@ class XmppSessionEjabberdIntegrationTest {
         val session = XmppSession(httpClient)
 
         val connectJob = launch(Dispatchers.IO) {
+            // In integration tests, we can assume identity == localpart of JID if using legacy auth,
+            // or pass it explicitly via env var if needed. For now using JID localpart as fallback.
+            val authIdentity = jid.substringBefore("@")
             session.connect(
                 xmppJid = XmppJid(jid),
+                authIdentity = authIdentity,
                 password = password,
                 host = host,
                 port = port

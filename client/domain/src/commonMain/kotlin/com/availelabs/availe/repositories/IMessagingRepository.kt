@@ -20,7 +20,7 @@ sealed interface MessagingConnectionState {
 interface IMessagingRepository {
     val connectionStatus: StateFlow<MessagingConnectionState>
     val messages: Flow<ChatMessage>
-    suspend fun connect(jid: Jid, token: AuthToken)
+    suspend fun connect(jid: Jid, authIdentity: String, token: AuthToken)
     suspend fun disconnect()
     suspend fun sendMessage(to: Jid, body: MessageContent, from: Jid)
     fun getConversations(): Flow<List<ChatConversation>>

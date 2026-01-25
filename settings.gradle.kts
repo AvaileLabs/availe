@@ -56,3 +56,4 @@ include(":backend:infrastructure")
 
 include(":shared:logic")
 include(":shared:configuration")
+include("backend:keycloakSpi")

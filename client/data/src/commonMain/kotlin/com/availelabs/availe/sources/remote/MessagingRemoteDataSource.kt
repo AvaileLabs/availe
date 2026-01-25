@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.*
 internal interface IMessagingRemoteDataSource {
     val connectionStatus: StateFlow<MessagingConnectionState>
     val incomingMessages: Flow<XmppMessageStanza>
-    suspend fun connect(jid: Jid, token: AuthToken)
+    suspend fun connect(jid: Jid, authIdentity: String, token: AuthToken)
     suspend fun disconnect()
     suspend fun sendMessage(to: Jid, body: MessageContent)
 }
@@ -37,9 +37,10 @@ internal class MessagingRemoteDataSource(
         .filterIsInstance<XmppMessageStanza>()
         .shareIn(scope, SharingStarted.WhileSubscribed())
 
-    override suspend fun connect(jid: Jid, token: AuthToken) {
+    override suspend fun connect(jid: Jid, authIdentity: String, token: AuthToken) {
         xmppSession.connect(
             xmppJid = XmppJid(jid.value),
+            authIdentity = authIdentity,
             password = token.value,
             host = NetworkConstants.HOST_IP,
             port = SharedNetworkConstants.EJABBERD_ADMIN_PORT

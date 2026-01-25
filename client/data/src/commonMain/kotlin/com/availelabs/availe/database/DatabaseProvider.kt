@@ -27,7 +27,7 @@ internal class DatabaseProvider(
 
         val driver = sqlDriverFactory.createDriver()
         val database =
-            _root_ide_package_.com.availelabs.availe.database.ClientDatabaseFactory.createClientDatabase(driver, json)
+            ClientDatabaseFactory.createClientDatabase(driver, json)
 
         sqlDriver = driver
         clientDatabase = database

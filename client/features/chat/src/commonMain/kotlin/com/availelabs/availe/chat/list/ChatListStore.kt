@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.availelabs.availe.chat.list
 
 import com.arkivanov.mvikotlin.core.store.Reducer
@@ -7,6 +9,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.chat.list.ChatListStore.*
+import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.model.ChatConversation
 import com.availelabs.availe.repositories.IMessagingRepository
@@ -14,6 +17,7 @@ import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.repositories.MessagingConnectionState
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlin.uuid.ExperimentalUuidApi
 
 interface ChatListStore : Store<Intent, State, Label> {
     sealed interface Intent {
@@ -79,7 +83,14 @@ internal class ChatListStoreFactory(
                 val authState = sessionManager.authenticationState.value
 
                 if (userProfile != null && authState is AuthenticationState.LoggedIn) {
-                    messagingRepository.connect(userProfile.jid, authState.accessToken)
+                    val userIdString = userProfile.id.value.toString()
+                    val userJid = Jid("$userIdString@${SharedNetworkConstants.XMPP_DOMAIN}")
+
+                    messagingRepository.connect(
+                        jid = userJid,
+                        authIdentity = userIdString,
+                        token = authState.accessToken
+                    )
                 }
             }
         }

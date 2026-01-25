@@ -76,6 +76,7 @@ object DataLayerFactory {
         val openIdConnectClient = OpenIdConnectClient(discoveryUri = AuthenticationConstants.DISCOVERY_URI) {
             this.scope = setOf(
                 AuthScope.OPEN_ID,
+                AuthScope.PROFILE,
                 AuthScope.EMAIL,
                 AuthScope.OFFLINE_ACCESS
             ).toScopeString()

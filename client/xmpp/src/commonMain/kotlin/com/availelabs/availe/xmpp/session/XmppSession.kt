@@ -23,6 +23,7 @@ interface IXmppSession {
 
     suspend fun connect(
         xmppJid: XmppJid,
+        authIdentity: String,
         password: String,
         host: String,
         port: Int
@@ -54,6 +55,7 @@ class XmppSession(
 
     override suspend fun connect(
         xmppJid: XmppJid,
+        authIdentity: String,
         password: String,
         host: String,
         port: Int
@@ -75,7 +77,7 @@ class XmppSession(
                 }
             ) {
                 webSocketSession = this
-                performXmppHandshake(xmppJid, password)
+                performXmppHandshake(xmppJid, authIdentity, password)
             }
 
             if (mutableSessionState.value !is SessionState.Failed) {
@@ -107,54 +109,56 @@ class XmppSession(
     @OptIn(ExperimentalEncodingApi::class, ExperimentalUuidApi::class)
     private suspend fun DefaultClientWebSocketSession.performXmppHandshake(
         xmppJid: XmppJid,
+        authIdentity: String,
         password: String
     ) {
         val domain = xmppJid.value.substringAfterLast("@").substringBefore("/")
 
-        // 1. Open Stream
         mutableSessionState.value = SessionState.Negotiating
         val initialOpen = XmppStreamOpen(to = domain)
         send(Frame.Text(xmlSerializer.encodeToString(XmppStreamOpen.serializer(), initialOpen)))
 
-        // 2. Wait for Features
-        waitForStanza<XmppStreamFeatures>()
+        val features = waitForStanza<XmppStreamFeatures>()
+        val mechanisms = features.mechanisms?.mechanism ?: emptyList()
 
-        // 3. Authenticate
+        val supportsPlainMechanism = mechanisms.contains(SaslMechanism("PLAIN"))
+        if (!supportsPlainMechanism) {
+            val availableMechanisms = mechanisms.joinToString(", ") { mechanism -> mechanism.value }
+            throw IllegalStateException("Server does not support PLAIN authentication. Available: $availableMechanisms")
+        }
+
+        val selectedMechanism = SaslMechanism("PLAIN")
+
         mutableSessionState.value = SessionState.Authenticating
-        val authcid = xmppJid.value.substringBefore("@").substringBefore("/")
-        val authString = "\u0000$authcid\u0000$password"
-        val authBase64 = Base64.encode(authString.encodeToByteArray())
-        val authStanza = XmppSaslAuth(mechanism = SaslMechanism("PLAIN"), content = authBase64)
-        send(Frame.Text(xmlSerializer.encodeToString(XmppSaslAuth.serializer(), authStanza)))
 
-        // 4. Wait for Success
+        val authenticationString = "\u0000$authIdentity\u0000$password"
+
+        val authenticationBase64 = Base64.encode(authenticationString.encodeToByteArray())
+        val authenticationStanza = XmppSaslAuth(mechanism = selectedMechanism, content = authenticationBase64)
+        send(Frame.Text(xmlSerializer.encodeToString(XmppSaslAuth.serializer(), authenticationStanza)))
+
         waitForStanza<XmppSaslSuccess>()
 
-        // 5. Restart Stream
         mutableSessionState.value = SessionState.Negotiating
         val restartOpen = XmppStreamOpen(to = domain)
         send(Frame.Text(xmlSerializer.encodeToString(XmppStreamOpen.serializer(), restartOpen)))
 
-        // 6. Wait for Features (Again)
         waitForStanza<XmppStreamFeatures>()
 
-        // 7. Bind Resource
         mutableSessionState.value = SessionState.Binding
-        val bindId = Uuid.random().toString()
+        val bindIdentifier = Uuid.random().toString()
         val bindStanza = XmppIqStanza(
-            identifier = StanzaIdentifier(bindId),
+            identifier = StanzaIdentifier(bindIdentifier),
             type = "set",
             payload = XmppBindPayload(resource = ResourceName("availe-mobile"))
         )
         send(Frame.Text(xmlSerializer.encodeToString(XmppIqStanza.serializer(), bindStanza)))
 
-        // 8. Wait for Bind Result
         val bindResult = waitForStanza<XmppIqStanza>()
         if (bindResult.type == "error") {
             throw IllegalStateException("Failed to bind resource")
         }
 
-        // 9. Session Active
         mutableSessionState.value = SessionState.Active
         startKeepAlive()
         processIncomingLoop()

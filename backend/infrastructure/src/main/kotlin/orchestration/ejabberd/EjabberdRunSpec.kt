@@ -50,19 +50,10 @@ internal fun generateEjabberdConfigurationFiles() {
 
     val jwksContent = fetchKeycloakJwks()
 
-    val objectMapper = ObjectMapper()
-    val rootNode = objectMapper.readTree(jwksContent)
-    val keysNode = rootNode.get("keys")
-        ?: error("Invalid JWKS response from Keycloak: 'keys' array not found")
-
-    val signingKeyNode = keysNode.firstOrNull { it.get("use")?.asText() == "sig" }
-        ?: keysNode.firstOrNull()
-        ?: error("No keys found in Keycloak JWKS")
-
-    val singleJwkContent = objectMapper.writeValueAsString(signingKeyNode)
+    val jwtKeyFileContent = generateEjabberdJwtKeyFileContent(jwksContent)
 
     val jwkFile = File(generatedConfigDirectory, "keycloak.jwk")
-    jwkFile.writeText(singleJwkContent)
+    jwkFile.writeText(jwtKeyFileContent)
 
     val resourceStream = object {}.javaClass.getResourceAsStream("/ejabberd.yml")
         ?: error("Could not find /ejabberd.yml in resources")
@@ -84,6 +75,23 @@ internal fun generateEjabberdConfigurationFiles() {
 
     val configFile = File(generatedConfigDirectory, "ejabberd.yml")
     configFile.writeText(substitutedContent)
+}
+
+internal fun generateEjabberdJwtKeyFileContent(keycloakJwksContent: String): String {
+    val objectMapper = ObjectMapper()
+    val rootNode = objectMapper.readTree(keycloakJwksContent)
+    val keysNode = rootNode.get("keys")
+        ?: error("Invalid JWKS response from Keycloak: 'keys' array not found")
+
+    val signingKeys = keysNode.filter { it.get("use")?.asText() == "sig" }
+    val selectedKeys = if (signingKeys.isNotEmpty()) signingKeys else keysNode.toList()
+    if (selectedKeys.isEmpty()) error("No keys found in Keycloak JWKS")
+
+    val jwksNode = objectMapper.createObjectNode()
+    val keysArrayNode = objectMapper.createArrayNode()
+    selectedKeys.forEach { keysArrayNode.add(it) }
+    jwksNode.set<com.fasterxml.jackson.databind.JsonNode>("keys", keysArrayNode)
+    return objectMapper.writeValueAsString(jwksNode)
 }
 
 private fun fetchKeycloakJwks(): String {

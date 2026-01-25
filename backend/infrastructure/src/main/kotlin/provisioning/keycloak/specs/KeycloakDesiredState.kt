@@ -48,12 +48,13 @@ internal object KeycloakDesiredState {
         )
     }
 
-    private val jabberIdProtocolMapper = ProtocolMapperRepresentation().apply {
-        name = "user-jid-mapper"
+    // New Mapper: Maps the "jid" User Attribute to the "jid" Token Claim
+    private val jidAttributeMapper = ProtocolMapperRepresentation().apply {
+        name = "user-jid-attribute-mapper"
         protocol = "openid-connect"
-        protocolMapper = "oidc-usermodel-property-mapper"
+        protocolMapper = "oidc-usermodel-attribute-mapper"
         config = mapOf(
-            "user.attribute" to "username",
+            "user.attribute" to "jid",
             "claim.name" to SharedAuthenticationConstants.Claims.JID,
             "jsonType.label" to "String",
             "id.token.claim" to "true",
@@ -70,13 +71,17 @@ internal object KeycloakDesiredState {
             webOrigins = allWebOrigins,
             defaultClientScopes = listOf(
                 KeycloakClientScopes.EMAIL,
+                KeycloakClientScopes.PROFILE,
                 KeycloakClientScopes.ROLES,
                 KeycloakClientScopes.WEB_ORIGINS
             ),
             optionalClientScopes = listOf(
                 KeycloakClientScopes.OFFLINE_ACCESS
             ),
-            protocolMappers = listOf(userIdProtocolMapper, jabberIdProtocolMapper)
+            protocolMappers = listOf(
+                userIdProtocolMapper,
+                jidAttributeMapper
+            )
         )
     )
 

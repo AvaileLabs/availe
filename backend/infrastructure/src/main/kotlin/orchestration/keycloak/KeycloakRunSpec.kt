@@ -32,6 +32,6 @@ internal fun keycloakRunSpec(): ContainerRunSpecification<KeycloakPortsList, Key
         environmentVariables = environmentVariables,
         portMappings = KeycloakPortsList,
         volumes = KeycloakVolumesList,
-        command = listOf("start-dev")
+        command = listOf("start-dev", "--features=scripts")
     )
 }

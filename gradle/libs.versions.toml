@@ -157,6 +157,7 @@ sqldelight-web-worker-driver-wasm-js = { module = "app.cash.sqldelight:web-worke
 bouncycastle-bom = { module = "org.bouncycastle:bc-jdk18on-bom", version.ref = "bouncycastleBom" }
 bouncycastle-pkix = { module = "org.bouncycastle:bcpkix-jdk18on" }
 bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on" }
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

@@ -3,6 +3,7 @@ package com.availelabs.provisioning.keycloak.reconcilers
 import com.availelabs.provisioning.keycloak.specs.DesiredClient
 import org.keycloak.admin.client.resource.RealmResource
 import org.keycloak.representations.idm.ClientRepresentation
+import org.keycloak.representations.idm.ProtocolMapperRepresentation
 import org.slf4j.LoggerFactory
 
 internal class ClientsReconciler {
@@ -129,14 +130,44 @@ internal class ClientsReconciler {
         val existingMappers = protocolMappersResource.mappers.associateBy { it.name }
 
         desired.protocolMappers.forEach { desiredMapper ->
-            if (!existingMappers.containsKey(desiredMapper.name)) {
+            val existingMapper = existingMappers[desiredMapper.name]
+            if (existingMapper == null) {
                 logger.info(
                     "Client '{}': Mapper '{}' missing. Creating...",
                     desired.clientId,
                     desiredMapper.name
                 )
                 protocolMappersResource.createMapper(desiredMapper)
+                return@forEach
+            }
+
+            if (protocolMapperRequiresUpdate(existingMapper, desiredMapper)) {
+                logger.info(
+                    "Client '{}': Mapper '{}' changed. Updating...",
+                    desired.clientId,
+                    desiredMapper.name
+                )
+                val updatedMapper = ProtocolMapperRepresentation().apply {
+                    id = existingMapper.id
+                    name = desiredMapper.name
+                    protocol = desiredMapper.protocol
+                    protocolMapper = desiredMapper.protocolMapper
+                    config = desiredMapper.config
+                }
+                protocolMappersResource.update(existingMapper.id, updatedMapper)
             }
         }
     }
+}
+
+internal fun protocolMapperRequiresUpdate(
+    existing: ProtocolMapperRepresentation,
+    desired: ProtocolMapperRepresentation
+): Boolean {
+    if (existing.name != desired.name) return true
+    if (existing.protocol != desired.protocol) return true
+    if (existing.protocolMapper != desired.protocolMapper) return true
+    val existingConfig = existing.config ?: emptyMap()
+    val desiredConfig = desired.config ?: emptyMap()
+    return existingConfig != desiredConfig
 }

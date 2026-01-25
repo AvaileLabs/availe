@@ -17,6 +17,7 @@ internal object KeycloakClientIds {
 
 internal object KeycloakClientScopes {
     const val EMAIL = SharedAuthenticationConstants.Scopes.EMAIL
+    const val PROFILE = SharedAuthenticationConstants.Scopes.PROFILE
     const val ROLES = SharedAuthenticationConstants.Scopes.ROLES
     const val WEB_ORIGINS = SharedAuthenticationConstants.Scopes.WEB_ORIGINS
     const val OFFLINE_ACCESS = SharedAuthenticationConstants.Scopes.OFFLINE_ACCESS

@@ -18,6 +18,7 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.client.domain)
             implementation(projects.client.designSystem)
+            implementation(projects.shared.configuration)
             implementation(projects.client.uiComponents)
             implementation(projects.client.features.session)
 

@@ -9,6 +9,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.chat.details.ChatStore.*
+import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.MessageContent
 import com.availelabs.availe.model.ChatMessage
@@ -75,7 +76,15 @@ internal class ChatStoreFactory(
                 val authState = sessionManager.authenticationState.value
 
                 if (userProfile != null && authState is AuthenticationState.LoggedIn) {
-                    messagingRepository.connect(userProfile.jid, authState.accessToken)
+                    val userIdString = userProfile.id.value.toString()
+                    // Construct JID using the User ID (sub) and the XMPP Domain (localhost)
+                    val userJid = Jid("$userIdString@${SharedNetworkConstants.XMPP_DOMAIN}")
+
+                    messagingRepository.connect(
+                        jid = userJid,
+                        authIdentity = userIdString,
+                        token = authState.accessToken
+                    )
                 }
             }
         }
@@ -98,7 +107,10 @@ internal class ChatStoreFactory(
         private fun sendMessage(content: MessageContent) {
             scope.launch {
                 val userProfile = sessionManager.getCurrentUserProfile() ?: return@launch
-                messagingRepository.sendMessage(recipientJid, content, userProfile.jid)
+                val userIdString = userProfile.id.value.toString()
+                val userJid = Jid("$userIdString@${SharedNetworkConstants.XMPP_DOMAIN}")
+
+                messagingRepository.sendMessage(recipientJid, content, userJid)
             }
         }
     }

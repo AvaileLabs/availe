@@ -30,8 +30,8 @@ internal class MessagingRepository(
         )
     }
 
-    override suspend fun connect(jid: Jid, token: AuthToken) {
-        messagingRemoteDataSource.connect(jid, token)
+    override suspend fun connect(jid: Jid, authIdentity: String, token: AuthToken) {
+        messagingRemoteDataSource.connect(jid, authIdentity, token)
     }
 
     override suspend fun disconnect() {
