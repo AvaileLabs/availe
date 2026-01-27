@@ -17,6 +17,9 @@ composeMultiplatform = "1.10.0"
 http4kBom = "6.25.1.0"
 junit = "4.13.2"
 junitBom = "6.0.2"
+keycloakServerSpi = "26.5.2"
+keycloakServerSpiPrivate = "26.5.2"
+keycloakServices = "26.5.2"
 kotlin = "2.3.0"
 kotlinBrowser = "2026.1.4"
 kotlinx-coroutines = "1.10.2"
@@ -78,6 +81,9 @@ http4k-server-helidon = { module = "org.http4k:http4k-server-helidon" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junitBom" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+keycloak-server-spi = { module = "org.keycloak:keycloak-server-spi", version.ref = "keycloakServerSpi" }
+keycloak-server-spi-private = { module = "org.keycloak:keycloak-server-spi-private", version.ref = "keycloakServerSpiPrivate" }
+keycloak-services = { module = "org.keycloak:keycloak-services", version.ref = "keycloakServices" }
 kotlin-browser = { module = "org.jetbrains.kotlin-wrappers:kotlin-browser", version.ref = "kotlinBrowser" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

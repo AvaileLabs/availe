@@ -17,7 +17,9 @@ internal data class DesiredRealmSettings(
     val bruteForceProtected: Boolean = true,
     val permanentLockout: Boolean = false,
     val maxFailureWaitSeconds: Int = 900,
-    val failureFactor: Int = 30
+    val failureFactor: Int = 30,
+    val eventsEnabled: Boolean = true,
+    val eventsListeners: List<String> = listOf("jboss-logging")
 )
 
 internal data class DesiredClient(

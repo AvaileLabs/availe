@@ -2,12 +2,22 @@ package com.availelabs.orchestration.keycloak
 
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
+import com.availelabs.infrastructure.generated.InfrastructureConstants
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.availelabs.orchestration.postgreskeycloak.loadPostgresKeycloakConfig
+import java.io.File
 
 internal fun keycloakRunSpec(): ContainerRunSpecification<KeycloakPortsList, KeycloakVolumesList> {
     val keycloakConfig = loadKeycloakConfig()
     val postgresKeycloakConfig = loadPostgresKeycloakConfig()
+
+    // The path is generated automatically by the buildConfig plugin
+    val spiJarFile = File(InfrastructureConstants.KEYCLOAK_SPI_JAR_PATH)
+
+    check(spiJarFile.exists()) {
+        "Keycloak SPI JAR not found at: ${spiJarFile.absolutePath}. " +
+                "Please run './gradlew :backend:keycloakSpi:jar' to build it."
+    }
 
     val environmentVariables = listOf(
         "KEYCLOAK_ADMIN=${keycloakConfig.adminUser}",
@@ -31,7 +41,7 @@ internal fun keycloakRunSpec(): ContainerRunSpecification<KeycloakPortsList, Key
         tag = "26.0.7",
         environmentVariables = environmentVariables,
         portMappings = KeycloakPortsList,
-        volumes = KeycloakVolumesList,
+        volumes = KeycloakVolumesList(spiJarHostPath = spiJarFile.absolutePath),
         command = listOf("start-dev", "--features=scripts")
     )
 }

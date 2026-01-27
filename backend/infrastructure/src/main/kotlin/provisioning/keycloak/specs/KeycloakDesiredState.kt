@@ -8,7 +8,10 @@ internal object KeycloakDesiredState {
     const val REALM_NAME = KeycloakRealms.AVAILE
     const val DB_SCHEMA_NAME = KeycloakDbSchemas.KEYCLOAK
 
-    val REALM_SETTINGS = DesiredRealmSettings()
+    val REALM_SETTINGS = DesiredRealmSettings(
+        eventsEnabled = true,
+        eventsListeners = listOf("jboss-logging", "jid-listener")
+    )
 
     private const val HOST_IP = NetworkConstants.HOST_IP
 
@@ -48,7 +51,6 @@ internal object KeycloakDesiredState {
         )
     }
 
-    // New Mapper: Maps the "jid" User Attribute to the "jid" Token Claim
     private val jidAttributeMapper = ProtocolMapperRepresentation().apply {
         name = "user-jid-attribute-mapper"
         protocol = "openid-connect"

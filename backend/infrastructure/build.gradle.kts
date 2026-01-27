@@ -1,9 +1,16 @@
 plugins {
     alias(libs.plugins.kotlinJvm)
+    alias(libs.plugins.gradle.buildconfig)
 }
 
 group = "com.availelabs"
 version = "1.0.0"
+
+// 1. Define a configuration to safely resolve the artifact from the other project
+val keycloakSpiArtifact by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
 
 dependencies {
     implementation(platform(libs.docker.java.bom))
@@ -18,10 +25,34 @@ dependencies {
     implementation(projects.shared.logic)
     implementation(projects.shared.configuration)
     testImplementation(kotlin("test"))
+
+    // 2. Add the dependency. isTransitive = false ensures we only get the project jar, not its dependencies.
+    keycloakSpiArtifact(project(":backend:keycloakSpi")) {
+        isTransitive = false
+    }
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// 3. Create a provider that resolves the configuration to a file path string lazily
+val keycloakSpiJarPathProvider = providers.provider {
+    val jarFile = keycloakSpiArtifact.singleFile
+    "\"${jarFile.absolutePath}\""
+}
+
+buildConfig {
+    packageName("com.availelabs.infrastructure.generated")
+    className("InfrastructureConstants")
+
+    useKotlinOutput {
+        internalVisibility = true
+    }
+
+    sourceSets.named("main") {
+        buildConfigField("String", "KEYCLOAK_SPI_JAR_PATH", keycloakSpiJarPathProvider)
+    }
 }
 
 val containersSetup by tasks.registering(JavaExec::class) {
@@ -30,6 +61,9 @@ val containersSetup by tasks.registering(JavaExec::class) {
     mainClass.set("com.availelabs.MainKt")
     classpath = sourceSets.main.get().runtimeClasspath
     jvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
+
+    // 4. Ensure the jar is actually built before we try to run the infrastructure setup
+    dependsOn(keycloakSpiArtifact)
 }
 
 val destroyAll by tasks.registering(JavaExec::class) {

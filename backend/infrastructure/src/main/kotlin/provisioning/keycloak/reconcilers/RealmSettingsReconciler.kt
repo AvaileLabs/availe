@@ -19,6 +19,15 @@ internal class RealmSettingsReconciler {
             }
         }
 
+        fun syncList(fieldName: String, current: List<String>?, target: List<String>, setter: (List<String>) -> Unit) {
+            val currentList = current ?: emptyList()
+            if (currentList.toSet() != target.toSet()) {
+                setter(target)
+                logger.info("Realm setting '{}' changed. Old: '{}', New: '{}'", fieldName, current, target)
+                changed = true
+            }
+        }
+
         sync(
             "AccessTokenLifespan",
             existingRealm.accessTokenLifespan,
@@ -84,6 +93,15 @@ internal class RealmSettingsReconciler {
             desired.maxFailureWaitSeconds
         ) { existingRealm.maxFailureWaitSeconds = it }
         sync("FailureFactor", existingRealm.failureFactor, desired.failureFactor) { existingRealm.failureFactor = it }
+
+        sync("EventsEnabled", existingRealm.isEventsEnabled, desired.eventsEnabled) {
+            existingRealm.isEventsEnabled = it
+        }
+        syncList(
+            "EventsListeners",
+            existingRealm.eventsListeners,
+            desired.eventsListeners
+        ) { existingRealm.eventsListeners = it }
 
         if (changed) {
             logger.info("Realm settings are out of sync. Updating...")

@@ -53,7 +53,7 @@ include(":client:features:chat")
 
 include(":backend:server")
 include(":backend:infrastructure")
+include("backend:keycloakSpi")
 
 include(":shared:logic")
 include(":shared:configuration")
-include("backend:keycloakSpi")

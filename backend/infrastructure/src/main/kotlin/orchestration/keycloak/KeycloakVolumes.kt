@@ -8,9 +8,19 @@ internal sealed interface KeycloakVolumes : ContainerRunSpecification.VolumeMoun
         override val containerPath = "/opt/keycloak/data"
         override val isBindMount = false
     }
+
+    data class ProviderJar(val hostFilePath: String) : KeycloakVolumes {
+        override val hostSource = hostFilePath
+        override val containerPath = "/opt/keycloak/providers/jid-listener.jar"
+        override val isBindMount = true
+    }
 }
 
-internal object KeycloakVolumesList : ContainerRunSpecification.VolumeList {
-    val Data = KeycloakVolumes.Data
-    override val all = listOf(Data)
+internal class KeycloakVolumesList(
+    spiJarHostPath: String
+) : ContainerRunSpecification.VolumeList {
+    val data = KeycloakVolumes.Data
+    val providerJar = KeycloakVolumes.ProviderJar(spiJarHostPath)
+
+    override val all = listOf(data, providerJar)
 }

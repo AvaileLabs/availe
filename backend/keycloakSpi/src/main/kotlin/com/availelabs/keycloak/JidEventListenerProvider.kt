@@ -5,9 +5,11 @@ import org.keycloak.events.Event
 import org.keycloak.events.EventListenerProvider
 import org.keycloak.events.EventType
 import org.keycloak.events.admin.AdminEvent
+import org.keycloak.events.admin.OperationType
+import org.keycloak.events.admin.ResourceType
 import org.keycloak.models.KeycloakSession
 import org.keycloak.models.RealmModel
-import org.keycloak.models.utils.KeycloakModelUtils
+import org.keycloak.models.UserModel
 
 class JidEventListenerProvider(private val keycloakSession: KeycloakSession) : EventListenerProvider {
 
@@ -20,6 +22,9 @@ class JidEventListenerProvider(private val keycloakSession: KeycloakSession) : E
     }
 
     override fun onEvent(adminEvent: AdminEvent, includeRepresentation: Boolean) {
+        if (adminEvent.operationType == OperationType.CREATE && adminEvent.resourceType == ResourceType.USER) {
+            handleAdminUserCreation(adminEvent)
+        }
     }
 
     override fun close() {
@@ -29,27 +34,39 @@ class JidEventListenerProvider(private val keycloakSession: KeycloakSession) : E
         val userId = event.userId
         val realmId = event.realmId
 
-        logger.infof("Detected REGISTER event for user %s in realm %s", userId, realmId)
+        assignJidToUser(realmId, userId)
+    }
 
-        KeycloakModelUtils.runJobInTransaction(keycloakSession.keycloakSessionFactory) { sessionInTransaction ->
-            val realmModel: RealmModel? = sessionInTransaction.realms().getRealm(realmId)
+    private fun handleAdminUserCreation(adminEvent: AdminEvent) {
+        val realmId = adminEvent.realmId
+        val resourcePath = adminEvent.resourcePath
 
-            if (realmModel == null) {
-                logger.errorf("Realm %s not found during JID generation", realmId)
-                return@runJobInTransaction
-            }
+        if (resourcePath == null || !resourcePath.startsWith("users/")) {
+            logger.warnf("Invalid resource path for user creation event: %s", resourcePath)
+            return
+        }
 
-            sessionInTransaction.context.realm = realmModel
+        val userId = resourcePath.substringAfter("users/")
+        assignJidToUser(realmId, userId)
+    }
 
-            val userModel = sessionInTransaction.users().getUserById(realmModel, userId)
+    private fun assignJidToUser(realmId: String, userId: String) {
+        val realmModel: RealmModel? = keycloakSession.realms().getRealm(realmId)
 
-            if (userModel != null) {
-                val jidValue = "${userId}@localhost"
-                userModel.setSingleAttribute("jid", jidValue)
-                logger.infof("Successfully assigned JID %s to user %s", jidValue, userId)
-            } else {
-                logger.warnf("User %s not found in new transaction context", userId)
-            }
+        if (realmModel == null) {
+            logger.errorf("Realm %s not found during JID generation", realmId)
+            return
+        }
+
+        keycloakSession.context.realm = realmModel
+        val userModel: UserModel? = keycloakSession.users().getUserById(realmModel, userId)
+
+        if (userModel != null) {
+            val jidValue = "${userId}@localhost"
+            userModel.setSingleAttribute("jid", jidValue)
+            logger.infof("Successfully assigned JID %s to user %s", jidValue, userId)
+        } else {
+            logger.warnf("User %s not found in current session context", userId)
         }
     }
 }
