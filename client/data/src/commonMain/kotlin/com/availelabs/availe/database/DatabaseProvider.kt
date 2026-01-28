@@ -2,6 +2,7 @@ package com.availelabs.availe.database
 
 import app.cash.sqldelight.db.SqlDriver
 import com.availelabs.availe.db.ClientDatabase
+import com.availelabs.availe.preferences.IDatabasePreferences
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -12,9 +13,11 @@ internal interface IDatabaseProvider {
 }
 
 internal class DatabaseProvider(
-    private val sqlDriverFactory: com.availelabs.availe.database.SqlDriverFactory,
-    private val json: Json
-) : com.availelabs.availe.database.IDatabaseProvider {
+    private val sqlDriverFactory: SqlDriverFactory,
+    private val json: Json,
+    private val databasePreferences: IDatabasePreferences,
+    private val databaseFileController: IDatabaseFileController
+) : IDatabaseProvider {
 
     private var sqlDriver: SqlDriver? = null
     private var clientDatabase: ClientDatabase? = null
@@ -25,14 +28,14 @@ internal class DatabaseProvider(
             return clientDatabase!!
         }
 
-        val driver = sqlDriverFactory.createDriver()
-        val database =
-            ClientDatabaseFactory.createClientDatabase(driver, json)
+        validateSchemaAndWipeIfNeeded()
 
-        sqlDriver = driver
-        clientDatabase = database
-
-        return database
+        try {
+            return initializeDatabaseAndStoreReference()
+        } catch (_: Exception) {
+            recoverFromCorruption()
+            return initializeDatabaseAndStoreReference()
+        }
     }
 
     override suspend fun closeAndClearDatabase() {
@@ -45,5 +48,47 @@ internal class DatabaseProvider(
                 clientDatabase = null
             }
         }
+    }
+
+    private suspend fun initializeDatabaseAndStoreReference(): ClientDatabase {
+        val driver = sqlDriverFactory.createDriver()
+        val database = ClientDatabaseFactory.createClientDatabase(driver, json)
+
+        sqlDriver = driver
+        clientDatabase = database
+
+        return database
+    }
+
+    private suspend fun validateSchemaAndWipeIfNeeded() {
+        val currentSchemaHash = DatabaseBuildConfig.SCHEMA_HASH
+        val installedSchemaHash = databasePreferences.getInstalledSchemaHash()
+
+        if (installedSchemaHash.isNullOrEmpty()) {
+            databasePreferences.updateInstalledSchemaHash(currentSchemaHash)
+        } else if (installedSchemaHash != currentSchemaHash) {
+            try {
+                databaseFileController.deleteDatabaseFile()
+            } catch (_: Exception) {
+            }
+            databasePreferences.updateInstalledSchemaHash(currentSchemaHash)
+        }
+    }
+
+    private suspend fun recoverFromCorruption() {
+        try {
+            sqlDriver?.close()
+        } catch (_: Exception) {
+        } finally {
+            sqlDriver = null
+            clientDatabase = null
+        }
+
+        try {
+            databaseFileController.deleteDatabaseFile()
+        } catch (_: Exception) {
+        }
+
+        databasePreferences.clear()
     }
 }

@@ -1,11 +1,13 @@
 import app.cash.sqldelight.gradle.SqlDelightDatabase
 import com.android.build.api.dsl.androidLibrary
 import com.availelabs.buildlogic.configureIosFramework
+import java.security.MessageDigest
 
 plugins {
     alias(libs.plugins.availe.kmp.android)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.gradle.buildconfig)
 }
 
 group = "com.availelabs"
@@ -33,7 +35,6 @@ kotlin {
             implementation(libs.store5)
             implementation(libs.xmlutil)
 
-            // kmp-oidc
             implementation(libs.oidc.appsupport)
             implementation(libs.oidc.ktor)
             implementation(libs.oidc.preferences)
@@ -41,14 +42,12 @@ kotlin {
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines.extensions)
 
-            // Decompose
             api(libs.decompose)
             api(libs.decompose.extensions.compose)
             api(libs.essenty.lifecycle)
             api(libs.essenty.lifecycle.coroutines)
             implementation(libs.decompose.extensions.compose.experimental)
 
-            // Ktor
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.auth)
             implementation(libs.ktor.client.content.negotiation)
@@ -98,4 +97,33 @@ sqldelight {
             generateAsync.set(true)
         })
     }
+}
+
+val databaseSchemaHashProvider: Provider<String> = providers.provider {
+    val messageDigest = MessageDigest.getInstance("MD5")
+    val schemaDirectory = layout.projectDirectory.dir("src/commonMain/sqldelight").asFile
+
+    if (schemaDirectory.exists()) {
+        fileTree(schemaDirectory) {
+            include("**/*.sq")
+        }.files.sortedBy { file -> file.absolutePath }
+            .forEach { file ->
+                messageDigest.update(file.readBytes())
+            }
+        val hash = messageDigest.digest().joinToString("") { byte -> "%02x".format(byte) }
+        "\"$hash\""
+    } else {
+        "\"empty\""
+    }
+}
+
+buildConfig {
+    packageName("com.availelabs.availe.database")
+    className("DatabaseBuildConfig")
+
+    useKotlinOutput {
+        internalVisibility = true
+    }
+
+    buildConfigField("String", "SCHEMA_HASH", databaseSchemaHashProvider)
 }

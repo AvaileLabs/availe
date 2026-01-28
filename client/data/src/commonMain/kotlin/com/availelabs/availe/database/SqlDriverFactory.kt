@@ -7,4 +7,4 @@ internal interface SqlDriverFactory {
     suspend fun createDriver(): SqlDriver
 }
 
-internal expect fun createSqlDriverFactory(activity: PlatformActivity): com.availelabs.availe.database.SqlDriverFactory
+internal expect fun createSqlDriverFactory(activity: PlatformActivity): SqlDriverFactory

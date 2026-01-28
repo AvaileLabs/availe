@@ -6,4 +6,4 @@ internal interface IDatabaseFileController {
     suspend fun deleteDatabaseFile()
 }
 
-internal expect fun createDatabaseFileController(activity: PlatformActivity): com.availelabs.availe.database.IDatabaseFileController
+internal expect fun createDatabaseFileController(activity: PlatformActivity): IDatabaseFileController

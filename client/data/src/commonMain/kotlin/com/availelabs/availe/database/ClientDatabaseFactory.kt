@@ -21,12 +21,12 @@ internal object ClientDatabaseFactory {
     @OptIn(ExperimentalUuidApi::class)
     fun createClientDatabase(sqlDriver: SqlDriver, json: Json): ClientDatabase {
         val listingIdColumnAdapter = object : ColumnAdapter<ListingId, String> {
-            override fun decode(databaseValue: String): ListingId = ListingId(Uuid.Companion.parse(databaseValue))
+            override fun decode(databaseValue: String): ListingId = ListingId(Uuid.parse(databaseValue))
             override fun encode(value: ListingId): String = value.value.toString()
         }
 
         val userIdColumnAdapter = object : ColumnAdapter<UserId, String> {
-            override fun decode(databaseValue: String): UserId = UserId(Uuid.Companion.parse(databaseValue))
+            override fun decode(databaseValue: String): UserId = UserId(Uuid.parse(databaseValue))
             override fun encode(value: UserId): String = value.value.toString()
         }
 
@@ -37,7 +37,7 @@ internal object ClientDatabaseFactory {
 
         val listingCreationTimeColumnAdapter = object : ColumnAdapter<ListingCreationTime, String> {
             override fun decode(databaseValue: String): ListingCreationTime =
-                ListingCreationTime(Instant.Companion.parse(databaseValue))
+                ListingCreationTime(Instant.parse(databaseValue))
 
             override fun encode(value: ListingCreationTime): String = value.value.toString()
         }

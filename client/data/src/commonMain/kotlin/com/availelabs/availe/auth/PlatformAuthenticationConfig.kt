@@ -7,4 +7,4 @@ internal data class PlatformAuthenticationConfig(
     val postLogoutRedirectUri: String,
 )
 
-internal expect fun createPlatformAuthenticationConfig(activity: PlatformActivity): com.availelabs.availe.auth.PlatformAuthenticationConfig
+internal expect fun createPlatformAuthenticationConfig(activity: PlatformActivity): PlatformAuthenticationConfig

@@ -10,6 +10,7 @@ import com.availelabs.availe.database.createDatabaseFileController
 import com.availelabs.availe.database.createSqlDriverFactory
 import com.availelabs.availe.network.SafeNetworkCaller
 import com.availelabs.availe.platform.PlatformActivity
+import com.availelabs.availe.preferences.DatabasePreferences
 import com.availelabs.availe.preferences.ListingPreferences
 import com.availelabs.availe.repositories.AuthenticationRepository
 import com.availelabs.availe.repositories.ListingRepository
@@ -58,6 +59,7 @@ object DataLayerFactory {
             val platformAuthenticationConfiguration = createPlatformAuthenticationConfig(activity)
             val settings = Settings()
             val listingPreferences = ListingPreferences(settings)
+            val databasePreferences = DatabasePreferences(settings)
 
             val json = Json {
                 ignoreUnknownKeys = true
@@ -67,7 +69,9 @@ object DataLayerFactory {
 
             val databaseProvider = DatabaseProvider(
                 sqlDriverFactory = sqlDriverFactory,
-                json = json
+                json = json,
+                databasePreferences = databasePreferences,
+                databaseFileController = databaseFileController
             )
 
             val listingLocalDataSource = ListingLocalDataSource(databaseProvider)
@@ -186,8 +190,7 @@ object DataLayerFactory {
 
             val listingStoreFactory = ListingStoreFactory(
                 remoteDataSource = listingRemoteDataSource,
-                localDataSource = listingLocalDataSource,
-                localDataCleaner = localDataCleaner
+                localDataSource = listingLocalDataSource
             )
 
             val listingRepository = ListingRepository(
