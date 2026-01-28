@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val componentContext = defaultComponentContext()
 
-        val appContainer = createApplicationContainer(componentContext.lifecycle, this)
+        val appContainer = createApplicationContainer(componentContext.instanceKeeper, this)
 
         val root = RootComponent(
             componentContext = componentContext,

@@ -1,5 +1,5 @@
-import Foundation
 import ComposeApp
+import Foundation
 
 class RootHolder: ObservableObject {
     let lifecycle: LifecycleRegistry
@@ -11,7 +11,7 @@ class RootHolder: ObservableObject {
         let activity = PlatformActivity()
 
         let appContainer = ApplicationContainerKt.createApplicationContainer(
-            lifecycle: lifecycle,
+            instanceKeeper: context.instanceKeeper,
             activity: activity
         )
 

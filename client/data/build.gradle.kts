@@ -27,6 +27,8 @@ kotlin {
             implementation(projects.client.domain)
             implementation(libs.multiplatform.settings.no.arg)
             implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.datetime)
 
             implementation(libs.store5)
             implementation(libs.xmlutil)

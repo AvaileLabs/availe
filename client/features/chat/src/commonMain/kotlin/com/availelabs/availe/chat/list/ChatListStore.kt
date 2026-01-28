@@ -7,13 +7,10 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.chat.list.ChatListStore.*
-import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.model.ChatConversation
 import com.availelabs.availe.repositories.IMessagingRepository
-import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.repositories.MessagingConnectionState
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -38,8 +35,7 @@ interface ChatListStore : Store<Intent, State, Label> {
 
 internal class ChatListStoreFactory(
     private val storeFactory: StoreFactory,
-    private val messagingRepository: IMessagingRepository,
-    private val sessionManager: ISessionRepository
+    private val messagingRepository: IMessagingRepository
 ) {
     fun create(): ChatListStore =
         object : ChatListStore, Store<Intent, State, Label> by storeFactory.create(
@@ -63,7 +59,7 @@ internal class ChatListStoreFactory(
 
     private inner class BootstrapperImpl : CoroutineBootstrapper<Action>() {
         override fun invoke() {
-            // 1. Observe Conversations
+            // 1. Observe Database (Single Source of Truth)
             scope.launch {
                 messagingRepository.getConversations().collectLatest { conversations ->
                     dispatch(Action.UpdateConversations(conversations))
@@ -74,23 +70,6 @@ internal class ChatListStoreFactory(
             scope.launch {
                 messagingRepository.connectionStatus.collectLatest { status ->
                     dispatch(Action.UpdateConnectionStatus(status))
-                }
-            }
-
-            // 3. Initiate Connection if Logged In
-            scope.launch {
-                val userProfile = sessionManager.getCurrentUserProfile()
-                val authState = sessionManager.authenticationState.value
-
-                if (userProfile != null && authState is AuthenticationState.LoggedIn) {
-                    val userIdString = userProfile.id.value.toString()
-                    val userJid = Jid("$userIdString@${SharedNetworkConstants.XMPP_DOMAIN}")
-
-                    messagingRepository.connect(
-                        jid = userJid,
-                        authIdentity = userIdString,
-                        token = authState.accessToken
-                    )
                 }
             }
         }

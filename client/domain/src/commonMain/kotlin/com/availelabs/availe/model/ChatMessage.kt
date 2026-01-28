@@ -14,5 +14,6 @@ data class ChatMessage(
     val content: MessageContent,
     val senderJid: Jid,
     val timestamp: Instant = Clock.System.now(),
-    val isMine: Boolean
+    val isMine: Boolean,
+    val status: MessageStatus = MessageStatus.Pending
 )

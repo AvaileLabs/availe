@@ -27,6 +27,7 @@ import availe.client.designsystem.generated.resources.chat_status_connecting
 import availe.client.designsystem.generated.resources.chat_status_disconnected
 import coil3.compose.AsyncImage
 import com.availelabs.availe.model.ChatConversation
+import com.availelabs.availe.model.LastMessageTimestamp
 import com.availelabs.availe.repositories.MessagingConnectionState
 import com.composables.uikit.components.Text
 import com.composables.uikit.styling.*
@@ -186,12 +187,18 @@ private fun ChatListItem(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // Mock time for now, can format properly later
-                Text(
-                    text = "10:30 AM",
-                    fontSize = 12.sp,
-                    color = Theme[colors][onBackground].copy(alpha = 0.6f)
-                )
+                val timeText = when (val time = conversation.lastMessageTimestamp) {
+                    is LastMessageTimestamp.Known -> "Now" // Placeholder for relative time logic
+                    LastMessageTimestamp.Unknown -> ""
+                }
+
+                if (timeText.isNotEmpty()) {
+                    Text(
+                        text = timeText,
+                        fontSize = 12.sp,
+                        color = Theme[colors][onBackground].copy(alpha = 0.6f)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(4.dp))

@@ -1,6 +1,7 @@
 package com.availelabs.availe.di
 
-import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.arkivanov.essenty.instancekeeper.InstanceKeeper
+import com.arkivanov.essenty.instancekeeper.getOrCreate
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.auth.*
 import com.availelabs.availe.configuration.SharedNetworkConstants
@@ -31,6 +32,10 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.serialization.json.Json
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
@@ -41,161 +46,169 @@ object DataLayerFactory {
     @OptIn(ExperimentalOpenIdConnect::class)
     fun create(
         activity: PlatformActivity,
-        lifecycle: Lifecycle
+        instanceKeeper: InstanceKeeper
     ): IDataContainer {
-        val sqlDriverFactory = createSqlDriverFactory(activity)
-        val databaseFileController = createDatabaseFileController(activity)
-        val codeAuthenticationFlowFactory = createPlatformAuthenticationFlowFactory(activity)
-        val tokenStore = createTokenStore(activity)
-        val platformAuthenticationConfiguration = createPlatformAuthenticationConfig(activity)
-        val settings = Settings()
-        val listingPreferences = ListingPreferences(settings)
+        return instanceKeeper.getOrCreate {
+            val applicationScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
-        val json = Json {
-            ignoreUnknownKeys = true
-            prettyPrint = true
-            isLenient = true
-        }
+            val sqlDriverFactory = createSqlDriverFactory(activity)
+            val databaseFileController = createDatabaseFileController(activity)
+            val codeAuthenticationFlowFactory = createPlatformAuthenticationFlowFactory(activity)
+            val tokenStore = createTokenStore(activity)
+            val platformAuthenticationConfiguration = createPlatformAuthenticationConfig(activity)
+            val settings = Settings()
+            val listingPreferences = ListingPreferences(settings)
 
-        val databaseProvider = DatabaseProvider(
-            sqlDriverFactory = sqlDriverFactory,
-            json = json
-        )
-
-        val listingLocalDataSource = ListingLocalDataSource(databaseProvider)
-
-        val localDataCleaner = LocalDataCleaner(
-            tokenStore = tokenStore,
-            listingPreferences = listingPreferences,
-            databaseProvider = databaseProvider,
-            databaseFileController = databaseFileController
-        )
-
-        val safeNetworkCaller = SafeNetworkCaller(localDataCleaner)
-
-        val openIdConnectClient = OpenIdConnectClient(discoveryUri = AuthenticationConstants.DISCOVERY_URI) {
-            this.scope = setOf(
-                AuthScope.OPEN_ID,
-                AuthScope.PROFILE,
-                AuthScope.EMAIL,
-                AuthScope.OFFLINE_ACCESS
-            ).toScopeString()
-            this.clientId = AuthenticationConstants.CLIENT_ID
-            this.codeChallengeMethod = CodeChallengeMethod.S256
-            this.redirectUri = platformAuthenticationConfiguration.redirectUri
-            this.postLogoutRedirectUri = platformAuthenticationConfiguration.postLogoutRedirectUri
-        }
-
-        val authenticationRemoteDataSource = AuthenticationRemoteDataSource(
-            openIdConnectClient = openIdConnectClient,
-            codeAuthenticationFlowFactory = codeAuthenticationFlowFactory,
-            tokenStore = tokenStore
-        )
-
-        val sessionRepository = SessionRepository(
-            authenticationRemoteDataSource = authenticationRemoteDataSource,
-            localDataCleaner = localDataCleaner,
-            lifecycle = lifecycle,
-            accountManagementUrl = AuthenticationConstants.ACCOUNT_MANAGEMENT_URL
-        )
-
-        val authenticationRepository = AuthenticationRepository(
-            authenticationRemoteDataSource = authenticationRemoteDataSource,
-            sessionManager = sessionRepository
-        )
-
-        val httpClient = HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 10_000
-                connectTimeoutMillis = 3_000
-                socketTimeoutMillis = 10_000
+            val json = Json {
+                ignoreUnknownKeys = true
+                prettyPrint = true
+                isLenient = true
             }
 
-            install(ContentNegotiation) {
-                json(json)
+            val databaseProvider = DatabaseProvider(
+                sqlDriverFactory = sqlDriverFactory,
+                json = json
+            )
+
+            val listingLocalDataSource = ListingLocalDataSource(databaseProvider)
+
+            val localDataCleaner = LocalDataCleaner(
+                tokenStore = tokenStore,
+                listingPreferences = listingPreferences,
+                databaseProvider = databaseProvider,
+                databaseFileController = databaseFileController
+            )
+
+            val safeNetworkCaller = SafeNetworkCaller(localDataCleaner)
+
+            val openIdConnectClient = OpenIdConnectClient(discoveryUri = AuthenticationConstants.DISCOVERY_URI) {
+                this.scope = setOf(
+                    AuthScope.OPEN_ID,
+                    AuthScope.PROFILE,
+                    AuthScope.EMAIL,
+                    AuthScope.OFFLINE_ACCESS
+                ).toScopeString()
+                this.clientId = AuthenticationConstants.CLIENT_ID
+                this.codeChallengeMethod = CodeChallengeMethod.S256
+                this.redirectUri = platformAuthenticationConfiguration.redirectUri
+                this.postLogoutRedirectUri = platformAuthenticationConfiguration.postLogoutRedirectUri
             }
 
-            install(WebSockets) {
-                pingInterval = 20_000.milliseconds
-            }
+            val authenticationRemoteDataSource = AuthenticationRemoteDataSource(
+                openIdConnectClient = openIdConnectClient,
+                codeAuthenticationFlowFactory = codeAuthenticationFlowFactory,
+                tokenStore = tokenStore
+            )
 
-            install(Auth) {
-                bearer {
-                    loadTokens {
-                        val tokens = authenticationRemoteDataSource.getTokens()
-                        if (tokens?.accessToken != null && tokens.refreshToken != null) {
-                            BearerTokens(tokens.accessToken, tokens.refreshToken!!)
-                        } else {
-                            null
-                        }
-                    }
+            val sessionRepository = SessionRepository(
+                authenticationRemoteDataSource = authenticationRemoteDataSource,
+                localDataCleaner = localDataCleaner,
+                lifecycle = com.arkivanov.essenty.lifecycle.LifecycleRegistry(), // Mock lifecycle for session repo if needed, or refactor SessionRepo to use scope
+                accountManagementUrl = AuthenticationConstants.ACCOUNT_MANAGEMENT_URL
+            )
 
-                    refreshTokens {
-                        val oldRefreshToken = oldTokens?.refreshToken
-                        if (oldRefreshToken != null) {
-                            try {
-                                val newTokens = authenticationRemoteDataSource.refreshTokens(oldRefreshToken)
-                                authenticationRemoteDataSource.saveTokens(newTokens)
-                                BearerTokens(newTokens.access_token, newTokens.refresh_token ?: oldRefreshToken)
-                            } catch (_: Exception) {
-                                sessionRepository.onSessionInvalidated()
+            val authenticationRepository = AuthenticationRepository(
+                authenticationRemoteDataSource = authenticationRemoteDataSource,
+                sessionManager = sessionRepository
+            )
+
+            val httpClient = HttpClient {
+                install(HttpTimeout) {
+                    requestTimeoutMillis = 10_000
+                    connectTimeoutMillis = 3_000
+                    socketTimeoutMillis = 10_000
+                }
+
+                install(ContentNegotiation) {
+                    json(json)
+                }
+
+                install(WebSockets) {
+                    pingInterval = 20_000.milliseconds
+                }
+
+                install(Auth) {
+                    bearer {
+                        loadTokens {
+                            val tokens = authenticationRemoteDataSource.getTokens()
+                            if (tokens?.accessToken != null && tokens.refreshToken != null) {
+                                BearerTokens(tokens.accessToken, tokens.refreshToken!!)
+                            } else {
                                 null
                             }
-                        } else {
-                            null
                         }
+
+                        refreshTokens {
+                            val oldRefreshToken = oldTokens?.refreshToken
+                            if (oldRefreshToken != null) {
+                                try {
+                                    val newTokens = authenticationRemoteDataSource.refreshTokens(oldRefreshToken)
+                                    authenticationRemoteDataSource.saveTokens(newTokens)
+                                    BearerTokens(newTokens.access_token, newTokens.refresh_token ?: oldRefreshToken)
+                                } catch (_: Exception) {
+                                    sessionRepository.onSessionInvalidated()
+                                    null
+                                }
+                            } else {
+                                null
+                            }
+                        }
+                    }
+                }
+
+                defaultRequest {
+                    url {
+                        protocol = URLProtocol.HTTP
+                        host = NetworkConstants.HOST_IP
+                        port = SharedNetworkConstants.SERVER_API_PORT
+                        path("/api/")
                     }
                 }
             }
 
-            defaultRequest {
-                url {
-                    protocol = URLProtocol.HTTP
-                    host = NetworkConstants.HOST_IP
-                    port = SharedNetworkConstants.SERVER_API_PORT
-                    path("/api/")
-                }
-            }
+            val listingRemoteDataSource = ListingRemoteDataSource(
+                httpClient = httpClient,
+                json = json
+            )
+
+            val xmppSession = XmppSession(httpClient)
+
+            val messagingRemoteDataSource = MessagingRemoteDataSource(
+                xmppSession = xmppSession
+            )
+
+            val messagingRepository = MessagingRepository(
+                messagingRemoteDataSource = messagingRemoteDataSource,
+                databaseProvider = databaseProvider,
+                sessionManager = sessionRepository,
+                scope = applicationScope
+            )
+
+            val listingStoreFactory = ListingStoreFactory(
+                remoteDataSource = listingRemoteDataSource,
+                localDataSource = listingLocalDataSource,
+                localDataCleaner = localDataCleaner
+            )
+
+            val listingRepository = ListingRepository(
+                remoteDataSource = listingRemoteDataSource,
+                localDataSource = listingLocalDataSource,
+                storeFactory = listingStoreFactory,
+                listingPreferences = listingPreferences,
+                safeNetworkCaller = safeNetworkCaller
+            )
+
+            val messageService = MessageService(applicationScope)
+
+            DataContainer(
+                sessionRepository = sessionRepository,
+                authenticationRepository = authenticationRepository,
+                listingRepository = listingRepository,
+                messagingRepository = messagingRepository,
+                messageService = messageService,
+                applicationScope = applicationScope
+            )
         }
-
-        val listingRemoteDataSource = ListingRemoteDataSource(
-            httpClient = httpClient,
-            json = json
-        )
-
-        val xmppSession = XmppSession(httpClient)
-
-        val messagingRemoteDataSource = MessagingRemoteDataSource(
-            xmppSession = xmppSession
-        )
-
-        val messagingRepository = MessagingRepository(
-            messagingRemoteDataSource = messagingRemoteDataSource
-        )
-
-        val listingStoreFactory = ListingStoreFactory(
-            remoteDataSource = listingRemoteDataSource,
-            localDataSource = listingLocalDataSource,
-            localDataCleaner = localDataCleaner
-        )
-
-        val listingRepository = ListingRepository(
-            remoteDataSource = listingRemoteDataSource,
-            localDataSource = listingLocalDataSource,
-            storeFactory = listingStoreFactory,
-            listingPreferences = listingPreferences,
-            safeNetworkCaller = safeNetworkCaller
-        )
-
-        val messageService = MessageService(lifecycle)
-
-        return DataContainer(
-            sessionRepository = sessionRepository,
-            authenticationRepository = authenticationRepository,
-            listingRepository = listingRepository,
-            messagingRepository = messagingRepository,
-            messageService = messageService
-        )
     }
 
     private class DataContainer(
@@ -203,6 +216,11 @@ object DataLayerFactory {
         override val authenticationRepository: AuthenticationRepository,
         override val listingRepository: ListingRepository,
         override val messagingRepository: MessagingRepository,
-        override val messageService: MessageService
-    ) : IDataContainer
+        override val messageService: MessageService,
+        private val applicationScope: CoroutineScope
+    ) : IDataContainer, InstanceKeeper.Instance {
+        override fun onDestroy() {
+            applicationScope.cancel()
+        }
+    }
 }

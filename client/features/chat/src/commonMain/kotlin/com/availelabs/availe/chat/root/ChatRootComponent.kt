@@ -104,7 +104,6 @@ class ChatRootComponent(
         return ChatListComponent(
             componentContext = componentContext,
             messagingRepository = messagingRepository,
-            sessionManager = sessionManager,
             onConversationSelectedCallback = { jid ->
                 navigation.activateDetails(ChatRootConfiguration.Details(jid))
             }

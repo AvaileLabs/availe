@@ -12,9 +12,10 @@ value class DisplayMessage(val value: String)
 @JvmInline
 value class UnreadCount(val value: Int)
 
-@Serializable
-@JvmInline
-value class LastMessageTimestamp(val value: Instant)
+sealed interface LastMessageTimestamp {
+    data object Unknown : LastMessageTimestamp
+    data class Known(val value: Instant) : LastMessageTimestamp
+}
 
 @Serializable
 @JvmInline

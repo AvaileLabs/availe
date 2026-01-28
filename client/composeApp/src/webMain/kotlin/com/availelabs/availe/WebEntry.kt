@@ -38,7 +38,7 @@ fun startWebApp(deepLink: String?, stateKeeper: StateKeeper): RootComponent {
         stateKeeper = stateKeeper
     )
 
-    val appContainer = createApplicationContainer(lifecycle, activity)
+    val appContainer = createApplicationContainer(context.instanceKeeper, activity)
 
     val searchParams = URLSearchParams(window.location.search.toJsString())
     val code = searchParams.get("code")

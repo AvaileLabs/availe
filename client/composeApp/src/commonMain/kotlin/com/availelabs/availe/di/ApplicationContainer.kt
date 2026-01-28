@@ -1,6 +1,6 @@
 package com.availelabs.availe.di
 
-import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.arkivanov.essenty.instancekeeper.InstanceKeeper
 import com.availelabs.availe.core.platform.IInAppBrowserLauncher
 import com.availelabs.availe.core.platform.createInAppBrowserLauncher
 import com.availelabs.availe.platform.PlatformActivity
@@ -11,10 +11,10 @@ import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
 
 fun createApplicationContainer(
-    lifecycle: Lifecycle,
+    instanceKeeper: InstanceKeeper,
     activity: PlatformActivity
 ): IApplicationContainer {
-    val dataContainer = DataLayerFactory.create(activity, lifecycle)
+    val dataContainer = DataLayerFactory.create(activity, instanceKeeper)
     val inAppBrowserLauncher = createInAppBrowserLauncher(activity)
 
     return ApplicationContainer(

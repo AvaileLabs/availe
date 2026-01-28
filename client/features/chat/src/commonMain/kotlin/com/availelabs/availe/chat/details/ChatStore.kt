@@ -7,9 +7,7 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
-import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.chat.details.ChatStore.*
-import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.MessageContent
 import com.availelabs.availe.model.ChatMessage
@@ -51,40 +49,31 @@ internal class ChatStoreFactory(
 
     private sealed interface Action {
         data class UpdateStatus(val status: MessagingConnectionState) : Action
-        data class MessageReceived(val message: ChatMessage) : Action
+        data class MessagesUpdated(val messages: List<ChatMessage>) : Action
     }
 
     private sealed interface Message {
         data class SetStatus(val status: MessagingConnectionState) : Message
-        data class AddMessage(val message: ChatMessage) : Message
+        data class SetMessages(val messages: List<ChatMessage>) : Message
     }
 
     private inner class ChatBootstrapper : CoroutineBootstrapper<Action>() {
         override fun invoke() {
+            // 1. Observe Connection Status
             scope.launch {
                 messagingRepository.connectionStatus.collectLatest { status ->
                     dispatch(Action.UpdateStatus(status))
                 }
             }
-            scope.launch {
-                messagingRepository.messages.collectLatest { msg ->
-                    dispatch(Action.MessageReceived(msg))
-                }
-            }
-            scope.launch {
-                val userProfile = sessionManager.getCurrentUserProfile()
-                val authState = sessionManager.authenticationState.value
 
-                if (userProfile != null && authState is AuthenticationState.LoggedIn) {
-                    val userIdString = userProfile.id.value.toString()
-                    // Construct JID using the User ID (sub) and the XMPP Domain (localhost)
-                    val userJid = Jid("$userIdString@${SharedNetworkConstants.XMPP_DOMAIN}")
-
-                    messagingRepository.connect(
-                        jid = userJid,
-                        authIdentity = userIdString,
-                        token = authState.accessToken
-                    )
+            // 2. Observe Messages from Database (Single Source of Truth)
+            scope.launch {
+                messagingRepository.getMessages(recipientJid).collectLatest { messages ->
+                    // Mark as read whenever the list updates and the user is viewing it
+                    if (messages.isNotEmpty()) {
+                        messagingRepository.markAsRead(recipientJid)
+                    }
+                    dispatch(Action.MessagesUpdated(messages))
                 }
             }
         }
@@ -94,7 +83,7 @@ internal class ChatStoreFactory(
         override fun executeAction(action: Action) {
             when (action) {
                 is Action.UpdateStatus -> dispatch(Message.SetStatus(action.status))
-                is Action.MessageReceived -> dispatch(Message.AddMessage(action.message))
+                is Action.MessagesUpdated -> dispatch(Message.SetMessages(action.messages))
             }
         }
 
@@ -107,9 +96,11 @@ internal class ChatStoreFactory(
         private fun sendMessage(content: MessageContent) {
             scope.launch {
                 val userProfile = sessionManager.getCurrentUserProfile() ?: return@launch
-                val userIdString = userProfile.id.value.toString()
-                val userJid = Jid("$userIdString@${SharedNetworkConstants.XMPP_DOMAIN}")
 
+                // Safe: Use JID from UserProfile as sender
+                val userJid = userProfile.jid
+
+                // The repository handles Optimistic Updates (UI updates instantly)
                 messagingRepository.sendMessage(recipientJid, content, userJid)
             }
         }
@@ -118,7 +109,7 @@ internal class ChatStoreFactory(
     private object ChatReducer : Reducer<State, Message> {
         override fun State.reduce(msg: Message): State = when (msg) {
             is Message.SetStatus -> copy(connectionStatus = msg.status)
-            is Message.AddMessage -> copy(messages = messages + msg.message)
+            is Message.SetMessages -> copy(messages = msg.messages)
         }
     }
 }

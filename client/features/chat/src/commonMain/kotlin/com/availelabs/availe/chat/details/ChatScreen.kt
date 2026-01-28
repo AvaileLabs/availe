@@ -23,10 +23,9 @@ import androidx.compose.ui.unit.sp
 import availe.client.designsystem.generated.resources.*
 import com.availelabs.availe.domain.model.MessageContent
 import com.availelabs.availe.model.ChatMessage
+import com.availelabs.availe.model.MessageStatus
 import com.availelabs.availe.repositories.MessagingConnectionState
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Send
-import com.composables.icons.lucide.User
+import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
 import com.composables.uikit.scaffolds.ScreenScaffold
 import com.composables.uikit.styling.*
@@ -63,7 +62,8 @@ fun ChatScreen(
             ChatInput(
                 onSendMessage = { messageBody ->
                     component.onIntent(ChatStore.Intent.SendMessage(MessageContent(messageBody)))
-                }
+                },
+                enabled = chatState.connectionStatus is MessagingConnectionState.Authenticated
             )
         }
     } else {
@@ -87,7 +87,8 @@ fun ChatScreen(
                 ChatInput(
                     onSendMessage = { messageBody ->
                         component.onIntent(ChatStore.Intent.SendMessage(MessageContent(messageBody)))
-                    }
+                    },
+                    enabled = chatState.connectionStatus is MessagingConnectionState.Authenticated
                 )
             }
         }
@@ -214,34 +215,66 @@ private fun MessageBubble(
         if (!isMine) {
             Avatar(
                 painter = rememberVectorPainter(Lucide.User),
-                initials = "T",
+                initials = "T", // TODO: Get sender initial from Store5
                 modifier = Modifier.size(28.dp),
                 shape = CircleShape
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
 
-        Box(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .dropShadow(shape = bubbleShape, shadow = Theme[shadows][subtle])
-                .background(bubbleColor, bubbleShape)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            SelectionContainer {
-                Text(
-                    text = message.content.value,
-                    color = contentColor,
-                    lineHeight = 20.sp
-                )
+        Column(horizontalAlignment = if (isMine) Alignment.End else Alignment.Start) {
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .dropShadow(shape = bubbleShape, shadow = Theme[shadows][subtle])
+                    .background(bubbleColor, bubbleShape)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                SelectionContainer {
+                    Text(
+                        text = message.content.value,
+                        color = contentColor,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+
+            if (isMine) {
+                Spacer(modifier = Modifier.height(2.dp))
+                MessageStatusIcon(message.status)
             }
         }
     }
 }
 
 @Composable
+private fun MessageStatusIcon(status: MessageStatus) {
+    val icon = when (status) {
+        MessageStatus.Pending -> Lucide.Clock
+        MessageStatus.Sent -> Lucide.Check
+        MessageStatus.Delivered -> Lucide.CheckCheck
+        MessageStatus.Read -> Lucide.CheckCheck // Should be blue
+        MessageStatus.Failed -> Lucide.CircleX
+    }
+
+    val tint = when (status) {
+        MessageStatus.Read -> Color(0xFF3B82F6) // Blue
+        MessageStatus.Failed -> Theme[colors][destructive]
+        else -> Theme[colors][outline].copy(alpha = 0.6f)
+    }
+
+    Icon(
+        imageVector = icon,
+        contentDescription = null, // decorative
+        modifier = Modifier.size(12.dp),
+        tint = tint
+    )
+}
+
+@Composable
 private fun ChatInput(
-    onSendMessage: (String) -> Unit
+    onSendMessage: (String) -> Unit,
+    enabled: Boolean
 ) {
     var messageInput by remember { mutableStateOf("") }
 
@@ -268,7 +301,7 @@ private fun ChatInput(
                             if (keyEvent.isShiftPressed) {
                                 false
                             } else {
-                                if (messageInput.isNotBlank()) {
+                                if (messageInput.isNotBlank() && enabled) {
                                     onSendMessage(messageInput)
                                     messageInput = ""
                                 }
@@ -279,7 +312,8 @@ private fun ChatInput(
                         }
                     },
                 placeholder = { Text(stringResource(Res.string.chat_input_placeholder)) },
-                shape = RoundedCornerShape(percent = 50)
+                shape = RoundedCornerShape(percent = 50),
+                editable = enabled
             )
 
             IconButton(
@@ -289,7 +323,7 @@ private fun ChatInput(
                         messageInput = ""
                     }
                 },
-                enabled = messageInput.isNotBlank(),
+                enabled = enabled && messageInput.isNotBlank(),
                 backgroundColor = Theme[colors][primary],
                 contentColor = Theme[colors][onPrimary],
                 shape = CircleShape,

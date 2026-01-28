@@ -21,7 +21,7 @@ fun main() = application {
         val activity = PlatformActivity()
         val context = DefaultComponentContext(lifecycle = lifecycle)
 
-        val appContainer = createApplicationContainer(lifecycle, activity)
+        val appContainer = createApplicationContainer(context.instanceKeeper, activity)
 
         RootComponent(
             componentContext = context,
