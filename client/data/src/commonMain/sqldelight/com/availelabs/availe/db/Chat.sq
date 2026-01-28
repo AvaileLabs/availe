@@ -1,0 +1,56 @@
+import com.availelabs.availe.domain.model.ChatMessageId;
+import com.availelabs.availe.domain.model.Jid;
+import com.availelabs.availe.domain.model.MessageContent;
+import com.availelabs.availe.domain.model.UserDisplayName;
+import com.availelabs.availe.model.ConversationType;
+import com.availelabs.availe.model.MessageStatus;
+import com.availelabs.availe.model.MessageType;
+import com.availelabs.availe.model.UnreadCount;
+import kotlin.Boolean;
+import kotlin.time.Instant;
+
+CREATE TABLE chat_conversation (
+    jid TEXT AS Jid NOT NULL PRIMARY KEY,
+    type TEXT AS ConversationType NOT NULL,
+    display_name TEXT AS UserDisplayName NOT NULL,
+    last_message_content TEXT AS MessageContent,
+    last_message_timestamp INTEGER AS Instant,
+    unread_count INTEGER AS UnreadCount NOT NULL DEFAULT 0
+);
+
+CREATE TABLE chat_message (
+    id TEXT AS ChatMessageId NOT NULL PRIMARY KEY,
+    conversation_jid TEXT AS Jid NOT NULL,
+    sender_jid TEXT AS Jid NOT NULL,
+    sender_display_name TEXT AS UserDisplayName,
+    content TEXT AS MessageContent NOT NULL,
+    type TEXT AS MessageType NOT NULL,
+    status TEXT AS MessageStatus NOT NULL,
+    timestamp INTEGER AS Instant NOT NULL,
+    is_mine INTEGER AS Boolean NOT NULL,
+    FOREIGN KEY(conversation_jid) REFERENCES chat_conversation(jid) ON DELETE CASCADE
+);
+
+upsertConversation:
+INSERT OR REPLACE INTO chat_conversation(jid, type, display_name, last_message_content, last_message_timestamp, unread_count)
+VALUES (?, ?, ?, ?, ?, ?);
+
+insertMessage:
+INSERT OR REPLACE INTO chat_message(id, conversation_jid, sender_jid, sender_display_name, content, type, status, timestamp, is_mine)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateMessageStatus:
+UPDATE chat_message
+SET status = ?
+WHERE id = ?;
+
+selectAllConversations:
+SELECT *
+FROM chat_conversation
+ORDER BY last_message_timestamp DESC;
+
+selectMessagesByJid:
+SELECT *
+FROM chat_message
+WHERE conversation_jid = ?
+ORDER BY timestamp ASC;

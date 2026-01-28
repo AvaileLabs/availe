@@ -6,6 +6,10 @@ import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.db.SqlDriver
 import com.availelabs.availe.db.*
 import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.model.ConversationType
+import com.availelabs.availe.model.MessageStatus
+import com.availelabs.availe.model.MessageType
+import com.availelabs.availe.model.UnreadCount
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlin.time.ExperimentalTime
@@ -71,8 +75,71 @@ internal object ClientDatabaseFactory {
                 json.encodeToString(ListSerializer(ImageUrl.serializer()), value)
         }
 
+        val jidColumnAdapter = object : ColumnAdapter<Jid, String> {
+            override fun decode(databaseValue: String): Jid = Jid(databaseValue)
+            override fun encode(value: Jid): String = value.value
+        }
+
+        val conversationTypeColumnAdapter = object : ColumnAdapter<ConversationType, String> {
+            override fun decode(databaseValue: String): ConversationType = ConversationType.valueOf(databaseValue)
+            override fun encode(value: ConversationType): String = value.name
+        }
+
+        val userDisplayNameColumnAdapter = object : ColumnAdapter<UserDisplayName, String> {
+            override fun decode(databaseValue: String): UserDisplayName = UserDisplayName(databaseValue)
+            override fun encode(value: UserDisplayName): String = value.value
+        }
+
+        val messageContentColumnAdapter = object : ColumnAdapter<MessageContent, String> {
+            override fun decode(databaseValue: String): MessageContent = MessageContent(databaseValue)
+            override fun encode(value: MessageContent): String = value.value
+        }
+
+        val instantLongColumnAdapter = object : ColumnAdapter<Instant, Long> {
+            override fun decode(databaseValue: Long): Instant = Instant.fromEpochMilliseconds(databaseValue)
+            override fun encode(value: Instant): Long = value.toEpochMilliseconds()
+        }
+
+        val unreadCountColumnAdapter = object : ColumnAdapter<UnreadCount, Long> {
+            override fun decode(databaseValue: Long): UnreadCount = UnreadCount(databaseValue.toInt())
+            override fun encode(value: UnreadCount): Long = value.value.toLong()
+        }
+
+        val chatMessageIdColumnAdapter = object : ColumnAdapter<ChatMessageId, String> {
+            override fun decode(databaseValue: String): ChatMessageId = ChatMessageId(databaseValue)
+            override fun encode(value: ChatMessageId): String = value.value
+        }
+
+        val messageTypeColumnAdapter = object : ColumnAdapter<MessageType, String> {
+            override fun decode(databaseValue: String): MessageType = MessageType.valueOf(databaseValue)
+            override fun encode(value: MessageType): String = value.name
+        }
+
+        val messageStatusColumnAdapter = object : ColumnAdapter<MessageStatus, String> {
+            override fun decode(databaseValue: String): MessageStatus = MessageStatus.valueOf(databaseValue)
+            override fun encode(value: MessageStatus): String = value.name
+        }
+
         return ClientDatabase.Companion(
             driver = sqlDriver,
+            chat_conversationAdapter = Chat_conversation.Adapter(
+                jidAdapter = jidColumnAdapter,
+                typeAdapter = conversationTypeColumnAdapter,
+                display_nameAdapter = userDisplayNameColumnAdapter,
+                last_message_contentAdapter = messageContentColumnAdapter,
+                last_message_timestampAdapter = instantLongColumnAdapter,
+                unread_countAdapter = unreadCountColumnAdapter
+            ),
+            chat_messageAdapter = Chat_message.Adapter(
+                idAdapter = chatMessageIdColumnAdapter,
+                conversation_jidAdapter = jidColumnAdapter,
+                sender_jidAdapter = jidColumnAdapter,
+                sender_display_nameAdapter = userDisplayNameColumnAdapter,
+                contentAdapter = messageContentColumnAdapter,
+                typeAdapter = messageTypeColumnAdapter,
+                statusAdapter = messageStatusColumnAdapter,
+                timestampAdapter = instantLongColumnAdapter
+            ),
             listing_event_detailsAdapter = Listing_event_details.Adapter(
                 listing_idAdapter = listingIdColumnAdapter
             ),

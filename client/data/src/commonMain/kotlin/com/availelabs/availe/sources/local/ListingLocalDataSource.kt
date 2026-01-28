@@ -29,7 +29,7 @@ internal class ListingLocalDataSource(
     override suspend fun upsertListing(listing: Listing) {
         val database = databaseProvider.getDatabase()
         database.transaction {
-            database.listingsQueries.upsertListing(
+            database.listingQueries.upsertListing(
                 primary_key_id = listing.id,
                 created_at = listing.createdAt,
                 publisher_id = listing.commonData.publisherId,
@@ -47,9 +47,9 @@ internal class ListingLocalDataSource(
             )
 
             when (listing) {
-                is Listing.Item -> database.listingsQueries.upsertItemDetails(listing.id)
-                is Listing.Event -> database.listingsQueries.upsertEventDetails(listing.id)
-                is Listing.Service -> database.listingsQueries.upsertServiceDetails(listing.id)
+                is Listing.Item -> database.listingQueries.upsertItemDetails(listing.id)
+                is Listing.Event -> database.listingQueries.upsertEventDetails(listing.id)
+                is Listing.Service -> database.listingQueries.upsertServiceDetails(listing.id)
             }
         }
     }
@@ -67,7 +67,7 @@ internal class ListingLocalDataSource(
             filter.categories.toList()
         }
 
-        return database.listingsQueries.selectListings(
+        return database.listingQueries.selectListings(
             publisher_id = publisherId,
             categories = categories,
             limit = limit,
@@ -79,14 +79,14 @@ internal class ListingLocalDataSource(
 
     override suspend fun getListingById(id: ListingId): Listing? {
         val database = databaseProvider.getDatabase()
-        return database.listingsQueries.selectById(id)
+        return database.listingQueries.selectById(id)
             .awaitAsOneOrNull()
             ?.toDomain()
     }
 
     override suspend fun deleteListingById(id: ListingId) {
         val database = databaseProvider.getDatabase()
-        database.listingsQueries.deleteById(id)
+        database.listingQueries.deleteById(id)
     }
 
     override suspend fun deleteListings(publisherId: UserId?, filter: ListingCategoryFilter) {
@@ -97,7 +97,7 @@ internal class ListingLocalDataSource(
             filter.categories.toList()
         }
 
-        database.listingsQueries.deleteListings(
+        database.listingQueries.deleteListings(
             publisher_id = publisherId,
             categories = categories
         )
@@ -105,7 +105,7 @@ internal class ListingLocalDataSource(
 
     override suspend fun isListingDatabaseEmpty(): Boolean {
         val database = databaseProvider.getDatabase()
-        val count = database.listingsQueries.countListings().awaitAsOne()
+        val count = database.listingQueries.countListings().awaitAsOne()
         return count == 0L
     }
 }

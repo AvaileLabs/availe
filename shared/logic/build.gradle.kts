@@ -32,7 +32,15 @@ val hostIpProvider = providers.provider {
         val ipAddress = providers.of(HostIpValueSource::class) {}.get()
         "\"$ipAddress\""
     } else {
+        "\"api.availe.io\""
+    }
+}
+
+val xmppDomainProvider = providers.provider {
+    if (useLocalIp) {
         "\"localhost\""
+    } else {
+        "\"xmpp.availe.io\""
     }
 }
 
@@ -46,5 +54,6 @@ buildConfig {
 
     sourceSets.named<BuildConfigSourceSet>("main") {
         buildConfigField("String", "HOST_IP", hostIpProvider)
+        buildConfigField("String", "XMPP_DOMAIN", xmppDomainProvider)
     }
 }
