@@ -10,11 +10,10 @@
   prevent circular dependencies between features.
 * **:client:features:**: Vertical Feature Slices (e.g., `auth`, `home`, `chat`, `profile`). Encapsulated modules
   containing Screens, MVI Stores, and Decompose Components. Each feature defines its own Navigation Contract.
-* **:client:uiComponents**: The Bridge Layer. Contains domain-aware UI widgets (e.g., `ListingCard`,
-  `LinkContextMenuArea`)
-  and shared UI utilities. Connects the Domain layer to the Design System.
-* **:client:designSystem**: The Foundation Layer. Contains pure UI primitives (Atoms), Theme, Colors, Typography, and
-  Resources (`strings.xml`). Strictly domain-agnostic.
+* **:client:uiComponents**: The Bridge Layer (Domain UI Library). Contains domain-aware UI widgets (e.g., `ListingCard`,
+  `ChatBubble`, `LinkContextMenuArea`). Connects the Domain layer to the Design System.
+* **:client:designSystem**: The Foundation Layer (Pure UI). Contains pure UI primitives (Atoms), Theme, Colors,
+  Typography, and Resources (`strings.xml`). Strictly domain-agnostic. Never imports `domain`.
 * **:client:domain**: The Domain Layer. Contains pure business logic, Repository Interfaces, and Models. **Strictly no
   UI dependencies (no Decompose, no Essenty).**
 * **:client:data**: The Data Layer. Contains Repository implementations, Database logic, and Network clients. All
@@ -41,8 +40,7 @@
 * **When to use which plugin**:
     * `availe.kmp.targets`: standard KMP targets + toolchain/hierarchy.
     * `availe.kmp.android`: `availe.kmp.targets` + Android KMP library support (compile/min SDK from
-      `libs.versions.toml`,
-      Android resources enabled, JVM target).
+      `libs.versions.toml`, Android resources enabled, JVM target).
         * Modules must still set `namespace` explicitly in `androidLibrary { namespace = "..." }`.
     * `availe.kmp.sourcesets.nonWeb`: adds a shared `nonWebMain` source set wired into `androidMain`, `jvmMain`, and
       `iosMain`.
@@ -60,24 +58,31 @@
   `Design System` / `Domain`.
 * **Feature Isolation**: Feature modules must not depend on each other directly. They interact via shared `Domain`
   models or by defining Navigation Interfaces that the `App Shell` implements.
+* **The Thin Screen Rule (Feature Implementation)**:
+    * Feature Screens must act primarily as **Layout Orchestrators** and Glue code.
+    * Complex UI elements (e.g., `MessageBubble`, `ContactRow`) that rely on Domain Models must be extracted to
+      `:client:uiComponents`.
+    * Features should focus on connecting State/Store to Components, not defining complex drawing logic.
 * **Navigation Pattern (Consumer-Driven)**:
     * **Features** define their own requirements via interfaces (e.g., `IHomeNavigator`) located within the feature
       module.
     * **App Shell** implements these interfaces, acting as the central router.
     * **Dependency Injection** passes the App Shell implementation down to the features via the Component Context or
       constructor.
+* **Modal & Overlay Management**:
+    * Use Decompose **Child Slots** (`ChildSlot`) for temporary, exclusive interactions (e.g., Login Guards, Dialogs).
+    * Global, non-blocking overlays (e.g., Minimized Chat) are managed by the `App Shell` and exist outside the standard
+      navigation stack.
 * **Platform-Adaptive Navigation (Strategy Pattern)**:
     * When navigation topologies differ significantly between platforms (e.g., Mobile uses `Dashboard/Pages` vs. Web
       uses `Home/Stack` + Browser History), use **Navigation Strategies**.
     * Split the Router logic and Initial Stack calculation into `expect/actual` implementations within the feature
       module (specifically `app-shell`).
-    * This isolates platform-specific routing verbs (e.g., `push` vs `select`) while keeping the high-level Component
-      interface shared.
 * **Component Composition (The Factory Rule)**:
     * Intermediate components (e.g., `Dashboard`) must acts as "Dumb Containers". They must not accept dependencies
       intended for their children.
-    * Use **Component Factories** (e.g., `(ComponentContext) -> IChildComponent`) to pass child creation logic down
-      the tree.
+    * Use **Component Factories** (e.g., `(ComponentContext) -> IChildComponent`) to pass child creation logic down the
+      tree.
     * **Context Objects**: If a factory requires many dependencies, encapsulate them in a **Context Data Class** (e.g.,
       `ChildFactoryContext`) rather than passing a long list of parameters.
     * The `App Shell` is responsible for constructing these factories and injecting the necessary dependencies (like
@@ -96,13 +101,17 @@
 * **Lifecycle Management**: Feature Components are responsible for managing their own coroutine scopes and lifecycles
   via Essenty/Decompose.
 * **Structured Concurrency**:
-    * Background tasks (e.g., prefetching) must be launched within a `CoroutineScope` tied to the Component's
-      lifecycle.
+    * Background tasks (e.g., prefetching) must be launched within a `CoroutineScope` tied to the Component's lifecycle.
     * Use sequential execution for background queues to avoid overloading the system, while prioritizing active user
       actions.
 
 **Interaction & UX Standards**
 
+* **Responsive by Default**:
+    * `uiComponents` must not hardcode widths; they should adapt to their container to support both mobile and desktop
+      contexts.
+    * Features use `WindowSizeClass` to determine the high-level layout strategy (e.g., List vs. Grid, Split-View vs.
+      Stack).
 * **Selectable Text**: All semantic text (Headers, Body, Error Messages) must be wrapped in `SelectionContainer` to
   ensure it can be copied by the user. Exceptions are interactive elements (Buttons, Tabs) where selection interferes
   with click actions.
@@ -117,8 +126,8 @@
       history management.
 * **Type-Safe Routing (The Boundary Transformation Pattern)**:
     * **Strict No Strings**: Do not use raw URL strings for navigation or link generation inside feature modules.
-    * **Centralized Mappers**: URL string segments (e.g., "items", "events") must be isolated in a centralized Mapper
-      (e.g., `FeedTypeMapper`) within `:client:core`.
+    * **Centralized Mappers**: URL string segments (e.g., "items", "events") must be isolated in a centralized Mapper (
+      e.g., `FeedTypeMapper`) within `:client:core`.
     * **Uni-Directional Parsing**: External URLs are parsed immediately into Domain Types (e.g., `ListingFeedType`) at
       the application boundary (`RootNavigationMapper`). Features receive only Type-Safe objects.
     * Use the `DeepLinkRoute` sealed interfaces defined in `:client:core` as the single source of truth for both link
