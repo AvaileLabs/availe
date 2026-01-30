@@ -5,7 +5,7 @@ import com.availelabs.availe.domain.model.*
 private const val MAXIMUM_TITLE_LENGTH = 100
 
 fun Listing.canBeModifiedBy(userId: UserId): Boolean {
-    return this.publisherId == userId
+    return this.publisher.id == userId
 }
 
 fun PriceAmount.isValid(): Boolean {
@@ -24,4 +24,8 @@ fun ImageUrl.isValid(): Boolean {
 
 fun List<ImageUrl>.isValid(): Boolean {
     return this.all { it.isValid() }
+}
+
+fun ListingLocation.isValid(): Boolean {
+    return this.value.isNotBlank()
 }

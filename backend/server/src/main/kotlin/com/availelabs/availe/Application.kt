@@ -3,12 +3,17 @@ package com.availelabs.availe
 import com.availelabs.availe.auth.AuthenticationFilter
 import com.availelabs.availe.auth.KeycloakTokenVerifier
 import com.availelabs.availe.configuration.SharedNetworkConstants
+import com.availelabs.availe.controllers.AccountController
+import com.availelabs.availe.controllers.InteractionController
 import com.availelabs.availe.controllers.ListingController
+import com.availelabs.availe.controllers.UsersController
 import com.availelabs.availe.observability.catchLensFailure
+import com.availelabs.availe.repositories.interaction.InteractionRepository
 import com.availelabs.availe.repositories.listing.ListingRepository
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.EventListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ItemListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
+import com.availelabs.availe.repositories.user.UserRepository
 import com.availelabs.availe.service.ListingService
 import com.availelabs.availe.setup.hikariSetup
 import org.http4k.contract.contract
@@ -45,6 +50,10 @@ internal fun main() {
         .then(EventFilters.AddEventName())
         .then(AutoMarshallingEvents(Jackson, ::println))
 
+    // Repositories
+    val userRepository = UserRepository(databaseContext)
+    val interactionRepository = InteractionRepository(databaseContext)
+
     val itemListingCreator = ItemListingCreator(databaseContext)
     val eventListingCreator = EventListingCreator(databaseContext)
     val serviceListingCreator = ServiceListingCreator(databaseContext)
@@ -55,15 +64,26 @@ internal fun main() {
         eventCreator = eventListingCreator,
         serviceCreator = serviceListingCreator
     )
+
+    // Services
     val listingService = ListingService(listingRepository)
 
+    // Auth
     val keycloakTokenVerifier = KeycloakTokenVerifier(applicationEvents)
-    val authenticationFilter = AuthenticationFilter(keycloakTokenVerifier, applicationEvents)
+    val authenticationFilter = AuthenticationFilter(keycloakTokenVerifier, userRepository, applicationEvents)
 
-    val listingController = ListingController(listingService, applicationEvents, authenticationFilter)
+    // Controllers
+    val listingController =
+        ListingController(listingService, applicationEvents, authenticationFilter, keycloakTokenVerifier)
+    val accountController = AccountController(userRepository, authenticationFilter)
+    val usersController = UsersController(userRepository)
+    val interactionController = InteractionController(interactionRepository, authenticationFilter)
 
     val apiContractRoutingHandler = contract {
         routes += listingController.listOfRoutes
+        routes += accountController.routes
+        routes += usersController.routes
+        routes += interactionController.routes
     }
 
     val crossOriginResourceSharingPolicy = CorsPolicy(

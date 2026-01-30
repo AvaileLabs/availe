@@ -7,6 +7,9 @@ import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
+import com.availelabs.availe.dto.kreplica.ListingEventDtoSchema
+import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
+import com.availelabs.availe.dto.kreplica.ListingServiceDtoSchema
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.repositories.listing.IListingRepository
 import com.availelabs.availe.service.ListingService
@@ -22,61 +25,137 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalTime::class)
 private class FakeListingRepository(private val willInsert: Boolean) : IListingRepository {
     var received: NewListing? = null
+    private val listings = mutableMapOf<ListingId, Listing>()
+
     override fun createListing(newListing: NewListing): InsertResult<Listing> {
         received = newListing
 
         if (!willInsert) return InsertResult.AlreadyExists
 
         val fakeId = ListingId(Uuid.random())
-        val fakeCreatedAt = Instant.now().toKotlinInstant()
+        val fakeCreatedAt = ListingCreationTime(Instant.now().toKotlinInstant())
+        val interactionState = InteractionState(isFavorited = false)
 
         val fakeDomainListing: Listing = when (newListing) {
-            is NewListing.Event -> Listing.Event(newListing.commonData, fakeId, fakeCreatedAt)
-            is NewListing.Item -> Listing.Item(newListing.commonData, fakeId, fakeCreatedAt)
-            is NewListing.Service -> Listing.Service(newListing.commonData, fakeId, fakeCreatedAt)
+            is NewListing.Event -> Listing.Event(
+                newListing.commonData,
+                fakeId,
+                fakeCreatedAt,
+                newListing.publisher,
+                interactionState
+            )
+
+            is NewListing.Item -> Listing.Item(
+                newListing.commonData,
+                fakeId,
+                fakeCreatedAt,
+                newListing.publisher,
+                interactionState
+            )
+
+            is NewListing.Service -> Listing.Service(
+                newListing.commonData,
+                fakeId,
+                fakeCreatedAt,
+                newListing.publisher,
+                interactionState
+            )
         }
 
+        listings[fakeId] = fakeDomainListing
         return InsertResult.Inserted(fakeDomainListing)
     }
 
-    override fun getListingById(id: ListingId): FindResult<Listing> {
-        TODO("Not yet implemented")
+    override fun getListingById(id: ListingId, viewingUserId: UserId?): FindResult<Listing> {
+        return listings[id]?.let { FindResult.Found(it) } ?: FindResult.NotFound
     }
 
     override fun existsById(id: ListingId): Boolean {
-        TODO("Not yet implemented")
+        return listings.containsKey(id)
     }
 
-    override fun getAllListings(): List<Listing> {
-        TODO("Not yet implemented")
+    override fun getAllListings(viewingUserId: UserId?): List<Listing> {
+        return listings.values.toList()
     }
 
-    override fun getListingsPage(pageNumber: Int, pageSize: Int): List<Listing> {
-        TODO("Not yet implemented")
+    override fun getListingsPage(
+        pageNumber: Int,
+        pageSize: Int,
+        viewingUserId: UserId?,
+        publisherId: UserId?,
+        filter: ListingCategoryFilter
+    ): List<Listing> {
+        return listings.values.toList()
     }
 
     override fun updateListing(
         id: ListingId,
-        patch: TypeV1ListingDtoPatchRequest
+        patch: TypeV1ListingDtoPatchRequest,
+        viewingUserId: UserId
     ): UpdateResult<Listing> {
-        TODO("Not yet implemented")
+        val existing = listings[id] ?: return UpdateResult.NotFound
+        val currentCommon = existing.commonData
+
+        val newCommonData = when (patch) {
+            is ListingItemDtoSchema.V1.PatchRequest -> CommonListingData(
+                title = patch.title.valueOrExisting(currentCommon.title),
+                description = patch.description.valueOrExisting(currentCommon.description),
+                price = patch.price.valueOrExisting(currentCommon.price),
+                imageLinks = patch.imageLinks.valueOrExisting(currentCommon.imageLinks),
+                location = patch.location.valueOrExisting(currentCommon.location)
+            )
+
+            is ListingEventDtoSchema.V1.PatchRequest -> CommonListingData(
+                title = patch.title.valueOrExisting(currentCommon.title),
+                description = patch.description.valueOrExisting(currentCommon.description),
+                price = patch.price.valueOrExisting(currentCommon.price),
+                imageLinks = patch.imageLinks.valueOrExisting(currentCommon.imageLinks),
+                location = patch.location.valueOrExisting(currentCommon.location)
+            )
+
+            is ListingServiceDtoSchema.V1.PatchRequest -> CommonListingData(
+                title = patch.title.valueOrExisting(currentCommon.title),
+                description = patch.description.valueOrExisting(currentCommon.description),
+                price = patch.price.valueOrExisting(currentCommon.price),
+                imageLinks = patch.imageLinks.valueOrExisting(currentCommon.imageLinks),
+                location = patch.location.valueOrExisting(currentCommon.location)
+            )
+        }
+
+        val updatedListing = when (existing) {
+            is Listing.Item -> existing.copy(commonData = newCommonData)
+            is Listing.Event -> existing.copy(commonData = newCommonData)
+            is Listing.Service -> existing.copy(commonData = newCommonData)
+        }
+
+        listings[id] = updatedListing
+        return UpdateResult.Updated(updatedListing)
     }
 
     override fun deleteListing(id: ListingId): DeleteResult {
-        TODO("Not yet implemented")
+        return if (listings.remove(id) != null) DeleteResult.Deleted else DeleteResult.NotFound
     }
 }
 
-private fun aNewItem(): NewListing.Item =
-    NewListing.Item(
-        CommonListingData(
+private fun aNewItem(): NewListing.Item {
+    val publisherId = UserId(Uuid.random())
+    val publisher = PublicProfile(
+        id = publisherId,
+        displayName = UserDisplayName("Test User"),
+        avatarUrl = null,
+        jid = Jid("test@xmpp")
+    )
+    return NewListing.Item(
+        commonData = CommonListingData(
             title = ListingTitle("Bike"),
             description = ListingDescription("Blue road bike"),
             price = Price(PriceAmount("100.00"), CurrencyCode("USD")),
             imageLinks = emptyList(),
-            publisherId = UserId(Uuid.random())
-        )
+            location = ListingLocation("Test City")
+        ),
+        publisher = publisher
     )
+}
 
 class ListingServiceTest {
     @Test

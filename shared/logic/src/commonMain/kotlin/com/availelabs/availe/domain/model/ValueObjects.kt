@@ -63,3 +63,7 @@ value class MessageContent(val value: String)
 @Serializable
 @JvmInline
 value class UserDisplayName(val value: String)
+
+@Serializable
+@JvmInline
+value class ListingLocation(val value: String)

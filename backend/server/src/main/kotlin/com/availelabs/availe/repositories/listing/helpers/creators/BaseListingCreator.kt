@@ -27,7 +27,7 @@ internal abstract class BaseListingCreator<T : NewListing>(
 
             val newListingRecord = transactionalDsl.newRecord(LISTINGS)
             newListingRecord.listingType = listingType
-            newListingRecord.applyCommonData(newListing.commonData)
+            newListingRecord.applyCommonData(newListing.commonData, newListing.publisher.id)
             newListingRecord.insert()
 
             val generatedListingId = newListingRecord.id!!

@@ -14,11 +14,12 @@ import kotlin.uuid.ExperimentalUuidApi
 
 interface IListingService {
     fun createListing(newListing: NewListing): InsertResult<Listing>
-    fun getListingById(id: ListingId): FindResult<Listing>
-    fun getAllListings(): List<Listing>
+    fun getListingById(id: ListingId, viewingUserId: UserId?): FindResult<Listing>
+    fun getAllListings(viewingUserId: UserId?): List<Listing>
     fun getListingsPage(
         pageNumber: Int,
         pageSize: Int,
+        viewingUserId: UserId?,
         publisherId: UserId? = null,
         filter: ListingCategoryFilter = ListingCategoryFilter.All
     ): List<Listing>
@@ -39,19 +40,22 @@ class ListingService(
         return listingRepository.createListing(newListing)
     }
 
-    override fun getListingById(id: ListingId): FindResult<Listing> {
-        return listingRepository.getListingById(id)
+    override fun getListingById(id: ListingId, viewingUserId: UserId?): FindResult<Listing> {
+        return listingRepository.getListingById(id, viewingUserId)
     }
 
-    override fun getAllListings(): List<Listing> = listingRepository.getAllListings()
+    override fun getAllListings(viewingUserId: UserId?): List<Listing> {
+        return listingRepository.getAllListings(viewingUserId)
+    }
 
     override fun getListingsPage(
         pageNumber: Int,
         pageSize: Int,
+        viewingUserId: UserId?,
         publisherId: UserId?,
         filter: ListingCategoryFilter
     ): List<Listing> {
-        return listingRepository.getListingsPage(pageNumber, pageSize, publisherId, filter)
+        return listingRepository.getListingsPage(pageNumber, pageSize, viewingUserId, publisherId, filter)
     }
 
     override fun updateListing(
@@ -59,7 +63,9 @@ class ListingService(
         patch: TypeV1ListingDtoPatchRequest,
         requestingPublisherId: UserId
     ): UpdateResult<Listing> {
-        val listing = when (val result = listingRepository.getListingById(listingId)) {
+        // We fetch with viewingUserId = requestingPublisherId to ensure consistent state,
+        // though for update checks simply existence matters.
+        val listing = when (val result = listingRepository.getListingById(listingId, requestingPublisherId)) {
             is FindResult.Found -> result.value
             is FindResult.NotFound -> return UpdateResult.NotFound
         }
@@ -68,11 +74,11 @@ class ListingService(
             return UpdateResult.Forbidden
         }
 
-        return listingRepository.updateListing(listingId, patch)
+        return listingRepository.updateListing(listingId, patch, requestingPublisherId)
     }
 
     override fun deleteListing(listingId: ListingId, requestingPublisherId: UserId): DeleteResult {
-        val listing = when (val result = listingRepository.getListingById(listingId)) {
+        val listing = when (val result = listingRepository.getListingById(listingId, requestingPublisherId)) {
             is FindResult.Found -> result.value
             is FindResult.NotFound -> return DeleteResult.NotFound
         }

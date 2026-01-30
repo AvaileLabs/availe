@@ -14,11 +14,9 @@ import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.mappers.toDomainListing
 import com.availelabs.availe.mappers.toMoneta
 import com.availelabs.availe.repositories.listing.helpers.creators.IListingCreator
+import com.example.jooq.enums.InteractionTypeEnum
 import com.example.jooq.enums.ListingTypeEnum
-import com.example.jooq.tables.references.LISTINGS
-import com.example.jooq.tables.references.LISTING_EVENT_DETAILS
-import com.example.jooq.tables.references.LISTING_ITEM_DETAILS
-import com.example.jooq.tables.references.LISTING_SERVICE_DETAILS
+import com.example.jooq.tables.references.*
 import io.availe.models.Patchable
 import org.jooq.DSLContext
 import org.jooq.Field
@@ -30,19 +28,21 @@ import kotlin.uuid.toJavaUuid
 
 interface IListingRepository {
     fun createListing(newListing: NewListing): InsertResult<Listing>
-    fun getListingById(id: ListingId): FindResult<Listing>
+    fun getListingById(id: ListingId, viewingUserId: UserId?): FindResult<Listing>
     fun existsById(id: ListingId): Boolean
-    fun getAllListings(): List<Listing>
+    fun getAllListings(viewingUserId: UserId?): List<Listing>
     fun getListingsPage(
         pageNumber: Int,
         pageSize: Int,
+        viewingUserId: UserId?,
         publisherId: UserId? = null,
         filter: ListingCategoryFilter = ListingCategoryFilter.All
     ): List<Listing>
 
     fun updateListing(
         id: ListingId,
-        patch: TypeV1ListingDtoPatchRequest
+        patch: TypeV1ListingDtoPatchRequest,
+        viewingUserId: UserId
     ): UpdateResult<Listing>
 
     fun deleteListing(id: ListingId): DeleteResult
@@ -55,9 +55,29 @@ internal class ListingRepository(
     private val serviceCreator: IListingCreator<NewListing.Service>
 ) : IListingRepository {
 
-    private fun baseQuery() = dsl
-        .select(LISTINGS.asterisk())
+    private fun baseQuery(viewingUserId: UserId?) = dsl
+        .select(
+            LISTINGS.asterisk(),
+            USERS.ID,
+            USERS.DISPLAY_NAME,
+            USERS.AVATAR_URL,
+            USERS.JID,
+            if (viewingUserId != null) {
+                DSL.field(
+                    DSL.exists(
+                        DSL.selectOne()
+                            .from(LISTING_INTERACTIONS)
+                            .where(LISTING_INTERACTIONS.LISTING_ID.eq(LISTINGS.ID))
+                            .and(LISTING_INTERACTIONS.USER_ID.eq(viewingUserId.value.toJavaUuid()))
+                            .and(LISTING_INTERACTIONS.INTERACTION_TYPE.eq(InteractionTypeEnum.favorite))
+                    )
+                ).`as`("is_favorited")
+            } else {
+                DSL.inline(false).`as`("is_favorited")
+            }
+        )
         .from(LISTINGS)
+        .leftJoin(USERS).on(LISTINGS.PUBLISHER_ID.eq(USERS.ID))
         .leftJoin(LISTING_ITEM_DETAILS).on(LISTINGS.ID.eq(LISTING_ITEM_DETAILS.LISTING_ID))
         .leftJoin(LISTING_EVENT_DETAILS).on(LISTINGS.ID.eq(LISTING_EVENT_DETAILS.LISTING_ID))
         .leftJoin(LISTING_SERVICE_DETAILS).on(LISTINGS.ID.eq(LISTING_SERVICE_DETAILS.LISTING_ID))
@@ -69,26 +89,24 @@ internal class ListingRepository(
             is NewListing.Service -> ListingId(serviceCreator.create(newListing))
         }
 
-        return when (val findResult = getListingById(newListingId)) {
+        return when (val findResult = getListingById(newListingId, newListing.publisher.id)) {
             is FindResult.Found -> InsertResult.Inserted(findResult.value)
             is FindResult.NotFound -> throw IllegalStateException("Failed to find listing $newListingId immediately after creation")
         }
     }
 
-    override fun getListingById(id: ListingId): FindResult<Listing> {
-        return baseQuery()
+    override fun getListingById(id: ListingId, viewingUserId: UserId?): FindResult<Listing> {
+        return baseQuery(viewingUserId)
             .where(LISTINGS.ID.eq(id.value.toJavaUuid()))
             .fetchOne()
-            ?.let {
-                FindResult.Found(
-                    it.toDomainListing(
-                        LISTINGS,
-                        LISTING_ITEM_DETAILS,
-                        LISTING_EVENT_DETAILS,
-                        LISTING_SERVICE_DETAILS
-                    )
-                )
-            }
+            ?.toDomainListing(
+                LISTINGS,
+                USERS,
+                LISTING_ITEM_DETAILS,
+                LISTING_EVENT_DETAILS,
+                LISTING_SERVICE_DETAILS
+            )
+            ?.let { FindResult.Found(it) }
             ?: FindResult.NotFound
     }
 
@@ -100,12 +118,13 @@ internal class ListingRepository(
         )
     }
 
-    override fun getAllListings(): List<Listing> {
-        return baseQuery()
+    override fun getAllListings(viewingUserId: UserId?): List<Listing> {
+        return baseQuery(viewingUserId)
             .fetch()
             .map {
                 it.toDomainListing(
                     LISTINGS,
+                    USERS,
                     LISTING_ITEM_DETAILS,
                     LISTING_EVENT_DETAILS,
                     LISTING_SERVICE_DETAILS
@@ -116,6 +135,7 @@ internal class ListingRepository(
     override fun getListingsPage(
         pageNumber: Int,
         pageSize: Int,
+        viewingUserId: UserId?,
         publisherId: UserId?,
         filter: ListingCategoryFilter
     ): List<Listing> {
@@ -137,7 +157,7 @@ internal class ListingRepository(
             condition = condition.and(LISTINGS.LISTING_TYPE.`in`(databaseCategories))
         }
 
-        return baseQuery()
+        return baseQuery(viewingUserId)
             .where(condition)
             .orderBy(LISTINGS.CREATED_AT.desc())
             .limit(pageSize)
@@ -146,6 +166,7 @@ internal class ListingRepository(
             .map {
                 it.toDomainListing(
                     LISTINGS,
+                    USERS,
                     LISTING_ITEM_DETAILS,
                     LISTING_EVENT_DETAILS,
                     LISTING_SERVICE_DETAILS
@@ -158,7 +179,8 @@ internal class ListingRepository(
         title: Patchable<ListingTitle>,
         description: Patchable<ListingDescription?>,
         price: Patchable<Price>,
-        imageLinks: Patchable<List<ImageUrl>>
+        imageLinks: Patchable<List<ImageUrl>>,
+        location: Patchable<ListingLocation>
     ) {
         if (title is Patchable.Set) {
             updates[LISTINGS.TITLE] = title.value.value
@@ -174,27 +196,52 @@ internal class ListingRepository(
             updates[LISTINGS.PRICE_AMOUNT] = money.number.numberValue(BigDecimal::class.java)
             updates[LISTINGS.PRICE_CURRENCY] = money.currency.currencyCode
         }
+        if (location is Patchable.Set) {
+            updates[LISTINGS.LOCATION] = location.value.value
+        }
     }
 
     override fun updateListing(
         id: ListingId,
-        patch: TypeV1ListingDtoPatchRequest
+        patch: TypeV1ListingDtoPatchRequest,
+        viewingUserId: UserId
     ): UpdateResult<Listing> {
         val updates = mutableMapOf<Field<*>, Any?>()
 
         when (patch) {
             is ListingItemDtoSchema.V1.PatchRequest ->
-                addCommonPatchUpdates(updates, patch.title, patch.description, patch.price, patch.imageLinks)
+                addCommonPatchUpdates(
+                    updates,
+                    patch.title,
+                    patch.description,
+                    patch.price,
+                    patch.imageLinks,
+                    patch.location
+                )
 
             is ListingEventDtoSchema.V1.PatchRequest ->
-                addCommonPatchUpdates(updates, patch.title, patch.description, patch.price, patch.imageLinks)
+                addCommonPatchUpdates(
+                    updates,
+                    patch.title,
+                    patch.description,
+                    patch.price,
+                    patch.imageLinks,
+                    patch.location
+                )
 
             is ListingServiceDtoSchema.V1.PatchRequest ->
-                addCommonPatchUpdates(updates, patch.title, patch.description, patch.price, patch.imageLinks)
+                addCommonPatchUpdates(
+                    updates,
+                    patch.title,
+                    patch.description,
+                    patch.price,
+                    patch.imageLinks,
+                    patch.location
+                )
         }
 
         if (updates.isEmpty()) {
-            return when (val current = getListingById(id)) {
+            return when (val current = getListingById(id, viewingUserId)) {
                 is FindResult.Found -> UpdateResult.Updated(current.value)
                 is FindResult.NotFound -> UpdateResult.NotFound
             }
@@ -210,7 +257,7 @@ internal class ListingRepository(
             return UpdateResult.NotFound
         }
 
-        return when (val updatedResult = getListingById(id)) {
+        return when (val updatedResult = getListingById(id, viewingUserId)) {
             is FindResult.Found -> UpdateResult.Updated(updatedResult.value)
             is FindResult.NotFound -> throw IllegalStateException("Failed to find listing $id immediately after update")
         }

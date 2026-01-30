@@ -2,6 +2,7 @@
 
 package com.availelabs.availe.repositories.listing
 
+import com.availelabs.availe.auth.VerifiedKeycloakToken
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
@@ -12,8 +13,10 @@ import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.EventListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ItemListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
+import com.availelabs.availe.repositories.user.UserRepository
 import com.availelabs.availe.testutils.PostgresTestBase
 import com.example.jooq.tables.references.LISTINGS
+import com.example.jooq.tables.references.USERS
 import io.availe.models.Patchable
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -25,6 +28,8 @@ import kotlin.uuid.Uuid
 class ListingRepositoryTest : PostgresTestBase() {
 
     private lateinit var repository: ListingRepository
+    private lateinit var userRepository: UserRepository
+    private lateinit var testPublisherProfile: PublicProfile
     private val testPublisherId = UserId(Uuid.random())
 
     private fun aNewItemListing(
@@ -34,31 +39,34 @@ class ListingRepositoryTest : PostgresTestBase() {
         imageLinks: List<ImageUrl> = listOf(ImageUrl("initial.png"), ImageUrl("header.jpg"), ImageUrl("thumbnail.jpg"))
     ): NewListing.Item {
         return NewListing.Item(
-            CommonListingData(
+            commonData = CommonListingData(
                 title = title,
                 description = description,
                 price = price,
                 imageLinks = imageLinks,
-                publisherId = testPublisherId
-            )
+                location = ListingLocation("Test Location")
+            ),
+            publisher = testPublisherProfile
         )
     }
 
     private fun aNewEventListing(): NewListing.Event {
         return NewListing.Event(
-            CommonListingData(
+            commonData = CommonListingData(
                 title = ListingTitle("Initial Event"),
                 description = ListingDescription("Initial event description"),
                 price = Price(PriceAmount("25.00"), CurrencyCode("USD")),
                 imageLinks = emptyList(),
-                publisherId = testPublisherId
-            )
+                location = ListingLocation("Test Location")
+            ),
+            publisher = testPublisherProfile
         )
     }
 
     @BeforeEach
     fun setupRepository() {
         dsl.deleteFrom(LISTINGS).execute()
+        dsl.deleteFrom(USERS).execute()
 
         val itemCreator = ItemListingCreator(dsl)
         val eventCreator = EventListingCreator(dsl)
@@ -70,6 +78,17 @@ class ListingRepositoryTest : PostgresTestBase() {
             eventCreator = eventCreator,
             serviceCreator = serviceCreator
         )
+        userRepository = UserRepository(dsl)
+
+        val publisherToken = VerifiedKeycloakToken(
+            userId = testPublisherId,
+            email = Email("publisher@test.com"),
+            displayName = UserDisplayName("Test Publisher"),
+            avatarUrl = null,
+            jid = Jid("publisher@xmpp")
+        )
+        userRepository.upsertUser(publisherToken)
+        testPublisherProfile = userRepository.getUserById(testPublisherId)!!
     }
 
     private fun insertListing(newListing: NewListing): Listing {
@@ -84,14 +103,13 @@ class ListingRepositoryTest : PostgresTestBase() {
         val newTitle = ListingTitle("New Title")
         val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
 
-        val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherId)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedListing = (result as UpdateResult.Updated).value
         assertEquals(newTitle, updatedListing.title)
         assertEquals(initialListing.description, updatedListing.description)
         assertEquals(initialListing.price, updatedListing.price)
-
     }
 
     @Test
@@ -101,14 +119,13 @@ class ListingRepositoryTest : PostgresTestBase() {
         val newPrice = Price(PriceAmount("99.99"), CurrencyCode("EUR"))
         val patch = ListingItemDtoSchema.V1.PatchRequest(price = Patchable.Set(newPrice))
 
-        val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherId)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedListing = (result as UpdateResult.Updated).value
         assertEquals(newPrice, updatedListing.price)
         assertNotEquals(initialListing.price, updatedListing.price)
         assertEquals(initialListing.title, updatedListing.title)
-
     }
 
     @Test
@@ -116,13 +133,12 @@ class ListingRepositoryTest : PostgresTestBase() {
         val initialListing = insertListing(aNewItemListing(description = ListingDescription("Not null")))
         val patch = ListingItemDtoSchema.V1.PatchRequest(description = Patchable.Set(null))
 
-        val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherId)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedListing = (result as UpdateResult.Updated).value
         assertNull(updatedListing.description)
         assertNotEquals(initialListing.description, updatedListing.description)
-
     }
 
     @Test
@@ -141,14 +157,13 @@ class ListingRepositoryTest : PostgresTestBase() {
             imageLinks = Patchable.Set(newImageLinks)
         )
 
-        val result = repository.updateListing(initialListing.id, patch)
+        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherId)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedListing = (result as UpdateResult.Updated).value
         assertEquals(newTitle, updatedListing.title)
         assertEquals(newImageLinks, updatedListing.imageLinks)
         assertEquals(initialListing.description, updatedListing.description)
-
     }
 
     @Test
@@ -156,12 +171,11 @@ class ListingRepositoryTest : PostgresTestBase() {
         val initialListing = insertListing(aNewItemListing())
         val emptyPatch = ListingItemDtoSchema.V1.PatchRequest()
 
-        val result = repository.updateListing(initialListing.id, emptyPatch)
+        val result = repository.updateListing(initialListing.id, emptyPatch, viewingUserId = testPublisherId)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedListing = (result as UpdateResult.Updated).value
         assertEquals(initialListing, updatedListing)
-
     }
 
     @Test
@@ -169,10 +183,9 @@ class ListingRepositoryTest : PostgresTestBase() {
         val randomId = ListingId(Uuid.random())
         val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
 
-        val result = repository.updateListing(randomId, patch)
+        val result = repository.updateListing(randomId, patch, viewingUserId = testPublisherId)
 
         assertTrue(result is UpdateResult.NotFound)
-
     }
 
     @Test
@@ -181,13 +194,12 @@ class ListingRepositoryTest : PostgresTestBase() {
         val newTitle = ListingTitle("Updated Event Title")
         val patch = ListingEventDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
 
-        val result = repository.updateListing(initialEvent.id, patch)
+        val result = repository.updateListing(initialEvent.id, patch, viewingUserId = testPublisherId)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedEvent = (result as UpdateResult.Updated).value
         assertEquals(newTitle, updatedEvent.title)
         assertEquals(initialEvent.description, updatedEvent.description)
-
     }
 
     @Test
@@ -197,9 +209,8 @@ class ListingRepositoryTest : PostgresTestBase() {
         val result = repository.deleteListing(initialListing.id)
 
         assertTrue(result is DeleteResult.Deleted)
-        val findResult = repository.getListingById(initialListing.id)
+        val findResult = repository.getListingById(initialListing.id, viewingUserId = null)
         assertTrue(findResult is FindResult.NotFound)
-
     }
 
     @Test
@@ -209,26 +220,23 @@ class ListingRepositoryTest : PostgresTestBase() {
         val result = repository.deleteListing(randomId)
 
         assertTrue(result is DeleteResult.NotFound)
-
     }
 
     @Test
     fun `getListingById fetches correctly after creation`() {
         val initialListing = insertListing(aNewItemListing())
 
-        val findResult = repository.getListingById(initialListing.id)
+        val findResult = repository.getListingById(initialListing.id, viewingUserId = null)
 
         assertTrue(findResult is FindResult.Found)
         val foundListing = (findResult as FindResult.Found).value
         assertEquals(initialListing, foundListing)
-
     }
 
     @Test
     fun `getListingById returns NotFound for non-existent ID`() {
-        val findResult = repository.getListingById(ListingId(Uuid.random()))
+        val findResult = repository.getListingById(ListingId(Uuid.random()), viewingUserId = null)
         assertTrue(findResult is FindResult.NotFound)
-
     }
 
     @Test
@@ -239,21 +247,21 @@ class ListingRepositoryTest : PostgresTestBase() {
         val listing4 = insertListing(aNewItemListing(title = ListingTitle("4")))
         val listing5 = insertListing(aNewItemListing(title = ListingTitle("5")))
 
-        val page0 = repository.getListingsPage(pageNumber = 0, pageSize = 2)
+        val page0 = repository.getListingsPage(pageNumber = 0, pageSize = 2, viewingUserId = null)
         assertEquals(2, page0.size)
         assertEquals(listing5.id, page0[0].id)
         assertEquals(listing4.id, page0[1].id)
 
-        val page1 = repository.getListingsPage(pageNumber = 1, pageSize = 2)
+        val page1 = repository.getListingsPage(pageNumber = 1, pageSize = 2, viewingUserId = null)
         assertEquals(2, page1.size)
         assertEquals(listing3.id, page1[0].id)
         assertEquals(listing2.id, page1[1].id)
 
-        val page2 = repository.getListingsPage(pageNumber = 2, pageSize = 2)
+        val page2 = repository.getListingsPage(pageNumber = 2, pageSize = 2, viewingUserId = null)
         assertEquals(1, page2.size)
         assertEquals(listing1.id, page2[0].id)
 
-        val page3 = repository.getListingsPage(pageNumber = 3, pageSize = 2)
+        val page3 = repository.getListingsPage(pageNumber = 3, pageSize = 2, viewingUserId = null)
         assertEquals(0, page3.size)
     }
 }

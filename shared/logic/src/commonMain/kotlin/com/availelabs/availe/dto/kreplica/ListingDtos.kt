@@ -9,11 +9,12 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @Serializable
 sealed interface TypeV1ListingDto
+
 private interface ListingDto {
     @OptIn(ExperimentalUuidApi::class)
     @Replicate.Model(
         variants = [DtoVariant.DATA, DtoVariant.PATCH, DtoVariant.CREATE],
-        visibility = DtoVisibility.INTERNAL,
+        visibility = DtoVisibility.PUBLIC,
     )
     interface V1 : ListingDto {
         @Replicate.Property(include = [DtoVariant.DATA])
@@ -22,12 +23,13 @@ private interface ListingDto {
         val description: ListingDescription?
         val price: Price
         val imageLinks: List<ImageUrl>
+        val location: ListingLocation
 
         @Replicate.Property(include = [DtoVariant.DATA])
-        val publisherId: UserId
+        val publisher: PublicProfileDtoSchema.V1.Data
 
         @Replicate.Property(include = [DtoVariant.DATA])
-        val publisherEmail: Email
+        val interactionState: InteractionStateDtoSchema.V1.Data
     }
 }
 

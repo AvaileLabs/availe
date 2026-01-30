@@ -2,7 +2,9 @@ package com.availelabs.availe.controllers
 
 import com.availelabs.availe.ApiParameters
 import com.availelabs.availe.ApiRoutes
+import com.availelabs.availe.auth.AuthenticatedUser
 import com.availelabs.availe.auth.AuthenticationFilter
+import com.availelabs.availe.auth.ITokenVerifier
 import com.availelabs.availe.auth.SecurityContexts
 import com.availelabs.availe.domain.extensions.isValid
 import com.availelabs.availe.domain.model.*
@@ -10,10 +12,7 @@ import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
-import com.availelabs.availe.dto.kreplica.ListingItemDtoSchema
-import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoCreateRequest
-import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
-import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import com.availelabs.availe.dto.kreplica.*
 import com.availelabs.availe.mappers.toDataDto
 import com.availelabs.availe.mappers.toDomain
 import com.availelabs.availe.observability.ListingCreated
@@ -36,7 +35,8 @@ import kotlin.uuid.toKotlinUuid
 internal class ListingController(
     private val listingService: IListingService,
     private val events: Events,
-    private val authenticationFilter: AuthenticationFilter
+    private val authenticationFilter: AuthenticationFilter,
+    private val tokenVerifier: ITokenVerifier
 ) {
     private val listingIdPath =
         Path.uuid().map({ ListingId(it.toKotlinUuid()) }, { it.value.toJavaUuid() }).of(ApiParameters.LISTING_ID)
@@ -50,14 +50,22 @@ internal class ListingController(
     private val categoriesQueryLens = Query.enum<ListingCategory>().multi.optional(ApiParameters.CATEGORIES)
 
     private val examplePrice = Price(PriceAmount("10.00"), CurrencyCode("USD"))
+    private val examplePublisher = PublicProfileDtoSchema.V1.Data(
+        id = UserId(Uuid.random()),
+        displayName = UserDisplayName("Alice Seller"),
+        avatarUrl = null,
+        jid = Jid("alice@localhost")
+    )
+    private val exampleInteraction = InteractionStateDtoSchema.V1.Data(isFavorited = false)
     private val exampleResponseItem = ListingItemDtoSchema.V1.Data(
         id = ListingId(Uuid.random()),
         title = ListingTitle("Example Item"),
         description = null,
         price = examplePrice,
         imageLinks = emptyList(),
-        publisherId = UserId(Uuid.random()),
-        publisherEmail = Email("example@availe.com")
+        location = ListingLocation("New York, NY"),
+        publisher = examplePublisher,
+        interactionState = exampleInteraction
     )
 
     val listOfRoutes = listOf(
@@ -72,7 +80,13 @@ internal class ListingController(
     fun createListing(): ContractRoute {
         val bodyLens = Body.auto<TypeV1ListingDtoCreateRequest>().toLens()
         val exampleItem =
-            ListingItemDtoSchema.V1.CreateRequest(ListingTitle("Example Item"), null, examplePrice, emptyList())
+            ListingItemDtoSchema.V1.CreateRequest(
+                ListingTitle("Example Item"),
+                null,
+                examplePrice,
+                emptyList(),
+                ListingLocation("New York, NY")
+            )
 
         return ApiRoutes.LISTINGS meta {
             summary = "Create a new listing."
@@ -85,7 +99,15 @@ internal class ListingController(
             returning(Status.BAD_REQUEST)
         } bindContract Method.POST to authenticationFilter.then { request ->
             val authenticatedUser = SecurityContexts.authenticatedUserLens(request)
-            val newListing = bodyLens(request).toDomain(authenticatedUser.id, authenticatedUser.email)
+
+            val publisherProfile = PublicProfile(
+                id = authenticatedUser.id,
+                displayName = authenticatedUser.displayName,
+                avatarUrl = authenticatedUser.avatarUrl,
+                jid = authenticatedUser.jid ?: Jid("")
+            )
+
+            val newListing = bodyLens(request).toDomain(publisherProfile)
 
             if (!newListing.title.isValid()) {
                 return@then Response(Status.BAD_REQUEST).body("Invalid Title")
@@ -95,6 +117,9 @@ internal class ListingController(
             }
             if (!newListing.imageLinks.isValid()) {
                 return@then Response(Status.BAD_REQUEST).body("Invalid or missing Images")
+            }
+            if (!newListing.location.isValid()) {
+                return@then Response(Status.BAD_REQUEST).body("Invalid Location")
             }
 
             when (val result = listingService.createListing(newListing)) {
@@ -117,8 +142,10 @@ internal class ListingController(
             returning(Status.OK, responseBodyLens to exampleResponseItem)
             returning(Status.NOT_FOUND)
         } bindContract Method.GET to { listingId ->
-            { _: Request ->
-                when (val result = listingService.getListingById(listingId)) {
+            { request: Request ->
+                val viewingUser = tryAuthenticate(request)
+
+                when (val result = listingService.getListingById(listingId, viewingUser?.id)) {
                     is FindResult.Found -> {
                         val responseDto = result.value.toDataDto()
                         Response(Status.OK).with(responseBodyLens of responseDto)
@@ -139,7 +166,7 @@ internal class ListingController(
         } bindContract Method.HEAD to { listingId ->
             { _: Request ->
                 val exists = try {
-                    val result = listingService.getListingById(listingId)
+                    val result = listingService.getListingById(listingId, null)
                     result is FindResult.Found
                 } catch (_: Exception) {
                     false
@@ -170,13 +197,15 @@ internal class ListingController(
             val publisherId = publisherIdQueryLens(request)
             val categoriesList = categoriesQueryLens(request)
 
+            val viewingUser = tryAuthenticate(request)
+
             val filter = if (categoriesList.isNullOrEmpty()) {
                 ListingCategoryFilter.All
             } else {
                 ListingCategoryFilter.of(*categoriesList.toTypedArray())
             }
 
-            val listings = listingService.getListingsPage(pageNumber, pageSize, publisherId, filter)
+            val listings = listingService.getListingsPage(pageNumber, pageSize, viewingUser?.id, publisherId, filter)
             val responseDto = listings.map { it.toDataDto() }
             Response(Status.OK).with(listResponseBodyLens of responseDto)
         }
@@ -198,9 +227,6 @@ internal class ListingController(
             authenticationFilter.then { request ->
                 val patchDto = patchBodyLens(request)
                 val authenticatedUser = SecurityContexts.authenticatedUserLens(request)
-
-                // Optional: You could validate individual patch fields here if needed using shared logic
-                // e.g. if (patchDto.title is Patchable.Set && !patchDto.title.value.isValid()) ...
 
                 when (val result = listingService.updateListing(listingId, patchDto, authenticatedUser.id)) {
                     is UpdateResult.Updated -> {
@@ -235,5 +261,22 @@ internal class ListingController(
                 }
             }
         }
+    }
+
+    private fun tryAuthenticate(request: Request): AuthenticatedUser? {
+        val authorizationHeader = request.header("Authorization") ?: return null
+        val bearerPrefix = "Bearer "
+        if (!authorizationHeader.startsWith(bearerPrefix)) return null
+
+        val token = authorizationHeader.substringAfter(bearerPrefix)
+        val verifiedToken = tokenVerifier.verify(token) ?: return null
+
+        return AuthenticatedUser(
+            id = verifiedToken.userId,
+            email = verifiedToken.email,
+            displayName = verifiedToken.displayName,
+            avatarUrl = verifiedToken.avatarUrl,
+            jid = verifiedToken.jid
+        )
     }
 }

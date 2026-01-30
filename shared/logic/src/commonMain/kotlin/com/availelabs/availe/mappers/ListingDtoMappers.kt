@@ -9,44 +9,71 @@ fun TypeV1ListingDtoData.toDomainListing(): Listing {
 
     return when (this) {
         is ListingEventDtoSchema.V1.Data -> {
+            val publisherDomain = this.publisher.toDomain()
+            val interactionStateDomain = this.interactionState.toDomain()
+
             val common = CommonListingData(
                 title = this.title,
                 description = this.description,
                 price = this.price,
                 imageLinks = this.imageLinks,
-                publisherId = this.publisherId,
-                publisherEmail = this.publisherEmail
+                location = this.location
             )
-            Listing.Event(common, this.id, createdAt)
+            Listing.Event(
+                commonData = common,
+                id = this.id,
+                createdAt = createdAt,
+                publisher = publisherDomain,
+                interactionState = interactionStateDomain
+            )
         }
 
         is ListingItemDtoSchema.V1.Data -> {
+            val publisherDomain = this.publisher.toDomain()
+            val interactionStateDomain = this.interactionState.toDomain()
+
             val common = CommonListingData(
                 title = this.title,
                 description = this.description,
                 price = this.price,
                 imageLinks = this.imageLinks,
-                publisherId = this.publisherId,
-                publisherEmail = this.publisherEmail
+                location = this.location
             )
-            Listing.Item(common, this.id, createdAt)
+            Listing.Item(
+                commonData = common,
+                id = this.id,
+                createdAt = createdAt,
+                publisher = publisherDomain,
+                interactionState = interactionStateDomain
+            )
         }
 
         is ListingServiceDtoSchema.V1.Data -> {
+            val publisherDomain = this.publisher.toDomain()
+            val interactionStateDomain = this.interactionState.toDomain()
+
             val common = CommonListingData(
                 title = this.title,
                 description = this.description,
                 price = this.price,
                 imageLinks = this.imageLinks,
-                publisherId = this.publisherId,
-                publisherEmail = this.publisherEmail
+                location = this.location
             )
-            Listing.Service(common, this.id, createdAt)
+            Listing.Service(
+                commonData = common,
+                id = this.id,
+                createdAt = createdAt,
+                publisher = publisherDomain,
+                interactionState = interactionStateDomain
+            )
         }
     }
 }
 
 fun Listing.toDataDto(): TypeV1ListingDtoData {
+    val publisherDto = this.publisher.toDto()
+    val interactionDto = this.interactionState.toDto()
+
     return when (this) {
         is Listing.Event -> ListingEventDtoSchema.V1.Data(
             id = this.id,
@@ -54,8 +81,9 @@ fun Listing.toDataDto(): TypeV1ListingDtoData {
             description = this.description,
             price = this.price,
             imageLinks = this.imageLinks,
-            publisherId = this.publisherId,
-            publisherEmail = this.publisherEmail,
+            location = this.location,
+            publisher = publisherDto,
+            interactionState = interactionDto,
             schemaVersion = 1
         )
 
@@ -65,8 +93,9 @@ fun Listing.toDataDto(): TypeV1ListingDtoData {
             description = this.description,
             price = this.price,
             imageLinks = this.imageLinks,
-            publisherId = this.publisherId,
-            publisherEmail = this.publisherEmail,
+            location = this.location,
+            publisher = publisherDto,
+            interactionState = interactionDto,
             schemaVersion = 1
         )
 
@@ -76,8 +105,9 @@ fun Listing.toDataDto(): TypeV1ListingDtoData {
             description = this.description,
             price = this.price,
             imageLinks = this.imageLinks,
-            publisherId = this.publisherId,
-            publisherEmail = this.publisherEmail,
+            location = this.location,
+            publisher = publisherDto,
+            interactionState = interactionDto,
             schemaVersion = 1
         )
     }
@@ -89,58 +119,95 @@ fun NewListing.toCreateRequestDto(): TypeV1ListingDtoCreateRequest {
             title = this.title,
             description = this.description,
             price = this.price,
-            imageLinks = this.imageLinks
+            imageLinks = this.imageLinks,
+            location = this.location
         )
 
         is NewListing.Item -> ListingItemDtoSchema.V1.CreateRequest(
             title = this.title,
             description = this.description,
             price = this.price,
-            imageLinks = this.imageLinks
+            imageLinks = this.imageLinks,
+            location = this.location
         )
 
         is NewListing.Service -> ListingServiceDtoSchema.V1.CreateRequest(
             title = this.title,
             description = this.description,
             price = this.price,
-            imageLinks = this.imageLinks
+            imageLinks = this.imageLinks,
+            location = this.location
         )
     }
 }
 
-fun TypeV1ListingDtoCreateRequest.toDomain(publisherId: UserId, publisherEmail: Email): NewListing {
+fun TypeV1ListingDtoCreateRequest.toDomain(publisher: PublicProfile): NewListing {
     return when (this) {
         is ListingEventDtoSchema.V1.CreateRequest -> NewListing.Event(
-            CommonListingData(
+            commonData = CommonListingData(
                 title = title,
                 description = description,
                 price = price,
                 imageLinks = imageLinks,
-                publisherId = publisherId,
-                publisherEmail = publisherEmail
-            )
+                location = location
+            ),
+            publisher = publisher
         )
 
         is ListingItemDtoSchema.V1.CreateRequest -> NewListing.Item(
-            CommonListingData(
+            commonData = CommonListingData(
                 title = title,
                 description = description,
                 price = price,
                 imageLinks = imageLinks,
-                publisherId = publisherId,
-                publisherEmail = publisherEmail
-            )
+                location = location
+            ),
+            publisher = publisher
         )
 
         is ListingServiceDtoSchema.V1.CreateRequest -> NewListing.Service(
-            CommonListingData(
+            commonData = CommonListingData(
                 title = title,
                 description = description,
                 price = price,
                 imageLinks = imageLinks,
-                publisherId = publisherId,
-                publisherEmail = publisherEmail
-            )
+                location = location
+            ),
+            publisher = publisher
         )
     }
+}
+
+// Helpers
+
+private fun PublicProfileDtoSchema.V1.Data.toDomain(): PublicProfile {
+    return PublicProfile(
+        id = this.id,
+        displayName = this.displayName,
+        avatarUrl = this.avatarUrl,
+        jid = this.jid
+    )
+}
+
+private fun PublicProfile.toDto(): PublicProfileDtoSchema.V1.Data {
+    return PublicProfileDtoSchema.V1.Data(
+        id = this.id,
+        displayName = this.displayName,
+        avatarUrl = this.avatarUrl,
+        jid = this.jid,
+        schemaVersion = 1
+    )
+}
+
+private fun InteractionStateDtoSchema.V1.Data.toDomain(): InteractionState {
+    return InteractionState(
+        isFavorited = this.isFavorited
+    )
+}
+
+private fun InteractionState.toDto(): InteractionStateDtoSchema.V1.Data {
+    return InteractionStateDtoSchema.V1.Data(
+        isFavorited = this.isFavorited,
+        schemaVersion = 1
+    )
 }

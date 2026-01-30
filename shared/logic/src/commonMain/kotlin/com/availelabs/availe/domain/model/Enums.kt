@@ -16,3 +16,13 @@ enum class SupportedCurrency(val code: CurrencyCode, val symbol: String) {
 enum class ListingCategory {
     Item, Event, Service
 }
+
+@Serializable
+enum class InteractionType {
+    Favorite
+}
+
+@Serializable
+enum class InteractionAction {
+    Add, Remove
+}

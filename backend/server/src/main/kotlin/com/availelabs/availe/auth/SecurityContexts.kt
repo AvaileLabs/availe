@@ -1,12 +1,14 @@
 package com.availelabs.availe.auth
 
-import com.availelabs.availe.domain.model.Email
-import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.*
 import org.http4k.lens.RequestKey
 
 data class AuthenticatedUser(
     val id: UserId,
-    val email: Email
+    val email: Email,
+    val displayName: UserDisplayName,
+    val avatarUrl: ImageUrl?,
+    val jid: Jid?
 )
 
 object SecurityContexts {
