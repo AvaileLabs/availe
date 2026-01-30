@@ -1,40 +1,72 @@
 package com.availelabs.availe.repositories.user
 
-import com.availelabs.availe.auth.VerifiedKeycloakToken
 import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.domain.types.DbFindResult
 import com.example.jooq.tables.references.USERS
 import org.jooq.DSLContext
 import org.jooq.Field
+import org.jooq.impl.DSL
+import java.util.*
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
 interface IUserRepository {
-    fun upsertUser(token: VerifiedKeycloakToken)
-    fun getUserById(id: UserId): PublicProfile?
-    fun updateProfile(id: UserId, displayName: UserDisplayName?, avatarUrl: ImageUrl?)
+    fun FindByJid(jid: Jid): DbFindResult<User>
+    fun UpsertUser(jid: Jid, email: Email): User
+    fun GetUserById(id: UserId): PublicProfile?
+    fun UpdateProfile(id: UserId, displayName: UserDisplayName?, avatarUrl: ImageUrl?)
 }
+
+data class User(
+    val id: UserId,
+    val jid: Jid,
+    val email: Email
+)
 
 @OptIn(ExperimentalUuidApi::class)
 class UserRepository(
     private val dsl: DSLContext
 ) : IUserRepository {
 
-    override fun upsertUser(token: VerifiedKeycloakToken) {
-        dsl.insertInto(USERS)
-            .set(USERS.ID, token.userId.value.toJavaUuid())
-            .set(USERS.EMAIL, token.email.value)
-            .set(USERS.DISPLAY_NAME, token.displayName.value)
-            .set(USERS.AVATAR_URL, token.avatarUrl?.value)
-            .set(USERS.JID, token.jid?.value)
-            .onConflict(USERS.ID)
-            .doUpdate()
-            .set(USERS.EMAIL, token.email.value)
-            .set(USERS.JID, token.jid?.value)
-            .execute()
+    override fun FindByJid(jid: Jid): DbFindResult<User> {
+        val record = dsl.select(USERS.ID, USERS.JID, USERS.EMAIL)
+            .from(USERS)
+            .where(USERS.JID.eq(jid.value))
+            .fetchOne()
+
+        return if (record != null) {
+            DbFindResult.Found(
+                User(
+                    id = UserId(record[USERS.ID]!!.toKotlinUuid()),
+                    jid = Jid(record[USERS.JID]!!),
+                    email = Email(record[USERS.EMAIL]!!)
+                )
+            )
+        } else {
+            DbFindResult.NotFound
+        }
     }
 
-    override fun getUserById(id: UserId): PublicProfile? {
+    override fun UpsertUser(jid: Jid, email: Email): User {
+        val record = dsl.insertInto(USERS)
+            .set(USERS.ID, DSL.field("uuidv7()", UUID::class.java))
+            .set(USERS.JID, jid.value)
+            .set(USERS.EMAIL, email.value)
+            // We set default values for required fields that aren't passed in provision
+            .set(USERS.DISPLAY_NAME, email.value.substringBefore("@"))
+            .returning(USERS.ID, USERS.JID, USERS.EMAIL)
+            .fetchOne()
+            ?: error("Failed to insert user")
+
+        return User(
+            id = UserId(record[USERS.ID]!!.toKotlinUuid()),
+            jid = Jid(record[USERS.JID]!!),
+            email = Email(record[USERS.EMAIL]!!)
+        )
+    }
+
+    override fun GetUserById(id: UserId): PublicProfile? {
         return dsl.select(USERS.ID, USERS.DISPLAY_NAME, USERS.AVATAR_URL, USERS.JID)
             .from(USERS)
             .where(USERS.ID.eq(id.value.toJavaUuid()))
@@ -49,7 +81,7 @@ class UserRepository(
             }
     }
 
-    override fun updateProfile(id: UserId, displayName: UserDisplayName?, avatarUrl: ImageUrl?) {
+    override fun UpdateProfile(id: UserId, displayName: UserDisplayName?, avatarUrl: ImageUrl?) {
         val updates = mutableMapOf<Field<*>, Any?>()
 
         if (displayName != null) {

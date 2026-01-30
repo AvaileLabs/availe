@@ -7,6 +7,7 @@ import com.availelabs.availe.controllers.AccountController
 import com.availelabs.availe.controllers.InteractionController
 import com.availelabs.availe.controllers.ListingController
 import com.availelabs.availe.controllers.UsersController
+import com.availelabs.availe.domain.service.UserProvisioningService
 import com.availelabs.availe.observability.catchLensFailure
 import com.availelabs.availe.repositories.interaction.InteractionRepository
 import com.availelabs.availe.repositories.listing.ListingRepository
@@ -15,7 +16,9 @@ import com.availelabs.availe.repositories.listing.helpers.creators.implementatio
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
 import com.availelabs.availe.repositories.user.UserRepository
 import com.availelabs.availe.service.ListingService
+import com.availelabs.availe.service.UserProfileService
 import com.availelabs.availe.setup.hikariSetup
+import com.availelabs.availe.setup.valkeyCacheServiceSetup
 import org.http4k.contract.contract
 import org.http4k.core.Method
 import org.http4k.core.then
@@ -65,17 +68,22 @@ internal fun main() {
         serviceCreator = serviceListingCreator
     )
 
-    // Services
+    // Data Services
+    val valkeyCacheService = valkeyCacheServiceSetup()
+
+    // Domain Services
     val listingService = ListingService(listingRepository)
+    val userProvisioningService = UserProvisioningService(valkeyCacheService, userRepository)
+    val userProfileService = UserProfileService(userRepository, valkeyCacheService)
 
     // Auth
     val keycloakTokenVerifier = KeycloakTokenVerifier(applicationEvents)
-    val authenticationFilter = AuthenticationFilter(keycloakTokenVerifier, userRepository, applicationEvents)
+    val authenticationFilter = AuthenticationFilter(keycloakTokenVerifier, userProvisioningService, applicationEvents)
 
     // Controllers
     val listingController =
         ListingController(listingService, applicationEvents, authenticationFilter, keycloakTokenVerifier)
-    val accountController = AccountController(userRepository, authenticationFilter)
+    val accountController = AccountController(userRepository, userProfileService, authenticationFilter)
     val usersController = UsersController(userRepository)
     val interactionController = InteractionController(interactionRepository, authenticationFilter)
 

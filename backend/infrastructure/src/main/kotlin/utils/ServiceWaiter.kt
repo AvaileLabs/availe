@@ -8,6 +8,7 @@ import com.availelabs.orchestration.opensearch.OpenSearchPortsList
 import com.availelabs.orchestration.postgres.PostgresConfig
 import com.availelabs.orchestration.postgresejabberd.PostgresEjabberdConfig
 import com.availelabs.orchestration.postgreskeycloak.PostgresKeycloakConfig
+import com.availelabs.orchestration.valkey.ValkeyConfig
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -236,6 +237,30 @@ internal class ServiceWaiter(private val dockerContainerManager: DockerContainer
             Thread.sleep(1_000)
         }
         throw IllegalStateException("OpenSearch not ready after ${timeoutSeconds}s: ${lastError?.message}", lastError)
+    }
+
+    fun waitForValkey(valkeyConfiguration: ValkeyConfig, timeoutSeconds: Long = 30) {
+        val containerName = SharedNetworkConstants.VALKEY_HOST
+        logger.info("Waiting for Valkey to be ready (via valkey-cli)...")
+        val deadline = System.currentTimeMillis() + timeoutSeconds * 1000
+        var lastError: Throwable? = null
+
+        val pingCommand = listOf("valkey-cli", "-a", valkeyConfiguration.password, "ping")
+
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                val commandOutput = dockerContainerManager.executeCommand(containerName, pingCommand)
+                if (commandOutput.contains("PONG", ignoreCase = true)) {
+                    logger.info("Valkey is ready.")
+                    return
+                }
+            } catch (throwable: Throwable) {
+                lastError = throwable
+                logger.debug("Valkey not yet ready: ${throwable.message}")
+            }
+            Thread.sleep(1_000)
+        }
+        throw IllegalStateException("Valkey not ready after ${timeoutSeconds}s: ${lastError?.message}", lastError)
     }
 
     private fun createSslContextWithRootCa(pemFile: File): SSLContext {

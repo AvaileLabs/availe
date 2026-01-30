@@ -8,7 +8,8 @@ data class AuthenticatedUser(
     val email: Email,
     val displayName: UserDisplayName,
     val avatarUrl: ImageUrl?,
-    val jid: Jid?
+    val jid: Jid?,
+    val subject: String
 )
 
 object SecurityContexts {

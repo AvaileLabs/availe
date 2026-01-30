@@ -17,6 +17,8 @@ import com.availelabs.orchestration.postgresejabberd.loadPostgresEjabberdConfig
 import com.availelabs.orchestration.postgresejabberd.postgresEjabberdRunSpecification
 import com.availelabs.orchestration.postgreskeycloak.loadPostgresKeycloakConfig
 import com.availelabs.orchestration.postgreskeycloak.postgresKeycloakRunSpecification
+import com.availelabs.orchestration.valkey.loadValkeyConfig
+import com.availelabs.orchestration.valkey.valkeyRunSpecification
 import com.availelabs.provisioning.PostgresProvisioner
 import com.availelabs.provisioning.keycloak.KeycloakProvisioner
 import com.availelabs.provisioning.keycloak.reconcilers.ClientsReconciler
@@ -58,6 +60,7 @@ internal fun main(args: Array<String>) {
         val postgresEjabberdConfiguration = loadPostgresEjabberdConfig()
         val keycloakConfiguration = loadKeycloakConfig()
         val openSearchConfig = loadOpenSearchConfig()
+        val valkeyConfig = loadValkeyConfig()
 
         val postgresRunSpecification = postgresRunSpec()
         val postgresKeycloakRunSpecification = postgresKeycloakRunSpecification()
@@ -67,6 +70,7 @@ internal fun main(args: Array<String>) {
         val openSearchNode1RunSpecification = openSearchNode1Spec()
         val openSearchNode2RunSpecification = openSearchNode2Spec()
         val openSearchDashboardsRunSpecification = openSearchDashboardsSpec()
+        val valkeyRunSpecification = valkeyRunSpecification()
 
         val postgresProvisioner = PostgresProvisioner(postgresConfiguration)
 
@@ -93,6 +97,7 @@ internal fun main(args: Array<String>) {
             postgresKeycloakConfiguration = postgresKeycloakConfiguration,
             postgresEjabberdConfiguration = postgresEjabberdConfiguration,
             openSearchConfig = openSearchConfig,
+            valkeyConfig = valkeyConfig,
             postgresRunSpecification = postgresRunSpecification,
             postgresKeycloakRunSpecification = postgresKeycloakRunSpecification,
             postgresEjabberdRunSpecification = postgresEjabberdRunSpecification,
@@ -101,6 +106,7 @@ internal fun main(args: Array<String>) {
             openSearchNode1RunSpecification = openSearchNode1RunSpecification,
             openSearchNode2RunSpecification = openSearchNode2RunSpecification,
             openSearchDashboardsRunSpecification = openSearchDashboardsRunSpecification,
+            valkeyRunSpecification = valkeyRunSpecification,
             dockerContainerManager = dockerContainerManager,
             serviceWaiter = serviceWaiter
         )

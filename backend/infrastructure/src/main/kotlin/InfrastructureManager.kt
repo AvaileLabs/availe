@@ -12,6 +12,7 @@ import com.availelabs.orchestration.opensearch.OpenSearchInitializer
 import com.availelabs.orchestration.postgres.PostgresConfig
 import com.availelabs.orchestration.postgresejabberd.PostgresEjabberdConfig
 import com.availelabs.orchestration.postgreskeycloak.PostgresKeycloakConfig
+import com.availelabs.orchestration.valkey.ValkeyConfig
 import com.availelabs.provisioning.PostgresProvisioner
 import com.availelabs.provisioning.keycloak.KeycloakProvisioner
 import com.availelabs.utils.ServiceWaiter
@@ -29,6 +30,7 @@ internal class InfrastructureManager(
     private val postgresKeycloakConfiguration: PostgresKeycloakConfig,
     private val postgresEjabberdConfiguration: PostgresEjabberdConfig,
     private val openSearchConfig: OpenSearchConfig,
+    private val valkeyConfig: ValkeyConfig,
     private val postgresRunSpecification: ContainerRunSpecification<*, *>,
     private val postgresKeycloakRunSpecification: ContainerRunSpecification<*, *>,
     private val postgresEjabberdRunSpecification: ContainerRunSpecification<*, *>,
@@ -37,6 +39,7 @@ internal class InfrastructureManager(
     private val openSearchNode1RunSpecification: ContainerRunSpecification<*, *>,
     private val openSearchNode2RunSpecification: ContainerRunSpecification<*, *>,
     private val openSearchDashboardsRunSpecification: ContainerRunSpecification<*, *>,
+    private val valkeyRunSpecification: ContainerRunSpecification<*, *>,
     private val dockerContainerManager: DockerContainerManager,
     private val serviceWaiter: ServiceWaiter
 ) {
@@ -46,6 +49,7 @@ internal class InfrastructureManager(
         openSearchNode1RunSpecification,
         ejabberdRunSpecification,
         keycloakRunSpecification,
+        valkeyRunSpecification,
         postgresKeycloakRunSpecification,
         postgresEjabberdRunSpecification,
         postgresRunSpecification
@@ -59,7 +63,8 @@ internal class InfrastructureManager(
         ejabberdRunSpecification,
         openSearchNode1RunSpecification,
         openSearchNode2RunSpecification,
-        openSearchDashboardsRunSpecification
+        openSearchDashboardsRunSpecification,
+        valkeyRunSpecification
     ).associateBy(ContainerRunSpecification<*, *>::name)
 
     private data class StepResult(
@@ -107,6 +112,14 @@ internal class InfrastructureManager(
             ) {
                 containerOrchestrator.orchestrationSetup(listOf(postgresEjabberdRunSpecification))
                 serviceWaiter.waitForPostgresEjabberd(postgresEjabberdConfiguration)
+            }
+
+            executeProvisioningStep(
+                stepName = "Valkey Cache Service",
+                containerNameForLogs = valkeyRunSpecification.name
+            ) {
+                containerOrchestrator.orchestrationSetup(listOf(valkeyRunSpecification))
+                serviceWaiter.waitForValkey(valkeyConfig)
             }
 
             executeProvisioningStep(

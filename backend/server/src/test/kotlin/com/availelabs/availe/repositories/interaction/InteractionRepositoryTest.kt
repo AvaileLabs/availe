@@ -1,8 +1,5 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.availelabs.availe.repositories.interaction
 
-import com.availelabs.availe.auth.VerifiedKeycloakToken
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.repositories.listing.ListingRepository
@@ -19,9 +16,9 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 
+@OptIn(ExperimentalUuidApi::class)
 class InteractionRepositoryTest : PostgresTestBase() {
 
     private lateinit var interactionRepository: InteractionRepository
@@ -44,20 +41,13 @@ class InteractionRepositoryTest : PostgresTestBase() {
     }
 
     private fun createAndPersistUser(displayName: String): UserId {
-        val userId = UserId(Uuid.random())
-        val token = VerifiedKeycloakToken(
-            userId = userId,
-            email = Email("$displayName@example.com"),
-            displayName = UserDisplayName(displayName),
-            avatarUrl = null,
-            jid = Jid("$displayName@localhost")
-        )
-        userRepository.upsertUser(token)
-        return userId
+        val user = userRepository.UpsertUser(Jid("$displayName@localhost"), Email("$displayName@example.com"))
+        userRepository.UpdateProfile(user.id, UserDisplayName(displayName), null)
+        return user.id
     }
 
     private fun createAndPersistListing(publisherId: UserId): ListingId {
-        val publisher = userRepository.getUserById(publisherId)!!
+        val publisher = userRepository.GetUserById(publisherId)!!
 
         val newListing = NewListing.Item(
             commonData = CommonListingData(

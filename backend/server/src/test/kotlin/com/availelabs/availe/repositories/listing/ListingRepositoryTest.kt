@@ -1,8 +1,5 @@
-@file:OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
-
 package com.availelabs.availe.repositories.listing
 
-import com.availelabs.availe.auth.VerifiedKeycloakToken
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult
@@ -25,6 +22,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
 class ListingRepositoryTest : PostgresTestBase() {
 
     private lateinit var repository: ListingRepository
@@ -80,15 +78,11 @@ class ListingRepositoryTest : PostgresTestBase() {
         )
         userRepository = UserRepository(dsl)
 
-        val publisherToken = VerifiedKeycloakToken(
-            userId = testPublisherId,
-            email = Email("publisher@test.com"),
-            displayName = UserDisplayName("Test Publisher"),
-            avatarUrl = null,
-            jid = Jid("publisher@xmpp")
-        )
-        userRepository.upsertUser(publisherToken)
-        testPublisherProfile = userRepository.getUserById(testPublisherId)!!
+        // Using direct repository methods instead of Token flow to prep data
+        val user = userRepository.UpsertUser(Jid("publisher@xmpp"), Email("publisher@test.com"))
+        userRepository.UpdateProfile(user.id, UserDisplayName("Test Publisher"), null)
+
+        testPublisherProfile = userRepository.GetUserById(user.id)!!
     }
 
     private fun insertListing(newListing: NewListing): Listing {
@@ -103,7 +97,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val newTitle = ListingTitle("New Title")
         val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
 
-        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherId)
+        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherProfile.id)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedListing = (result as UpdateResult.Updated).value
@@ -119,7 +113,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val newPrice = Price(PriceAmount("99.99"), CurrencyCode("EUR"))
         val patch = ListingItemDtoSchema.V1.PatchRequest(price = Patchable.Set(newPrice))
 
-        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherId)
+        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherProfile.id)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedListing = (result as UpdateResult.Updated).value
@@ -133,7 +127,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val initialListing = insertListing(aNewItemListing(description = ListingDescription("Not null")))
         val patch = ListingItemDtoSchema.V1.PatchRequest(description = Patchable.Set(null))
 
-        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherId)
+        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherProfile.id)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedListing = (result as UpdateResult.Updated).value
@@ -157,7 +151,7 @@ class ListingRepositoryTest : PostgresTestBase() {
             imageLinks = Patchable.Set(newImageLinks)
         )
 
-        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherId)
+        val result = repository.updateListing(initialListing.id, patch, viewingUserId = testPublisherProfile.id)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedListing = (result as UpdateResult.Updated).value
@@ -171,7 +165,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val initialListing = insertListing(aNewItemListing())
         val emptyPatch = ListingItemDtoSchema.V1.PatchRequest()
 
-        val result = repository.updateListing(initialListing.id, emptyPatch, viewingUserId = testPublisherId)
+        val result = repository.updateListing(initialListing.id, emptyPatch, viewingUserId = testPublisherProfile.id)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedListing = (result as UpdateResult.Updated).value
@@ -183,7 +177,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val randomId = ListingId(Uuid.random())
         val patch = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
 
-        val result = repository.updateListing(randomId, patch, viewingUserId = testPublisherId)
+        val result = repository.updateListing(randomId, patch, viewingUserId = testPublisherProfile.id)
 
         assertTrue(result is UpdateResult.NotFound)
     }
@@ -194,7 +188,7 @@ class ListingRepositoryTest : PostgresTestBase() {
         val newTitle = ListingTitle("Updated Event Title")
         val patch = ListingEventDtoSchema.V1.PatchRequest(title = Patchable.Set(newTitle))
 
-        val result = repository.updateListing(initialEvent.id, patch, viewingUserId = testPublisherId)
+        val result = repository.updateListing(initialEvent.id, patch, viewingUserId = testPublisherProfile.id)
 
         assertTrue(result is UpdateResult.Updated)
         val updatedEvent = (result as UpdateResult.Updated).value

@@ -21,6 +21,9 @@ object SharedNetworkConstants {
     const val KEYCLOAK_DB_HOST = "availe-postgres-keycloak"
     const val KEYCLOAK_DB_NAME = "keycloak"
 
+    const val VALKEY_PORT = 6379
+    const val VALKEY_HOST = "availe-valkey"
+
     const val DATABASE_SCHEMA_APPLICATION = "availe"
     const val DATABASE_SCHEMA_KEYCLOAK = "public"
     const val DATABASE_SCHEMA_XMPP = "public"

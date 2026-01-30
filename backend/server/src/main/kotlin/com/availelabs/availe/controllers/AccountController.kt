@@ -5,6 +5,7 @@ import com.availelabs.availe.auth.SecurityContexts
 import com.availelabs.availe.domain.model.UserDisplayName
 import com.availelabs.availe.dto.kreplica.PublicProfileDtoSchema
 import com.availelabs.availe.repositories.user.IUserRepository
+import com.availelabs.availe.service.IUserProfileService
 import org.http4k.contract.ContractRoute
 import org.http4k.contract.meta
 import org.http4k.core.*
@@ -14,6 +15,7 @@ import kotlin.uuid.ExperimentalUuidApi
 @OptIn(ExperimentalUuidApi::class)
 class AccountController(
     private val userRepository: IUserRepository,
+    private val userProfileService: IUserProfileService,
     private val authenticationFilter: AuthenticationFilter
 ) {
     private val responseBodyLens = Body.auto<PublicProfileDtoSchema.V1.Data>().toLens()
@@ -34,7 +36,7 @@ class AccountController(
         } bindContract Method.GET to authenticationFilter.then { request ->
             val user = SecurityContexts.authenticatedUserLens(request)
 
-            val profile = userRepository.getUserById(user.id)
+            val profile = userRepository.GetUserById(user.id)
 
             if (profile != null) {
                 val dto = PublicProfileDtoSchema.V1.Data(
@@ -60,10 +62,11 @@ class AccountController(
             val user = SecurityContexts.authenticatedUserLens(request)
             val patch = requestBodyLens(request)
 
-            userRepository.updateProfile(
+            userProfileService.UpdateProfile(
                 id = user.id,
                 displayName = patch.displayName,
-                avatarUrl = patch.avatarUrl
+                avatarUrl = patch.avatarUrl,
+                subject = user.subject
             )
 
             Response(Status.OK)

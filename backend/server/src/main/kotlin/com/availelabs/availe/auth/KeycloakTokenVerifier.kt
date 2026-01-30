@@ -105,7 +105,8 @@ class KeycloakTokenVerifier(
                 email = email,
                 displayName = displayName,
                 avatarUrl = avatarUrl,
-                jid = jid
+                jid = jid,
+                subject = subjectClaim
             )
         } catch (exception: Exception) {
             val debugClaims = try {

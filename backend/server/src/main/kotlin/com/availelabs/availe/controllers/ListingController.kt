@@ -276,7 +276,8 @@ internal class ListingController(
             email = verifiedToken.email,
             displayName = verifiedToken.displayName,
             avatarUrl = verifiedToken.avatarUrl,
-            jid = verifiedToken.jid
+            jid = verifiedToken.jid,
+            subject = verifiedToken.subject
         )
     }
 }

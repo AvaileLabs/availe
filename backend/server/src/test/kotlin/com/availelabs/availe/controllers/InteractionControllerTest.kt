@@ -1,14 +1,12 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.availelabs.availe.controllers
 
 import com.availelabs.availe.auth.AuthenticationFilter
 import com.availelabs.availe.auth.ITokenVerifier
 import com.availelabs.availe.auth.VerifiedKeycloakToken
 import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.domain.service.IUserProvisioningService
 import com.availelabs.availe.dto.kreplica.InteractionRequestDtoSchema
 import com.availelabs.availe.repositories.interaction.IInteractionRepository
-import com.availelabs.availe.repositories.user.IUserRepository
 import org.http4k.contract.contract
 import org.http4k.core.*
 import org.http4k.format.KotlinxSerialization.auto
@@ -20,10 +18,12 @@ import org.junit.jupiter.api.Test
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class InteractionControllerTest {
 
     private val validUserId = UserId(Uuid.random())
     private val validToken = "valid_token"
+    private val validSubject = "keycloak_subject_456"
 
     private val fakeTokenVerifier = object : ITokenVerifier {
         override fun verify(token: String): VerifiedKeycloakToken? {
@@ -33,7 +33,8 @@ class InteractionControllerTest {
                     email = Email("test@test.com"),
                     displayName = UserDisplayName("Test"),
                     avatarUrl = null,
-                    jid = null
+                    jid = null,
+                    subject = validSubject
                 )
             } else {
                 null
@@ -41,13 +42,10 @@ class InteractionControllerTest {
         }
     }
 
-    private val fakeUserRepository = object : IUserRepository {
-        override fun upsertUser(token: VerifiedKeycloakToken) {
-            // No-op for test
+    private val fakeUserProvisioningService = object : IUserProvisioningService {
+        override fun GetOrProvisionUser(verifiedKeycloakToken: VerifiedKeycloakToken): UserId {
+            return verifiedKeycloakToken.userId
         }
-
-        override fun getUserById(id: UserId): PublicProfile? = null
-        override fun updateProfile(id: UserId, displayName: UserDisplayName?, avatarUrl: ImageUrl?) {}
     }
 
     private val fakeInteractionRepository = object : IInteractionRepository {
@@ -64,7 +62,7 @@ class InteractionControllerTest {
 
     private val authenticationFilter = AuthenticationFilter(
         tokenVerifier = fakeTokenVerifier,
-        userRepository = fakeUserRepository,
+        userProvisioningService = fakeUserProvisioningService,
         events = { _ -> }
     )
 

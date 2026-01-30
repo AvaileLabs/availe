@@ -36,14 +36,14 @@ class UsersController(
             returning(Status.NOT_FOUND)
         } bindContract Method.GET to { userId ->
             { _: Request ->
-                val profile = userRepository.getUserById(userId)
+                val publicProfile = userRepository.GetUserById(userId)
 
-                if (profile != null) {
+                if (publicProfile != null) {
                     val dto = PublicProfileDtoSchema.V1.Data(
-                        id = profile.id,
-                        displayName = profile.displayName,
-                        avatarUrl = profile.avatarUrl,
-                        jid = profile.jid
+                        id = publicProfile.id,
+                        displayName = publicProfile.displayName,
+                        avatarUrl = publicProfile.avatarUrl,
+                        jid = publicProfile.jid
                     )
                     Response(Status.OK).with(responseBodyLens of dto)
                 } else {

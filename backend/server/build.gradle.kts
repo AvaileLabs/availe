@@ -49,6 +49,7 @@ dependencies {
 
     implementation(libs.java.jwt)
     implementation(libs.jwks.rsa)
+    implementation(libs.jedis)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.money.api)
