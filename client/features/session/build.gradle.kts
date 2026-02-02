@@ -17,7 +17,7 @@ kotlin {
             implementation(projects.client.designSystem)
             implementation(projects.client.uiComponents)
 
-            implementation(compose.runtime)
+            implementation(libs.runtime)
             implementation(libs.mvikotlin)
             implementation(libs.mvikotlin.main)
             implementation(libs.mvikotlin.coroutines)
