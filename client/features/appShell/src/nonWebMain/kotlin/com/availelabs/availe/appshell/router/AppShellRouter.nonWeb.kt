@@ -46,7 +46,7 @@ actual class AppShellRouter actual constructor(
 
     @OptIn(DelicateDecomposeApi::class)
     actual override fun navigateToListingDetails(listingId: ListingId) {
-        stackNavigation.push(AppShellConfiguration.ListingDetails(listingId))
+        stackNavigation.pushToFront(AppShellConfiguration.ListingDetails(listingId))
     }
 
     actual override fun navigateToCreateListing() {
@@ -73,12 +73,12 @@ actual class AppShellRouter actual constructor(
 
     @OptIn(DelicateDecomposeApi::class)
     actual override fun navigateToProfile(userId: UserId) {
-        stackNavigation.push(AppShellConfiguration.Profile(userId))
+        stackNavigation.pushToFront(AppShellConfiguration.Profile(userId))
     }
 
     @OptIn(DelicateDecomposeApi::class)
     actual override fun navigateToListing(listingId: ListingId) {
-        stackNavigation.push(AppShellConfiguration.ListingDetails(listingId))
+        stackNavigation.pushToFront(AppShellConfiguration.ListingDetails(listingId))
     }
 
     actual override fun navigateToChat(userId: UserId) {
@@ -87,7 +87,7 @@ actual class AppShellRouter actual constructor(
 
     @OptIn(DelicateDecomposeApi::class)
     actual override fun navigateToSettings() {
-        stackNavigation.push(AppShellConfiguration.Settings)
+        stackNavigation.bringToFront(AppShellConfiguration.Settings)
     }
 
     actual override fun openUrl(url: String) {
@@ -110,7 +110,7 @@ actual class AppShellRouter actual constructor(
 
     @OptIn(DelicateDecomposeApi::class)
     actual fun onSettingsClicked() {
-        stackNavigation.push(AppShellConfiguration.Settings)
+        stackNavigation.bringToFront(AppShellConfiguration.Settings)
     }
 
     actual fun onLoginClicked() {
