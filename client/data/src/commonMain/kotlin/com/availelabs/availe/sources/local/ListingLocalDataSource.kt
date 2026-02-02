@@ -32,8 +32,8 @@ internal class ListingLocalDataSource(
             database.listingQueries.upsertListing(
                 primary_key_id = listing.id,
                 created_at = listing.createdAt,
-                publisher_id = listing.commonData.publisherId,
-                publisher_email = listing.commonData.publisherEmail,
+                publisher_id = listing.publisher.id,
+                publisher_email = Email(listing.publisher.jid.value),
                 listing_type = when (listing) {
                     is Listing.Item -> ListingCategory.Item
                     is Listing.Event -> ListingCategory.Event

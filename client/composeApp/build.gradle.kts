@@ -59,6 +59,9 @@ kotlin {
             api(projects.client.features.appShell)
             implementation(projects.client.features.session)
 
+            // temporary
+            implementation(projects.client.features.auth)
+
             // Ktor
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.auth)

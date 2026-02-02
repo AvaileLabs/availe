@@ -51,18 +51,28 @@ private fun mapRawDataToListing(
         currency = priceCurrency
     )
 
+    val publisher = PublicProfile(
+        id = publisherId,
+        displayName = UserDisplayName(publisherEmail.value.substringBefore("@").ifBlank { "User" }),
+        avatarUrl = null,
+        jid = Jid(publisherEmail.value)
+    )
+
+    val interactionState = InteractionState(
+        isFavorited = false
+    )
+
     val commonData = CommonListingData(
         title = title,
         description = description,
         price = price,
         imageLinks = imageLinks,
-        publisherId = publisherId,
-        publisherEmail = publisherEmail
+        location = ListingLocation("Unknown")
     )
 
     return when (listingType) {
-        ListingCategory.Item -> Listing.Item(commonData, id, createdAt)
-        ListingCategory.Event -> Listing.Event(commonData, id, createdAt)
-        ListingCategory.Service -> Listing.Service(commonData, id, createdAt)
+        ListingCategory.Item -> Listing.Item(commonData, id, createdAt, publisher, interactionState)
+        ListingCategory.Event -> Listing.Event(commonData, id, createdAt, publisher, interactionState)
+        ListingCategory.Service -> Listing.Service(commonData, id, createdAt, publisher, interactionState)
     }
 }

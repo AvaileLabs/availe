@@ -61,12 +61,14 @@ class KeycloakTokenVerifier(
                 if (!userIdClaim.isNull) userIdClaim.asString() else null
             }
 
-            if (userIdString == null) {
+            if (userIdString.isNullOrBlank()) {
                 throw IllegalStateException("Token is missing both '${SharedAuthenticationConstants.Claims.SUBJECT}' and '${SharedAuthenticationConstants.Claims.USER_ID}' claims")
             }
 
             val emailClaim = verifiedToken.getClaim(SharedAuthenticationConstants.Claims.EMAIL)
-            if (emailClaim.isNull || emailClaim.asString().isBlank()) {
+            val emailString = if (!emailClaim.isNull) emailClaim.asString() else null
+
+            if (emailString.isNullOrBlank()) {
                 throw IllegalStateException("Token is missing '${SharedAuthenticationConstants.Claims.EMAIL}' claim")
             }
 
@@ -75,21 +77,26 @@ class KeycloakTokenVerifier(
             val familyNameClaim = verifiedToken.getClaim("family_name")
 
             val displayNameString = when {
-                !nameClaim.isNull && !nameClaim.asString().isBlank() -> nameClaim.asString()
-                !givenNameClaim.isNull -> "${givenNameClaim.asString()} ${familyNameClaim?.asString().orEmpty()}".trim()
-                else -> emailClaim.asString().substringBefore("@")
+                !nameClaim.isNull && !nameClaim.asString().isNullOrBlank() -> nameClaim.asString()
+                !givenNameClaim.isNull -> {
+                    val given = givenNameClaim.asString() ?: ""
+                    val family = if (!familyNameClaim.isNull) familyNameClaim.asString() ?: "" else ""
+                    "$given $family".trim()
+                }
+
+                else -> emailString.substringBefore("@")
             }
 
             val pictureClaim = verifiedToken.getClaim("picture")
             val avatarUrlString =
-                if (!pictureClaim.isNull && !pictureClaim.asString().isBlank()) pictureClaim.asString() else null
+                if (!pictureClaim.isNull && !pictureClaim.asString().isNullOrBlank()) pictureClaim.asString() else null
 
             val jidClaim = verifiedToken.getClaim("jid")
-            val jidString = if (!jidClaim.isNull && !jidClaim.asString().isBlank()) jidClaim.asString() else null
+            val jidString = if (!jidClaim.isNull && !jidClaim.asString().isNullOrBlank()) jidClaim.asString() else null
 
             val userId = UserId(Uuid.parse(userIdString))
-            val email = Email(emailClaim.asString())
-            val displayName = UserDisplayName(displayNameString)
+            val email = Email(emailString)
+            val displayName = UserDisplayName(displayNameString.ifBlank { "Unknown" })
             val avatarUrl = avatarUrlString?.let { ImageUrl(it) }
             val jid = jidString?.let { Jid(it) }
 
@@ -106,7 +113,7 @@ class KeycloakTokenVerifier(
                 displayName = displayName,
                 avatarUrl = avatarUrl,
                 jid = jid,
-                subject = subjectClaim
+                subject = subjectClaim ?: userIdString
             )
         } catch (exception: Exception) {
             val debugClaims = try {

@@ -6,10 +6,10 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.*
-import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.PublicProfile
+import com.availelabs.availe.domain.model.UserDisplayName
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
@@ -134,7 +134,17 @@ internal class ListingEditorStoreFactory(
                 }
 
                 if (listingId == null) {
-                    createListing(currentState, userProfile.id, userProfile.email)
+                    createListing(
+                        state = currentState,
+                        publisher = PublicProfile(
+                            id = userProfile.id,
+                            displayName = UserDisplayName(
+                                userProfile.email.value.substringBefore("@").ifBlank { "User" }
+                            ),
+                            avatarUrl = null,
+                            jid = userProfile.jid
+                        )
+                    )
                 } else {
                     updateListing(listingId, currentState)
                 }
@@ -143,10 +153,9 @@ internal class ListingEditorStoreFactory(
 
         private suspend fun createListing(
             state: ListingEditorState,
-            userId: UserId,
-            email: Email
+            publisher: PublicProfile
         ) {
-            state.toNewListing(userId, email)?.let { newListing ->
+            state.toNewListing(publisher)?.let { newListing ->
                 when (val result = listingRepository.createListing(newListing)) {
                     is RepositoryOperationResult.Success -> {
                         when (result.value) {

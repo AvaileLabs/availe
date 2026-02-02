@@ -65,6 +65,10 @@ internal class DatabaseProvider(
         val installedSchemaHash = databasePreferences.getInstalledSchemaHash()
 
         if (installedSchemaHash.isNullOrEmpty()) {
+            try {
+                databaseFileController.deleteDatabaseFile()
+            } catch (_: Exception) {
+            }
             databasePreferences.updateInstalledSchemaHash(currentSchemaHash)
         } else if (installedSchemaHash != currentSchemaHash) {
             try {

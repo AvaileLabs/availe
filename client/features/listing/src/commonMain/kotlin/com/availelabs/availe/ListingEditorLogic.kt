@@ -188,7 +188,7 @@ private fun ListingEditorState.recalculateValidation(): ListingEditorState {
     )
 }
 
-fun ListingEditorState.toNewListing(publisherId: UserId, publisherEmail: Email): NewListing? {
+fun ListingEditorState.toNewListing(publisher: PublicProfile): NewListing? {
     val type = this.type ?: return null
     val price = Price(this.priceAmount, this.priceCurrency.code)
     val imageLinks = if (this.imageUrl.value.isNotBlank()) listOf(this.imageUrl) else emptyList()
@@ -198,14 +198,13 @@ fun ListingEditorState.toNewListing(publisherId: UserId, publisherEmail: Email):
         description = if (this.description.value.isBlank()) null else this.description,
         price = price,
         imageLinks = imageLinks,
-        publisherId = publisherId,
-        publisherEmail = publisherEmail
+        location = ListingLocation("Unknown")
     )
 
     return when (type) {
-        ListingCategory.Item -> NewListing.Item(commonData)
-        ListingCategory.Event -> NewListing.Event(commonData)
-        ListingCategory.Service -> NewListing.Service(commonData)
+        ListingCategory.Item -> NewListing.Item(commonData, publisher)
+        ListingCategory.Event -> NewListing.Event(commonData, publisher)
+        ListingCategory.Service -> NewListing.Service(commonData, publisher)
     }
 }
 

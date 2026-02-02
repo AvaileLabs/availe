@@ -209,7 +209,7 @@ private fun MobileListingLayout(
                         )
                     }
                 }
-                PrimaryButton(onClick = { onContactSeller(listing.commonData.publisherEmail) }) {
+                PrimaryButton(onClick = { onContactSeller(Email(listing.publisher.jid.value)) }) {
                     Text(
                         if (listing.category == ListingCategory.Event) stringResource(Res.string.listing_book_ticket)
                         else stringResource(Res.string.listing_contact_seller)
@@ -371,7 +371,7 @@ private fun DesktopListingLayout(
                         Spacer(Modifier.height(32.dp))
 
                         PrimaryButton(
-                            onClick = { onContactSeller(listing.commonData.publisherEmail) },
+                            onClick = { onContactSeller(Email(listing.publisher.jid.value)) },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
@@ -504,7 +504,7 @@ private fun SellerInfoCard(
     Row(
         modifier = modifier
             .border(1.dp, Theme[colors][outline].copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-            .clickable { onProfileClicked(listing.commonData.publisherId) }
+            .clickable { onProfileClicked(listing.publisher.id) }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -538,7 +538,7 @@ private fun SellerInfoCard(
         }
         Spacer(Modifier.weight(1f))
         PrimaryButton(
-            onClick = { onProfileClicked(listing.commonData.publisherId) },
+            onClick = { onProfileClicked(listing.publisher.id) },
             backgroundColor = Theme[colors][card],
             contentColor = Theme[colors][onBackground],
             borderWidth = 1.dp,

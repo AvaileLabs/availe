@@ -11,13 +11,15 @@ internal interface ISafeNetworkCaller {
 internal class SafeNetworkCaller(
     private val localDataCleaner: ILocalDataCleaner
 ) : ISafeNetworkCaller {
-
     override suspend fun <T> execute(operation: suspend () -> T): RepositoryOperationResult<T> {
         return try {
             RepositoryOperationResult.Success(operation())
         } catch (cancellationException: CancellationException) {
             throw cancellationException
         } catch (throwable: Throwable) {
+            println("SafeNetworkCaller caught exception:")
+            throwable.printStackTrace()
+
             RepositoryOperationResult.Failure(throwable.toAppError())
         }
     }

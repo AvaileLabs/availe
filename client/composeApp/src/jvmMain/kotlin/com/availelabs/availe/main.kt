@@ -7,11 +7,14 @@ import androidx.compose.ui.window.rememberWindowState
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
+import com.arkivanov.mvikotlin.core.utils.setMainThreadId
 import com.availelabs.availe.di.createApplicationContainer
 import com.availelabs.availe.platform.PlatformActivity
 import com.availelabs.availe.root.RootComponent
 
 fun main() = application {
+    setMainThreadId(Thread.currentThread().threadId())
+
     val windowState = rememberWindowState()
     val lifecycle = remember { LifecycleRegistry() }
 
