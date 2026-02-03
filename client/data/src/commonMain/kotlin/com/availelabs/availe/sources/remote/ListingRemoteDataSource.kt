@@ -12,10 +12,10 @@ import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoData
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import com.availelabs.availe.extensions.ensureSuccess
 import com.availelabs.availe.mappers.toCreateRequestDto
 import com.availelabs.availe.mappers.toDomainListing
 import io.ktor.client.*
-import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -65,7 +65,7 @@ internal class ListingRemoteDataSource(
                 }
             }
         }
-        ensureSuccess(response)
+        response.ensureSuccess()
         val jsonString = response.bodyAsText()
         val dtos = json.decodeFromString(ListSerializer(TypeV1ListingDtoData.serializer()), jsonString)
         return dtos.map { it.toDomainListing() }
@@ -83,7 +83,7 @@ internal class ListingRemoteDataSource(
 
             HttpStatusCode.NotFound -> FindResult.NotFound
             else -> {
-                ensureSuccess(response)
+                response.ensureSuccess()
                 throw IllegalStateException("Unexpected status code: ${response.status}")
             }
         }
@@ -96,7 +96,7 @@ internal class ListingRemoteDataSource(
             HttpStatusCode.OK -> true
             HttpStatusCode.NotFound -> false
             else -> {
-                ensureSuccess(response)
+                response.ensureSuccess()
                 throw IllegalStateException("Unexpected status code: ${response.status}")
             }
         }
@@ -119,7 +119,7 @@ internal class ListingRemoteDataSource(
 
             HttpStatusCode.Conflict -> InsertResult.AlreadyExists
             else -> {
-                ensureSuccess(response)
+                response.ensureSuccess()
                 throw IllegalStateException("Unexpected status code: ${response.status}")
             }
         }
@@ -145,7 +145,7 @@ internal class ListingRemoteDataSource(
             HttpStatusCode.NotFound -> UpdateResult.NotFound
             HttpStatusCode.Forbidden -> UpdateResult.Forbidden
             else -> {
-                ensureSuccess(response)
+                response.ensureSuccess()
                 throw IllegalStateException("Unexpected status code: ${response.status}")
             }
         }
@@ -159,29 +159,9 @@ internal class ListingRemoteDataSource(
             HttpStatusCode.NotFound -> DeleteResult.NotFound
             HttpStatusCode.Forbidden -> DeleteResult.Forbidden
             else -> {
-                ensureSuccess(response)
+                response.ensureSuccess()
                 throw IllegalStateException("Unexpected status code: ${response.status}")
             }
-        }
-    }
-
-    private suspend fun ensureSuccess(response: HttpResponse) {
-        val statusCode = response.status.value
-        if (response.status.isSuccess()) {
-            return
-        }
-
-        val cachedBody = try {
-            response.bodyAsText()
-        } catch (_: Exception) {
-            "<no body>"
-        }
-
-        when (statusCode) {
-            in 300..399 -> throw RedirectResponseException(response, cachedBody)
-            in 400..499 -> throw ClientRequestException(response, cachedBody)
-            in 500..599 -> throw ServerResponseException(response, cachedBody)
-            else -> throw IllegalStateException("Unexpected status code: $statusCode - $cachedBody")
         }
     }
 }

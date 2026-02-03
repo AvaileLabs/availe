@@ -69,7 +69,7 @@
     <string name="listing_editor_price_required">Price is required</string>
 
     <string name="settings_title">Settings</string>
-    <string name="settings_greeting">Hello, %s</string>
+    <string name="settings_greeting">Hello, %1$s</string>
     <string name="settings_section_account">Account Settings</string>
     <string name="settings_section_session">Session</string>
     <string name="settings_manage_account">Manage Account</string>

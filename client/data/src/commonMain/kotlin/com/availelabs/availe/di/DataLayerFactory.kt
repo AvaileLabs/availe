@@ -2,6 +2,7 @@ package com.availelabs.availe.di
 
 import com.arkivanov.essenty.instancekeeper.InstanceKeeper
 import com.arkivanov.essenty.instancekeeper.getOrCreate
+import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.auth.*
 import com.availelabs.availe.configuration.SharedNetworkConstants
@@ -12,10 +13,7 @@ import com.availelabs.availe.network.SafeNetworkCaller
 import com.availelabs.availe.platform.PlatformActivity
 import com.availelabs.availe.preferences.DatabasePreferences
 import com.availelabs.availe.preferences.ListingPreferences
-import com.availelabs.availe.repositories.AuthenticationRepository
-import com.availelabs.availe.repositories.ListingRepository
-import com.availelabs.availe.repositories.MessagingRepository
-import com.availelabs.availe.repositories.SessionRepository
+import com.availelabs.availe.repositories.*
 import com.availelabs.availe.repositories.store.ListingStoreFactory
 import com.availelabs.availe.services.MessageService
 import com.availelabs.availe.sources.local.ListingLocalDataSource
@@ -23,6 +21,7 @@ import com.availelabs.availe.sources.local.LocalDataCleaner
 import com.availelabs.availe.sources.remote.AuthenticationRemoteDataSource
 import com.availelabs.availe.sources.remote.ListingRemoteDataSource
 import com.availelabs.availe.sources.remote.MessagingRemoteDataSource
+import com.availelabs.availe.sources.remote.UserRemoteDataSource
 import com.availelabs.availe.xmpp.session.XmppSession
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
@@ -107,7 +106,7 @@ object DataLayerFactory {
             val sessionRepository = SessionRepository(
                 authenticationRemoteDataSource = authenticationRemoteDataSource,
                 localDataCleaner = localDataCleaner,
-                lifecycle = com.arkivanov.essenty.lifecycle.LifecycleRegistry(), // Mock lifecycle for session repo if needed, or refactor SessionRepo to use scope
+                lifecycle = LifecycleRegistry(), // possibly outdated comment: // Mock lifecycle for session repo if needed, or refactor SessionRepo to use scope
                 accountManagementUrl = AuthenticationConstants.ACCOUNT_MANAGEMENT_URL
             )
 
@@ -175,6 +174,11 @@ object DataLayerFactory {
                 json = json
             )
 
+            val userRemoteDataSource = UserRemoteDataSource(
+                httpClient = httpClient,
+                json = json
+            )
+
             val xmppSession = XmppSession(httpClient)
 
             val messagingRemoteDataSource = MessagingRemoteDataSource(
@@ -201,6 +205,11 @@ object DataLayerFactory {
                 safeNetworkCaller = safeNetworkCaller
             )
 
+            val userRepository = UserRepository(
+                remoteDataSource = userRemoteDataSource,
+                safeNetworkCaller = safeNetworkCaller
+            )
+
             val messageService = MessageService(applicationScope)
 
             DataContainer(
@@ -208,6 +217,7 @@ object DataLayerFactory {
                 authenticationRepository = authenticationRepository,
                 listingRepository = listingRepository,
                 messagingRepository = messagingRepository,
+                userRepository = userRepository,
                 messageService = messageService,
                 applicationScope = applicationScope
             )
@@ -219,6 +229,7 @@ object DataLayerFactory {
         override val authenticationRepository: AuthenticationRepository,
         override val listingRepository: ListingRepository,
         override val messagingRepository: MessagingRepository,
+        override val userRepository: UserRepository,
         override val messageService: MessageService,
         private val applicationScope: CoroutineScope
     ) : IDataContainer, InstanceKeeper.Instance {

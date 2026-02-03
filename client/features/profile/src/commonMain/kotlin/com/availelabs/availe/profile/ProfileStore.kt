@@ -11,6 +11,8 @@ import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.profile.ProfileStore.*
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
+import com.availelabs.availe.repositories.IUserRepository
+import com.availelabs.availe.types.RepositoryOperationResult
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.delay
@@ -40,6 +42,7 @@ interface ProfileStore : Store<Intent, State, Label> {
 
     data class State(
         val targetUserId: UserId,
+        val profile: PublicProfile? = null,
         val isCurrentUser: Boolean = false,
         val listings: List<ProfileListingUiModel> = emptyList(),
         val isLoading: Boolean = false,
@@ -63,6 +66,7 @@ interface ProfileStore : Store<Intent, State, Label> {
 internal class ProfileStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
+    private val userRepository: IUserRepository,
     private val sessionManager: ISessionRepository,
     private val targetUserId: UserId
 ) {
@@ -80,6 +84,7 @@ internal class ProfileStoreFactory(
         data class ListingsLoaded(val listings: List<Listing>, val page: Int) : Action
         data class ListingsError(val error: AppError, val isPagination: Boolean) : Action
         data object LoadInitialPage : Action
+        data object LoadProfile : Action
     }
 
     private sealed interface Message {
@@ -88,6 +93,7 @@ internal class ProfileStoreFactory(
         data class SetRefreshing(val isRefreshing: Boolean) : Message
         data class AppendListings(val listings: List<ProfileListingUiModel>, val page: Int) : Message
         data class ReplaceListings(val listings: List<ProfileListingUiModel>) : Message
+        data class SetProfile(val profile: PublicProfile) : Message
         data class SetError(val error: UiText?) : Message
         data class SetPaginationError(val error: UiText?) : Message
         data class SetEndReached(val endReached: Boolean) : Message
@@ -100,6 +106,7 @@ internal class ProfileStoreFactory(
                 val isMine = currentUserProfile?.id == targetUserId
                 dispatch(Action.SetIsCurrentUser(isMine))
                 dispatch(Action.LoadInitialPage)
+                dispatch(Action.LoadProfile)
             }
         }
     }
@@ -111,6 +118,7 @@ internal class ProfileStoreFactory(
             when (action) {
                 is Action.SetIsCurrentUser -> dispatch(Message.SetIsCurrentUser(action.isCurrentUser))
                 is Action.LoadInitialPage -> fetchListings(0, isRefresh = false)
+                is Action.LoadProfile -> fetchProfile()
                 is Action.ListingsLoaded -> handleListingsLoaded(action.listings, action.page)
                 is Action.ListingsError -> handleListingsError(action.error, action.isPagination)
             }
@@ -118,7 +126,11 @@ internal class ProfileStoreFactory(
 
         override fun executeIntent(intent: Intent) {
             when (intent) {
-                Intent.RefreshRequested -> fetchListings(0, isRefresh = true)
+                Intent.RefreshRequested -> {
+                    fetchListings(0, isRefresh = true)
+                    fetchProfile()
+                }
+
                 Intent.LoadNextPage -> {
                     val state = state()
                     if (!state.isLoading && !state.endReached) {
@@ -130,6 +142,16 @@ internal class ProfileStoreFactory(
                 Intent.BackClicked -> publish(Label.NavigateBack)
                 Intent.MessageClicked -> publish(Label.NavigateToChat)
                 Intent.SettingsClicked -> publish(Label.NavigateToSettings)
+            }
+        }
+
+        private fun fetchProfile() {
+            scope.launch {
+                when (val result = userRepository.getUserById(targetUserId)) {
+                    is RepositoryOperationResult.Success -> dispatch(Message.SetProfile(result.value))
+                    is RepositoryOperationResult.Failure -> {
+                    }
+                }
             }
         }
 
@@ -200,7 +222,6 @@ internal class ProfileStoreFactory(
             if (isPagination) {
                 dispatch(Message.SetPaginationError(uiText))
             } else {
-                // Only show fullscreen error if we have no data
                 if (state().listings.isEmpty()) {
                     dispatch(Message.SetError(uiText))
                 } else {
@@ -215,6 +236,7 @@ internal class ProfileStoreFactory(
             is Message.SetIsCurrentUser -> copy(isCurrentUser = msg.isCurrentUser)
             is Message.SetLoading -> copy(isLoading = msg.isLoading)
             is Message.SetRefreshing -> copy(isRefreshing = msg.isRefreshing)
+            is Message.SetProfile -> copy(profile = msg.profile)
             is Message.ReplaceListings -> copy(
                 listings = msg.listings,
                 currentPage = 0,

@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.gradle.buildconfig)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.kreplica)
 }
 
 group = "com.availelabs"
@@ -43,10 +45,8 @@ kotlin {
             implementation(libs.sqldelight.coroutines.extensions)
 
             api(libs.decompose)
-            api(libs.decompose.extensions.compose)
             api(libs.essenty.lifecycle)
             api(libs.essenty.lifecycle.coroutines)
-            implementation(libs.decompose.extensions.compose.experimental)
 
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.auth)

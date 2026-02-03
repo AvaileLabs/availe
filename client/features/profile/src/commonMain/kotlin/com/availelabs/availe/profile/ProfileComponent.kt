@@ -12,6 +12,7 @@ import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.model.ToastMessage
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
+import com.availelabs.availe.repositories.IUserRepository
 import com.availelabs.availe.services.IMessageService
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlinx.coroutines.*
@@ -28,6 +29,7 @@ class ProfileComponent(
     componentContext: ComponentContext,
     private val targetUserId: UserId,
     private val listingRepository: IListingRepository,
+    private val userRepository: IUserRepository,
     private val sessionManager: ISessionRepository,
     private val messageService: IMessageService,
     private val navigator: IProfileNavigator
@@ -37,6 +39,7 @@ class ProfileComponent(
         ProfileStoreFactory(
             storeFactory = DefaultStoreFactory(),
             listingRepository = listingRepository,
+            userRepository = userRepository,
             sessionManager = sessionManager,
             targetUserId = targetUserId
         ).create()

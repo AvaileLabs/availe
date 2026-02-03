@@ -4,6 +4,7 @@ package com.availelabs.availe.listingdetails
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.*
 import coil3.compose.AsyncImage
+import com.availelabs.availe.domain.extensions.canBeModifiedBy
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.extensions.toDisplayString
 import com.availelabs.availe.ui.model.asString
@@ -74,8 +76,10 @@ fun ListingDetailsScreen(
             } else if (state.listing != null) {
                 ListingDetailsContent(
                     listing = state.listing!!,
+                    currentUserId = state.currentUserId,
                     onContactSeller = { sellerEmail -> listingDetailsComponent.onContactSellerClicked(sellerEmail) },
-                    onProfileClicked = { userId -> listingDetailsComponent.onProfileClicked(userId) }
+                    onProfileClicked = { userId -> listingDetailsComponent.onProfileClicked(userId) },
+                    onEditClicked = { listingDetailsComponent.onEditListingClicked() }
                 )
             }
         }
@@ -85,15 +89,29 @@ fun ListingDetailsScreen(
 @Composable
 private fun ListingDetailsContent(
     listing: Listing,
+    currentUserId: UserId?,
     onContactSeller: (Email) -> Unit,
-    onProfileClicked: (UserId) -> Unit
+    onProfileClicked: (UserId) -> Unit,
+    onEditClicked: () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isDesktop = maxWidth > 800.dp
         if (isDesktop) {
-            DesktopListingLayout(listing, onContactSeller, onProfileClicked)
+            DesktopListingLayout(
+                listing = listing,
+                currentUserId = currentUserId,
+                onContactSeller = onContactSeller,
+                onProfileClicked = onProfileClicked,
+                onEditClicked = onEditClicked
+            )
         } else {
-            MobileListingLayout(listing, onContactSeller, onProfileClicked)
+            MobileListingLayout(
+                listing = listing,
+                currentUserId = currentUserId,
+                onContactSeller = onContactSeller,
+                onProfileClicked = onProfileClicked,
+                onEditClicked = onEditClicked
+            )
         }
     }
 }
@@ -101,8 +119,10 @@ private fun ListingDetailsContent(
 @Composable
 private fun MobileListingLayout(
     listing: Listing,
+    currentUserId: UserId?,
     onContactSeller: (Email) -> Unit,
-    onProfileClicked: (UserId) -> Unit
+    onProfileClicked: (UserId) -> Unit,
+    onEditClicked: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -209,11 +229,20 @@ private fun MobileListingLayout(
                         )
                     }
                 }
-                PrimaryButton(onClick = { onContactSeller(Email(listing.publisher.jid.value)) }) {
-                    Text(
-                        if (listing.category == ListingCategory.Event) stringResource(Res.string.listing_book_ticket)
-                        else stringResource(Res.string.listing_contact_seller)
-                    )
+
+                val isOwner = currentUserId != null && listing.canBeModifiedBy(currentUserId)
+
+                if (isOwner) {
+                    PrimaryButton(onClick = onEditClicked) {
+                        Text("Edit Listing")
+                    }
+                } else {
+                    PrimaryButton(onClick = { onContactSeller(Email(listing.publisher.jid.value)) }) {
+                        Text(
+                            if (listing.category == ListingCategory.Event) stringResource(Res.string.listing_book_ticket)
+                            else stringResource(Res.string.listing_contact_seller)
+                        )
+                    }
                 }
             }
         }
@@ -223,8 +252,10 @@ private fun MobileListingLayout(
 @Composable
 private fun DesktopListingLayout(
     listing: Listing,
+    currentUserId: UserId?,
     onContactSeller: (Email) -> Unit,
-    onProfileClicked: (UserId) -> Unit
+    onProfileClicked: (UserId) -> Unit,
+    onEditClicked: () -> Unit
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -370,14 +401,25 @@ private fun DesktopListingLayout(
 
                         Spacer(Modifier.height(32.dp))
 
-                        PrimaryButton(
-                            onClick = { onContactSeller(Email(listing.publisher.jid.value)) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                if (listing.category == ListingCategory.Event) stringResource(Res.string.listing_book_now)
-                                else stringResource(Res.string.listing_contact_seller)
-                            )
+                        val isOwner = currentUserId != null && listing.canBeModifiedBy(currentUserId)
+
+                        if (isOwner) {
+                            PrimaryButton(
+                                onClick = onEditClicked,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Edit Listing")
+                            }
+                        } else {
+                            PrimaryButton(
+                                onClick = { onContactSeller(Email(listing.publisher.jid.value)) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    if (listing.category == ListingCategory.Event) stringResource(Res.string.listing_book_now)
+                                    else stringResource(Res.string.listing_contact_seller)
+                                )
+                            }
                         }
 
                         Spacer(Modifier.height(16.dp))
@@ -508,15 +550,37 @@ private fun SellerInfoCard(
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Avatar(
-            painter = ColorPainter(Theme[colors][primary]),
-            initials = "AS",
-            modifier = Modifier.size(48.dp)
-        )
+        val avatarUrl = listing.publisher.avatarUrl
+        if (avatarUrl != null) {
+            AsyncImage(
+                model = avatarUrl.value,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            val initials = listing.publisher.displayName.value
+                .split(" ")
+                .mapNotNull { it.firstOrNull()?.toString() }
+                .take(2)
+                .joinToString("")
+                .uppercase()
+                .ifBlank { "?" }
+
+            Avatar(
+                painter = ColorPainter(Theme[colors][primary]),
+                initials = initials,
+                modifier = Modifier.size(48.dp),
+                shape = CircleShape
+            )
+        }
+
         Spacer(Modifier.width(16.dp))
         SelectionContainer {
             Column {
-                Text("Alice Seller", fontWeight = FontWeight.Bold)
+                Text(listing.publisher.displayName.value, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Lucide.Star,

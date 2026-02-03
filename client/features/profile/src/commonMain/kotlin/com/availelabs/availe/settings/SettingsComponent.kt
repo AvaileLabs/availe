@@ -10,6 +10,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.availelabs.availe.repositories.IAuthenticationRepository
 import com.availelabs.availe.repositories.ISessionRepository
+import com.availelabs.availe.repositories.IUserRepository
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +26,7 @@ class SettingsComponent(
     storeFactory: StoreFactory,
     sessionManager: ISessionRepository,
     authenticationRepository: IAuthenticationRepository,
+    userRepository: IUserRepository,
     private val navigator: ISettingsNavigator
 ) : ISettingsComponent, ComponentContext by componentContext {
 
@@ -32,7 +34,8 @@ class SettingsComponent(
         SettingsStoreFactory(
             storeFactory = storeFactory,
             sessionManager = sessionManager,
-            authenticationRepository = authenticationRepository
+            authenticationRepository = authenticationRepository,
+            userRepository = userRepository
         ).create()
     }
 

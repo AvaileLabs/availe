@@ -1,11 +1,16 @@
 package com.availelabs.availe.domain.extensions
 
 import com.availelabs.availe.domain.model.*
+import kotlin.uuid.ExperimentalUuidApi
 
 private const val MAXIMUM_TITLE_LENGTH = 100
 
+@OptIn(ExperimentalUuidApi::class)
 fun Listing.canBeModifiedBy(userId: UserId): Boolean {
-    return this.publisher.id == userId
+    if (this.publisher.id == userId) return true
+
+    val userIdString = userId.value.toString()
+    return this.publisher.jid.value.startsWith(userIdString, ignoreCase = true)
 }
 
 fun PriceAmount.isValid(): Boolean {

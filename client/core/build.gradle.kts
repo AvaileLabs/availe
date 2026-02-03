@@ -8,6 +8,10 @@ plugins {
 group = "com.availelabs"
 version = "1.0.0"
 
+base {
+    archivesName.set("availe-client-core")
+}
+
 kotlin {
     androidLibrary {
         namespace = "com.availelabs.availe"
@@ -25,10 +29,8 @@ kotlin {
 
             // Decompose
             api(libs.decompose)
-            api(libs.decompose.extensions.compose)
             api(libs.essenty.lifecycle)
             api(libs.essenty.lifecycle.coroutines)
-            implementation(libs.decompose.extensions.compose.experimental)
             implementation(libs.kotlinx.coroutines.core)
 
             // MVIKotlin

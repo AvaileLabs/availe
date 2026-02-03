@@ -11,9 +11,11 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
+import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.listingdetails.ListingDetailsStore.*
 import com.availelabs.availe.repositories.IListingRepository
+import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.types.RepositoryOperationResult
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
@@ -29,7 +31,8 @@ interface ListingDetailsStore : Store<Intent, State, Label> {
     data class State(
         val listing: Listing? = null,
         val isLoading: Boolean = false,
-        val errorMessage: UiText? = null
+        val errorMessage: UiText? = null,
+        val currentUserId: UserId? = null
     )
 
     sealed interface Label
@@ -38,6 +41,7 @@ interface ListingDetailsStore : Store<Intent, State, Label> {
 internal class ListingDetailsStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
+    private val sessionManager: ISessionRepository,
     private val listingId: ListingId
 ) {
 
@@ -52,12 +56,14 @@ internal class ListingDetailsStoreFactory(
 
     private sealed interface Action {
         data class FetchListing(val listingId: ListingId) : Action
+        data object FetchCurrentUser : Action
     }
 
     private sealed interface Message {
         data class SetLoading(val isLoading: Boolean) : Message
         data class ListingLoaded(val listing: Listing) : Message
         data class SetError(val message: UiText?) : Message
+        data class SetCurrentUser(val userId: UserId?) : Message
     }
 
     private class ListingDetailsBootstrapper(
@@ -65,6 +71,7 @@ internal class ListingDetailsStoreFactory(
     ) : CoroutineBootstrapper<Action>() {
         override fun invoke() {
             dispatch(Action.FetchListing(listingId))
+            dispatch(Action.FetchCurrentUser)
         }
     }
 
@@ -72,6 +79,7 @@ internal class ListingDetailsStoreFactory(
         override fun executeAction(action: Action) {
             when (action) {
                 is Action.FetchListing -> fetchListing(action.listingId)
+                Action.FetchCurrentUser -> fetchCurrentUser()
             }
         }
 
@@ -108,6 +116,13 @@ internal class ListingDetailsStoreFactory(
                 dispatch(Message.SetLoading(false))
             }
         }
+
+        private fun fetchCurrentUser() {
+            scope.launch {
+                val profile = sessionManager.getCurrentUserProfile()
+                dispatch(Message.SetCurrentUser(profile?.id))
+            }
+        }
     }
 
     private object ListingDetailsReducer : Reducer<State, Message> {
@@ -116,6 +131,7 @@ internal class ListingDetailsStoreFactory(
                 is Message.SetLoading -> copy(isLoading = msg.isLoading)
                 is Message.ListingLoaded -> copy(listing = msg.listing)
                 is Message.SetError -> copy(errorMessage = msg.message)
+                is Message.SetCurrentUser -> copy(currentUserId = msg.userId)
             }
     }
 }

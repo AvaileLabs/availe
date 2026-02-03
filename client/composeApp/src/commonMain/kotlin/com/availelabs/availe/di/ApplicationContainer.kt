@@ -4,10 +4,7 @@ import com.arkivanov.essenty.instancekeeper.InstanceKeeper
 import com.availelabs.availe.core.platform.IInAppBrowserLauncher
 import com.availelabs.availe.core.platform.createInAppBrowserLauncher
 import com.availelabs.availe.platform.PlatformActivity
-import com.availelabs.availe.repositories.IAuthenticationRepository
-import com.availelabs.availe.repositories.IListingRepository
-import com.availelabs.availe.repositories.IMessagingRepository
-import com.availelabs.availe.repositories.ISessionRepository
+import com.availelabs.availe.repositories.*
 import com.availelabs.availe.services.IMessageService
 
 fun createApplicationContainer(
@@ -35,6 +32,8 @@ private class ApplicationContainer(
         get() = dataContainer.listingRepository
     override val messagingRepository: IMessagingRepository
         get() = dataContainer.messagingRepository
+    override val userRepository: IUserRepository
+        get() = dataContainer.userRepository
     override val messageService: IMessageService
         get() = dataContainer.messageService
 }

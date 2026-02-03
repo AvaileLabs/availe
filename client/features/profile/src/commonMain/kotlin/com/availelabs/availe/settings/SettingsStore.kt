@@ -7,6 +7,8 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.domain.model.UserDisplayName
 import com.availelabs.availe.repositories.IAuthenticationRepository
 import com.availelabs.availe.repositories.ISessionRepository
+import com.availelabs.availe.repositories.IUserRepository
+import com.availelabs.availe.types.RepositoryOperationResult
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.launch
 
@@ -34,7 +36,8 @@ interface ISettingsStore : Store<ISettingsStore.Intent, ISettingsStore.State, IS
 internal class SettingsStoreFactory(
     private val storeFactory: StoreFactory,
     private val sessionManager: ISessionRepository,
-    private val authenticationRepository: IAuthenticationRepository
+    private val authenticationRepository: IAuthenticationRepository,
+    private val userRepository: IUserRepository
 ) {
     private sealed interface Msg {
         data class SetDisplayName(val name: UserDisplayName) : Msg
@@ -74,13 +77,18 @@ internal class SettingsStoreFactory(
             dispatch(Msg.SetError(null))
             scope.launch {
                 try {
-                    val profile = sessionManager.getCurrentUserProfile()
-                    if (profile != null) {
-                        dispatch(
-                            Msg.SetDisplayName(
-                                UserDisplayName(profile.email.value)
-                            )
-                        )
+                    val currentUser = sessionManager.getCurrentUserProfile()
+                    if (currentUser != null) {
+                        when (val result = userRepository.getUserById(currentUser.id)) {
+                            is RepositoryOperationResult.Success -> {
+                                dispatch(Msg.SetDisplayName(result.value.displayName))
+                            }
+
+                            is RepositoryOperationResult.Failure -> {
+                                // Fallback to email if user profile fetch fails
+                                dispatch(Msg.SetDisplayName(UserDisplayName(currentUser.email.value)))
+                            }
+                        }
                     } else {
                         dispatch(Msg.SetError(UiText.VerbatimString("User not found")))
                     }
@@ -96,8 +104,7 @@ internal class SettingsStoreFactory(
             dispatch(Msg.SetRefreshing(true))
             scope.launch {
                 try {
-                    // TODO: Call repository save
-                    // sessionManager does not support updates yet
+                    // TODO: Implement update profile via IUserRepository when available
                     dispatch(Msg.SetDisplayName(UserDisplayName(newName)))
                     publish(ISettingsStore.Label.SettingsSaved)
                 } catch (_: Exception) {

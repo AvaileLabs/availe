@@ -80,6 +80,10 @@ actual class AppShellRouter actual constructor(
         onCancelLoginCallback()
     }
 
+    actual override fun navigateToEditListing(listingId: ListingId) {
+        stackNavigation.pushToFront(AppShellConfiguration.ListingEditor(listingId))
+    }
+
     @OptIn(DelicateDecomposeApi::class)
     actual fun navigateToHome() {
         stackNavigation.bringToFront(AppShellConfiguration.Home(ListingFeedType.Latest))

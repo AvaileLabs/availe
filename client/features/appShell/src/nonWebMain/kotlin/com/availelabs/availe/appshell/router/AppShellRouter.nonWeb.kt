@@ -98,6 +98,10 @@ actual class AppShellRouter actual constructor(
         onCancelLoginCallback()
     }
 
+    actual override fun navigateToEditListing(listingId: ListingId) {
+        stackNavigation.pushToFront(AppShellConfiguration.ListingEditor(listingId))
+    }
+
     actual fun navigateToHome() {
         val dashboard = dashboardComponent
         if (dashboard != null) {

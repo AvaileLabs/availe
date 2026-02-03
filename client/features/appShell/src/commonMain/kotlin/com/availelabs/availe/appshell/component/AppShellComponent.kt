@@ -91,7 +91,6 @@ class AppShellComponent(
     private val chatOverlayNavigation = SlotNavigation<AppShellConfiguration.ChatOverlay>()
     private var layoutMode = LayoutMode.SinglePane
 
-    // Router is initialized FIRST, passed a provider lambda to get the stack later.
     private val router = AppShellRouter(
         stackNavigation = childStackNavigation,
         overlayNavigation = chatOverlayNavigation,
@@ -102,7 +101,6 @@ class AppShellComponent(
         childStackProvider = { childStack }
     )
 
-    // Stack is initialized SECOND, using the router in the child factory.
     private val _childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>> = childStack(
         source = childStackNavigation,
         serializer = AppShellConfiguration.serializer(),
@@ -320,6 +318,7 @@ class AppShellComponent(
     override fun navigateToSettings() = router.navigateToSettings()
     override fun openUrl(url: String) = router.openUrl(url)
     override fun dismissLogin() = router.dismissLogin()
+    override fun navigateToEditListing(listingId: ListingId) = router.navigateToEditListing(listingId)
 
     private fun createChildComponent(
         configuration: AppShellConfiguration,
@@ -350,6 +349,7 @@ class AppShellComponent(
                             componentContext = childContext,
                             listingId = listingId,
                             listingRepository = appContainer.listingRepository,
+                            sessionManager = appContainer.sessionManager,
                             navigator = router
                         )
                     },
@@ -358,6 +358,7 @@ class AppShellComponent(
                             componentContext = childContext,
                             targetUserId = userId,
                             listingRepository = appContainer.listingRepository,
+                            userRepository = appContainer.userRepository,
                             sessionManager = appContainer.sessionManager,
                             messageService = appContainer.messageService,
                             navigator = router
@@ -384,6 +385,7 @@ class AppShellComponent(
                             componentContext = childContext,
                             targetUserId = targetUserId,
                             listingRepository = appContainer.listingRepository,
+                            userRepository = appContainer.userRepository,
                             sessionManager = appContainer.sessionManager,
                             messageService = appContainer.messageService,
                             navigator = router
@@ -394,6 +396,7 @@ class AppShellComponent(
                             componentContext = childContext,
                             listingId = listingId,
                             listingRepository = appContainer.listingRepository,
+                            sessionManager = appContainer.sessionManager,
                             navigator = router
                         )
                     },
@@ -403,6 +406,7 @@ class AppShellComponent(
                             storeFactory = DefaultStoreFactory(),
                             sessionManager = appContainer.sessionManager,
                             authenticationRepository = appContainer.authenticationRepository,
+                            userRepository = appContainer.userRepository,
                             navigator = router
                         )
                     }
@@ -423,6 +427,7 @@ class AppShellComponent(
                     componentContext = context,
                     listingId = listingId,
                     listingRepository = appContainer.listingRepository,
+                    sessionManager = appContainer.sessionManager,
                     navigator = router
                 )
             },
@@ -431,6 +436,7 @@ class AppShellComponent(
                     componentContext = context,
                     targetUserId = userId,
                     listingRepository = appContainer.listingRepository,
+                    userRepository = appContainer.userRepository,
                     sessionManager = appContainer.sessionManager,
                     messageService = appContainer.messageService,
                     navigator = router
@@ -442,6 +448,7 @@ class AppShellComponent(
                     storeFactory = DefaultStoreFactory(),
                     sessionManager = appContainer.sessionManager,
                     authenticationRepository = appContainer.authenticationRepository,
+                    userRepository = appContainer.userRepository,
                     navigator = router
                 )
             },

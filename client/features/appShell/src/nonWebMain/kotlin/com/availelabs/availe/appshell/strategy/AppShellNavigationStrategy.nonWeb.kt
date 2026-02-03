@@ -1,15 +1,11 @@
 package com.availelabs.availe.appshell.strategy
 
-import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import com.availelabs.availe.appshell.component.AppShellChildComponent
 import com.availelabs.availe.appshell.component.AppShellChildFactoryContext
 import com.availelabs.availe.appshell.model.AppShellConfiguration
 import com.availelabs.availe.appshell.model.AppShellIntent
 import com.availelabs.availe.dashboard.DashboardComponent
-import com.availelabs.availe.listingdetails.ListingDetailsComponent
 import com.availelabs.availe.listingeditor.ListingEditorComponent
-import com.availelabs.availe.profile.ProfileComponent
-import com.availelabs.availe.settings.SettingsComponent
 
 actual object AppShellNavigationStrategy {
     actual fun calculateInitialStack(intent: AppShellIntent): List<AppShellConfiguration> {
@@ -53,33 +49,15 @@ actual object AppShellNavigationStrategy {
             )
 
             is AppShellConfiguration.ListingDetails -> AppShellChildComponent.ListingDetails(
-                ListingDetailsComponent(
-                    componentContext = context.componentContext,
-                    listingId = configuration.listingId,
-                    listingRepository = context.appContainer.listingRepository,
-                    navigator = context.navigator
-                )
+                context.listingDetailsFactory(context.componentContext, configuration.listingId)
             )
 
             is AppShellConfiguration.Profile -> AppShellChildComponent.Profile(
-                ProfileComponent(
-                    componentContext = context.componentContext,
-                    targetUserId = configuration.userId,
-                    listingRepository = context.appContainer.listingRepository,
-                    sessionManager = context.appContainer.sessionManager,
-                    messageService = context.appContainer.messageService,
-                    navigator = context.navigator
-                )
+                context.profileFactory(context.componentContext, configuration.userId)
             )
 
             AppShellConfiguration.Settings -> AppShellChildComponent.Settings(
-                SettingsComponent(
-                    componentContext = context.componentContext,
-                    storeFactory = DefaultStoreFactory(),
-                    sessionManager = context.appContainer.sessionManager,
-                    authenticationRepository = context.appContainer.authenticationRepository,
-                    navigator = context.navigator
-                )
+                context.settingsFactory(context.componentContext)
             )
 
             is AppShellConfiguration.ChatOverlay -> {

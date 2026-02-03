@@ -18,13 +18,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import availe.client.designsystem.generated.resources.Res
-import availe.client.designsystem.generated.resources.generic_retry
-import availe.client.designsystem.generated.resources.home_empty_state
-import availe.client.designsystem.generated.resources.navigation_chat
-import availe.client.designsystem.generated.resources.navigation_settings
-import availe.client.designsystem.generated.resources.profile_title
+import availe.client.designsystem.generated.resources.*
+import coil3.compose.AsyncImage
+import com.availelabs.availe.domain.model.ImageUrl
 import com.availelabs.availe.navigation.DeepLinkRoute
 import com.availelabs.availe.profile.ProfileStore.Intent
 import com.availelabs.availe.ui.RefreshStateHolder
@@ -74,6 +72,8 @@ fun ProfileScreen(
             item {
                 ProfileHeader(
                     userId = state.targetUserId.value.toString(),
+                    displayName = state.profile?.displayName?.value,
+                    avatarUrl = state.profile?.avatarUrl,
                     isCurrentUser = state.isCurrentUser,
                     onMessageClick = { component.onIntent(Intent.MessageClicked) },
                     onSettingsClick = { component.onIntent(Intent.SettingsClicked) }
@@ -138,6 +138,8 @@ fun ProfileScreen(
 @Composable
 private fun ProfileHeader(
     userId: String,
+    displayName: String?,
+    avatarUrl: ImageUrl?,
     isCurrentUser: Boolean,
     onMessageClick: () -> Unit,
     onSettingsClick: () -> Unit
@@ -155,18 +157,27 @@ private fun ProfileHeader(
                 .background(Theme[colors][secondary]),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Lucide.User,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = Theme[colors][onSecondary]
-            )
+            if (avatarUrl != null) {
+                AsyncImage(
+                    model = avatarUrl.value,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Lucide.User,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = Theme[colors][onSecondary]
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = stringResource(Res.string.profile_title),
+            text = displayName ?: stringResource(Res.string.profile_title),
             style = Theme[textStyles][title]
         )
         Text(

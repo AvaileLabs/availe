@@ -13,6 +13,7 @@ import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.repositories.IListingRepository
+import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.ui.model.AppBarAction
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.StateFlow
@@ -24,12 +25,14 @@ interface IListingDetailsComponent {
     fun onBackClicked()
     fun onContactSellerClicked(sellerEmail: Email)
     fun onProfileClicked(userId: UserId)
+    fun onEditListingClicked()
 }
 
 class ListingDetailsComponent(
     componentContext: ComponentContext,
     private val listingId: ListingId,
     private val listingRepository: IListingRepository,
+    private val sessionManager: ISessionRepository,
     private val navigator: IListingDetailsNavigator
 ) : IListingDetailsComponent, ComponentContext by componentContext {
 
@@ -37,6 +40,7 @@ class ListingDetailsComponent(
         ListingDetailsStoreFactory(
             storeFactory = DefaultStoreFactory(),
             listingRepository = listingRepository,
+            sessionManager = sessionManager,
             listingId = listingId
         ).create()
     }
@@ -66,5 +70,9 @@ class ListingDetailsComponent(
 
     override fun onProfileClicked(userId: UserId) {
         navigator.navigateToProfile(userId)
+    }
+
+    override fun onEditListingClicked() {
+        navigator.navigateToEditListing(listingId)
     }
 }
