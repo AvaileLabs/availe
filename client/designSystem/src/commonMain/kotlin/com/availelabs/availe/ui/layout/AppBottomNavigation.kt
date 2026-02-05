@@ -18,6 +18,26 @@ import com.composables.uikit.styling.*
 import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
 
+object AppBottomNavigationDefaults {
+    val Height = 64.dp
+}
+
+@Composable
+fun rememberAppBottomNavigationConsumedPaddingValues(): PaddingValues {
+    val navigationBarsBottomPadding = WindowInsets.navigationBars
+        .asPaddingValues()
+        .calculateBottomPadding()
+
+    return PaddingValues(
+        bottom = AppBottomNavigationDefaults.Height + navigationBarsBottomPadding
+    )
+}
+
+@Composable
+fun Modifier.consumeAppBottomNavigationInsets(): Modifier {
+    return consumeWindowInsets(rememberAppBottomNavigationConsumedPaddingValues())
+}
+
 @Composable
 fun AppBottomNavigation(
     modifier: Modifier = Modifier,
@@ -39,7 +59,7 @@ fun AppBottomNavigation(
             modifier = Modifier
                 .navigationBarsPadding()
                 .fillMaxWidth()
-                .height(64.dp),
+                .height(AppBottomNavigationDefaults.Height),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {

@@ -42,6 +42,7 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Theme[colors][secondary].copy(alpha = 0.3f))
+                .windowInsetsPadding(WindowInsets.ime)
         ) {
             MessageList(
                 messages = chatState.messages,
@@ -62,6 +63,7 @@ fun ChatScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Theme[colors][secondary].copy(alpha = 0.3f))
+                    .windowInsetsPadding(WindowInsets.ime)
             ) {
                 ChatHeader(
                     connectionStatus = chatState.connectionStatus,

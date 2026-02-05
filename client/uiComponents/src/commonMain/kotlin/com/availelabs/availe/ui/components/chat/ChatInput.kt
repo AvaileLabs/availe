@@ -64,7 +64,7 @@ fun ChatInput(
                     },
                 placeholder = { Text(stringResource(Res.string.chat_input_placeholder)) },
                 shape = RoundedCornerShape(percent = 50),
-                editable = enabled
+                editable = true
             )
 
             IconButton(

@@ -47,6 +47,7 @@ actual fun AppShellLayout(
         .firstOrNull()?.component
 
     val isSwipeEnabled = windowSize == WindowSizeClass.Compact
+    val isBottomBarVisible = dashboardComponent != null && windowSize == WindowSizeClass.Compact
 
     val navigateToTab: (() -> Unit) -> Unit = { performTabAction ->
         if (activeInstance !is AppShellChildComponent.Dashboard) {
@@ -66,7 +67,7 @@ actual fun AppShellLayout(
                 isAuthenticationLoading = isAuthenticationLoading
             )
         },
-        bottomBar = if (dashboardComponent != null && windowSize == WindowSizeClass.Compact) {
+        bottomBar = if (isBottomBarVisible) {
             {
                 val pages by dashboardComponent.pages.subscribeAsState()
                 val selectedIndex = pages.selectedIndex
@@ -164,9 +165,16 @@ actual fun AppShellLayout(
                 .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
         ) {
             Box(modifier = Modifier.weight(1f).fillMaxSize()) {
+                val contentModifier = if (isBottomBarVisible) {
+                    Modifier.consumeAppBottomNavigationInsets()
+                } else {
+                    Modifier
+                }
+
                 AppShellContentStack(
                     appShellComponent = appShellComponent,
-                    isSwipeEnabled = isSwipeEnabled
+                    isSwipeEnabled = isSwipeEnabled,
+                    modifier = contentModifier
                 )
             }
         }

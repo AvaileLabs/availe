@@ -135,6 +135,13 @@
 * **State-Driven UI**:
     * UI elements like Tabs or Lists must be derived from the Component State (e.g., Decompose `ChildPages`), not
       hardcoded in Composable lists. This ensures the UI is always in sync with the actual navigation hierarchy.
+* **Window Insets Management (The Consumption Rule)**:
+    * **Consume What You Use**: Any component (like `AppShell` or `Scaffold`) that places UI elements over system
+      areas (e.g., Bottom Navigation Bars, Top App Bars) MUST use `Modifier.consumeWindowInsets()` to report this
+      consumed space to its children.
+    * **Prevent Double Padding**: Child screens (e.g., `ChatScreen`) should strictly use `WindowInsets` for their own
+      padding. They must rely on the parent to have correctly consumed the insets occupied by parent-level UI. This
+      prevents "floating" UI elements caused by double-counting insets.
 
 **Coding Standards**
 
