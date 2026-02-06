@@ -52,5 +52,9 @@ kotlin {
             api(libs.essenty.lifecycle.coroutines)
             implementation(libs.decompose.extensions.compose.experimental)
         }
+
+        webMain.dependencies {
+            implementation(libs.kotlinx.browser)
+        }
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -39,6 +40,7 @@ import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.onBackground
 import com.composables.uikit.styling.textStyles
 import com.composeunstyled.theme.Theme
+import kotlinx.browser.window
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -54,6 +56,7 @@ actual fun AppShellLayout(
     val shouldShowChatOverlay by appShellComponent.shouldShowChatOverlay.subscribeAsState()
     val activeConfig = childStack.active.configuration
     val visualViewportState = rememberVisualViewportState()
+    val density = LocalDensity.current
 
     val selectedIndex = when (activeConfig) {
         is AppShellConfiguration.Home -> 0
@@ -63,11 +66,17 @@ actual fun AppShellLayout(
         else -> -1
     }
 
+    // On iOS Web, the browser pans the visual viewport when the keyboard opens,
+    // pushing fixed headers off-screen. We counter this by offsetting the entire UI down.
+    // We also calculate the keyboard height manually because WindowInsets.ime is unreliable on Web.
+    val windowHeightDp = with(density) { window.innerHeight.toDp() }
+    val keyboardHeightDp = (windowHeightDp - visualViewportState.height).coerceAtLeast(0.dp)
+
     Box(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .offset(y = visualViewportState.offsetTop)
-            .height(visualViewportState.height)
+            .padding(bottom = keyboardHeightDp)
             .consumeWindowInsets(WindowInsets.ime)
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
