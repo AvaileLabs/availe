@@ -25,6 +25,7 @@ import com.availelabs.availe.navigation.DeepLinkRoute
 import com.availelabs.availe.ui.components.LinkContextMenuArea
 import com.availelabs.availe.ui.components.dialogs.ChatOverlayWindow
 import com.availelabs.availe.ui.layout.AppTopNavigation
+import com.availelabs.availe.ui.layout.rememberVisualViewportState
 import com.composables.icons.lucide.House
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.MessageCircle
@@ -52,6 +53,7 @@ actual fun AppShellLayout(
     val childActions by activeInstance.actions.subscribeAsState()
     val shouldShowChatOverlay by appShellComponent.shouldShowChatOverlay.subscribeAsState()
     val activeConfig = childStack.active.configuration
+    val visualViewportState = rememberVisualViewportState()
 
     val selectedIndex = when (activeConfig) {
         is AppShellConfiguration.Home -> 0
@@ -61,166 +63,174 @@ actual fun AppShellLayout(
         else -> -1
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            AppTopNavigation(
-                logo = {
-                    Text(
-                        text = stringResource(Res.string.application_name),
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationItems = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Home
-                        LinkContextMenuArea(route = DeepLinkRoute.Home()) {
-                            IconButton(
-                                onClick = { appShellComponent.onHomeTabClicked() },
-                                backgroundColor = if (selectedIndex == 0) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .offset(y = visualViewportState.offsetTop)
+            .height(visualViewportState.height)
+            .consumeWindowInsets(WindowInsets.ime)
+    ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                AppTopNavigation(
+                    logo = {
+                        Text(
+                            text = stringResource(Res.string.application_name),
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    navigationItems = {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Home
+                            LinkContextMenuArea(route = DeepLinkRoute.Home()) {
+                                IconButton(
+                                    onClick = { appShellComponent.onHomeTabClicked() },
+                                    backgroundColor = if (selectedIndex == 0) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
                                 ) {
-                                    Icon(Lucide.House, null)
-                                    Text(stringResource(Res.string.navigation_home))
-                                }
-                            }
-                        }
-
-                        // Chat
-                        LinkContextMenuArea(route = DeepLinkRoute.Chat()) {
-                            IconButton(
-                                onClick = { appShellComponent.onChatTabClicked() },
-                                backgroundColor = if (selectedIndex == 1) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Lucide.MessageCircle, null)
-                                    Text(stringResource(Res.string.navigation_chat))
-                                }
-                            }
-                        }
-
-                        // Profile
-                        val profileButton = @Composable {
-                            IconButton(
-                                onClick = { appShellComponent.onProfileTabClicked() },
-                                backgroundColor = if (selectedIndex == 2) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Lucide.User, null)
-                                    Text(stringResource(Res.string.navigation_profile))
-                                }
-                            }
-                        }
-
-                        if (authenticationState is AuthenticationState.LoggedIn) {
-                            LinkContextMenuArea(route = DeepLinkRoute.Profile(authenticationState.userId)) {
-                                profileButton()
-                            }
-                        } else {
-                            profileButton()
-                        }
-                    }
-                },
-                actions = {
-                    ShellActions(
-                        actions = childActions,
-                        authenticationState = authenticationState,
-                        isAuthenticationLoading = isAuthenticationLoading,
-                        onLoginClicked = { appShellComponent.onLoginClicked() },
-                        onSettingsClick = { appShellComponent.onSettingsClicked() },
-                        onCancelLoginClicked = { appShellComponent.onCancelLoginClicked() }
-                    )
-                }
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .widthIn(max = 1200.dp)
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-                ) {
-                    AppShellContentStack(
-                        appShellComponent = appShellComponent,
-                        isSwipeEnabled = false
-                    )
-                }
-
-                if (shouldShowChatOverlay && chatOverlay.child != null) {
-                    val overlayInstance = chatOverlay.child!!.instance
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 24.dp)
-                    ) {
-                        ChatOverlayWindow(
-                            title = stringResource(Res.string.chat_title),
-                            onExpand = appShellComponent::expandChatOverlay,
-                            onClose = appShellComponent::dismissChatOverlay,
-                            content = {
-                                if (authenticationState is AuthenticationState.LoggedIn) {
-                                    ChatRootScreen(
-                                        component = overlayInstance.component
-                                    )
-                                } else {
-                                    Column(
-                                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            imageVector = Lucide.MessageCircle,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(48.dp).background(
-                                                Theme[colors][accent].copy(alpha = 0.1f),
-                                                CircleShape
-                                            ).padding(12.dp)
-                                        )
-                                        Spacer(Modifier.height(16.dp))
-                                        SelectionContainer {
-                                            Text(
-                                                text = stringResource(Res.string.authentication_guard_title),
-                                                style = Theme[textStyles][com.composables.uikit.styling.title],
-                                                textAlign = TextAlign.Center
-                                            )
-                                        }
-                                        Spacer(Modifier.height(8.dp))
-                                        SelectionContainer {
-                                            Text(
-                                                text = stringResource(Res.string.authentication_guard_body),
-                                                style = Theme[textStyles][com.composables.uikit.styling.body].copy(
-                                                    color = Theme[colors][onBackground].copy(alpha = 0.7f)
-                                                ),
-                                                textAlign = TextAlign.Center
-                                            )
-                                        }
-                                        Spacer(Modifier.height(24.dp))
-                                        PrimaryButton(
-                                            onClick = { appShellComponent.onLoginClicked() },
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Text(stringResource(Res.string.authentication_log_in))
-                                        }
+                                        Icon(Lucide.House, null)
+                                        Text(stringResource(Res.string.navigation_home))
                                     }
                                 }
                             }
+
+                            // Chat
+                            LinkContextMenuArea(route = DeepLinkRoute.Chat()) {
+                                IconButton(
+                                    onClick = { appShellComponent.onChatTabClicked() },
+                                    backgroundColor = if (selectedIndex == 1) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Lucide.MessageCircle, null)
+                                        Text(stringResource(Res.string.navigation_chat))
+                                    }
+                                }
+                            }
+
+                            // Profile
+                            val profileButton = @Composable {
+                                IconButton(
+                                    onClick = { appShellComponent.onProfileTabClicked() },
+                                    backgroundColor = if (selectedIndex == 2) Theme[colors][accent].copy(alpha = 0.1f) else Color.Transparent
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Lucide.User, null)
+                                        Text(stringResource(Res.string.navigation_profile))
+                                    }
+                                }
+                            }
+
+                            if (authenticationState is AuthenticationState.LoggedIn) {
+                                LinkContextMenuArea(route = DeepLinkRoute.Profile(authenticationState.userId)) {
+                                    profileButton()
+                                }
+                            } else {
+                                profileButton()
+                            }
+                        }
+                    },
+                    actions = {
+                        ShellActions(
+                            actions = childActions,
+                            authenticationState = authenticationState,
+                            isAuthenticationLoading = isAuthenticationLoading,
+                            onLoginClicked = { appShellComponent.onLoginClicked() },
+                            onSettingsClick = { appShellComponent.onSettingsClicked() },
+                            onCancelLoginClicked = { appShellComponent.onCancelLoginClicked() }
                         )
+                    }
+                )
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 1200.dp)
+                            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                    ) {
+                        AppShellContentStack(
+                            appShellComponent = appShellComponent,
+                            isSwipeEnabled = false
+                        )
+                    }
+
+                    if (shouldShowChatOverlay && chatOverlay.child != null) {
+                        val overlayInstance = chatOverlay.child!!.instance
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 24.dp)
+                        ) {
+                            ChatOverlayWindow(
+                                title = stringResource(Res.string.chat_title),
+                                onExpand = appShellComponent::expandChatOverlay,
+                                onClose = appShellComponent::dismissChatOverlay,
+                                content = {
+                                    if (authenticationState is AuthenticationState.LoggedIn) {
+                                        ChatRootScreen(
+                                            component = overlayInstance.component
+                                        )
+                                    } else {
+                                        Column(
+                                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Lucide.MessageCircle,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(48.dp).background(
+                                                    Theme[colors][accent].copy(alpha = 0.1f),
+                                                    CircleShape
+                                                ).padding(12.dp)
+                                            )
+                                            Spacer(Modifier.height(16.dp))
+                                            SelectionContainer {
+                                                Text(
+                                                    text = stringResource(Res.string.authentication_guard_title),
+                                                    style = Theme[textStyles][com.composables.uikit.styling.title],
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                            Spacer(Modifier.height(8.dp))
+                                            SelectionContainer {
+                                                Text(
+                                                    text = stringResource(Res.string.authentication_guard_body),
+                                                    style = Theme[textStyles][com.composables.uikit.styling.body].copy(
+                                                        color = Theme[colors][onBackground].copy(alpha = 0.7f)
+                                                    ),
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                            Spacer(Modifier.height(24.dp))
+                                            PrimaryButton(
+                                                onClick = { appShellComponent.onLoginClicked() },
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text(stringResource(Res.string.authentication_log_in))
+                                            }
+                                        }
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
