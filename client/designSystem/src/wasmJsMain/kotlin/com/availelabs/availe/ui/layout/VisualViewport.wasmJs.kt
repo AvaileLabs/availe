@@ -1,7 +1,7 @@
 package com.availelabs.availe.ui.layout
 
 import androidx.compose.runtime.*
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import org.w3c.dom.events.Event
 
 // Define the external interface for VisualViewport in Wasm
@@ -20,19 +20,21 @@ private fun getVisualViewport(): VisualViewport = js("window.visualViewport")
 @Composable
 actual fun rememberVisualViewportState(): VisualViewportState {
     var viewportState by remember { mutableStateOf(VisualViewportState()) }
+    val density = LocalDensity.current
 
-    DisposableEffect(Unit) {
+    DisposableEffect(density) {
         val visualViewport = getVisualViewport()
 
         val callback = { _: Event ->
             val heightDouble = visualViewport.height
             val offsetTopDouble = visualViewport.offsetTop
 
-            // On Web, 1 CSS pixel is treated as 1 Dp in Compose layout logic.
-            // We do NOT divide by density here, as that would double-scale on high-DPI screens.
+            val height = with(density) { heightDouble.toFloat().toDp() }
+            val offsetTop = with(density) { offsetTopDouble.toFloat().toDp() }
+
             viewportState = VisualViewportState(
-                height = heightDouble.dp,
-                offsetTop = offsetTopDouble.dp,
+                height = height,
+                offsetTop = offsetTop,
                 isResizing = true
             )
         }
@@ -43,9 +45,12 @@ actual fun rememberVisualViewportState(): VisualViewportState {
         val initialHeightDouble = visualViewport.height
         val initialOffsetTopDouble = visualViewport.offsetTop
 
+        val initialHeight = with(density) { initialHeightDouble.toFloat().toDp() }
+        val initialOffset = with(density) { initialOffsetTopDouble.toFloat().toDp() }
+
         viewportState = VisualViewportState(
-            height = initialHeightDouble.dp,
-            offsetTop = initialOffsetTopDouble.dp,
+            height = initialHeight,
+            offsetTop = initialOffset,
             isResizing = false
         )
 

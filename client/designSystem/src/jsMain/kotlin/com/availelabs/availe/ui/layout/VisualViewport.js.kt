@@ -1,15 +1,16 @@
 package com.availelabs.availe.ui.layout
 
 import androidx.compose.runtime.*
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import kotlinx.browser.window
 import org.w3c.dom.events.Event
 
 @Composable
 actual fun rememberVisualViewportState(): VisualViewportState {
     var viewportState by remember { mutableStateOf(VisualViewportState()) }
+    val density = LocalDensity.current
 
-    DisposableEffect(Unit) {
+    DisposableEffect(density) {
         val visualViewport = window.asDynamic().visualViewport
 
         val callback = { _: Event ->
@@ -17,11 +18,12 @@ actual fun rememberVisualViewportState(): VisualViewportState {
                 val heightDouble = visualViewport.height as Double
                 val offsetTopDouble = visualViewport.offsetTop as Double
 
-                // On Web, 1 CSS pixel is treated as 1 Dp in Compose layout logic.
-                // We do NOT divide by density here, as that would double-scale on high-DPI screens.
+                val height = with(density) { heightDouble.toFloat().toDp() }
+                val offsetTop = with(density) { offsetTopDouble.toFloat().toDp() }
+
                 viewportState = VisualViewportState(
-                    height = heightDouble.dp,
-                    offsetTop = offsetTopDouble.dp,
+                    height = height,
+                    offsetTop = offsetTop,
                     isResizing = true
                 )
             }
@@ -34,9 +36,12 @@ actual fun rememberVisualViewportState(): VisualViewportState {
             val initialHeightDouble = visualViewport.height as Double
             val initialOffsetTopDouble = visualViewport.offsetTop as Double
 
+            val initialHeight = with(density) { initialHeightDouble.toFloat().toDp() }
+            val initialOffset = with(density) { initialOffsetTopDouble.toFloat().toDp() }
+
             viewportState = VisualViewportState(
-                height = initialHeightDouble.dp,
-                offsetTop = initialOffsetTopDouble.dp,
+                height = initialHeight,
+                offsetTop = initialOffset,
                 isResizing = false
             )
         }

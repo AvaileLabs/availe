@@ -3,17 +3,16 @@ package com.availelabs.availe.appshell.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import availe.client.designsystem.generated.resources.*
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.slot.ChildSlot
@@ -43,7 +42,6 @@ import com.composables.uikit.styling.textStyles
 import com.composeunstyled.theme.Theme
 import kotlinx.browser.window
 import org.jetbrains.compose.resources.stringResource
-import org.w3c.dom.events.Event
 
 @Composable
 actual fun AppShellLayout(
@@ -58,14 +56,7 @@ actual fun AppShellLayout(
     val shouldShowChatOverlay by appShellComponent.shouldShowChatOverlay.subscribeAsState()
     val activeConfig = childStack.active.configuration
     val visualViewportState = rememberVisualViewportState()
-
-    // Track window scroll manually since it's not in VisualViewportState yet
-    var scrollY by remember { mutableStateOf(0.0) }
-    LaunchedEffect(Unit) {
-        val onScroll = { _: Event -> scrollY = window.scrollY }
-        window.addEventListener("scroll", onScroll)
-        onScroll(Event("init"))
-    }
+    val density = LocalDensity.current
 
     val selectedIndex = when (activeConfig) {
         is AppShellConfiguration.Home -> 0
@@ -75,19 +66,16 @@ actual fun AppShellLayout(
         else -> -1
     }
 
-    // CALCULATIONS:
-    // 1. Keyboard Height = Layout Height (window.innerHeight) - Visual Height
-    //    We explicitly pad the bottom to make space for the keyboard.
-    val keyboardHeightDp = (window.innerHeight.dp - visualViewportState.height).coerceAtLeast(0.dp)
-
-    // 2. Counter-Offset = Visual Offset + Body Scroll
-    //    We shift the entire app DOWN to counteract Safari shifting the camera UP.
-    val counterOffsetDp = visualViewportState.offsetTop + scrollY.dp
+    // On iOS Web, the browser pans the visual viewport when the keyboard opens,
+    // pushing fixed headers off-screen. We counter this by offsetting the entire UI down.
+    // We also calculate the keyboard height manually because WindowInsets.ime is unreliable on Web.
+    val windowHeightDp = with(density) { window.innerHeight.toDp() }
+    val keyboardHeightDp = (windowHeightDp - visualViewportState.height).coerceAtLeast(0.dp)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .offset(y = counterOffsetDp)
+            .offset(y = visualViewportState.offsetTop)
             .padding(bottom = keyboardHeightDp)
             .consumeWindowInsets(WindowInsets.ime)
     ) {
@@ -255,25 +243,6 @@ actual fun AppShellLayout(
                     }
                 }
             }
-        }
-
-        // DEBUG OVERLAY
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 120.dp)
-                .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
-                .padding(8.dp)
-                .zIndex(100f)
-        ) {
-            Text(
-                text = "WinH: ${window.innerHeight} | VVH: ${visualViewportState.height.value.toInt()}\n" +
-                        "Offset: ${counterOffsetDp.value.toInt()} (VV: ${visualViewportState.offsetTop.value.toInt()} + Scroll: ${scrollY.toInt()})\n" +
-                        "CalcKB: ${keyboardHeightDp.value.toInt()}",
-                color = Color.White,
-                fontSize = 12.sp,
-                lineHeight = 16.sp
-            )
         }
     }
 }
