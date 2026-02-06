@@ -2,6 +2,7 @@ import com.android.build.api.dsl.androidLibrary
 
 plugins {
     alias(libs.plugins.availe.kmp.android)
+    alias(libs.plugins.availe.kmp.sourcesets.nonWeb)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
@@ -44,6 +45,9 @@ kotlin {
                 exclude("org.jetbrains.compose.material")
                 exclude("org.jetbrains.compose.material3")
             }
+        }
+        webMain.dependencies {
+            implementation(libs.kotlinx.browser)
         }
     }
 }
