@@ -70,7 +70,6 @@ internal class SessionRepository(
                     authenticationRemoteDataSource.saveTokens(newTokens)
 
                     val newToken = AuthToken(newTokens.access_token)
-                    // Try to get new ID from refresh response, fallback to stored ID if not returned (rare but possible in some flows)
                     val newUserId =
                         newTokens.id_token?.let { JwtUserProfileMapper.decodeUserProfile(it) }?.id ?: storedUserId
 
@@ -117,6 +116,13 @@ internal class SessionRepository(
 
     override fun onLogoutSuccess() {
         updateState(AuthenticationState.LoggedOut)
+    }
+
+    override fun onTokenRefreshed(token: AuthToken) {
+        val currentState = _authenticationState.value
+        if (currentState is AuthenticationState.LoggedIn) {
+            updateState(currentState.copy(accessToken = token))
+        }
     }
 
     override fun updateState(newAuthenticationState: AuthenticationState) {

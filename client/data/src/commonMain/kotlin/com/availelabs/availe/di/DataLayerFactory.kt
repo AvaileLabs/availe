@@ -9,6 +9,7 @@ import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.database.DatabaseProvider
 import com.availelabs.availe.database.createDatabaseFileController
 import com.availelabs.availe.database.createSqlDriverFactory
+import com.availelabs.availe.domain.model.AuthToken
 import com.availelabs.availe.network.SafeNetworkCaller
 import com.availelabs.availe.platform.PlatformActivity
 import com.availelabs.availe.preferences.DatabasePreferences
@@ -106,7 +107,7 @@ object DataLayerFactory {
             val sessionRepository = SessionRepository(
                 authenticationRemoteDataSource = authenticationRemoteDataSource,
                 localDataCleaner = localDataCleaner,
-                lifecycle = LifecycleRegistry(), // possibly outdated comment: // Mock lifecycle for session repo if needed, or refactor SessionRepo to use scope
+                lifecycle = LifecycleRegistry(),
                 accountManagementUrl = AuthenticationConstants.ACCOUNT_MANAGEMENT_URL
             )
 
@@ -147,6 +148,7 @@ object DataLayerFactory {
                                 try {
                                     val newTokens = authenticationRemoteDataSource.refreshTokens(oldRefreshToken)
                                     authenticationRemoteDataSource.saveTokens(newTokens)
+                                    sessionRepository.onTokenRefreshed(AuthToken(newTokens.access_token))
                                     BearerTokens(newTokens.access_token, newTokens.refresh_token ?: oldRefreshToken)
                                 } catch (_: Exception) {
                                     sessionRepository.onSessionInvalidated()
