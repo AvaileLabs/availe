@@ -2,7 +2,6 @@ package com.availelabs.availe.appshell.router
 
 import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.router.slot.SlotNavigation
-import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
@@ -58,16 +57,12 @@ actual class AppShellRouter actual constructor(
     }
 
     actual override fun navigateToChat(jid: Jid) {
-        if (layoutModeProvider() == LayoutMode.MultiPane) {
-            overlayNavigation.activate(AppShellConfiguration.ChatOverlay(jid))
+        val dashboard = dashboardComponent
+        if (dashboard != null) {
+            stackNavigation.popTo(0)
+            dashboard.selectChat(jid)
         } else {
-            val dashboard = dashboardComponent
-            if (dashboard != null) {
-                stackNavigation.popTo(0)
-                dashboard.selectChat(jid)
-            } else {
-                stackNavigation.pushToFront(AppShellConfiguration.Chat(jid))
-            }
+            stackNavigation.pushToFront(AppShellConfiguration.Chat(jid))
         }
     }
 
