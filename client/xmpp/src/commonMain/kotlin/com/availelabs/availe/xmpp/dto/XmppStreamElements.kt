@@ -2,22 +2,20 @@ package com.availelabs.availe.xmpp.dto
 
 import com.availelabs.availe.xmpp.model.*
 import com.availelabs.availe.xmpp.xml.XmppNamespaces
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import nl.adaptivity.xmlutil.serialization.XmlElement
-import nl.adaptivity.xmlutil.serialization.XmlPolyChildren
 import nl.adaptivity.xmlutil.serialization.XmlSerialName
 import nl.adaptivity.xmlutil.serialization.XmlValue
 
 @Serializable
 sealed interface IXmppStreamElement
 
-// --- Transport & Handshake Elements ---
-
 @Serializable
 @XmlSerialName(value = "open", namespace = XmppNamespaces.Framing, prefix = "")
 data class XmppStreamOpen(
     @XmlSerialName(value = "to", namespace = "")
-    val to: String,
+    val to: String? = null,
 
     @XmlSerialName(value = "version", namespace = "")
     val version: String = "1.0",
@@ -26,7 +24,22 @@ data class XmppStreamOpen(
     val language: LanguageTag? = null,
 
     @XmlSerialName(value = "id", namespace = "")
-    val identifier: String? = null
+    val identifier: String? = null,
+
+    @XmlSerialName(value = "from", namespace = "")
+    val from: String? = null
+) : IXmppStreamElement
+
+@Serializable
+@XmlSerialName(value = "close", namespace = XmppNamespaces.Framing, prefix = "")
+class XmppClose : IXmppStreamElement
+
+@Serializable
+@XmlSerialName(value = "error", namespace = XmppNamespaces.Streams, prefix = "stream")
+data class XmppStreamError(
+    @XmlElement(true)
+    @XmlSerialName(value = "text", namespace = XmppNamespaces.StreamConditions, prefix = "")
+    val text: String? = null
 ) : IXmppStreamElement
 
 @Serializable
@@ -81,8 +94,6 @@ data class XmppSaslFailure(
     val notAuthorized: String? = null
 ) : IXmppStreamElement
 
-// --- Active Session Stanzas ---
-
 @Serializable
 @XmlSerialName(value = "message", namespace = XmppNamespaces.JabberClient, prefix = "")
 data class XmppMessageStanza(
@@ -100,7 +111,11 @@ data class XmppMessageStanza(
 
     @XmlElement(true)
     @XmlSerialName(value = "body", namespace = XmppNamespaces.JabberClient, prefix = "")
-    val body: MessageBody? = null
+    val body: MessageBody? = null,
+
+    @XmlElement(true)
+    @XmlSerialName(value = "error", namespace = XmppNamespaces.JabberClient, prefix = "")
+    val error: XmppStanzaError? = null
 ) : IXmppStreamElement
 
 @Serializable
@@ -131,6 +146,17 @@ data class XmppIqStanza(
     @XmlSerialName(value = "from", namespace = "")
     val senderJid: XmppJid? = null,
 
-    @XmlPolyChildren(["bind"])
     val payload: IIqPayload? = null
 ) : IXmppStreamElement
+
+@Serializable
+@SerialName("error")
+@XmlSerialName(value = "error", namespace = XmppNamespaces.JabberClient, prefix = "")
+data class XmppStanzaError(
+    @XmlSerialName(value = "type", namespace = "")
+    val type: String? = null,
+
+    @XmlElement(true)
+    @XmlSerialName(value = "text", namespace = XmppNamespaces.Stanzas, prefix = "")
+    val text: String? = null
+)

@@ -69,3 +69,9 @@ SELECT *
 FROM chat_message
 WHERE conversation_jid = ?
 ORDER BY timestamp ASC;
+
+selectPendingMessages:
+SELECT *
+FROM chat_message
+WHERE status = ? AND is_mine = 1
+ORDER BY timestamp ASC;

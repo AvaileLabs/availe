@@ -64,35 +64,15 @@ internal class SessionRepository(
                 }
             }
 
-            if (hasLocalSession && storedTokens.refreshToken != null && storedUserId != null) {
-                try {
-                    val newTokens = authenticationRemoteDataSource.refreshTokens(storedTokens.refreshToken!!)
-                    authenticationRemoteDataSource.saveTokens(newTokens)
-
-                    val newToken = AuthToken(newTokens.access_token)
-                    val newUserId =
-                        newTokens.id_token?.let { JwtUserProfileMapper.decodeUserProfile(it) }?.id ?: storedUserId
-
-                    updateState(
-                        AuthenticationState.LoggedIn(
-                            accessToken = newToken,
-                            userId = newUserId,
-                            isOffline = false
-                        )
-                    )
-                } catch (_: OpenIdConnectException) {
-                    handleExpiredSession()
-                } catch (_: Exception) {
-                    val token = AuthToken(storedTokens.accessToken)
-                    updateState(
-                        AuthenticationState.LoggedIn(
-                            accessToken = token,
-                            userId = storedUserId,
-                            isOffline = true
-                        )
-                    )
+            if (hasLocalSession) {
+                val refreshSuccessful = refreshAccessToken()
+                if (!refreshSuccessful) {
+                    val currentState = _authenticationState.value
+                    if (currentState is AuthenticationState.LoggedIn) {
+                        updateState(currentState.copy(isOffline = true))
+                    }
                 }
-            } else if (!hasLocalSession) {
+            } else {
                 updateState(AuthenticationState.LoggedOut)
             }
         }
@@ -112,6 +92,38 @@ internal class SessionRepository(
         localDataCleaner.clearAllData()
         updateState(AuthenticationState.SessionExpired)
         _sessionInvalidated.emit(Unit)
+    }
+
+    override suspend fun refreshAccessToken(): Boolean {
+        val storedTokens = runCatching { authenticationRemoteDataSource.getTokens() }.getOrNull()
+        val refreshToken = storedTokens?.refreshToken
+        val storedUserId = storedTokens?.idToken?.let { JwtUserProfileMapper.decodeUserProfile(it) }?.id
+
+        if (refreshToken != null && storedUserId != null) {
+            return try {
+                val newTokens = authenticationRemoteDataSource.refreshTokens(refreshToken)
+                authenticationRemoteDataSource.saveTokens(newTokens)
+
+                val newToken = AuthToken(newTokens.access_token)
+                val newUserId =
+                    newTokens.id_token?.let { JwtUserProfileMapper.decodeUserProfile(it) }?.id ?: storedUserId
+
+                updateState(
+                    AuthenticationState.LoggedIn(
+                        accessToken = newToken,
+                        userId = newUserId,
+                        isOffline = false
+                    )
+                )
+                true
+            } catch (exception: OpenIdConnectException) {
+                handleExpiredSession()
+                false
+            } catch (exception: Exception) {
+                false
+            }
+        }
+        return false
     }
 
     override fun onLogoutSuccess() {

@@ -11,10 +11,8 @@ import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.mapper.toDomain
 import com.availelabs.availe.model.*
 import com.availelabs.availe.sources.remote.IMessagingRemoteDataSource
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -29,9 +27,13 @@ internal class MessagingRepository(
     override val connectionStatus: StateFlow<MessagingConnectionState> =
         messagingRemoteDataSource.connectionStatus
 
+    private val retryTrigger = MutableStateFlow(0)
+
     init {
         startObservingIncomingMessages()
         startManagingConnection()
+        startObservingConnectionErrors()
+        startFlushingOnConnection()
     }
 
     override suspend fun connect(jid: Jid, authIdentity: String, token: AuthToken) {
@@ -42,19 +44,22 @@ internal class MessagingRepository(
         messagingRemoteDataSource.disconnect()
     }
 
+    override fun retryConnection() {
+        retryTrigger.update { it + 1 }
+    }
+
     @OptIn(ExperimentalUuidApi::class)
     override suspend fun sendMessage(to: Jid, body: MessageContent, from: Jid) {
         val database = databaseProvider.getDatabase()
         val messageId = ChatMessageId(Uuid.random().toString())
         val timestamp = Clock.System.now()
 
-        // 1. Optimistic Update: Insert into DB immediately
         database.transaction {
             database.chatQueries.insertMessage(
                 id = messageId,
                 conversation_jid = to,
                 sender_jid = from,
-                sender_display_name = null, // Can be updated if we have profile info
+                sender_display_name = null,
                 content = body,
                 type = MessageType.Text,
                 status = MessageStatus.Pending,
@@ -62,29 +67,26 @@ internal class MessagingRepository(
                 is_mine = true
             )
 
-            // Ensure conversation exists and update last message
-            // We need to fetch existing display name to preserve it, or default to JID
             val existingName = database.chatQueries.getConversationDisplayName(to).executeAsOneOrNull()
             val displayName = existingName ?: UserDisplayName(to.value.substringBefore("@"))
 
             database.chatQueries.upsertConversation(
                 jid = to,
-                type = ConversationType.OneToOne, // Defaulting to 1:1 for now
+                type = ConversationType.OneToOne,
                 display_name = displayName,
                 last_message_content = body,
                 last_message_timestamp = timestamp,
-                unread_count = UnreadCount(0) // No unread count for sent messages
+                unread_count = UnreadCount(0)
             )
         }
 
-        // 2. Network Call
         try {
             messagingRemoteDataSource.sendMessage(to, body)
-            // 3. Success Confirmation
             database.chatQueries.updateMessageStatus(MessageStatus.Sent, messageId)
-        } catch (_: Exception) {
-            // 3. Failure Confirmation
-            database.chatQueries.updateMessageStatus(MessageStatus.Failed, messageId)
+        } catch (exception: Exception) {
+            println("MessagingRepository: Failed to send message immediately. Leaving as Pending. Error: ${exception.message}")
+            // We do NOT mark as Failed here. We leave it as Pending.
+            // The flushPendingMessages() logic will retry it when the connection is healthy.
         }
     }
 
@@ -129,9 +131,13 @@ internal class MessagingRepository(
     private fun startObservingIncomingMessages() {
         scope.launch(ioDispatcher) {
             messagingRemoteDataSource.incomingMessages.collect { stanza ->
+                if (stanza.type == "error") {
+                    println("MessagingRepository: Received error stanza, ignoring: $stanza")
+                    return@collect
+                }
+
                 val fromJidString = stanza.senderJid?.value ?: return@collect
                 val bodyString = stanza.body?.value ?: return@collect
-                // XMPP JIDs often have resources (user@domain/mobile), strip it for the conversation key
                 val bareJidString = fromJidString.substringBefore("/")
                 val conversationJid = Jid(bareJidString)
                 val senderJid = Jid(fromJidString)
@@ -142,12 +148,11 @@ internal class MessagingRepository(
                 val database = databaseProvider.getDatabase()
 
                 database.transaction {
-                    // 1. Insert Message
                     database.chatQueries.insertMessage(
                         id = messageId,
                         conversation_jid = conversationJid,
                         sender_jid = senderJid,
-                        sender_display_name = null, // Can be populated via Store5/Profile lookup later
+                        sender_display_name = null,
                         content = content,
                         type = MessageType.Text,
                         status = MessageStatus.Delivered,
@@ -155,7 +160,6 @@ internal class MessagingRepository(
                         is_mine = false
                     )
 
-                    // 2. Update Conversation & Unread Count
                     val existingUnread = database.chatQueries.getUnreadCount(conversationJid).executeAsOneOrNull()
                     val newUnreadCount = UnreadCount((existingUnread?.value ?: 0) + 1)
 
@@ -178,29 +182,93 @@ internal class MessagingRepository(
 
     private fun startManagingConnection() {
         scope.launch {
-            sessionManager.authenticationState.collectLatest { state ->
-                when (state) {
-                    is AuthenticationState.LoggedIn -> {
-                        val userProfile = sessionManager.getCurrentUserProfile()
-                        if (userProfile != null) {
-                            connect(
-                                jid = userProfile.jid,
-                                authIdentity = userProfile.id.value.toString(),
-                                token = state.accessToken
-                            )
+            combine(
+                sessionManager.authenticationState,
+                retryTrigger
+            ) { state, _ -> state }
+                .collectLatest { state ->
+                    when (state) {
+                        is AuthenticationState.LoggedIn -> {
+                            val userProfile = sessionManager.getCurrentUserProfile()
+                            if (userProfile != null) {
+                                // Attempt 1: Connect
+                                connect(
+                                    jid = userProfile.jid,
+                                    authIdentity = userProfile.id.value.toString(),
+                                    token = state.accessToken
+                                )
+
+                                // If connect() returns, the connection was closed or failed.
+                                // If the scope is still active (not cancelled by token refresh or logout),
+                                // wait and try once more.
+                                if (currentCoroutineContext().isActive) {
+                                    delay(3000)
+                                    // Attempt 2: Retry
+                                    connect(
+                                        jid = userProfile.jid,
+                                        authIdentity = userProfile.id.value.toString(),
+                                        token = state.accessToken
+                                    )
+                                    // If this attempt fails, we stop looping.
+                                    // The state remains Disconnected/Error until user triggers retryConnection()
+                                }
+                            }
+                        }
+
+                        AuthenticationState.LoggedOut,
+                        AuthenticationState.SessionExpired,
+                        is AuthenticationState.InitializationFailed -> {
+                            disconnect()
+                        }
+
+                        AuthenticationState.Unknown -> {
                         }
                     }
-
-                    AuthenticationState.LoggedOut,
-                    AuthenticationState.SessionExpired,
-                    is AuthenticationState.InitializationFailed -> {
-                        disconnect()
-                    }
-
-                    AuthenticationState.Unknown -> {
-                        // Do nothing, wait for initialization
-                    }
                 }
+        }
+    }
+
+    private fun startObservingConnectionErrors() {
+        scope.launch {
+            connectionStatus
+                .filterIsInstance<MessagingConnectionState.AuthenticationFailed>()
+                .collectLatest {
+                    sessionManager.refreshAccessToken()
+                }
+        }
+    }
+
+    private fun startFlushingOnConnection() {
+        scope.launch(ioDispatcher) {
+            connectionStatus
+                .filter { it == MessagingConnectionState.Authenticated }
+                .collectLatest {
+                    flushPendingMessages()
+                }
+        }
+    }
+
+    private suspend fun flushPendingMessages() {
+        val database = databaseProvider.getDatabase()
+        val pendingMessages = withContext(ioDispatcher) {
+            database.chatQueries.selectPendingMessages(MessageStatus.Pending).executeAsList()
+        }
+
+        if (pendingMessages.isNotEmpty()) {
+            println("MessagingRepository: Flushing ${pendingMessages.size} pending messages...")
+        }
+
+        pendingMessages.forEach { messageEntity ->
+            try {
+                messagingRemoteDataSource.sendMessage(
+                    to = messageEntity.conversation_jid,
+                    body = messageEntity.content
+                )
+                database.chatQueries.updateMessageStatus(MessageStatus.Sent, messageEntity.id)
+                println("MessagingRepository: Successfully flushed message ${messageEntity.id}")
+            } catch (exception: Exception) {
+                println("MessagingRepository: Failed to flush message ${messageEntity.id}: ${exception.message}")
+                // Keep as Pending, will try again next time connection is Authenticated
             }
         }
     }

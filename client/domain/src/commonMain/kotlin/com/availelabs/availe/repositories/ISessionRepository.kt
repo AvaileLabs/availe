@@ -12,6 +12,7 @@ interface ISessionRepository {
     fun getAccountManagementUrl(): String
     suspend fun getCurrentUserProfile(): UserProfile?
     suspend fun onSessionInvalidated()
+    suspend fun refreshAccessToken(): Boolean
     fun onLogoutSuccess()
     fun onTokenRefreshed(token: AuthToken)
     fun updateState(newAuthenticationState: AuthenticationState)

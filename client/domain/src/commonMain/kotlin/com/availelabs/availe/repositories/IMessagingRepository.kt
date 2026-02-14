@@ -22,6 +22,7 @@ interface IMessagingRepository {
 
     suspend fun connect(jid: Jid, authIdentity: String, token: AuthToken)
     suspend fun disconnect()
+    fun retryConnection()
 
     suspend fun sendMessage(to: Jid, body: MessageContent, from: Jid)
 

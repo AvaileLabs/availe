@@ -7,7 +7,6 @@ import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
-import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
@@ -64,7 +63,7 @@ class ListingDetailsComponent(
     }
 
     override fun onContactSellerClicked(sellerEmail: Email) {
-        val jid = Jid("${sellerEmail.value}@${SharedNetworkConstants.XMPP_DOMAIN}")
+        val jid = Jid(sellerEmail.value)
         navigator.navigateToChat(jid)
     }
 

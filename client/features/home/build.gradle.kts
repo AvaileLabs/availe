@@ -32,6 +32,7 @@ kotlin {
             implementation(libs.ui)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.coil.compose)
+            implementation(libs.kotlinx.serialization.core)
         }
     }
 }
