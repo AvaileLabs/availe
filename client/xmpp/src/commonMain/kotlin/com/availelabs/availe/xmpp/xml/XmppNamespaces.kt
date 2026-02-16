@@ -9,4 +9,5 @@ object XmppNamespaces {
     const val StreamConditions = "urn:ietf:params:xml:ns:xmpp-streams"
     const val Ping = "urn:xmpp:ping"
     const val Stanzas = "urn:ietf:params:xml:ns:xmpp-stanzas"
+    const val StreamManagement = "urn:xmpp:sm:3"
 }

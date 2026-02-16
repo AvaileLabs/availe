@@ -51,7 +51,11 @@ data class XmppStreamFeatures(
 
     @XmlElement(true)
     @XmlSerialName(value = "bind", namespace = XmppNamespaces.Bind, prefix = "")
-    val bind: XmppBindFeature? = null
+    val bind: XmppBindFeature? = null,
+
+    @XmlElement(true)
+    @XmlSerialName(value = "sm", namespace = XmppNamespaces.StreamManagement, prefix = "")
+    val sm: XmppSmFeature? = null
 ) : IXmppStreamElement
 
 @Serializable
@@ -65,6 +69,13 @@ data class XmppSaslMechanisms(
 @Serializable
 @XmlSerialName(value = "bind", namespace = XmppNamespaces.Bind, prefix = "")
 data class XmppBindFeature(
+    @XmlElement(false)
+    val required: String? = null
+)
+
+@Serializable
+@XmlSerialName(value = "sm", namespace = XmppNamespaces.StreamManagement, prefix = "")
+data class XmppSmFeature(
     @XmlElement(false)
     val required: String? = null
 )
@@ -93,6 +104,65 @@ data class XmppSaslFailure(
     @XmlSerialName(value = "not-authorized", namespace = XmppNamespaces.Sasl, prefix = "")
     val notAuthorized: String? = null
 ) : IXmppStreamElement
+
+// --- Stream Management Elements ---
+
+@Serializable
+@XmlSerialName(value = "enable", namespace = XmppNamespaces.StreamManagement, prefix = "")
+data class XmppSmEnable(
+    @XmlSerialName(value = "resume", namespace = "")
+    val resume: String = "true"
+) : IXmppStreamElement
+
+@Serializable
+@XmlSerialName(value = "enabled", namespace = XmppNamespaces.StreamManagement, prefix = "")
+data class XmppSmEnabled(
+    @XmlSerialName(value = "id", namespace = "")
+    val id: String? = null,
+    @XmlSerialName(value = "resume", namespace = "")
+    val resume: String? = null,
+    @XmlSerialName(value = "location", namespace = "")
+    val location: String? = null
+) : IXmppStreamElement
+
+@Serializable
+@XmlSerialName(value = "resume", namespace = XmppNamespaces.StreamManagement, prefix = "")
+data class XmppSmResume(
+    @XmlSerialName(value = "previd", namespace = "")
+    val previd: String,
+    @XmlSerialName(value = "h", namespace = "")
+    val h: Long
+) : IXmppStreamElement
+
+@Serializable
+@XmlSerialName(value = "resumed", namespace = XmppNamespaces.StreamManagement, prefix = "")
+data class XmppSmResumed(
+    @XmlSerialName(value = "previd", namespace = "")
+    val previd: String? = null,
+    @XmlSerialName(value = "h", namespace = "")
+    val h: Long
+) : IXmppStreamElement
+
+@Serializable
+@XmlSerialName(value = "failed", namespace = XmppNamespaces.StreamManagement, prefix = "")
+data class XmppSmFailed(
+    @XmlElement(true)
+    @XmlSerialName(value = "item-not-found", namespace = XmppNamespaces.StreamManagement, prefix = "")
+    val itemNotFound: String? = null
+) : IXmppStreamElement
+
+@Serializable
+@XmlSerialName(value = "r", namespace = XmppNamespaces.StreamManagement, prefix = "")
+class XmppSmRequest : IXmppStreamElement
+
+@Serializable
+@XmlSerialName(value = "a", namespace = XmppNamespaces.StreamManagement, prefix = "")
+data class XmppSmAck(
+    @XmlSerialName(value = "h", namespace = "")
+    val h: Long
+) : IXmppStreamElement
+
+// ----------------------------------
 
 @Serializable
 @XmlSerialName(value = "message", namespace = XmppNamespaces.JabberClient, prefix = "")

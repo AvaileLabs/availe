@@ -30,14 +30,20 @@ internal class MessagingRemoteDataSource(
     private val scope = CoroutineScope(Dispatchers.Main)
 
     override val connectionStatus: StateFlow<MessagingConnectionState> = xmppSession.sessionState
-        .map { sessionState -> mapSessionState(sessionState) }
+        .map { sessionState ->
+            val mappedState = mapSessionState(sessionState)
+            println("MessagingRemoteDataSource: Mapping session state $sessionState to connection state $mappedState")
+            mappedState
+        }
         .stateIn(scope, SharingStarted.Eagerly, MessagingConnectionState.Disconnected)
 
     override val incomingMessages = xmppSession.incomingStanzas
         .filterIsInstance<XmppMessageStanza>()
+        .onEach { println("MessagingRemoteDataSource: Received incoming message stanza from ${it.senderJid?.value}") }
         .shareIn(scope, SharingStarted.WhileSubscribed())
 
     override suspend fun connect(jid: Jid, authIdentity: String, token: AuthToken) {
+        println("MessagingRemoteDataSource: Initiating connection request for user: ${jid.value}")
         xmppSession.connect(
             xmppJid = XmppJid(jid.value),
             authIdentity = authIdentity,
@@ -48,10 +54,12 @@ internal class MessagingRemoteDataSource(
     }
 
     override suspend fun disconnect() {
+        println("MessagingRemoteDataSource: Initiating explicit disconnect request.")
         xmppSession.disconnect()
     }
 
     override suspend fun sendMessage(to: Jid, body: MessageContent) {
+        println("MessagingRemoteDataSource: Preparing to send message to: ${to.value}")
         val stanza = XmppMessageStanza(
             recipientJid = XmppJid(to.value),
             body = MessageBody(body.value),
@@ -69,7 +77,6 @@ internal class MessagingRemoteDataSource(
             is SessionState.Binding -> MessagingConnectionState.Handshaking
             is SessionState.Active -> MessagingConnectionState.Authenticated
             is SessionState.Failed -> {
-                // Determine if it is authentication failure or general error
                 val message = sessionState.reason
                 if (message.contains("Authentication Failed", ignoreCase = true)) {
                     MessagingConnectionState.AuthenticationFailed

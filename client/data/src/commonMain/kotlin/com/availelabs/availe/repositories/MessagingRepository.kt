@@ -85,8 +85,6 @@ internal class MessagingRepository(
             database.chatQueries.updateMessageStatus(MessageStatus.Sent, messageId)
         } catch (exception: Exception) {
             println("MessagingRepository: Failed to send message immediately. Leaving as Pending. Error: ${exception.message}")
-            // We do NOT mark as Failed here. We leave it as Pending.
-            // The flushPendingMessages() logic will retry it when the connection is healthy.
         }
     }
 
@@ -191,26 +189,22 @@ internal class MessagingRepository(
                         is AuthenticationState.LoggedIn -> {
                             val userProfile = sessionManager.getCurrentUserProfile()
                             if (userProfile != null) {
-                                // Attempt 1: Connect
-                                connect(
-                                    jid = userProfile.jid,
-                                    authIdentity = userProfile.id.value.toString(),
-                                    token = state.accessToken
-                                )
+                                // Auto-reconnect loop
+                                while (isActive) {
+                                    try {
+                                        connect(
+                                            jid = userProfile.jid,
+                                            authIdentity = userProfile.id.value.toString(),
+                                            token = state.accessToken
+                                        )
+                                        // If connect() returns normally, it means the connection closed.
+                                        println("MessagingRepository: Connection closed normally. Reconnecting in 3s...")
+                                    } catch (e: Exception) {
+                                        println("MessagingRepository: Connection failed with exception: ${e.message}. Reconnecting in 3s...")
+                                    }
 
-                                // If connect() returns, the connection was closed or failed.
-                                // If the scope is still active (not cancelled by token refresh or logout),
-                                // wait and try once more.
-                                if (currentCoroutineContext().isActive) {
+                                    // Wait before retrying to avoid spamming the server
                                     delay(3000)
-                                    // Attempt 2: Retry
-                                    connect(
-                                        jid = userProfile.jid,
-                                        authIdentity = userProfile.id.value.toString(),
-                                        token = state.accessToken
-                                    )
-                                    // If this attempt fails, we stop looping.
-                                    // The state remains Disconnected/Error until user triggers retryConnection()
                                 }
                             }
                         }
@@ -268,7 +262,6 @@ internal class MessagingRepository(
                 println("MessagingRepository: Successfully flushed message ${messageEntity.id}")
             } catch (exception: Exception) {
                 println("MessagingRepository: Failed to flush message ${messageEntity.id}: ${exception.message}")
-                // Keep as Pending, will try again next time connection is Authenticated
             }
         }
     }
