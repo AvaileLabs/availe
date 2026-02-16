@@ -6,7 +6,7 @@ import com.availelabs.availe.network.classifyNetworkError
 import kotlinx.coroutines.CancellationException
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
-import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
+import org.publicvalue.multiplatform.oidc.flows.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.tokenstore.TokenStore
 import org.publicvalue.multiplatform.oidc.tokenstore.saveTokens
 import java.net.SocketException

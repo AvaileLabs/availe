@@ -3,9 +3,11 @@ package com.availelabs.availe.auth
 import kotlinx.browser.window
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.OpenIdConnectClient
-import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.flows.CodeAuthFlow
+import org.publicvalue.multiplatform.oidc.flows.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.flows.EndSessionFlow
+import org.publicvalue.multiplatform.oidc.flows.PreferencesCodeAuthFlow
+import org.publicvalue.multiplatform.oidc.flows.PreferencesEndSessionFlow
 import org.publicvalue.multiplatform.oidc.preferences.Preferences
 import org.publicvalue.multiplatform.oidc.preferences.PreferencesFactory
 import org.publicvalue.multiplatform.oidc.types.AuthCodeRequest
@@ -27,9 +29,9 @@ class WebRedirectCodeAuthFlowFactory : CodeAuthFlowFactory {
 
 @OptIn(ExperimentalOpenIdConnect::class)
 class WebRedirectCodeAuthFlow(
-    override val client: OpenIdConnectClient,
-    override val preferences: Preferences
-) : CodeAuthFlow {
+    client: OpenIdConnectClient,
+    preferences: Preferences
+) : PreferencesCodeAuthFlow(client, preferences) {
     override suspend fun startLoginFlow(request: AuthCodeRequest) {
         window.location.href = request.url.toString()
     }
@@ -37,9 +39,9 @@ class WebRedirectCodeAuthFlow(
 
 @OptIn(ExperimentalOpenIdConnect::class)
 class WebRedirectEndSessionFlow(
-    override val client: OpenIdConnectClient,
-    override val preferences: Preferences
-) : EndSessionFlow {
+    client: OpenIdConnectClient,
+    preferences: Preferences
+) : PreferencesEndSessionFlow(client, preferences) {
     override suspend fun startLogoutFlow(request: EndSessionRequest) {
         window.location.href = request.url.toString()
     }
