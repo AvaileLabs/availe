@@ -65,7 +65,13 @@ internal class MessagingRemoteDataSource(
             body = MessageBody(body.value),
             type = "chat"
         )
-        xmppSession.sendStanza(stanza)
+        try {
+            xmppSession.sendStanza(stanza)
+        } catch (e: IllegalStateException) {
+            println("MessagingRemoteDataSource: Attempted to send message while disconnected: ${e.message}")
+            // We ignore the error here. The Repository keeps the message as Pending.
+            // When the session reconnects, XEP-0198 or the Repository flush logic will handle it.
+        }
     }
 
     private fun mapSessionState(sessionState: SessionState): MessagingConnectionState {

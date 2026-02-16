@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalCoroutinesApi::class, ExperimentalUuidApi::class)
+@file:OptIn(ExperimentalCoroutinesApi::class, ExperimentalUuidApi::class, FlowPreview::class)
 
 package com.availelabs.availe.repositories
 
@@ -26,6 +26,8 @@ internal class MessagingRepository(
 
     override val connectionStatus: StateFlow<MessagingConnectionState> =
         messagingRemoteDataSource.connectionStatus
+            .debounce(1000)
+            .stateIn(scope, SharingStarted.Eagerly, MessagingConnectionState.Disconnected)
 
     private val retryTrigger = MutableStateFlow(0)
 
@@ -189,7 +191,6 @@ internal class MessagingRepository(
                         is AuthenticationState.LoggedIn -> {
                             val userProfile = sessionManager.getCurrentUserProfile()
                             if (userProfile != null) {
-                                // Auto-reconnect loop
                                 while (isActive) {
                                     try {
                                         connect(
@@ -197,13 +198,10 @@ internal class MessagingRepository(
                                             authIdentity = userProfile.id.value.toString(),
                                             token = state.accessToken
                                         )
-                                        // If connect() returns normally, it means the connection closed.
                                         println("MessagingRepository: Connection closed normally. Reconnecting in 3s...")
                                     } catch (e: Exception) {
                                         println("MessagingRepository: Connection failed with exception: ${e.message}. Reconnecting in 3s...")
                                     }
-
-                                    // Wait before retrying to avoid spamming the server
                                     delay(3000)
                                 }
                             }

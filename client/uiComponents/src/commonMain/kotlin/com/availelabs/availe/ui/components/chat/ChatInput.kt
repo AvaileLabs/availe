@@ -52,7 +52,7 @@ fun ChatInput(
                             if (keyEvent.isShiftPressed) {
                                 false
                             } else {
-                                if (messageInput.isNotBlank() && enabled) {
+                                if (messageInput.isNotBlank()) {
                                     onSendMessage(messageInput)
                                     messageInput = ""
                                 }
@@ -74,7 +74,7 @@ fun ChatInput(
                         messageInput = ""
                     }
                 },
-                enabled = enabled && messageInput.isNotBlank(),
+                enabled = messageInput.isNotBlank(),
                 backgroundColor = Theme[colors][primary],
                 contentColor = Theme[colors][onPrimary],
                 shape = CircleShape,

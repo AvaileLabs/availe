@@ -26,7 +26,8 @@ interface ChatStore : Store<Intent, State, Label> {
     data class State(
         val recipientJid: Jid,
         val connectionStatus: MessagingConnectionState = MessagingConnectionState.Disconnected,
-        val messages: List<ChatMessage> = emptyList()
+        val messages: List<ChatMessage> = emptyList(),
+        val isOnline: Boolean = false
     )
 
     sealed interface Label
@@ -59,17 +60,14 @@ internal class ChatStoreFactory(
 
     private inner class ChatBootstrapper : CoroutineBootstrapper<Action>() {
         override fun invoke() {
-            // 1. Observe Connection Status
             scope.launch {
                 messagingRepository.connectionStatus.collectLatest { status ->
                     dispatch(Action.UpdateStatus(status))
                 }
             }
 
-            // 2. Observe Messages from Database (Single Source of Truth)
             scope.launch {
                 messagingRepository.getMessages(recipientJid).collectLatest { messages ->
-                    // Mark as read whenever the list updates and the user is viewing it
                     if (messages.isNotEmpty()) {
                         messagingRepository.markAsRead(recipientJid)
                     }
@@ -96,11 +94,7 @@ internal class ChatStoreFactory(
         private fun sendMessage(content: MessageContent) {
             scope.launch {
                 val userProfile = sessionManager.getCurrentUserProfile() ?: return@launch
-
-                // Safe: Use JID from UserProfile as sender
                 val userJid = userProfile.jid
-
-                // The repository handles Optimistic Updates (UI updates instantly)
                 messagingRepository.sendMessage(recipientJid, content, userJid)
             }
         }

@@ -14,7 +14,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import availe.client.designsystem.generated.resources.*
-import com.availelabs.availe.repositories.MessagingConnectionState
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.User
 import com.composables.uikit.components.Avatar
@@ -22,28 +21,15 @@ import com.composables.uikit.components.HorizontalDivider
 import com.composables.uikit.components.Text
 import com.composables.uikit.styling.card
 import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.destructive
 import com.composables.uikit.styling.outline
 import com.composeunstyled.theme.Theme
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ChatHeader(
-    connectionStatus: MessagingConnectionState,
+    isOnline: Boolean,
     recipientName: String
 ) {
-    val isConnected = connectionStatus is MessagingConnectionState.Authenticated
-    val statusColor = if (isConnected) Color(0xFF10B981) else Theme[colors][destructive]
-
-    val statusText = when (connectionStatus) {
-        MessagingConnectionState.Authenticated -> stringResource(Res.string.chat_status_online)
-        MessagingConnectionState.AuthenticationFailed -> stringResource(Res.string.chat_status_authentication_failed)
-        MessagingConnectionState.Connecting -> stringResource(Res.string.chat_status_connecting)
-        MessagingConnectionState.Disconnected -> stringResource(Res.string.chat_status_disconnected)
-        is MessagingConnectionState.Error -> connectionStatus.message
-        MessagingConnectionState.Handshaking -> stringResource(Res.string.chat_status_handshaking)
-    }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -70,20 +56,22 @@ fun ChatHeader(
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(statusColor)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    SelectionContainer {
-                        Text(
-                            text = statusText,
-                            fontSize = 12.sp,
-                            color = Theme[colors][outline].copy(alpha = 0.8f)
+                if (isOnline) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF10B981))
                         )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        SelectionContainer {
+                            Text(
+                                text = stringResource(Res.string.chat_status_online),
+                                fontSize = 12.sp,
+                                color = Theme[colors][outline].copy(alpha = 0.8f)
+                            )
+                        }
                     }
                 }
             }

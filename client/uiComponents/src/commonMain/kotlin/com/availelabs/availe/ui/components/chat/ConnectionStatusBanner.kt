@@ -27,14 +27,8 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ConnectionStatusBanner(status: MessagingConnectionState) {
+    // Only show critical errors. Hide connecting/handshaking/disconnected to be optimistic.
     val (backgroundColor, textColor, message) = when (status) {
-        MessagingConnectionState.Connecting,
-        MessagingConnectionState.Handshaking -> Triple(
-            Color(0xFFEAB308),
-            Color.Black,
-            stringResource(Res.string.chat_status_connecting)
-        )
-
         is MessagingConnectionState.Error -> Triple(
             Theme[colors][destructive],
             Theme[colors][onDestructive],
@@ -47,17 +41,13 @@ fun ConnectionStatusBanner(status: MessagingConnectionState) {
             stringResource(Res.string.chat_status_authentication_failed)
         )
 
-        MessagingConnectionState.Disconnected -> Triple(
-            Theme[colors][outline],
-            Theme[colors][onBackground],
-            stringResource(Res.string.chat_status_disconnected)
-        )
-
-        MessagingConnectionState.Authenticated -> Triple(Color.Transparent, Color.Transparent, "")
+        else -> Triple(Color.Transparent, Color.Transparent, "")
     }
 
+    val isVisible = status is MessagingConnectionState.Error || status is MessagingConnectionState.AuthenticationFailed
+
     AnimatedVisibility(
-        visible = status !is MessagingConnectionState.Authenticated,
+        visible = isVisible,
         enter = expandVertically(),
         exit = shrinkVertically()
     ) {

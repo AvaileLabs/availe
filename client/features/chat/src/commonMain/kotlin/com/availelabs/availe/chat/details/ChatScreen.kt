@@ -14,9 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.availelabs.availe.domain.model.MessageContent
 import com.availelabs.availe.model.ChatMessage
-import com.availelabs.availe.repositories.MessagingConnectionState
 import com.availelabs.availe.ui.components.chat.ChatHeader
 import com.availelabs.availe.ui.components.chat.ChatInput
+import com.availelabs.availe.ui.components.chat.ConnectionStatusBanner
 import com.availelabs.availe.ui.components.chat.MessageBubble
 import com.composables.uikit.scaffolds.ScreenScaffold
 import com.composables.uikit.styling.colors
@@ -44,6 +44,8 @@ fun ChatScreen(
                 .background(Theme[colors][secondary].copy(alpha = 0.3f))
                 .windowInsetsPadding(WindowInsets.ime)
         ) {
+            ConnectionStatusBanner(chatState.connectionStatus)
+
             MessageList(
                 messages = chatState.messages,
                 listState = lazyListState,
@@ -54,7 +56,7 @@ fun ChatScreen(
                 onSendMessage = { messageBody ->
                     component.onIntent(ChatStore.Intent.SendMessage(MessageContent(messageBody)))
                 },
-                enabled = chatState.connectionStatus is MessagingConnectionState.Authenticated
+                enabled = true
             )
         }
     } else {
@@ -65,8 +67,10 @@ fun ChatScreen(
                     .background(Theme[colors][secondary].copy(alpha = 0.3f))
                     .windowInsetsPadding(WindowInsets.ime)
             ) {
+                ConnectionStatusBanner(chatState.connectionStatus)
+
                 ChatHeader(
-                    connectionStatus = chatState.connectionStatus,
+                    isOnline = chatState.isOnline,
                     recipientName = chatState.recipientJid.value
                 )
 
@@ -80,7 +84,7 @@ fun ChatScreen(
                     onSendMessage = { messageBody ->
                         component.onIntent(ChatStore.Intent.SendMessage(MessageContent(messageBody)))
                     },
-                    enabled = chatState.connectionStatus is MessagingConnectionState.Authenticated
+                    enabled = true
                 )
             }
         }
