@@ -57,9 +57,9 @@ internal class ListingController(
         jid = Jid("alice@localhost")
     )
     private val exampleInteraction = InteractionStateDtoSchema.V1.Data(isFavorited = false)
-    private val exampleResponseItem = ListingItemDtoSchema.V1.Data(
+    private val exampleResponseEvent = ListingEventDtoSchema.V1.Data(
         id = ListingId(Uuid.random()),
-        title = ListingTitle("Example Item"),
+        title = ListingTitle("Example Event"),
         description = null,
         price = examplePrice,
         imageLinks = emptyList(),
@@ -79,9 +79,9 @@ internal class ListingController(
 
     fun createListing(): ContractRoute {
         val bodyLens = Body.auto<TypeV1ListingDtoCreateRequest>().toLens()
-        val exampleItem =
-            ListingItemDtoSchema.V1.CreateRequest(
-                ListingTitle("Example Item"),
+        val exampleEventCreateRequest =
+            ListingEventDtoSchema.V1.CreateRequest(
+                ListingTitle("Example Event"),
                 null,
                 examplePrice,
                 emptyList(),
@@ -91,12 +91,13 @@ internal class ListingController(
         return ApiRoutes.LISTINGS meta {
             summary = "Create a new listing."
             description =
-                "Creates a new Item, Event, or Service listing. Publisher is derived from authorization filter."
-            receiving(bodyLens to exampleItem)
-            returning(Status.CREATED, responseBodyLens to exampleResponseItem)
+                "Creates a new Event listing. Publisher is derived from authorization filter. Items and Services are disabled for MVP."
+            receiving(bodyLens to exampleEventCreateRequest)
+            returning(Status.CREATED, responseBodyLens to exampleResponseEvent)
             returning(Status.CONFLICT)
             returning(Status.UNAUTHORIZED)
             returning(Status.BAD_REQUEST)
+            returning(Status.NOT_IMPLEMENTED)
         } bindContract Method.POST to authenticationFilter.then { request ->
             val authenticatedUser = SecurityContexts.authenticatedUserLens(request)
 
@@ -108,6 +109,10 @@ internal class ListingController(
             )
 
             val newListing = bodyLens(request).toDomain(publisherProfile)
+
+            if (newListing !is NewListing.Event) {
+                return@then Response(Status.NOT_IMPLEMENTED).body("Items and Services are disabled for the MVP.")
+            }
 
             if (!newListing.title.isValid()) {
                 return@then Response(Status.BAD_REQUEST).body("Invalid Title")
@@ -126,8 +131,8 @@ internal class ListingController(
                 is InsertResult.Inserted<Listing> -> {
                     val listing = result.value
                     events(ListingCreated(listing.id.value.toString(), authenticatedUser.id.value.toString()))
-                    val responseDto = listing.toDataDto()
-                    Response(Status.CREATED).with(responseBodyLens of responseDto)
+                    val responseDataTransferObject = listing.toDataDto()
+                    Response(Status.CREATED).with(responseBodyLens of responseDataTransferObject)
                 }
 
                 is InsertResult.AlreadyExists -> Response(Status.CONFLICT)
@@ -139,7 +144,7 @@ internal class ListingController(
         return ApiRoutes.LISTINGS / listingIdPath meta {
             summary = "Get a listing by its ID."
             description = "Returns a single Item, Event, or Service listing."
-            returning(Status.OK, responseBodyLens to exampleResponseItem)
+            returning(Status.OK, responseBodyLens to exampleResponseEvent)
             returning(Status.NOT_FOUND)
         } bindContract Method.GET to { listingId ->
             { request: Request ->
@@ -147,8 +152,8 @@ internal class ListingController(
 
                 when (val result = listingService.getListingById(listingId, viewingUser?.id)) {
                     is FindResult.Found -> {
-                        val responseDto = result.value.toDataDto()
-                        Response(Status.OK).with(responseBodyLens of responseDto)
+                        val responseDataTransferObject = result.value.toDataDto()
+                        Response(Status.OK).with(responseBodyLens of responseDataTransferObject)
                     }
 
                     is FindResult.NotFound -> Response(Status.NOT_FOUND)
@@ -190,7 +195,7 @@ internal class ListingController(
             queries += pageSizeQueryLens
             queries += publisherIdQueryLens
             queries += categoriesQueryLens
-            returning(Status.OK, listResponseBodyLens to listOf(exampleResponseItem))
+            returning(Status.OK, listResponseBodyLens to listOf(exampleResponseEvent))
         } bindContract Method.GET to { request: Request ->
             val pageNumber = pageNumberQueryLens(request)
             val pageSize = pageSizeQueryLens(request)
@@ -206,32 +211,37 @@ internal class ListingController(
             }
 
             val listings = listingService.getListingsPage(pageNumber, pageSize, viewingUser?.id, publisherId, filter)
-            val responseDto = listings.map { it.toDataDto() }
-            Response(Status.OK).with(listResponseBodyLens of responseDto)
+            val responseDataTransferObjects = listings.map { it.toDataDto() }
+            Response(Status.OK).with(listResponseBodyLens of responseDataTransferObjects)
         }
     }
 
     fun updateListing(): ContractRoute {
         val patchBodyLens = Body.auto<TypeV1ListingDtoPatchRequest>().toLens()
-        val exampleRequest = ListingItemDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
+        val examplePatchRequest = ListingEventDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
 
         return ApiRoutes.LISTINGS / listingIdPath meta {
             summary = "Update an existing listing."
             description = "Updates fields on a listing. Only authenticated publishers can update their own listings."
-            receiving(patchBodyLens to exampleRequest)
-            returning(Status.OK, responseBodyLens to exampleResponseItem)
+            receiving(patchBodyLens to examplePatchRequest)
+            returning(Status.OK, responseBodyLens to exampleResponseEvent)
             returning(Status.NOT_FOUND)
             returning(Status.FORBIDDEN)
             returning(Status.UNAUTHORIZED)
+            returning(Status.NOT_IMPLEMENTED)
         } bindContract Method.PATCH to { listingId ->
             authenticationFilter.then { request ->
-                val patchDto = patchBodyLens(request)
+                val patchRequestTransferObject = patchBodyLens(request)
                 val authenticatedUser = SecurityContexts.authenticatedUserLens(request)
 
-                when (val result = listingService.updateListing(listingId, patchDto, authenticatedUser.id)) {
+                if (patchRequestTransferObject !is ListingEventDtoSchema.V1.PatchRequest) {
+                    return@then Response(Status.NOT_IMPLEMENTED).body("Updating Items and Services is disabled for the MVP.")
+                }
+
+                when (val result = listingService.updateListing(listingId, patchRequestTransferObject, authenticatedUser.id)) {
                     is UpdateResult.Updated -> {
-                        val responseDto = result.value.toDataDto()
-                        Response(Status.OK).with(responseBodyLens of responseDto)
+                        val responseDataTransferObject = result.value.toDataDto()
+                        Response(Status.OK).with(responseBodyLens of responseDataTransferObject)
                     }
 
                     is UpdateResult.NotFound -> Response(Status.NOT_FOUND)
