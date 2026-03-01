@@ -3,6 +3,7 @@ package com.availelabs.availe.database
 import com.availelabs.availe.db.SelectById
 import com.availelabs.availe.db.SelectListings
 import com.availelabs.availe.domain.model.*
+import kotlin.time.Instant
 
 internal fun SelectById.toDomain(): Listing {
     return mapRawDataToListing(
@@ -15,7 +16,10 @@ internal fun SelectById.toDomain(): Listing {
         description = description,
         priceAmount = price_amount,
         priceCurrency = price_currency,
-        imageLinks = image_links
+        imageLinks = image_links,
+        isRsvped = is_rsvped,
+        isFavorited = is_favorited,
+        startTime = start_time
     )
 }
 
@@ -30,7 +34,10 @@ internal fun SelectListings.toDomain(): Listing {
         description = description,
         priceAmount = price_amount,
         priceCurrency = price_currency,
-        imageLinks = image_links
+        imageLinks = image_links,
+        isRsvped = is_rsvped,
+        isFavorited = is_favorited,
+        startTime = start_time
     )
 }
 
@@ -44,7 +51,10 @@ private fun mapRawDataToListing(
     description: ListingDescription?,
     priceAmount: PriceAmount,
     priceCurrency: CurrencyCode,
-    imageLinks: List<ImageUrl>
+    imageLinks: List<ImageUrl>,
+    isRsvped: Boolean,
+    isFavorited: Boolean,
+    startTime: Instant?
 ): Listing {
     val price = Price(
         amount = priceAmount,
@@ -59,7 +69,8 @@ private fun mapRawDataToListing(
     )
 
     val interactionState = InteractionState(
-        isFavorited = false
+        isFavorited = isFavorited,
+        isRsvped = isRsvped
     )
 
     val commonData = CommonListingData(
@@ -72,7 +83,7 @@ private fun mapRawDataToListing(
 
     return when (listingType) {
         ListingCategory.Item -> Listing.Item(commonData, id, createdAt, publisher, interactionState)
-        ListingCategory.Event -> Listing.Event(commonData, id, createdAt, publisher, interactionState)
+        ListingCategory.Event -> Listing.Event(commonData, id, createdAt, publisher, interactionState, startTime ?: Instant.fromEpochMilliseconds(0))
         ListingCategory.Service -> Listing.Service(commonData, id, createdAt, publisher, interactionState)
     }
 }

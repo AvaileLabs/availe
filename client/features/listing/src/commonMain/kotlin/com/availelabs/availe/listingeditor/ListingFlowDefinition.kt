@@ -18,8 +18,8 @@ object ListingFlowDefinition {
             )
 
             ListingCategory.Event -> listOf(
-                ListingEditorPageConfig.Type,
                 ListingEditorPageConfig.Basics,
+                ListingEditorPageConfig.Schedule,
                 ListingEditorPageConfig.Pricing,
                 ListingEditorPageConfig.Media,
                 ListingEditorPageConfig.Review

@@ -9,6 +9,8 @@ import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.listingeditor.ListingEditorPageConfig
 import com.availelabs.availe.model.ListingDraft
 import io.availe.models.Patchable
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 sealed interface ListingEditorError {
     data object TitleInvalid : ListingEditorError
@@ -27,6 +29,7 @@ data class ListingEditorState(
     val priceAmount: PriceAmount = PriceAmount(""),
     val priceCurrency: SupportedCurrency = SupportedCurrency.USD,
     val imageUrl: ImageUrl = ImageUrl(""),
+    val startTime: Instant? = null,
     val type: ListingCategory? = null,
     val isSubmitting: Boolean = false,
     val error: ListingEditorError? = null,
@@ -34,7 +37,8 @@ data class ListingEditorState(
     val showDeleteDraftConfirmation: Boolean = false,
     val showPublishConfirmationDialog: Boolean = false,
     val isBasicsStepValid: Boolean = false,
-    val isPricingStepValid: Boolean = false
+    val isPricingStepValid: Boolean = false,
+    val isScheduleStepValid: Boolean = false
 )
 
 sealed interface ListingEditorIntent {
@@ -46,6 +50,7 @@ sealed interface ListingEditorIntent {
     data class ChangeCurrency(val currency: SupportedCurrency) : ListingEditorIntent
     data class ChangeType(val type: ListingCategory) : ListingEditorIntent
     data class ChangeImage(val url: ImageUrl) : ListingEditorIntent
+    data class ChangeStartTime(val startTime: Instant?) : ListingEditorIntent
     data object AskToPublish : ListingEditorIntent
     data object CancelPublish : ListingEditorIntent
     data object ConfirmPublish : ListingEditorIntent
@@ -73,6 +78,7 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
                 priceAmount = intent.draft.priceAmount,
                 priceCurrency = currency,
                 imageUrl = intent.draft.imageUrl,
+                startTime = intent.draft.startTime,
                 type = intent.draft.type,
                 error = null
             ).recalculateValidation()
@@ -110,6 +116,10 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
             state.copy(imageUrl = intent.url, error = null).recalculateValidation()
         }
 
+        is ListingEditorIntent.ChangeStartTime -> {
+            state.copy(startTime = intent.startTime, error = null).recalculateValidation()
+        }
+
         ListingEditorIntent.AskToPublish -> {
             if (!state.isBasicsStepValid) {
                 state.copy(error = ListingEditorError.TitleInvalid)
@@ -144,6 +154,7 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
             priceAmount = PriceAmount(""),
             priceCurrency = SupportedCurrency.USD,
             imageUrl = ImageUrl(""),
+            startTime = null,
             type = if (state.isEditing) state.type else null,
             error = null
         ).recalculateValidation()
@@ -161,6 +172,10 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
                 ListingEditorPageConfig.Basics -> state.copy(
                     title = ListingTitle(""),
                     description = ListingDescription("")
+                )
+
+                ListingEditorPageConfig.Schedule -> state.copy(
+                    startTime = null
                 )
 
                 ListingEditorPageConfig.Pricing -> state.copy(
@@ -181,10 +196,12 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
 private fun ListingEditorState.recalculateValidation(): ListingEditorState {
     val basicsValid = this.title.isValid()
     val pricingValid = this.priceAmount.isValid() && this.priceAmount.value.isNotBlank()
+    val scheduleValid = if (this.type == ListingCategory.Event) this.startTime != null else true
 
     return this.copy(
         isBasicsStepValid = basicsValid,
-        isPricingStepValid = pricingValid
+        isPricingStepValid = pricingValid,
+        isScheduleStepValid = scheduleValid
     )
 }
 
@@ -203,7 +220,10 @@ fun ListingEditorState.toNewListing(publisher: PublicProfile): NewListing? {
 
     return when (type) {
         ListingCategory.Item -> NewListing.Item(commonData, publisher)
-        ListingCategory.Event -> NewListing.Event(commonData, publisher)
+        ListingCategory.Event -> {
+            val eventStartTime = this.startTime ?: return null
+            NewListing.Event(commonData, publisher, eventStartTime)
+        }
         ListingCategory.Service -> NewListing.Service(commonData, publisher)
     }
 }
@@ -227,7 +247,8 @@ fun ListingEditorState.toPatchRequest(): TypeV1ListingDtoPatchRequest? {
             title = Patchable.Set(this.title),
             description = Patchable.Set(descriptionValue),
             price = Patchable.Set(priceObj),
-            imageLinks = Patchable.Set(imageLinks)
+            imageLinks = Patchable.Set(imageLinks),
+            startTime = this.startTime?.let { Patchable.Set(it) } ?: Patchable.Unchanged
         )
 
         ListingCategory.Service -> ListingServiceDtoSchema.V1.PatchRequest(
@@ -247,6 +268,7 @@ fun ListingEditorState.toDraft(stepIndex: Int): ListingDraft? {
         priceAmount = this.priceAmount,
         priceCurrencyCode = this.priceCurrency.code,
         imageUrl = this.imageUrl,
+        startTime = this.startTime,
         type = type,
         stepIndex = stepIndex
     )
@@ -259,6 +281,7 @@ private fun Listing.toEditorState(): ListingEditorState {
         is Listing.Event -> ListingCategory.Event
         is Listing.Service -> ListingCategory.Service
     }
+    val startTime = (this as? Listing.Event)?.startTime
 
     val currency = SupportedCurrency.fromCode(commonData.price.currency) ?: SupportedCurrency.USD
 
@@ -269,6 +292,7 @@ private fun Listing.toEditorState(): ListingEditorState {
         priceAmount = commonData.price.amount,
         priceCurrency = currency,
         imageUrl = commonData.imageLinks.firstOrNull() ?: ImageUrl(""),
+        startTime = startTime,
         type = category,
         error = null,
         isSubmitting = false,

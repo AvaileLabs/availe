@@ -109,6 +109,8 @@ fun ProfileScreen(
                             imageUrl = listing.imageUrl,
                             category = listing.category,
                             description = listing.description,
+                            startTime = listing.startTime,
+                            isRsvped = listing.isRsvped,
                             onClick = { component.onIntent(Intent.ListingClicked(listing.id)) }
                         )
                     }

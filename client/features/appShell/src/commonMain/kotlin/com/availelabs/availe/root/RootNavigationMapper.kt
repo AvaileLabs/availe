@@ -18,7 +18,7 @@ object RootNavigationMapper {
 
     fun getInitialIntent(deepLinkUrl: String?): RootConfiguration {
         if (deepLinkUrl == null) {
-            return RootConfiguration.AppShell(AppShellIntent.Home(ListingFeedType.Latest))
+            return RootConfiguration.AppShell(AppShellIntent.Home(ListingFeedType.Upcoming))
         }
 
         return try {
@@ -27,7 +27,7 @@ object RootNavigationMapper {
             val chatJidValue = url.parameters[CHAT_QUERY_PARAMETER]
 
             val intent = if (pathSegments.isEmpty()) {
-                AppShellIntent.Home(ListingFeedType.Latest)
+                AppShellIntent.Home(ListingFeedType.Upcoming)
             } else {
                 val rootSegment = pathSegments.first()
                 when (rootSegment) {
@@ -64,13 +64,13 @@ object RootNavigationMapper {
 
             RootConfiguration.AppShell(intent)
         } catch (_: Exception) {
-            RootConfiguration.AppShell(AppShellIntent.Home(ListingFeedType.Latest))
+            RootConfiguration.AppShell(AppShellIntent.Home(ListingFeedType.Upcoming))
         }
     }
 
     private fun parseListingIntent(pathSegments: List<String>, chatJidValue: String?): AppShellIntent {
         val listingId = extractUuid(pathSegments, 1)?.let { ListingId(it) }
-            ?: return AppShellIntent.Home(ListingFeedType.Latest)
+            ?: return AppShellIntent.Home(ListingFeedType.Upcoming)
 
         return if (!chatJidValue.isNullOrBlank()) {
             AppShellIntent.ViewingListingWithChat(
@@ -83,21 +83,21 @@ object RootNavigationMapper {
     }
 
     private fun parseChatIntent(pathSegments: List<String>): AppShellIntent {
-        if (pathSegments.size < 2) return AppShellIntent.Home(ListingFeedType.Latest)
+        if (pathSegments.size < 2) return AppShellIntent.Home(ListingFeedType.Upcoming)
         val jidValue = pathSegments[1]
         return AppShellIntent.Chatting(Jid(jidValue))
     }
 
     private fun parseProfileIntent(pathSegments: List<String>): AppShellIntent {
         val userId = extractUuid(pathSegments, 1)?.let { UserId(it) }
-            ?: return AppShellIntent.Home(ListingFeedType.Latest)
+            ?: return AppShellIntent.Home(ListingFeedType.Upcoming)
 
         return AppShellIntent.ViewingProfile(userId)
     }
 
     private fun parseEditListingIntent(pathSegments: List<String>): AppShellIntent {
         val listingId = extractUuid(pathSegments, 1)?.let { ListingId(it) }
-            ?: return AppShellIntent.Home(ListingFeedType.Latest)
+            ?: return AppShellIntent.Home(ListingFeedType.Upcoming)
 
         return AppShellIntent.ListingEditor(listingId)
     }

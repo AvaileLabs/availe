@@ -28,7 +28,8 @@ internal interface IListingRemoteDataSource {
         page: Int,
         size: Int,
         publisherId: UserId? = null,
-        filter: ListingCategoryFilter
+        filter: ListingCategoryFilter,
+        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
     ): List<Listing>
 
     suspend fun getListingById(id: ListingId): FindResult<Listing>
@@ -51,7 +52,8 @@ internal class ListingRemoteDataSource(
         page: Int,
         size: Int,
         publisherId: UserId?,
-        filter: ListingCategoryFilter
+        filter: ListingCategoryFilter,
+        eventFeedFilter: EventFeedFilter
     ): List<Listing> {
         val response = httpClient.get(ApiRoutes.LISTINGS) {
             parameter(ApiParameters.PAGE_NUMBER, page)
@@ -63,6 +65,9 @@ internal class ListingRemoteDataSource(
                 filter.categories.forEach { category ->
                     parameter(ApiParameters.CATEGORIES, category.name)
                 }
+            }
+            if (eventFeedFilter != EventFeedFilter.None) {
+                parameter("eventFeedFilter", eventFeedFilter.name)
             }
         }
         response.ensureSuccess()

@@ -48,6 +48,7 @@ import com.composeunstyled.Text
 import com.composeunstyled.theme.Theme
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Instant
 
 @Composable
 fun ListingEditorScreen(
@@ -317,6 +318,11 @@ private fun ListingEditorWizardContent(
                         onDescriptionChanged = component::onDescriptionChanged
                     )
 
+                    ListingEditorPageConfig.Schedule -> ListingEditorScheduleStep(
+                        startTime = state.startTime,
+                        onStartTimeChanged = component::onStartTimeChanged
+                    )
+
                     ListingEditorPageConfig.Pricing -> ListingEditorPricingStep(
                         priceAmount = state.priceAmount,
                         priceCurrency = state.priceCurrency,
@@ -549,6 +555,39 @@ private fun ListingEditorBasicsStep(
 }
 
 @Composable
+private fun ListingEditorScheduleStep(
+    startTime: Instant?,
+    onStartTimeChanged: (Instant?) -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        var textValue by remember { mutableStateOf(startTime?.toString() ?: "") }
+
+        TextField(
+            value = textValue,
+            onValueChange = { stringValue ->
+                textValue = stringValue
+                try {
+                    val parsedTime = Instant.parse(stringValue)
+                    onStartTimeChanged(parsedTime)
+                } catch (exception: Exception) {
+                    onStartTimeChanged(null)
+                }
+            },
+            label = { Text(stringResource(Res.string.listing_editor_label_start_time)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Format: YYYY-MM-DDThh:mm:ssZ (e.g., 2026-10-24T20:00:00Z)",
+            style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.8),
+            color = Theme[colors][onBackground].copy(alpha = 0.6f)
+        )
+    }
+}
+
+@Composable
 private fun ListingEditorPricingStep(
     priceAmount: PriceAmount,
     priceCurrency: SupportedCurrency,
@@ -702,6 +741,11 @@ private fun ListingEditorReviewStep(
             }
             SelectionContainer {
                 Text(stringResource(Res.string.listing_editor_review_title_format, editorState.title.value))
+            }
+            if (editorState.startTime != null && editorState.type == ListingCategory.Event) {
+                SelectionContainer {
+                    Text(stringResource(Res.string.listing_editor_review_start_time_format, editorState.startTime.toString()))
+                }
             }
             if (editorState.priceAmount.value.isNotBlank()) {
                 SelectionContainer {

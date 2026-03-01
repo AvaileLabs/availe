@@ -10,20 +10,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.Res
-import availe.client.designsystem.generated.resources.accessibility_favorite
+import availe.client.designsystem.generated.resources.status_going
 import coil3.compose.AsyncImage
 import com.availelabs.availe.domain.model.*
 import com.composables.icons.lucide.*
 import com.composables.uikit.components.Icon
 import com.composables.uikit.components.Text
+import com.composables.uikit.styling.body
 import com.composables.uikit.styling.card
 import com.composables.uikit.styling.colors
 import com.composables.uikit.styling.outline
+import com.composables.uikit.styling.textStyles
 import com.composeunstyled.theme.Theme
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Instant
 
 @Composable
 fun ListingCard(
@@ -32,6 +39,8 @@ fun ListingCard(
     imageUrl: ImageUrl?,
     category: ListingCategory,
     description: ListingDescription?,
+    startTime: Instant?,
+    isRsvped: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -49,12 +58,12 @@ fun ListingCard(
         if (isCompact) {
             Column {
                 ListingImage(imageUrl, category, Modifier.fillMaxWidth().height(200.dp))
-                ListingContent(title, price, category, description, Modifier.padding(16.dp))
+                ListingContent(title, price, description, startTime, isRsvped, Modifier.padding(16.dp))
             }
         } else {
             Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                 ListingImage(imageUrl, category, Modifier.width(250.dp).fillMaxHeight())
-                ListingContent(title, price, category, description, Modifier.padding(16.dp).weight(1f))
+                ListingContent(title, price, description, startTime, isRsvped, Modifier.padding(16.dp).weight(1f))
             }
         }
     }
@@ -82,13 +91,8 @@ private fun MockImagePlaceholder(category: ListingCategory, modifier: Modifier) 
         modifier = modifier.background(Theme[colors][outline].copy(alpha = 0.1f)),
         contentAlignment = Alignment.Center
     ) {
-        val icon = when (category) {
-            ListingCategory.Event -> Lucide.Calendar
-            ListingCategory.Service -> Lucide.User
-            ListingCategory.Item -> Lucide.Image
-        }
         Icon(
-            imageVector = icon,
+            imageVector = Lucide.Calendar,
             contentDescription = null,
             modifier = Modifier.size(48.dp)
         )
@@ -99,22 +103,30 @@ private fun MockImagePlaceholder(category: ListingCategory, modifier: Modifier) 
 private fun ListingContent(
     title: ListingTitle,
     price: Price,
-    category: ListingCategory,
     description: ListingDescription?,
+    startTime: Instant?,
+    isRsvped: Boolean,
     modifier: Modifier
 ) {
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val icon = when (category) {
-                ListingCategory.Event -> Lucide.Calendar
-                ListingCategory.Service -> Lucide.User
-                ListingCategory.Item -> Lucide.Box
-            }
-            Icon(icon, null, Modifier.size(16.dp))
+            Icon(Lucide.Calendar, null, Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
-            Text(category.name.uppercase())
+            val dateString = startTime?.let { formatEventTime(it) } ?: "TBD"
+            Text(dateString, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            Icon(Lucide.Heart, stringResource(Res.string.accessibility_favorite), Modifier.size(20.dp))
+            if (isRsvped) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Lucide.CircleCheck, null, Modifier.size(16.dp), tint = Color(0xFF10B981))
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(Res.string.status_going),
+                        color = Color(0xFF10B981),
+                        fontWeight = FontWeight.Bold,
+                        style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.85)
+                    )
+                }
+            }
         }
         Spacer(Modifier.height(8.dp))
         SelectionContainer {
@@ -133,5 +145,42 @@ private fun ListingContent(
                 Text(description.value, maxLines = 2)
             }
         }
+    }
+}
+
+enum class TimeFormat {
+    Standard,
+    Military
+}
+
+fun formatEventTime(instant: Instant, format: TimeFormat = TimeFormat.Standard): String {
+    return try {
+        val kotlinxInstant = kotlinx.datetime.Instant.parse(instant.toString())
+        val localDateTime = kotlinxInstant.toLocalDateTime(TimeZone.currentSystemDefault())
+
+        val month = localDateTime.month.name.take(3).lowercase().replaceFirstChar { it.uppercaseChar() }
+        val day = localDateTime.dayOfMonth
+
+        val hour = localDateTime.hour
+        val minute = localDateTime.minute.toString().padStart(2, '0')
+
+        when (format) {
+            TimeFormat.Military -> {
+                val hourString = hour.toString().padStart(2, '0')
+                "$month $day • $hourString:$minute"
+            }
+            TimeFormat.Standard -> {
+                val isPm = hour >= 12
+                val standardHour = when {
+                    hour == 0 -> 12
+                    hour > 12 -> hour - 12
+                    else -> hour
+                }
+                val amPm = if (isPm) "PM" else "AM"
+                "$month $day • $standardHour:$minute $amPm"
+            }
+        }
+    } catch (exception: Exception) {
+        instant.toString()
     }
 }

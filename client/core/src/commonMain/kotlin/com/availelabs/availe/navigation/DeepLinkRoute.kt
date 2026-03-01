@@ -10,7 +10,7 @@ import kotlin.uuid.ExperimentalUuidApi
 sealed interface DeepLinkRoute {
     val relativePath: String
 
-    data class Home(val feedType: ListingFeedType = ListingFeedType.Latest) : DeepLinkRoute {
+    data class Home(val feedType: ListingFeedType = ListingFeedType.Upcoming) : DeepLinkRoute {
         override val relativePath: String = FeedTypeMapper.toPathSegment(feedType)
     }
 

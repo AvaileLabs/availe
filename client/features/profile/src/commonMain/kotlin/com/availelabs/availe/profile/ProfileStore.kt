@@ -19,6 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlin.time.Clock.System
+import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 
 data class ProfileListingUiModel(
@@ -27,7 +28,9 @@ data class ProfileListingUiModel(
     val price: Price,
     val imageUrl: ImageUrl?,
     val category: ListingCategory,
-    val description: ListingDescription?
+    val description: ListingDescription?,
+    val startTime: Instant?,
+    val isRsvped: Boolean
 )
 
 interface ProfileStore : Store<Intent, State, Label> {
@@ -263,13 +266,17 @@ internal class ProfileStoreFactory(
             is Listing.Event -> ListingCategory.Event
             is Listing.Service -> ListingCategory.Service
         }
+        val startTime = (this as? Listing.Event)?.startTime
+
         return ProfileListingUiModel(
             id = this.id,
             title = this.title,
             price = this.price,
             imageUrl = this.imageLinks.firstOrNull(),
             category = category,
-            description = this.description
+            description = this.description,
+            startTime = startTime,
+            isRsvped = this.interactionState.isRsvped
         )
     }
 }

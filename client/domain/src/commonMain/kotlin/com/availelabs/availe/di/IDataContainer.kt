@@ -9,5 +9,6 @@ interface IDataContainer {
     val listingRepository: IListingRepository
     val messagingRepository: IMessagingRepository
     val userRepository: IUserRepository
+    val interactionRepository: IInteractionRepository
     val messageService: IMessageService
 }

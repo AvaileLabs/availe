@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 sealed interface ListingEditorPage {
     data object Type : ListingEditorPage
     data object Basics : ListingEditorPage
+    data object Schedule : ListingEditorPage
     data object Pricing : ListingEditorPage
     data object Media : ListingEditorPage
     data object Review : ListingEditorPage
@@ -17,6 +18,9 @@ sealed interface ListingEditorPageConfig {
 
     @Serializable
     data object Basics : ListingEditorPageConfig
+
+    @Serializable
+    data object Schedule : ListingEditorPageConfig
 
     @Serializable
     data object Pricing : ListingEditorPageConfig

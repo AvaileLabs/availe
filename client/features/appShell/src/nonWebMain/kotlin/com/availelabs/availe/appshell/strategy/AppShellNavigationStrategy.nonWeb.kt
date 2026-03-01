@@ -41,6 +41,7 @@ actual object AppShellNavigationStrategy {
                 ListingEditorComponent(
                     componentContext = context.componentContext,
                     listingId = configuration.listingId,
+                    initialCategory = configuration.initialCategory,
                     listingRepository = context.appContainer.listingRepository,
                     sessionManager = context.appContainer.sessionManager,
                     messageService = context.appContainer.messageService,

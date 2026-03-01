@@ -11,6 +11,7 @@ import com.availelabs.availe.chat.root.IChatNavigator
 import com.availelabs.availe.core.platform.IInAppBrowserLauncher
 import com.availelabs.availe.dashboard.IDashboardComponent
 import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.home.IHomeNavigator
@@ -48,8 +49,8 @@ actual class AppShellRouter actual constructor(
         stackNavigation.pushToFront(AppShellConfiguration.ListingDetails(listingId))
     }
 
-    actual override fun navigateToCreateListing() {
-        stackNavigation.pushToFront(AppShellConfiguration.ListingEditor(null))
+    actual override fun navigateToCreateListing(category: ListingCategory?) {
+        stackNavigation.pushToFront(AppShellConfiguration.ListingEditor(null, category))
     }
 
     actual override fun navigateBack() {
@@ -77,7 +78,7 @@ actual class AppShellRouter actual constructor(
     }
 
     actual override fun navigateToChat(userId: UserId) {
-        // TODO: Resolve JID from user ID if necessary
+
     }
 
     @OptIn(DelicateDecomposeApi::class)
@@ -94,7 +95,7 @@ actual class AppShellRouter actual constructor(
     }
 
     actual override fun navigateToEditListing(listingId: ListingId) {
-        stackNavigation.pushToFront(AppShellConfiguration.ListingEditor(listingId))
+        stackNavigation.pushToFront(AppShellConfiguration.ListingEditor(listingId, null))
     }
 
     actual fun navigateToHome() {

@@ -147,6 +147,14 @@ internal fun getStepStatus(config: ListingEditorPageConfig, state: ListingEditor
             }
         }
 
+        ListingEditorPageConfig.Schedule -> {
+            if (state.isScheduleStepValid) {
+                StepStatus.Complete
+            } else {
+                StepStatus.Incomplete
+            }
+        }
+
         ListingEditorPageConfig.Pricing -> {
             if (state.isPricingStepValid) {
                 StepStatus.Complete
@@ -164,7 +172,7 @@ internal fun getStepStatus(config: ListingEditorPageConfig, state: ListingEditor
         }
 
         ListingEditorPageConfig.Review -> {
-            if (state.isBasicsStepValid && state.isPricingStepValid && state.type != null) {
+            if (state.isBasicsStepValid && state.isPricingStepValid && state.isScheduleStepValid && state.type != null) {
                 StepStatus.Complete
             } else {
                 StepStatus.Incomplete
@@ -173,14 +181,14 @@ internal fun getStepStatus(config: ListingEditorPageConfig, state: ListingEditor
     }
 }
 
-// Used for button enablement ("Can I click next?")
 internal fun getStepValidationStatus(config: ListingEditorPageConfig, state: ListingEditorState): Boolean {
     return when (config) {
         ListingEditorPageConfig.Type -> state.type != null
         ListingEditorPageConfig.Basics -> state.isBasicsStepValid
+        ListingEditorPageConfig.Schedule -> state.isScheduleStepValid
         ListingEditorPageConfig.Pricing -> state.isPricingStepValid
-        ListingEditorPageConfig.Media -> true // Media is optional, so always valid to proceed
-        ListingEditorPageConfig.Review -> state.isBasicsStepValid && state.isPricingStepValid && state.type != null
+        ListingEditorPageConfig.Media -> true
+        ListingEditorPageConfig.Review -> state.isBasicsStepValid && state.isPricingStepValid && state.isScheduleStepValid && state.type != null
     }
 }
 

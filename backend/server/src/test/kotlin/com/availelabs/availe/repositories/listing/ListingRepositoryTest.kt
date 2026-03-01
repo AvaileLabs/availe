@@ -18,6 +18,7 @@ import io.availe.models.Patchable
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -57,7 +58,8 @@ class ListingRepositoryTest : PostgresTestBase() {
                 imageLinks = emptyList(),
                 location = ListingLocation("Test Location")
             ),
-            publisher = testPublisherProfile
+            publisher = testPublisherProfile,
+            startTime = Clock.System.now()
         )
     }
 
@@ -78,7 +80,6 @@ class ListingRepositoryTest : PostgresTestBase() {
         )
         userRepository = UserRepository(dsl)
 
-        // Using direct repository methods instead of Token flow to prep data
         val user = userRepository.UpsertUser(Jid("publisher@xmpp"), Email("publisher@test.com"))
         userRepository.UpdateProfile(user.id, UserDisplayName("Test Publisher"), null)
 
@@ -241,21 +242,49 @@ class ListingRepositoryTest : PostgresTestBase() {
         val listing4 = insertListing(aNewItemListing(title = ListingTitle("4")))
         val listing5 = insertListing(aNewItemListing(title = ListingTitle("5")))
 
-        val page0 = repository.getListingsPage(pageNumber = 0, pageSize = 2, viewingUserId = null)
+        val page0 = repository.getListingsPage(
+            pageNumber = 0,
+            pageSize = 2,
+            viewingUserId = null,
+            publisherId = null,
+            filter = ListingCategoryFilter.All,
+            eventFeedFilter = EventFeedFilter.None
+        )
         assertEquals(2, page0.size)
         assertEquals(listing5.id, page0[0].id)
         assertEquals(listing4.id, page0[1].id)
 
-        val page1 = repository.getListingsPage(pageNumber = 1, pageSize = 2, viewingUserId = null)
+        val page1 = repository.getListingsPage(
+            pageNumber = 1,
+            pageSize = 2,
+            viewingUserId = null,
+            publisherId = null,
+            filter = ListingCategoryFilter.All,
+            eventFeedFilter = EventFeedFilter.None
+        )
         assertEquals(2, page1.size)
         assertEquals(listing3.id, page1[0].id)
         assertEquals(listing2.id, page1[1].id)
 
-        val page2 = repository.getListingsPage(pageNumber = 2, pageSize = 2, viewingUserId = null)
+        val page2 = repository.getListingsPage(
+            pageNumber = 2,
+            pageSize = 2,
+            viewingUserId = null,
+            publisherId = null,
+            filter = ListingCategoryFilter.All,
+            eventFeedFilter = EventFeedFilter.None
+        )
         assertEquals(1, page2.size)
         assertEquals(listing1.id, page2[0].id)
 
-        val page3 = repository.getListingsPage(pageNumber = 3, pageSize = 2, viewingUserId = null)
+        val page3 = repository.getListingsPage(
+            pageNumber = 3,
+            pageSize = 2,
+            viewingUserId = null,
+            publisherId = null,
+            filter = ListingCategoryFilter.All,
+            eventFeedFilter = EventFeedFilter.None
+        )
         assertEquals(0, page3.size)
     }
 }

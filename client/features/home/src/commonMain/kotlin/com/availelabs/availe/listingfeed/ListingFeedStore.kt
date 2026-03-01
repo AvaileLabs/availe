@@ -11,6 +11,7 @@ import com.availelabs.availe.listingfeed.ListingFeedStore.*
 import com.availelabs.availe.model.DataStream
 import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.model.error.AppError
+import com.availelabs.availe.model.toEventFeedFilter
 import com.availelabs.availe.model.toListingCategoryFilter
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.time.Clock.System
+import kotlin.time.Instant
 
 data class ListingUiModel(
     val id: ListingId,
@@ -28,7 +30,9 @@ data class ListingUiModel(
     val price: Price,
     val imageUrl: ImageUrl?,
     val category: ListingCategory,
-    val description: ListingDescription?
+    val description: ListingDescription?,
+    val startTime: Instant?,
+    val isRsvped: Boolean
 )
 
 interface ListingFeedStore : Store<Intent, State, Label> {
@@ -184,7 +188,8 @@ internal class ListingFeedStoreFactory(
                     page = page,
                     size = pageSize,
                     forceRefresh = forceRefresh,
-                    filter = feedType.toListingCategoryFilter()
+                    filter = feedType.toListingCategoryFilter(),
+                    eventFeedFilter = feedType.toEventFeedFilter()
                 )
                     .catch { throwable ->
                         val appError = AppError.UnknownError(throwable.message ?: "Unknown stream error")
@@ -338,13 +343,17 @@ internal class ListingFeedStoreFactory(
             is Listing.Event -> ListingCategory.Event
             is Listing.Service -> ListingCategory.Service
         }
+        val startTime = (this as? Listing.Event)?.startTime
+
         return ListingUiModel(
             id = this.id,
             title = this.title,
             price = this.price,
             imageUrl = this.imageLinks.firstOrNull(),
             category = category,
-            description = this.description
+            description = this.description,
+            startTime = startTime,
+            isRsvped = this.interactionState.isRsvped
         )
     }
 }

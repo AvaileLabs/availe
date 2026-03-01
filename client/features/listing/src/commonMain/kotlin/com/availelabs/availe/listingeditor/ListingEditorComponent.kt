@@ -29,6 +29,7 @@ import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.*
 import org.jetbrains.compose.resources.getString
+import kotlin.time.Instant
 
 interface IListingEditorComponent {
     val state: Value<ListingEditorState>
@@ -40,6 +41,7 @@ interface IListingEditorComponent {
     fun onCurrencySelected(currency: SupportedCurrency)
     fun onTypeSelected(type: ListingCategory)
     fun onImageUrlChanged(url: String)
+    fun onStartTimeChanged(startTime: Instant?)
     fun onPageSelected(index: Int)
     fun onPublishClicked()
     fun onConfirmPublish()
@@ -57,6 +59,7 @@ interface IListingEditorComponent {
 class ListingEditorComponent(
     componentContext: ComponentContext,
     private val listingId: ListingId?,
+    private val initialCategory: ListingCategory? = null,
     private val listingRepository: IListingRepository,
     sessionManager: ISessionRepository,
     private val messageService: IMessageService,
@@ -69,7 +72,8 @@ class ListingEditorComponent(
         storeFactory = DefaultStoreFactory(),
         listingRepository = listingRepository,
         sessionManager = sessionManager,
-        listingId = listingId
+        listingId = listingId,
+        initialCategory = initialCategory
     ).create()
 
     override val state: Value<ListingEditorState> = store.stateFlow.asValue(lifecycle)
@@ -81,7 +85,7 @@ class ListingEditorComponent(
         serializer = ListingEditorPageConfig.serializer(),
         initialPages = {
             Pages(
-                items = ListingFlowDefinition.getSteps(null),
+                items = ListingFlowDefinition.getSteps(initialCategory),
                 selectedIndex = 0
             )
         },
@@ -89,6 +93,7 @@ class ListingEditorComponent(
             when (config) {
                 ListingEditorPageConfig.Type -> ListingEditorPage.Type
                 ListingEditorPageConfig.Basics -> ListingEditorPage.Basics
+                ListingEditorPageConfig.Schedule -> ListingEditorPage.Schedule
                 ListingEditorPageConfig.Pricing -> ListingEditorPage.Pricing
                 ListingEditorPageConfig.Media -> ListingEditorPage.Media
                 ListingEditorPageConfig.Review -> ListingEditorPage.Review
@@ -115,7 +120,6 @@ class ListingEditorComponent(
                     val draft = listingRepository.getDraft()
                     if (draft != null && !store.state.isEditing) {
                         store.accept(ListingEditorIntent.RestoreDraft(draft))
-                        // Navigation will be updated by the state subscriber below
                     }
                 }
             }
@@ -158,9 +162,8 @@ class ListingEditorComponent(
             }
         })
 
-        // Observe state changes to update available pages
         scope.launch {
-            var currentType: ListingCategory? = null
+            var currentType: ListingCategory? = initialCategory
             store.stateFlow.collect { state ->
                 if (state.type != currentType) {
                     currentType = state.type
@@ -224,6 +227,10 @@ class ListingEditorComponent(
 
     override fun onImageUrlChanged(url: String) {
         store.accept(ListingEditorIntent.ChangeImage(ImageUrl(url)))
+    }
+
+    override fun onStartTimeChanged(startTime: Instant?) {
+        store.accept(ListingEditorIntent.ChangeStartTime(startTime))
     }
 
     override fun onPageSelected(index: Int) {

@@ -37,6 +37,9 @@
     <string name="feed_category_items">Items</string>
     <string name="feed_category_events">Events</string>
     <string name="feed_category_services">Services</string>
+    <string name="feed_upcoming">Upcoming</string>
+    <string name="feed_going">Going</string>
+    <string name="feed_past">Past</string>
 
     <string name="authentication_log_in">Log In</string>
     <string name="authentication_sign_in">Sign In</string>
@@ -60,11 +63,19 @@
     <string name="listing_profile">Profile</string>
     <string name="listing_about">About this item</string>
     <string name="listing_description_empty">No description provided.</string>
+    <string name="listing_when_and_where">When &amp; Where</string>
     <string name="listing_identity_verified">Identity Verified</string>
     <string name="listing_secure_guarantee">Secure transaction protected by Availe Guarantee.</string>
     <string name="listing_rating_label">%1$s Rating</string>
     <string name="listing_reviews_label">%1$d Reviews</string>
     <string name="listing_rating_count_format">%1$s (%2$d)</string>
+    <string name="listing_date_time_format">%1$s • %2$s</string>
+
+    <string name="action_rsvp">RSVP</string>
+    <string name="action_cancel_rsvp">Cancel RSVP</string>
+    <string name="status_going">You\'re Going!</string>
+    <string name="interaction_error_rsvp">Failed to update RSVP status. Please try again.</string>
+
     <string name="listing_editor_title_invalid">Title is invalid</string>
     <string name="listing_editor_price_required">Price is required</string>
 
@@ -112,6 +123,7 @@
     <string name="profile_title">User Profile</string>
 
     <string name="listing_editor_step_type">Type</string>
+    <string name="listing_editor_step_schedule">Schedule</string>
     <string name="listing_editor_step_basics">Basics</string>
     <string name="listing_editor_step_pricing">Pricing</string>
     <string name="listing_editor_step_media">Media</string>
@@ -124,14 +136,17 @@
     <string name="listing_editor_label_description">Description</string>
     <string name="listing_editor_label_price">Price</string>
     <string name="listing_editor_label_image_url">Image URL</string>
+    <string name="listing_editor_label_start_time">Start Date &amp; Time</string>
     <string name="listing_editor_no_image_preview">No image preview</string>
     <string name="listing_editor_image_preview_desc">Listing Image Preview</string>
+    <string name="listing_editor_schedule_invalid">Please select a valid future date and time.</string>
 
     <string name="listing_editor_review_type_format">Type: %1$s</string>
     <string name="listing_editor_review_title_format">Title: %1$s</string>
     <string name="listing_editor_review_price_format">Price: %1$s</string>
     <string name="listing_editor_review_description_format">Description: %1$s</string>
     <string name="listing_editor_review_image_url_format">Image URL: %1$s</string>
+    <string name="listing_editor_review_start_time_format">When: %1$s</string>
 
     <string name="listing_editor_action_next">Next</string>
     <string name="listing_editor_action_publish">Publish</string>

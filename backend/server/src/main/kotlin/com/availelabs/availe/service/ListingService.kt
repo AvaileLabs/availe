@@ -21,7 +21,8 @@ interface IListingService {
         pageSize: Int,
         viewingUserId: UserId?,
         publisherId: UserId? = null,
-        filter: ListingCategoryFilter = ListingCategoryFilter.All
+        filter: ListingCategoryFilter = ListingCategoryFilter.All,
+        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
     ): List<Listing>
 
     fun updateListing(
@@ -53,9 +54,10 @@ class ListingService(
         pageSize: Int,
         viewingUserId: UserId?,
         publisherId: UserId?,
-        filter: ListingCategoryFilter
+        filter: ListingCategoryFilter,
+        eventFeedFilter: EventFeedFilter
     ): List<Listing> {
-        return listingRepository.getListingsPage(pageNumber, pageSize, viewingUserId, publisherId, filter)
+        return listingRepository.getListingsPage(pageNumber, pageSize, viewingUserId, publisherId, filter, eventFeedFilter)
     }
 
     override fun updateListing(
@@ -63,8 +65,6 @@ class ListingService(
         patch: TypeV1ListingDtoPatchRequest,
         requestingPublisherId: UserId
     ): UpdateResult<Listing> {
-        // We fetch with viewingUserId = requestingPublisherId to ensure consistent state,
-        // though for update checks simply existence matters.
         val listing = when (val result = listingRepository.getListingById(listingId, requestingPublisherId)) {
             is FindResult.Found -> result.value
             is FindResult.NotFound -> return UpdateResult.NotFound

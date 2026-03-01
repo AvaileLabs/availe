@@ -46,12 +46,13 @@ internal class ListingRepository(
         size: Int,
         forceRefresh: Boolean,
         publisherId: UserId?,
-        filter: ListingCategoryFilter
+        filter: ListingCategoryFilter,
+        eventFeedFilter: EventFeedFilter
     ): Flow<DataStream<List<Listing>>> = flow {
         emit(DataStream.Loading)
 
         val shouldRefresh = if (forceRefresh) true else isListingCacheStale(filter)
-        val key = ListingStoreKey(page, size, publisherId, filter)
+        val key = ListingStoreKey(page, size, publisherId, filter, eventFeedFilter)
 
         val request = if (shouldRefresh) {
             StoreReadRequest.cached(key, refresh = true)
@@ -109,9 +110,10 @@ internal class ListingRepository(
         page: Int,
         size: Int,
         publisherId: UserId?,
-        filter: ListingCategoryFilter
+        filter: ListingCategoryFilter,
+        eventFeedFilter: EventFeedFilter
     ) {
-        val key = ListingStoreKey(page, size, publisherId, filter)
+        val key = ListingStoreKey(page, size, publisherId, filter, eventFeedFilter)
         try {
             store.fresh(key)
             listingPreferences.updateLastListingsFetchTime(

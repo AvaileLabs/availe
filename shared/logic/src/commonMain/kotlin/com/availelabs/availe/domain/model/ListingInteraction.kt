@@ -13,5 +13,6 @@ data class ListingInteraction(
 
 @Serializable
 data class InteractionState(
-    val isFavorited: Boolean
+    val isFavorited: Boolean,
+    val isRsvped: Boolean
 )

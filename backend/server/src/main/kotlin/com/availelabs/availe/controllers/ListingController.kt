@@ -13,6 +13,7 @@ import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.*
+import com.availelabs.availe.mappers.toCreateRequestDto
 import com.availelabs.availe.mappers.toDataDto
 import com.availelabs.availe.mappers.toDomain
 import com.availelabs.availe.observability.ListingCreated
@@ -25,6 +26,7 @@ import org.http4k.core.*
 import org.http4k.events.Events
 import org.http4k.format.KotlinxSerialization.auto
 import org.http4k.lens.*
+import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -48,6 +50,7 @@ internal class ListingController(
         .map({ UserId(it.toKotlinUuid()) }, { it.value.toJavaUuid() })
         .optional(ApiParameters.PUBLISHER_ID)
     private val categoriesQueryLens = Query.enum<ListingCategory>().multi.optional(ApiParameters.CATEGORIES)
+    private val eventFeedFilterQueryLens = Query.enum<EventFeedFilter>().defaulted("eventFeedFilter", EventFeedFilter.None)
 
     private val examplePrice = Price(PriceAmount("10.00"), CurrencyCode("USD"))
     private val examplePublisher = PublicProfileDtoSchema.V1.Data(
@@ -56,7 +59,7 @@ internal class ListingController(
         avatarUrl = null,
         jid = Jid("alice@localhost")
     )
-    private val exampleInteraction = InteractionStateDtoSchema.V1.Data(isFavorited = false)
+    private val exampleInteraction = InteractionStateDtoSchema.V1.Data(isFavorited = false, isRsvped = false)
     private val exampleResponseEvent = ListingEventDtoSchema.V1.Data(
         id = ListingId(Uuid.random()),
         title = ListingTitle("Example Event"),
@@ -65,7 +68,8 @@ internal class ListingController(
         imageLinks = emptyList(),
         location = ListingLocation("New York, NY"),
         publisher = examplePublisher,
-        interactionState = exampleInteraction
+        interactionState = exampleInteraction,
+        startTime = Clock.System.now()
     )
 
     val listOfRoutes = listOf(
@@ -85,7 +89,8 @@ internal class ListingController(
                 null,
                 examplePrice,
                 emptyList(),
-                ListingLocation("New York, NY")
+                ListingLocation("New York, NY"),
+                Clock.System.now()
             )
 
         return ApiRoutes.LISTINGS meta {
@@ -195,12 +200,14 @@ internal class ListingController(
             queries += pageSizeQueryLens
             queries += publisherIdQueryLens
             queries += categoriesQueryLens
+            queries += eventFeedFilterQueryLens
             returning(Status.OK, listResponseBodyLens to listOf(exampleResponseEvent))
         } bindContract Method.GET to { request: Request ->
             val pageNumber = pageNumberQueryLens(request)
             val pageSize = pageSizeQueryLens(request)
             val publisherId = publisherIdQueryLens(request)
             val categoriesList = categoriesQueryLens(request)
+            val eventFeedFilter = eventFeedFilterQueryLens(request)
 
             val viewingUser = tryAuthenticate(request)
 
@@ -210,7 +217,7 @@ internal class ListingController(
                 ListingCategoryFilter.of(*categoriesList.toTypedArray())
             }
 
-            val listings = listingService.getListingsPage(pageNumber, pageSize, viewingUser?.id, publisherId, filter)
+            val listings = listingService.getListingsPage(pageNumber, pageSize, viewingUser?.id, publisherId, filter, eventFeedFilter)
             val responseDataTransferObjects = listings.map { it.toDataDto() }
             Response(Status.OK).with(listResponseBodyLens of responseDataTransferObjects)
         }

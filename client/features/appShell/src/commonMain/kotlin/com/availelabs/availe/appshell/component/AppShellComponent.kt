@@ -26,6 +26,7 @@ import com.availelabs.availe.dashboard.DashboardConfiguration
 import com.availelabs.availe.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.home.HomeComponent
@@ -302,7 +303,7 @@ class AppShellComponent(
     }
 
     override fun navigateToListingDetails(listingId: ListingId) = router.navigateToListingDetails(listingId)
-    override fun navigateToCreateListing() = router.navigateToCreateListing()
+    override fun navigateToCreateListing(category: ListingCategory?) = router.navigateToCreateListing(category)
     override fun navigateBack() = router.navigateBack()
     override fun navigateToChat(jid: Jid) {
         router.navigateToChat(jid)
@@ -350,6 +351,8 @@ class AppShellComponent(
                             listingId = listingId,
                             listingRepository = appContainer.listingRepository,
                             sessionManager = appContainer.sessionManager,
+                            interactionRepository = appContainer.interactionRepository,
+                            messageService = appContainer.messageService,
                             navigator = router
                         )
                     },
@@ -397,6 +400,8 @@ class AppShellComponent(
                             listingId = listingId,
                             listingRepository = appContainer.listingRepository,
                             sessionManager = appContainer.sessionManager,
+                            interactionRepository = appContainer.interactionRepository,
+                            messageService = appContainer.messageService,
                             navigator = router
                         )
                     },
@@ -428,6 +433,8 @@ class AppShellComponent(
                     listingId = listingId,
                     listingRepository = appContainer.listingRepository,
                     sessionManager = appContainer.sessionManager,
+                    interactionRepository = appContainer.interactionRepository,
+                    messageService = appContainer.messageService,
                     navigator = router
                 )
             },

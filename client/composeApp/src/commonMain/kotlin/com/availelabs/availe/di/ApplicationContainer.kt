@@ -34,6 +34,8 @@ private class ApplicationContainer(
         get() = dataContainer.messagingRepository
     override val userRepository: IUserRepository
         get() = dataContainer.userRepository
+    override val interactionRepository: IInteractionRepository
+        get() = dataContainer.interactionRepository
     override val messageService: IMessageService
         get() = dataContainer.messageService
 }

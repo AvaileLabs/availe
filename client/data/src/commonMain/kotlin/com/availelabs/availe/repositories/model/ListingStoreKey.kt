@@ -1,5 +1,6 @@
 package com.availelabs.availe.repositories.model
 
+import com.availelabs.availe.domain.model.EventFeedFilter
 import com.availelabs.availe.domain.model.ListingCategoryFilter
 import com.availelabs.availe.domain.model.UserId
 import kotlinx.serialization.Serializable
@@ -14,6 +15,7 @@ internal data class ListingStoreKey(
     override val size: Int,
     val publisherId: UserId? = null,
     val filter: ListingCategoryFilter = ListingCategoryFilter.All,
+    val eventFeedFilter: EventFeedFilter = EventFeedFilter.None,
     override val sort: StoreKey.Sort? = null,
     override val filters: List<StoreKey.Filter<*>>? = null
 ) : StoreKey.Collection.Page {

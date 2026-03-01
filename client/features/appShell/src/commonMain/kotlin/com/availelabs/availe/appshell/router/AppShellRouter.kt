@@ -9,6 +9,7 @@ import com.availelabs.availe.appshell.model.AppShellConfiguration
 import com.availelabs.availe.chat.root.IChatNavigator
 import com.availelabs.availe.core.platform.IInAppBrowserLauncher
 import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.home.IHomeNavigator
@@ -36,7 +37,7 @@ expect class AppShellRouter(
     ILoginNavigator {
 
     override fun navigateToListingDetails(listingId: ListingId)
-    override fun navigateToCreateListing()
+    override fun navigateToCreateListing(category: ListingCategory?)
     override fun navigateBack()
     override fun navigateToChat(jid: Jid)
     override fun navigateToProfile(userId: UserId)

@@ -19,14 +19,16 @@ interface IListingRepository {
         size: Int,
         forceRefresh: Boolean,
         publisherId: UserId? = null,
-        filter: ListingCategoryFilter = ListingCategoryFilter.All
+        filter: ListingCategoryFilter = ListingCategoryFilter.All,
+        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
     ): Flow<DataStream<List<Listing>>>
 
     suspend fun prefetchListings(
         page: Int,
         size: Int,
         publisherId: UserId? = null,
-        filter: ListingCategoryFilter = ListingCategoryFilter.All
+        filter: ListingCategoryFilter = ListingCategoryFilter.All,
+        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
     )
 
     suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>>

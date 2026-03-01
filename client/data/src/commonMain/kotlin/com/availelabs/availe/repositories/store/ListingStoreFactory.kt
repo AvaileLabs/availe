@@ -20,7 +20,8 @@ internal class ListingStoreFactory(
                     page = key.page,
                     size = key.size,
                     publisherId = key.publisherId,
-                    filter = key.filter
+                    filter = key.filter,
+                    eventFeedFilter = key.eventFeedFilter
                 )
             },
             sourceOfTruth = SourceOfTruth.Companion.of(
@@ -32,12 +33,13 @@ internal class ListingStoreFactory(
                         limit = limit,
                         offset = offset,
                         publisherId = key.publisherId,
-                        filter = key.filter
+                        filter = key.filter,
+                        eventFeedFilter = key.eventFeedFilter
                     )
                 },
                 writer = { key, listings ->
                     if (key.page == 0) {
-                        localDataSource.deleteListings(key.publisherId, key.filter)
+                        localDataSource.deleteListings(key.publisherId, key.filter, key.eventFeedFilter)
                     }
                     listings.forEach { listing ->
                         localDataSource.upsertListing(listing)

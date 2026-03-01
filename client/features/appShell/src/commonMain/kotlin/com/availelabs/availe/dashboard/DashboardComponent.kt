@@ -256,7 +256,7 @@ class DashboardComponent(
         if (pages.value.items.none { it.configuration is DashboardConfiguration.Profile }) {
             updatePages(
                 listOf(
-                    DashboardConfiguration.Home(ListingFeedType.Latest),
+                    DashboardConfiguration.Home(ListingFeedType.Upcoming),
                     DashboardConfiguration.Chat(),
                     DashboardConfiguration.Profile(userId)
                 )
@@ -318,7 +318,7 @@ class DashboardComponent(
     }
 
     private fun calculateInitialPages(intent: AppShellIntent?): Pages<DashboardConfiguration> {
-        val homeFeedType = if (intent is AppShellIntent.Home) intent.feedType else ListingFeedType.Latest
+        val homeFeedType = if (intent is AppShellIntent.Home) intent.feedType else ListingFeedType.Upcoming
 
         return Pages(
             items = listOf(

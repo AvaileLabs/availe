@@ -12,33 +12,33 @@ actual object AppShellNavigationStrategy {
             is AppShellIntent.Home -> listOf(AppShellConfiguration.Home(intent.feedType))
 
             is AppShellIntent.ViewingListing -> listOf(
-                AppShellConfiguration.Home(ListingFeedType.Latest),
+                AppShellConfiguration.Home(ListingFeedType.Upcoming),
                 AppShellConfiguration.ListingDetails(intent.listingId)
             )
 
             is AppShellIntent.ViewingListingWithChat -> listOf(
-                AppShellConfiguration.Home(ListingFeedType.Latest),
+                AppShellConfiguration.Home(ListingFeedType.Upcoming),
                 AppShellConfiguration.ListingDetails(intent.listingId),
                 AppShellConfiguration.Chat(intent.recipientJid)
             )
 
             is AppShellIntent.Chatting -> listOf(
-                AppShellConfiguration.Home(ListingFeedType.Latest),
+                AppShellConfiguration.Home(ListingFeedType.Upcoming),
                 AppShellConfiguration.Chat(intent.recipientJid)
             )
 
             is AppShellIntent.ListingEditor -> listOf(
-                AppShellConfiguration.Home(ListingFeedType.Latest),
+                AppShellConfiguration.Home(ListingFeedType.Upcoming),
                 AppShellConfiguration.ListingEditor(intent.listingId)
             )
 
             is AppShellIntent.ViewingProfile -> listOf(
-                AppShellConfiguration.Home(ListingFeedType.Latest),
+                AppShellConfiguration.Home(ListingFeedType.Upcoming),
                 AppShellConfiguration.Profile(intent.userId)
             )
 
             AppShellIntent.Settings -> listOf(
-                AppShellConfiguration.Home(ListingFeedType.Latest),
+                AppShellConfiguration.Home(ListingFeedType.Upcoming),
                 AppShellConfiguration.Settings
             )
         }
@@ -61,6 +61,7 @@ actual object AppShellNavigationStrategy {
                 com.availelabs.availe.listingeditor.ListingEditorComponent(
                     componentContext = context.componentContext,
                     listingId = configuration.listingId,
+                    initialCategory = configuration.initialCategory,
                     listingRepository = context.appContainer.listingRepository,
                     sessionManager = context.appContainer.sessionManager,
                     messageService = context.appContainer.messageService,

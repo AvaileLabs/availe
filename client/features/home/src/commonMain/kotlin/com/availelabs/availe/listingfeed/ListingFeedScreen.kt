@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.availelabs.availe.listingfeed
 
 import androidx.compose.animation.AnimatedVisibility
@@ -62,7 +60,6 @@ fun ListingFeedScreen(
     val refreshState = remember { RefreshStateHolder() }
     val windowSize = rememberWindowSize()
 
-    // Apply Touch Slop Hack for iOS to improve horizontal swipe gesture detection
     WithTouchSlop(touchSlop = 8.dp) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -148,6 +145,7 @@ private fun WithTouchSlop(
     }
 }
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 private fun DesktopGridLayout(
     state: ListingFeedStore.State,
@@ -222,6 +220,7 @@ private fun DesktopGridLayout(
     }
 }
 
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 private fun MobileListLayout(
     state: ListingFeedStore.State,
@@ -307,6 +306,8 @@ private fun ListingItem(
             imageUrl = listingUiModel.imageUrl,
             category = listingUiModel.category,
             description = listingUiModel.description,
+            startTime = listingUiModel.startTime,
+            isRsvped = listingUiModel.isRsvped,
             onClick = { onListingClick(listingUiModel.id) }
         )
     }

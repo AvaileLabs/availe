@@ -141,7 +141,8 @@ internal object ClientDatabaseFactory {
                 timestampAdapter = instantLongColumnAdapter
             ),
             listing_event_detailsAdapter = Listing_event_details.Adapter(
-                listing_idAdapter = listingIdColumnAdapter
+                listing_idAdapter = listingIdColumnAdapter,
+                start_timeAdapter = instantLongColumnAdapter
             ),
             listing_item_detailsAdapter = Listing_item_details.Adapter(
                 listing_idAdapter = listingIdColumnAdapter

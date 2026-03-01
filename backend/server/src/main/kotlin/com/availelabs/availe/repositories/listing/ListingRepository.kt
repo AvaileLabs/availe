@@ -22,6 +22,7 @@ import org.jooq.DSLContext
 import org.jooq.Field
 import org.jooq.impl.DSL
 import java.math.BigDecimal
+import java.time.OffsetDateTime
 import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.toJavaUuid
@@ -36,7 +37,8 @@ interface IListingRepository {
         pageSize: Int,
         viewingUserId: UserId?,
         publisherId: UserId? = null,
-        filter: ListingCategoryFilter = ListingCategoryFilter.All
+        filter: ListingCategoryFilter = ListingCategoryFilter.All,
+        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
     ): List<Listing>
 
     fun updateListing(
@@ -62,6 +64,7 @@ internal class ListingRepository(
             USERS.DISPLAY_NAME,
             USERS.AVATAR_URL,
             USERS.JID,
+            LISTING_EVENT_DETAILS.START_TIME,
             if (viewingUserId != null) {
                 DSL.field(
                     DSL.exists(
@@ -74,6 +77,18 @@ internal class ListingRepository(
                 ).`as`("is_favorited")
             } else {
                 DSL.inline(false).`as`("is_favorited")
+            },
+            if (viewingUserId != null) {
+                DSL.field(
+                    DSL.exists(
+                        DSL.selectOne()
+                            .from(EVENT_RSVPS)
+                            .where(EVENT_RSVPS.LISTING_ID.eq(LISTINGS.ID))
+                            .and(EVENT_RSVPS.USER_ID.eq(viewingUserId.value.toJavaUuid()))
+                    )
+                ).`as`("is_rsvped")
+            } else {
+                DSL.inline(false).`as`("is_rsvped")
             }
         )
         .from(LISTINGS)
@@ -137,7 +152,8 @@ internal class ListingRepository(
         pageSize: Int,
         viewingUserId: UserId?,
         publisherId: UserId?,
-        filter: ListingCategoryFilter
+        filter: ListingCategoryFilter,
+        eventFeedFilter: EventFeedFilter
     ): List<Listing> {
         val offset = pageNumber * pageSize
         var condition = DSL.noCondition()
@@ -157,9 +173,43 @@ internal class ListingRepository(
             condition = condition.and(LISTINGS.LISTING_TYPE.`in`(databaseCategories))
         }
 
+        if (eventFeedFilter != EventFeedFilter.None) {
+            condition = condition.and(LISTINGS.LISTING_TYPE.eq(ListingTypeEnum.event))
+
+            when (eventFeedFilter) {
+                EventFeedFilter.Upcoming -> {
+                    condition = condition.and(LISTING_EVENT_DETAILS.START_TIME.ge(OffsetDateTime.now()))
+                }
+                EventFeedFilter.Past -> {
+                    condition = condition.and(LISTING_EVENT_DETAILS.START_TIME.lt(OffsetDateTime.now()))
+                }
+                EventFeedFilter.Going -> {
+                    if (viewingUserId != null) {
+                        condition = condition.and(
+                            DSL.exists(
+                                DSL.selectOne()
+                                    .from(EVENT_RSVPS)
+                                    .where(EVENT_RSVPS.LISTING_ID.eq(LISTINGS.ID))
+                                    .and(EVENT_RSVPS.USER_ID.eq(viewingUserId.value.toJavaUuid()))
+                            )
+                        )
+                    } else {
+                        condition = condition.and(DSL.falseCondition())
+                    }
+                }
+                EventFeedFilter.None -> {}
+            }
+        }
+
+        val orderByField = when (eventFeedFilter) {
+            EventFeedFilter.Upcoming, EventFeedFilter.Going -> LISTING_EVENT_DETAILS.START_TIME.asc()
+            EventFeedFilter.Past -> LISTING_EVENT_DETAILS.START_TIME.desc()
+            EventFeedFilter.None -> LISTINGS.CREATED_AT.desc()
+        }
+
         return baseQuery(viewingUserId)
             .where(condition)
-            .orderBy(LISTINGS.CREATED_AT.desc())
+            .orderBy(orderByField)
             .limit(pageSize)
             .offset(offset)
             .fetch()

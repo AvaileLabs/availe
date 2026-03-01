@@ -24,7 +24,8 @@ fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 id = this.id,
                 createdAt = createdAt,
                 publisher = publisherDomain,
-                interactionState = interactionStateDomain
+                interactionState = interactionStateDomain,
+                startTime = this.startTime
             )
         }
 
@@ -84,6 +85,7 @@ fun Listing.toDataDto(): TypeV1ListingDtoData {
             location = this.location,
             publisher = publisherDto,
             interactionState = interactionDto,
+            startTime = this.startTime,
             schemaVersion = 1
         )
 
@@ -120,7 +122,8 @@ fun NewListing.toCreateRequestDto(): TypeV1ListingDtoCreateRequest {
             description = this.description,
             price = this.price,
             imageLinks = this.imageLinks,
-            location = this.location
+            location = this.location,
+            startTime = this.startTime
         )
 
         is NewListing.Item -> ListingItemDtoSchema.V1.CreateRequest(
@@ -151,7 +154,8 @@ fun TypeV1ListingDtoCreateRequest.toDomain(publisher: PublicProfile): NewListing
                 imageLinks = imageLinks,
                 location = location
             ),
-            publisher = publisher
+            publisher = publisher,
+            startTime = startTime
         )
 
         is ListingItemDtoSchema.V1.CreateRequest -> NewListing.Item(
@@ -178,8 +182,6 @@ fun TypeV1ListingDtoCreateRequest.toDomain(publisher: PublicProfile): NewListing
     }
 }
 
-// Helpers
-
 private fun PublicProfileDtoSchema.V1.Data.toDomain(): PublicProfile {
     return PublicProfile(
         id = this.id,
@@ -201,13 +203,15 @@ private fun PublicProfile.toDto(): PublicProfileDtoSchema.V1.Data {
 
 private fun InteractionStateDtoSchema.V1.Data.toDomain(): InteractionState {
     return InteractionState(
-        isFavorited = this.isFavorited
+        isFavorited = this.isFavorited,
+        isRsvped = this.isRsvped
     )
 }
 
 private fun InteractionState.toDto(): InteractionStateDtoSchema.V1.Data {
     return InteractionStateDtoSchema.V1.Data(
         isFavorited = this.isFavorited,
+        isRsvped = this.isRsvped,
         schemaVersion = 1
     )
 }

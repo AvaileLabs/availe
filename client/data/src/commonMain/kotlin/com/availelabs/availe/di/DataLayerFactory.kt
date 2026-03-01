@@ -20,6 +20,7 @@ import com.availelabs.availe.services.MessageService
 import com.availelabs.availe.sources.local.ListingLocalDataSource
 import com.availelabs.availe.sources.local.LocalDataCleaner
 import com.availelabs.availe.sources.remote.AuthenticationRemoteDataSource
+import com.availelabs.availe.sources.remote.InteractionRemoteDataSource
 import com.availelabs.availe.sources.remote.ListingRemoteDataSource
 import com.availelabs.availe.sources.remote.MessagingRemoteDataSource
 import com.availelabs.availe.sources.remote.UserRemoteDataSource
@@ -181,6 +182,10 @@ object DataLayerFactory {
                 json = json
             )
 
+            val interactionRemoteDataSource = InteractionRemoteDataSource(
+                httpClient = httpClient
+            )
+
             val xmppSession = XmppSession(httpClient)
 
             val messagingRemoteDataSource = MessagingRemoteDataSource(
@@ -212,6 +217,12 @@ object DataLayerFactory {
                 safeNetworkCaller = safeNetworkCaller
             )
 
+            val interactionRepository = InteractionRepository(
+                remoteDataSource = interactionRemoteDataSource,
+                localDataSource = listingLocalDataSource,
+                safeNetworkCaller = safeNetworkCaller
+            )
+
             val messageService = MessageService(applicationScope)
 
             DataContainer(
@@ -220,6 +231,7 @@ object DataLayerFactory {
                 listingRepository = listingRepository,
                 messagingRepository = messagingRepository,
                 userRepository = userRepository,
+                interactionRepository = interactionRepository,
                 messageService = messageService,
                 applicationScope = applicationScope
             )
@@ -232,6 +244,7 @@ object DataLayerFactory {
         override val listingRepository: ListingRepository,
         override val messagingRepository: MessagingRepository,
         override val userRepository: UserRepository,
+        override val interactionRepository: InteractionRepository,
         override val messageService: MessageService,
         private val applicationScope: CoroutineScope
     ) : IDataContainer, InstanceKeeper.Instance {

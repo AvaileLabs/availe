@@ -26,6 +26,8 @@ import coil3.compose.AsyncImage
 import com.availelabs.availe.domain.extensions.canBeModifiedBy
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.extensions.toDisplayString
+import com.availelabs.availe.ui.components.TimeFormat
+import com.availelabs.availe.ui.components.formatEventTime
 import com.availelabs.availe.ui.model.asString
 import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
@@ -79,7 +81,8 @@ fun ListingDetailsScreen(
                     currentUserId = state.currentUserId,
                     onContactSeller = { sellerEmail -> listingDetailsComponent.onContactSellerClicked(sellerEmail) },
                     onProfileClicked = { userId -> listingDetailsComponent.onProfileClicked(userId) },
-                    onEditClicked = { listingDetailsComponent.onEditListingClicked() }
+                    onEditClicked = { listingDetailsComponent.onEditListingClicked() },
+                    onToggleRsvpClicked = { listingDetailsComponent.onToggleRsvpClicked() }
                 )
             }
         }
@@ -92,7 +95,8 @@ private fun ListingDetailsContent(
     currentUserId: UserId?,
     onContactSeller: (Email) -> Unit,
     onProfileClicked: (UserId) -> Unit,
-    onEditClicked: () -> Unit
+    onEditClicked: () -> Unit,
+    onToggleRsvpClicked: () -> Unit
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isDesktop = maxWidth > 800.dp
@@ -102,7 +106,8 @@ private fun ListingDetailsContent(
                 currentUserId = currentUserId,
                 onContactSeller = onContactSeller,
                 onProfileClicked = onProfileClicked,
-                onEditClicked = onEditClicked
+                onEditClicked = onEditClicked,
+                onToggleRsvpClicked = onToggleRsvpClicked
             )
         } else {
             MobileListingLayout(
@@ -110,7 +115,8 @@ private fun ListingDetailsContent(
                 currentUserId = currentUserId,
                 onContactSeller = onContactSeller,
                 onProfileClicked = onProfileClicked,
-                onEditClicked = onEditClicked
+                onEditClicked = onEditClicked,
+                onToggleRsvpClicked = onToggleRsvpClicked
             )
         }
     }
@@ -122,7 +128,8 @@ private fun MobileListingLayout(
     currentUserId: UserId?,
     onContactSeller: (Email) -> Unit,
     onProfileClicked: (UserId) -> Unit,
-    onEditClicked: () -> Unit
+    onEditClicked: () -> Unit,
+    onToggleRsvpClicked: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -146,26 +153,6 @@ private fun MobileListingLayout(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CategoryChip(listing.category)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Lucide.MapPin,
-                            contentDescription = stringResource(Res.string.accessibility_location),
-                            modifier = Modifier.size(16.dp),
-                            tint = Theme[colors][onBackground].copy(alpha = 0.6f)
-                        )
-                        SelectionContainer {
-                            Text(
-                                text = listing.mockLocation,
-                                style = Theme[textStyles][body].copy(
-                                    fontSize = Theme[textStyles][body].fontSize * 0.9,
-                                    color = Theme[colors][onBackground].copy(alpha = 0.6f)
-                                )
-                            )
-                        }
-                    }
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -186,6 +173,22 @@ private fun MobileListingLayout(
                 }
 
                 Spacer(Modifier.height(24.dp))
+
+                if (listing is Listing.Event) {
+                    Section(stringResource(Res.string.listing_when_and_where)) {
+                        Text(
+                            text = formatEventTime(listing.startTime, TimeFormat.Standard),
+                            style = Theme[textStyles][body].copy(fontWeight = FontWeight.Medium)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = listing.mockLocation,
+                            style = Theme[textStyles][body].copy(color = Theme[colors][onBackground].copy(alpha = 0.8f))
+                        )
+                    }
+                    Spacer(Modifier.height(24.dp))
+                }
+
                 SellerInfoCard(
                     listing = listing,
                     modifier = Modifier.fillMaxWidth(),
@@ -237,11 +240,26 @@ private fun MobileListingLayout(
                         Text("Edit Listing")
                     }
                 } else {
-                    PrimaryButton(onClick = { onContactSeller(Email(listing.publisher.jid.value)) }) {
-                        Text(
-                            if (listing.category == ListingCategory.Event) stringResource(Res.string.listing_book_ticket)
-                            else stringResource(Res.string.listing_contact_seller)
-                        )
+                    if (listing.interactionState.isRsvped) {
+                        OutlinedButton(
+                            onClick = onToggleRsvpClicked,
+                            borderColor = Color(0xFF10B981),
+                            contentColor = Color(0xFF10B981)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Lucide.CircleCheck, null, Modifier.size(18.dp), tint = Color(0xFF10B981))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(Res.string.status_going),
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF10B981)
+                                )
+                            }
+                        }
+                    } else {
+                        PrimaryButton(onClick = onToggleRsvpClicked) {
+                            Text(stringResource(Res.string.action_rsvp))
+                        }
                     }
                 }
             }
@@ -255,7 +273,8 @@ private fun DesktopListingLayout(
     currentUserId: UserId?,
     onContactSeller: (Email) -> Unit,
     onProfileClicked: (UserId) -> Unit,
-    onEditClicked: () -> Unit
+    onEditClicked: () -> Unit,
+    onToggleRsvpClicked: () -> Unit
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -278,26 +297,6 @@ private fun DesktopListingLayout(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CategoryChip(listing.category)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Lucide.MapPin,
-                            contentDescription = stringResource(Res.string.accessibility_location),
-                            modifier = Modifier.size(18.dp),
-                            tint = Theme[colors][onBackground].copy(alpha = 0.6f)
-                        )
-                        SelectionContainer {
-                            Text(
-                                text = listing.mockLocation,
-                                style = Theme[textStyles][body].copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = Theme[colors][onBackground].copy(alpha = 0.6f)
-                                )
-                            )
-                        }
-                    }
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -313,6 +312,21 @@ private fun DesktopListingLayout(
                 }
 
                 Spacer(Modifier.height(24.dp))
+
+                if (listing is Listing.Event) {
+                    Section(stringResource(Res.string.listing_when_and_where)) {
+                        Text(
+                            text = formatEventTime(listing.startTime, TimeFormat.Standard),
+                            style = Theme[textStyles][body].copy(fontWeight = FontWeight.Medium)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = listing.mockLocation,
+                            style = Theme[textStyles][body].copy(color = Theme[colors][onBackground].copy(alpha = 0.8f))
+                        )
+                    }
+                    Spacer(Modifier.height(24.dp))
+                }
 
                 Box(
                     modifier = Modifier
@@ -411,14 +425,30 @@ private fun DesktopListingLayout(
                                 Text("Edit Listing")
                             }
                         } else {
-                            PrimaryButton(
-                                onClick = { onContactSeller(Email(listing.publisher.jid.value)) },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    if (listing.category == ListingCategory.Event) stringResource(Res.string.listing_book_now)
-                                    else stringResource(Res.string.listing_contact_seller)
-                                )
+                            if (listing.interactionState.isRsvped) {
+                                OutlinedButton(
+                                    onClick = onToggleRsvpClicked,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    borderColor = Color(0xFF10B981),
+                                    contentColor = Color(0xFF10B981)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Lucide.CircleCheck, null, Modifier.size(18.dp), tint = Color(0xFF10B981))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = stringResource(Res.string.status_going),
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF10B981)
+                                        )
+                                    }
+                                }
+                            } else {
+                                PrimaryButton(
+                                    onClick = onToggleRsvpClicked,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(stringResource(Res.string.action_rsvp))
+                                }
                             }
                         }
 

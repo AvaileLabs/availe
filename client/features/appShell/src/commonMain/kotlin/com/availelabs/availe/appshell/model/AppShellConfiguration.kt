@@ -1,6 +1,7 @@
 package com.availelabs.availe.appshell.model
 
 import com.availelabs.availe.domain.model.Jid
+import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.model.ListingFeedType
@@ -37,7 +38,7 @@ sealed interface AppShellConfiguration {
     }
 
     @Serializable
-    data class ListingEditor(val listingId: ListingId?) : AppShellConfiguration {
+    data class ListingEditor(val listingId: ListingId?, val initialCategory: ListingCategory? = null) : AppShellConfiguration {
         override val canonicalParent: AppShellConfiguration = Dashboard
 
         override fun toUrlPath(): String =

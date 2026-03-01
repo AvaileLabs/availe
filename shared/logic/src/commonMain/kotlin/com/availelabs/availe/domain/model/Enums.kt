@@ -19,7 +19,7 @@ enum class ListingCategory {
 
 @Serializable
 enum class InteractionType {
-    Favorite
+    Favorite, Rsvp
 }
 
 @Serializable

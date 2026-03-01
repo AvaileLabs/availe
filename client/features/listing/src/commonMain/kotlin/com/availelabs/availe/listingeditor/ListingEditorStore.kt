@@ -7,6 +7,7 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.*
 import com.availelabs.availe.domain.model.Listing
+import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.PublicProfile
 import com.availelabs.availe.domain.model.UserDisplayName
@@ -33,7 +34,8 @@ internal class ListingEditorStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionRepository,
-    private val listingId: ListingId?
+    private val listingId: ListingId?,
+    private val initialCategory: ListingCategory? = null
 ) {
 
     fun create(): IListingEditorStore =
@@ -49,6 +51,7 @@ internal class ListingEditorStoreFactory(
     private sealed interface Action {
         data class PopulateListing(val listing: Listing) : Action
         data object RestoreDraft : Action
+        data class InitializeCategory(val category: ListingCategory) : Action
     }
 
     private inner class ListingEditorBootstrapper : CoroutineBootstrapper<Action>() {
@@ -64,7 +67,7 @@ internal class ListingEditorStoreFactory(
                         }
 
                         is RepositoryOperationResult.Failure -> {
-                            // Handle load failure if necessary, or just leave state empty
+
                         }
                     }
                 }
@@ -73,6 +76,8 @@ internal class ListingEditorStoreFactory(
                     val draft = listingRepository.getDraft()
                     if (draft != null) {
                         dispatch(Action.RestoreDraft)
+                    } else if (initialCategory != null) {
+                        dispatch(Action.InitializeCategory(initialCategory))
                     }
                 }
             }
@@ -97,6 +102,10 @@ internal class ListingEditorStoreFactory(
                         }
                     }
                 }
+
+                is Action.InitializeCategory -> {
+                    dispatch(ListingEditorIntent.ChangeType(action.category))
+                }
             }
         }
 
@@ -117,9 +126,8 @@ internal class ListingEditorStoreFactory(
         }
 
         private fun submitListing() {
-            dispatch(ListingEditorIntent.ConfirmPublish) // Sets isSubmitting = true
+            dispatch(ListingEditorIntent.ConfirmPublish)
 
-            // We get the state *after* dispatching to ensure isSubmitting is true and any validation errors are cleared/checked
             val currentState = state()
 
             if (currentState.error != null) {

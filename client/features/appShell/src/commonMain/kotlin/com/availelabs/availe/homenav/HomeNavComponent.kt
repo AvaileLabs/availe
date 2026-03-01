@@ -53,7 +53,7 @@ class HomeNavComponent(
         homeFactory,
         listingDetailsFactory,
         profileFactory,
-        listOf(HomeNavConfiguration.HomeFeed(ListingFeedType.Latest))
+        listOf(HomeNavConfiguration.HomeFeed(ListingFeedType.Upcoming))
     )
 
     private val navigation = StackNavigation<HomeNavConfiguration>()

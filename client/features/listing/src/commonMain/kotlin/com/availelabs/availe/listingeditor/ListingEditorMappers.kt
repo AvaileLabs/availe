@@ -10,6 +10,7 @@ val ListingEditorPageConfig.titleRes: StringResource
     get() = when (this) {
         ListingEditorPageConfig.Type -> Res.string.listing_editor_step_type
         ListingEditorPageConfig.Basics -> Res.string.listing_editor_step_basics
+        ListingEditorPageConfig.Schedule -> Res.string.listing_editor_step_schedule
         ListingEditorPageConfig.Pricing -> Res.string.listing_editor_step_pricing
         ListingEditorPageConfig.Media -> Res.string.listing_editor_step_media
         ListingEditorPageConfig.Review -> Res.string.listing_editor_step_review

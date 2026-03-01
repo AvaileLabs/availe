@@ -10,6 +10,7 @@ interface IApplicationContainer {
     val listingRepository: IListingRepository
     val messagingRepository: IMessagingRepository
     val userRepository: IUserRepository
+    val interactionRepository: IInteractionRepository
     val messageService: IMessageService
     val inAppBrowserLauncher: IInAppBrowserLauncher
 }

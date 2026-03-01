@@ -34,7 +34,7 @@ private class FakeListingRepository(private val willInsert: Boolean) : IListingR
 
         val fakeId = ListingId(Uuid.random())
         val fakeCreatedAt = ListingCreationTime(Instant.now().toKotlinInstant())
-        val interactionState = InteractionState(isFavorited = false)
+        val interactionState = InteractionState(isFavorited = false, isRsvped = false)
 
         val fakeDomainListing: Listing = when (newListing) {
             is NewListing.Event -> Listing.Event(
@@ -42,7 +42,8 @@ private class FakeListingRepository(private val willInsert: Boolean) : IListingR
                 fakeId,
                 fakeCreatedAt,
                 newListing.publisher,
-                interactionState
+                interactionState,
+                newListing.startTime
             )
 
             is NewListing.Item -> Listing.Item(
@@ -83,7 +84,8 @@ private class FakeListingRepository(private val willInsert: Boolean) : IListingR
         pageSize: Int,
         viewingUserId: UserId?,
         publisherId: UserId?,
-        filter: ListingCategoryFilter
+        filter: ListingCategoryFilter,
+        eventFeedFilter: EventFeedFilter
     ): List<Listing> {
         return listings.values.toList()
     }

@@ -15,6 +15,7 @@ import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.listingfeed.IListingFeedComponent
 import com.availelabs.availe.listingfeed.ListingFeedComponent
 import com.availelabs.availe.model.ListingFeedType
+import com.availelabs.availe.model.toEventFeedFilter
 import com.availelabs.availe.model.toListingCategoryFilter
 import com.availelabs.availe.navigation.FeedTypeMapper
 import com.availelabs.availe.repositories.IListingRepository
@@ -38,7 +39,7 @@ class HomeComponent(
     private val sessionManager: ISessionRepository,
     private val messageService: IMessageService,
     private val navigator: IHomeNavigator,
-    private val initialFeedType: ListingFeedType = ListingFeedType.Latest
+    private val initialFeedType: ListingFeedType = ListingFeedType.Upcoming
 ) : IHomeComponent, ComponentContext by componentContext {
 
     private val navigation = PagesNavigation<HomeConfiguration>()
@@ -49,10 +50,9 @@ class HomeComponent(
             serializer = HomeConfiguration.serializer(),
             initialPages = {
                 val feedTypes = listOf(
-                    ListingFeedType.Latest,
-                    ListingFeedType.Category(ListingCategory.Item),
-                    ListingFeedType.Category(ListingCategory.Event),
-                    ListingFeedType.Category(ListingCategory.Service)
+                    ListingFeedType.Upcoming,
+                    ListingFeedType.Going,
+                    ListingFeedType.Past
                 )
 
                 val initialIndex = feedTypes.indexOf(initialFeedType).coerceAtLeast(0)
@@ -93,7 +93,7 @@ class HomeComponent(
                         AppBarAction(
                             icon = ActionIcon.ADD,
                             label = UiText.ResourceString(Res.string.accessibility_action_add),
-                            onClick = navigator::navigateToCreateListing
+                            onClick = { navigator.navigateToCreateListing(ListingCategory.Event) }
                         )
                     )
                 } else {
@@ -105,10 +105,9 @@ class HomeComponent(
 
     private fun runStructuredPrefetching(scope: CoroutineScope) {
         val allFeedTypes = listOf(
-            ListingFeedType.Latest,
-            ListingFeedType.Category(ListingCategory.Item),
-            ListingFeedType.Category(ListingCategory.Event),
-            ListingFeedType.Category(ListingCategory.Service)
+            ListingFeedType.Upcoming,
+            ListingFeedType.Going,
+            ListingFeedType.Past
         )
 
         scope.launch(Dispatchers.Default) {
@@ -123,15 +122,17 @@ class HomeComponent(
 
                 try {
                     val filter = feedType.toListingCategoryFilter()
+                    val eventFeedFilter = feedType.toEventFeedFilter()
                     if (listingRepository.isListingCacheStale(filter)) {
                         listingRepository.prefetchListings(
                             page = 0,
                             size = 20,
-                            filter = filter
+                            filter = filter,
+                            eventFeedFilter = eventFeedFilter
                         )
                     }
                 } catch (_: Exception) {
-                    // Ignore prefetch errors to not disrupt the main flow
+
                 }
             }
         }

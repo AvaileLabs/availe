@@ -17,6 +17,7 @@ interface InteractionStateDto {
     )
     interface V1 : InteractionStateDto {
         val isFavorited: Boolean
+        val isRsvped: Boolean
     }
 }
 

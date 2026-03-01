@@ -9,11 +9,14 @@ import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
+import com.availelabs.availe.domain.model.InteractionType
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.listingdetails.ListingDetailsStore.*
+import com.availelabs.availe.model.error.AppError
+import com.availelabs.availe.repositories.IInteractionRepository
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.types.RepositoryOperationResult
@@ -26,6 +29,7 @@ interface ListingDetailsStore : Store<Intent, State, Label> {
 
     sealed interface Intent {
         data object RetryRequested : Intent
+        data object ToggleRsvp : Intent
     }
 
     data class State(
@@ -35,13 +39,16 @@ interface ListingDetailsStore : Store<Intent, State, Label> {
         val currentUserId: UserId? = null
     )
 
-    sealed interface Label
+    sealed interface Label {
+        data class DisplayError(val error: AppError) : Label
+    }
 }
 
 internal class ListingDetailsStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
     private val sessionManager: ISessionRepository,
+    private val interactionRepository: IInteractionRepository,
     private val listingId: ListingId
 ) {
 
@@ -64,6 +71,7 @@ internal class ListingDetailsStoreFactory(
         data class ListingLoaded(val listing: Listing) : Message
         data class SetError(val message: UiText?) : Message
         data class SetCurrentUser(val userId: UserId?) : Message
+        data class UpdateRsvpState(val isRsvped: Boolean) : Message
     }
 
     private class ListingDetailsBootstrapper(
@@ -86,6 +94,7 @@ internal class ListingDetailsStoreFactory(
         override fun executeIntent(intent: Intent) {
             when (intent) {
                 Intent.RetryRequested -> fetchListing(listingId)
+                Intent.ToggleRsvp -> handleToggleRsvp()
             }
         }
 
@@ -123,6 +132,35 @@ internal class ListingDetailsStoreFactory(
                 dispatch(Message.SetCurrentUser(profile?.id))
             }
         }
+
+        private fun handleToggleRsvp() {
+            val currentState = state()
+            val currentListing = currentState.listing ?: return
+            val currentRsvpState = currentListing.interactionState.isRsvped
+            val newRsvpState = !currentRsvpState
+
+            dispatch(Message.UpdateRsvpState(newRsvpState))
+
+            val userId = currentState.currentUserId
+            if (userId == null) {
+                dispatch(Message.UpdateRsvpState(currentRsvpState))
+                publish(Label.DisplayError(AppError.AuthenticationError.SessionExpired))
+                return
+            }
+
+            scope.launch {
+                val result = if (newRsvpState) {
+                    interactionRepository.addInteraction(userId, currentListing.id, InteractionType.Rsvp)
+                } else {
+                    interactionRepository.removeInteraction(userId, currentListing.id, InteractionType.Rsvp)
+                }
+
+                if (result is RepositoryOperationResult.Failure) {
+                    dispatch(Message.UpdateRsvpState(currentRsvpState))
+                    publish(Label.DisplayError(result.error))
+                }
+            }
+        }
     }
 
     private object ListingDetailsReducer : Reducer<State, Message> {
@@ -132,6 +170,20 @@ internal class ListingDetailsStoreFactory(
                 is Message.ListingLoaded -> copy(listing = msg.listing)
                 is Message.SetError -> copy(errorMessage = msg.message)
                 is Message.SetCurrentUser -> copy(currentUserId = msg.userId)
+                is Message.UpdateRsvpState -> {
+                    val currentListing = listing
+                    if (currentListing != null) {
+                        val updatedInteractionState = currentListing.interactionState.copy(isRsvped = msg.isRsvped)
+                        val updatedListing = when (currentListing) {
+                            is Listing.Item -> currentListing.copy(interactionState = updatedInteractionState)
+                            is Listing.Event -> currentListing.copy(interactionState = updatedInteractionState)
+                            is Listing.Service -> currentListing.copy(interactionState = updatedInteractionState)
+                        }
+                        copy(listing = updatedListing)
+                    } else {
+                        this
+                    }
+                }
             }
     }
 }
