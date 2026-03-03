@@ -175,17 +175,7 @@ private fun MobileListingLayout(
                 Spacer(Modifier.height(24.dp))
 
                 if (listing is Listing.Event) {
-                    Section(stringResource(Res.string.listing_when_and_where)) {
-                        Text(
-                            text = formatEventTime(listing.startTime, TimeFormat.Standard),
-                            style = Theme[textStyles][body].copy(fontWeight = FontWeight.Medium)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = listing.mockLocation,
-                            style = Theme[textStyles][body].copy(color = Theme[colors][onBackground].copy(alpha = 0.8f))
-                        )
-                    }
+                    ListingWhenAndWhereSection(listing)
                     Spacer(Modifier.height(24.dp))
                 }
 
@@ -197,12 +187,10 @@ private fun MobileListingLayout(
                 )
                 Spacer(Modifier.height(24.dp))
 
-                Section(stringResource(Res.string.listing_about)) {
-                    Text(
-                        text = listing.description?.value ?: stringResource(Res.string.listing_description_empty),
-                        style = Theme[textStyles][body].copy(color = Theme[colors][onBackground].copy(alpha = 0.8f))
-                    )
-                }
+                ListingAboutSection(
+                    description = listing.description,
+                    textStyle = Theme[textStyles][body].copy(color = Theme[colors][onBackground].copy(alpha = 0.8f))
+                )
             }
         }
 
@@ -221,10 +209,12 @@ private fun MobileListingLayout(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text(
-                        stringResource(Res.string.listing_price_total),
-                        style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.8)
-                    )
+                    SelectionContainer {
+                        Text(
+                            stringResource(Res.string.listing_price_total),
+                            style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.8)
+                        )
+                    }
                     SelectionContainer {
                         Text(
                             text = listing.price.toDisplayString(),
@@ -233,35 +223,12 @@ private fun MobileListingLayout(
                     }
                 }
 
-                val isOwner = currentUserId != null && listing.canBeModifiedBy(currentUserId)
-
-                if (isOwner) {
-                    PrimaryButton(onClick = onEditClicked) {
-                        Text("Edit Listing")
-                    }
-                } else {
-                    if (listing.interactionState.isRsvped) {
-                        OutlinedButton(
-                            onClick = onToggleRsvpClicked,
-                            borderColor = Color(0xFF10B981),
-                            contentColor = Color(0xFF10B981)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Lucide.CircleCheck, null, Modifier.size(18.dp), tint = Color(0xFF10B981))
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = stringResource(Res.string.status_going),
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF10B981)
-                                )
-                            }
-                        }
-                    } else {
-                        PrimaryButton(onClick = onToggleRsvpClicked) {
-                            Text(stringResource(Res.string.action_rsvp))
-                        }
-                    }
-                }
+                ListingActionButtons(
+                    listing = listing,
+                    currentUserId = currentUserId,
+                    onEditClicked = onEditClicked,
+                    onToggleRsvpClicked = onToggleRsvpClicked
+                )
             }
         }
     }
@@ -314,17 +281,7 @@ private fun DesktopListingLayout(
                 Spacer(Modifier.height(24.dp))
 
                 if (listing is Listing.Event) {
-                    Section(stringResource(Res.string.listing_when_and_where)) {
-                        Text(
-                            text = formatEventTime(listing.startTime, TimeFormat.Standard),
-                            style = Theme[textStyles][body].copy(fontWeight = FontWeight.Medium)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = listing.mockLocation,
-                            style = Theme[textStyles][body].copy(color = Theme[colors][onBackground].copy(alpha = 0.8f))
-                        )
-                    }
+                    ListingWhenAndWhereSection(listing)
                     Spacer(Modifier.height(24.dp))
                 }
 
@@ -343,15 +300,13 @@ private fun DesktopListingLayout(
 
                 Spacer(Modifier.height(32.dp))
 
-                Section(stringResource(Res.string.listing_about)) {
-                    Text(
-                        text = listing.description?.value ?: stringResource(Res.string.listing_description_empty),
-                        style = Theme[textStyles][body].copy(
-                            lineHeight = Theme[textStyles][body].fontSize * 1.6,
-                            color = Theme[colors][onBackground].copy(alpha = 0.9f)
-                        )
+                ListingAboutSection(
+                    description = listing.description,
+                    textStyle = Theme[textStyles][body].copy(
+                        lineHeight = Theme[textStyles][body].fontSize * 1.6,
+                        color = Theme[colors][onBackground].copy(alpha = 0.9f)
                     )
-                }
+                )
             }
 
             Column(modifier = Modifier.weight(0.35f)) {
@@ -415,42 +370,13 @@ private fun DesktopListingLayout(
 
                         Spacer(Modifier.height(32.dp))
 
-                        val isOwner = currentUserId != null && listing.canBeModifiedBy(currentUserId)
-
-                        if (isOwner) {
-                            PrimaryButton(
-                                onClick = onEditClicked,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Edit Listing")
-                            }
-                        } else {
-                            if (listing.interactionState.isRsvped) {
-                                OutlinedButton(
-                                    onClick = onToggleRsvpClicked,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    borderColor = Color(0xFF10B981),
-                                    contentColor = Color(0xFF10B981)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Lucide.CircleCheck, null, Modifier.size(18.dp), tint = Color(0xFF10B981))
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            text = stringResource(Res.string.status_going),
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF10B981)
-                                        )
-                                    }
-                                }
-                            } else {
-                                PrimaryButton(
-                                    onClick = onToggleRsvpClicked,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(stringResource(Res.string.action_rsvp))
-                                }
-                            }
-                        }
+                        ListingActionButtons(
+                            listing = listing,
+                            currentUserId = currentUserId,
+                            onEditClicked = onEditClicked,
+                            onToggleRsvpClicked = onToggleRsvpClicked,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         Spacer(Modifier.height(16.dp))
 
@@ -468,6 +394,71 @@ private fun DesktopListingLayout(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ListingActionButtons(
+    listing: Listing,
+    currentUserId: UserId?,
+    onEditClicked: () -> Unit,
+    onToggleRsvpClicked: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isOwner = currentUserId != null && listing.canBeModifiedBy(currentUserId)
+
+    if (isOwner) {
+        PrimaryButton(onClick = onEditClicked, modifier = modifier) {
+            Text("Edit Listing")
+        }
+    } else {
+        if (listing.interactionState.isRsvped) {
+            OutlinedButton(
+                onClick = onToggleRsvpClicked,
+                modifier = modifier,
+                borderColor = Color(0xFF10B981),
+                contentColor = Color(0xFF10B981)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Lucide.CircleCheck, null, Modifier.size(18.dp), tint = Color(0xFF10B981))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(Res.string.status_going),
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF10B981)
+                    )
+                }
+            }
+        } else {
+            PrimaryButton(onClick = onToggleRsvpClicked, modifier = modifier) {
+                Text(stringResource(Res.string.action_rsvp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListingWhenAndWhereSection(listing: Listing.Event) {
+    Section(stringResource(Res.string.listing_when_and_where)) {
+        Text(
+            text = formatEventTime(listing.startTime, TimeFormat.Standard),
+            style = Theme[textStyles][body].copy(fontWeight = FontWeight.Medium)
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = listing.mockLocation,
+            style = Theme[textStyles][body].copy(color = Theme[colors][onBackground].copy(alpha = 0.8f))
+        )
+    }
+}
+
+@Composable
+private fun ListingAboutSection(description: ListingDescription?, textStyle: androidx.compose.ui.text.TextStyle) {
+    Section(stringResource(Res.string.listing_about)) {
+        Text(
+            text = description?.value ?: stringResource(Res.string.listing_description_empty),
+            style = textStyle
+        )
     }
 }
 
@@ -654,7 +645,9 @@ private fun Section(sectionTitle: String, content: @Composable () -> Unit) {
         }
         Spacer(Modifier.height(12.dp))
         SelectionContainer {
-            content()
+            Column {
+                content()
+            }
         }
     }
 }
