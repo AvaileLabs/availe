@@ -86,7 +86,7 @@ internal fun main() {
         ListingController(listingService, applicationEvents, authenticationFilter, optionalAuthenticationFilter)
     val accountController = AccountController(userRepository, userProfileService, authenticationFilter)
     val usersController = UsersController(userRepository)
-    val interactionController = InteractionController(interactionRepository, authenticationFilter)
+    val interactionController = InteractionController(interactionRepository, listingService, authenticationFilter)
 
     val apiContractRoutingHandler = contract {
         routes += listingController.listOfRoutes

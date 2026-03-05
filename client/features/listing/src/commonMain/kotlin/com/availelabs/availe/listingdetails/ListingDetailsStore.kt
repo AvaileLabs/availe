@@ -108,10 +108,10 @@ internal class ListingDetailsStoreFactory(
 
             scope.launch {
                 when (val result = listingRepository.getListingById(id)) {
-                    is RepositoryOperationResult.Success<*> -> {
+                    is RepositoryOperationResult.Success -> {
                         when (val findResult = result.value) {
-                            is FindResult.Found<*> -> {
-                                dispatch(Message.ListingLoaded(findResult.value as Listing))
+                            is FindResult.Found -> {
+                                dispatch(Message.ListingLoaded(findResult.value))
                             }
 
                             is FindResult.NotFound -> {
@@ -158,9 +158,15 @@ internal class ListingDetailsStoreFactory(
                     interactionRepository.removeInteraction(userId, currentListing.id, InteractionType.Rsvp)
                 }
 
-                if (result is RepositoryOperationResult.Failure) {
-                    dispatch(Message.UpdateRsvpState(currentRsvpState))
-                    publish(Label.DisplayError(result.error))
+                when (result) {
+                    is RepositoryOperationResult.Success -> {
+                        dispatch(Message.ListingLoaded(result.value))
+                    }
+
+                    is RepositoryOperationResult.Failure -> {
+                        dispatch(Message.UpdateRsvpState(currentRsvpState))
+                        publish(Label.DisplayError(result.error))
+                    }
                 }
             }
         }

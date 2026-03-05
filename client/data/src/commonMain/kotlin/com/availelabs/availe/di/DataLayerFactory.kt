@@ -181,7 +181,8 @@ object DataLayerFactory {
             )
 
             val interactionRemoteDataSource = InteractionRemoteDataSource(
-                httpClient = httpClient
+                httpClient = httpClient,
+                json = json
             )
 
             val xmppSession = XmppSession(httpClient)

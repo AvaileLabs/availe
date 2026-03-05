@@ -12,8 +12,6 @@ import kotlin.time.Clock
 
 interface IListingLocalDataSource {
     suspend fun upsertListing(listing: Listing)
-    suspend fun updateRsvpStatus(id: ListingId, isRsvped: Boolean)
-    suspend fun updateFavoriteStatus(id: ListingId, isFavorited: Boolean)
     fun getListings(
         limit: Long,
         offset: Long,
@@ -65,16 +63,6 @@ internal class ListingLocalDataSource(
                 is Listing.Service -> database.listingQueries.upsertServiceDetails(listing.id)
             }
         }
-    }
-
-    override suspend fun updateRsvpStatus(id: ListingId, isRsvped: Boolean) {
-        val database = databaseProvider.getDatabase()
-        database.listingQueries.updateRsvpStatus(is_rsvped = isRsvped, primary_key_id = id)
-    }
-
-    override suspend fun updateFavoriteStatus(id: ListingId, isFavorited: Boolean) {
-        val database = databaseProvider.getDatabase()
-        database.listingQueries.updateFavoriteStatus(is_favorited = isFavorited, primary_key_id = id)
     }
 
     override fun getListings(

@@ -59,16 +59,6 @@ upsertServiceDetails:
 INSERT OR REPLACE INTO listing_service_details(listing_id)
 VALUES (?);
 
-updateRsvpStatus:
-UPDATE listings
-SET is_rsvped = ?
-WHERE primary_key_id = ?;
-
-updateFavoriteStatus:
-UPDATE listings
-SET is_favorited = ?
-WHERE primary_key_id = ?;
-
 selectListings:
 SELECT *
 FROM listings

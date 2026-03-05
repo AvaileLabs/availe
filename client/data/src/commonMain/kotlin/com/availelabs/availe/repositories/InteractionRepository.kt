@@ -1,6 +1,7 @@
 package com.availelabs.availe.repositories
 
 import com.availelabs.availe.domain.model.InteractionType
+import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
 import com.availelabs.availe.network.ISafeNetworkCaller
@@ -18,18 +19,16 @@ internal class InteractionRepository(
         userId: UserId,
         listingId: ListingId,
         interactionType: InteractionType
-    ): RepositoryOperationResult<Unit> {
+    ): RepositoryOperationResult<Listing> {
         val result = safeNetworkCaller.execute {
             remoteDataSource.addInteraction(listingId, interactionType)
         }
 
         if (result is RepositoryOperationResult.Success) {
             try {
-                when (interactionType) {
-                    InteractionType.Rsvp -> localDataSource.updateRsvpStatus(listingId, true)
-                    InteractionType.Favorite -> localDataSource.updateFavoriteStatus(listingId, true)
-                }
-            } catch (_: Exception) {}
+                localDataSource.upsertListing(result.value)
+            } catch (_: Exception) {
+            }
         }
 
         return result
@@ -39,18 +38,16 @@ internal class InteractionRepository(
         userId: UserId,
         listingId: ListingId,
         interactionType: InteractionType
-    ): RepositoryOperationResult<Unit> {
+    ): RepositoryOperationResult<Listing> {
         val result = safeNetworkCaller.execute {
             remoteDataSource.removeInteraction(listingId, interactionType)
         }
 
         if (result is RepositoryOperationResult.Success) {
             try {
-                when (interactionType) {
-                    InteractionType.Rsvp -> localDataSource.updateRsvpStatus(listingId, false)
-                    InteractionType.Favorite -> localDataSource.updateFavoriteStatus(listingId, false)
-                }
-            } catch (_: Exception) {}
+                localDataSource.upsertListing(result.value)
+            } catch (_: Exception) {
+            }
         }
 
         return result
