@@ -3,26 +3,33 @@ package com.availelabs.availe.sources.local
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
+import app.cash.sqldelight.coroutines.asFlow
 import com.availelabs.availe.database.IDatabaseProvider
 import com.availelabs.availe.database.toDomain
 import com.availelabs.availe.domain.model.*
+import kotlinx.coroutines.flow.*
 import kotlin.time.Clock
 
 interface IListingLocalDataSource {
     suspend fun upsertListing(listing: Listing)
     suspend fun updateRsvpStatus(id: ListingId, isRsvped: Boolean)
     suspend fun updateFavoriteStatus(id: ListingId, isFavorited: Boolean)
-    suspend fun getListings(
+    fun getListings(
         limit: Long,
         offset: Long,
         publisherId: UserId?,
         filter: ListingCategoryFilter,
         eventFeedFilter: EventFeedFilter = EventFeedFilter.None
-    ): List<Listing>
+    ): Flow<List<Listing>>
 
     suspend fun getListingById(id: ListingId): Listing?
     suspend fun deleteListingById(id: ListingId)
-    suspend fun deleteListings(publisherId: UserId?, filter: ListingCategoryFilter, eventFeedFilter: EventFeedFilter = EventFeedFilter.None)
+    suspend fun deleteListings(
+        publisherId: UserId?,
+        filter: ListingCategoryFilter,
+        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
+    )
+
     suspend fun isListingDatabaseEmpty(): Boolean
 }
 
@@ -70,13 +77,13 @@ internal class ListingLocalDataSource(
         database.listingQueries.updateFavoriteStatus(is_favorited = isFavorited, primary_key_id = id)
     }
 
-    override suspend fun getListings(
+    override fun getListings(
         limit: Long,
         offset: Long,
         publisherId: UserId?,
         filter: ListingCategoryFilter,
         eventFeedFilter: EventFeedFilter
-    ): List<Listing> {
+    ): Flow<List<Listing>> = flow {
         val database = databaseProvider.getDatabase()
         val categories = if (filter.isAll) {
             ListingCategory.entries
@@ -84,26 +91,27 @@ internal class ListingLocalDataSource(
             filter.categories.toList()
         }
 
-        val allListings = database.listingQueries.selectListings(
+        val queryFlow = database.listingQueries.selectListings(
             publisher_id = publisherId,
             categories = categories,
             limit = limit,
             offset = offset
-        )
-            .awaitAsList()
-            .map { selectListings -> selectListings.toDomain() }
+        ).asFlow().map { query -> query.awaitAsList() }
 
-        val currentInstant = Clock.System.now()
-
-        return allListings.filter { listing ->
-            if (listing !is Listing.Event) return@filter true
-            when (eventFeedFilter) {
-                EventFeedFilter.None -> true
-                EventFeedFilter.Upcoming -> listing.startTime >= currentInstant
-                EventFeedFilter.Past -> listing.startTime < currentInstant
-                EventFeedFilter.Going -> listing.interactionState.isRsvped
+        emitAll(
+            queryFlow.map { selectListings ->
+                val currentInstant = Clock.System.now()
+                selectListings.map { it.toDomain() }.filter { listing ->
+                    if (listing !is Listing.Event) return@filter true
+                    when (eventFeedFilter) {
+                        EventFeedFilter.None -> true
+                        EventFeedFilter.Upcoming -> listing.startTime >= currentInstant
+                        EventFeedFilter.Past -> listing.startTime < currentInstant
+                        EventFeedFilter.Going -> listing.interactionState.isRsvped
+                    }
+                }
             }
-        }
+        )
     }
 
     override suspend fun getListingById(id: ListingId): Listing? {
@@ -118,7 +126,11 @@ internal class ListingLocalDataSource(
         database.listingQueries.deleteById(id)
     }
 
-    override suspend fun deleteListings(publisherId: UserId?, filter: ListingCategoryFilter, eventFeedFilter: EventFeedFilter) {
+    override suspend fun deleteListings(
+        publisherId: UserId?,
+        filter: ListingCategoryFilter,
+        eventFeedFilter: EventFeedFilter
+    ) {
         val database = databaseProvider.getDatabase()
         val categories = if (filter.isAll) {
             ListingCategory.entries
@@ -138,7 +150,7 @@ internal class ListingLocalDataSource(
                 publisherId = publisherId,
                 filter = filter,
                 eventFeedFilter = eventFeedFilter
-            )
+            ).first()
 
             database.transaction {
                 listingsToDelete.forEach { listing ->

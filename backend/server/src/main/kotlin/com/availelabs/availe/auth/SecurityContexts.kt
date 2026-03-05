@@ -14,4 +14,5 @@ data class AuthenticatedUser(
 
 object SecurityContexts {
     val authenticatedUserLens = RequestKey.required<AuthenticatedUser>("authenticatedUser")
+    val optionalAuthenticatedUserLens = RequestKey.optional<AuthenticatedUser>("authenticatedUser")
 }

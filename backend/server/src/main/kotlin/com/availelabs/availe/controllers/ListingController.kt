@@ -4,9 +4,8 @@ package com.availelabs.availe.controllers
 
 import com.availelabs.availe.ApiParameters
 import com.availelabs.availe.ApiRoutes
-import com.availelabs.availe.auth.AuthenticatedUser
 import com.availelabs.availe.auth.AuthenticationFilter
-import com.availelabs.availe.auth.ITokenVerifier
+import com.availelabs.availe.auth.OptionalAuthenticationFilter
 import com.availelabs.availe.auth.SecurityContexts
 import com.availelabs.availe.domain.extensions.isValid
 import com.availelabs.availe.domain.model.*
@@ -15,7 +14,6 @@ import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.*
-import com.availelabs.availe.mappers.toCreateRequestDto
 import com.availelabs.availe.mappers.toDataDto
 import com.availelabs.availe.mappers.toDomain
 import com.availelabs.availe.observability.ListingCreated
@@ -39,7 +37,7 @@ internal class ListingController(
     private val listingService: IListingService,
     private val events: Events,
     private val authenticationFilter: AuthenticationFilter,
-    private val tokenVerifier: ITokenVerifier
+    private val optionalAuthenticationFilter: OptionalAuthenticationFilter
 ) {
     private val listingIdPath =
         Path.uuid().map({ ListingId(it.toKotlinUuid()) }, { it.value.toJavaUuid() }).of(ApiParameters.LISTING_ID)
@@ -51,7 +49,8 @@ internal class ListingController(
         .map({ UserId(it.toKotlinUuid()) }, { it.value.toJavaUuid() })
         .optional(ApiParameters.PUBLISHER_ID)
     private val categoriesQueryLens = Query.enum<ListingCategory>().multi.optional(ApiParameters.CATEGORIES)
-    private val eventFeedFilterQueryLens = Query.enum<EventFeedFilter>().defaulted("eventFeedFilter", EventFeedFilter.None)
+    private val eventFeedFilterQueryLens =
+        Query.enum<EventFeedFilter>().defaulted("eventFeedFilter", EventFeedFilter.None)
 
     private val examplePrice = Price(PriceAmount("10.00"), CurrencyCode("USD"))
     private val examplePublisher = PublicProfileDtoSchema.V1.Data(
@@ -154,8 +153,8 @@ internal class ListingController(
             returning(Status.OK, responseBodyLens to exampleResponseEvent)
             returning(Status.NOT_FOUND)
         } bindContract Method.GET to { listingId ->
-            { request: Request ->
-                val viewingUser = tryAuthenticate(request)
+            optionalAuthenticationFilter.then { request: Request ->
+                val viewingUser = SecurityContexts.optionalAuthenticatedUserLens(request)
 
                 when (val result = listingService.getListingById(listingId, viewingUser?.id)) {
                     is FindResult.Found -> {
@@ -204,14 +203,14 @@ internal class ListingController(
             queries += categoriesQueryLens
             queries += eventFeedFilterQueryLens
             returning(Status.OK, listResponseBodyLens to listOf(exampleResponseEvent))
-        } bindContract Method.GET to { request: Request ->
+        } bindContract Method.GET to optionalAuthenticationFilter.then { request: Request ->
             val pageNumber = pageNumberQueryLens(request)
             val pageSize = pageSizeQueryLens(request)
             val publisherId = publisherIdQueryLens(request)
             val categoriesList = categoriesQueryLens(request)
             val eventFeedFilter = eventFeedFilterQueryLens(request)
 
-            val viewingUser = tryAuthenticate(request)
+            val viewingUser = SecurityContexts.optionalAuthenticatedUserLens(request)
 
             val filter = if (categoriesList.isNullOrEmpty()) {
                 ListingCategoryFilter.All
@@ -219,7 +218,14 @@ internal class ListingController(
                 ListingCategoryFilter.of(*categoriesList.toTypedArray())
             }
 
-            val listings = listingService.getListingsPage(pageNumber, pageSize, viewingUser?.id, publisherId, filter, eventFeedFilter)
+            val listings = listingService.getListingsPage(
+                pageNumber,
+                pageSize,
+                viewingUser?.id,
+                publisherId,
+                filter,
+                eventFeedFilter
+            )
             val responseDataTransferObjects = listings.map { it.toDataDto() }
             Response(Status.OK).with(listResponseBodyLens of responseDataTransferObjects)
         }
@@ -227,7 +233,8 @@ internal class ListingController(
 
     fun updateListing(): ContractRoute {
         val patchBodyLens = Body.auto<TypeV1ListingDtoPatchRequest>().toLens()
-        val examplePatchRequest = ListingEventDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
+        val examplePatchRequest =
+            ListingEventDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
 
         return ApiRoutes.LISTINGS / listingIdPath meta {
             summary = "Update an existing listing."
@@ -247,7 +254,8 @@ internal class ListingController(
                     return@then Response(Status.NOT_IMPLEMENTED).body("Updating Items and Services is disabled for the MVP.")
                 }
 
-                when (val result = listingService.updateListing(listingId, patchRequestTransferObject, authenticatedUser.id)) {
+                when (val result =
+                    listingService.updateListing(listingId, patchRequestTransferObject, authenticatedUser.id)) {
                     is UpdateResult.Updated -> {
                         val responseDataTransferObject = result.value.toDataDto()
                         Response(Status.OK).with(responseBodyLens of responseDataTransferObject)
@@ -280,23 +288,5 @@ internal class ListingController(
                 }
             }
         }
-    }
-
-    private fun tryAuthenticate(request: Request): AuthenticatedUser? {
-        val authorizationHeader = request.header("Authorization") ?: return null
-        val bearerPrefix = "Bearer "
-        if (!authorizationHeader.startsWith(bearerPrefix)) return null
-
-        val token = authorizationHeader.substringAfter(bearerPrefix)
-        val verifiedToken = tokenVerifier.verify(token) ?: return null
-
-        return AuthenticatedUser(
-            id = verifiedToken.userId,
-            email = verifiedToken.email,
-            displayName = verifiedToken.displayName,
-            avatarUrl = verifiedToken.avatarUrl,
-            jid = verifiedToken.jid,
-            subject = verifiedToken.subject
-        )
     }
 }

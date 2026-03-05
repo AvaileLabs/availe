@@ -15,33 +15,37 @@ internal class ListingStoreFactory(
 ) {
     fun create(): Store<ListingStoreKey, List<Listing>> {
         return StoreBuilder.from<ListingStoreKey, List<Listing>, List<Listing>>(
-            fetcher = Fetcher.Companion.of { key ->
+            fetcher = Fetcher.Companion.of { listingStoreKey ->
                 remoteDataSource.getListingsPage(
-                    page = key.page,
-                    size = key.size,
-                    publisherId = key.publisherId,
-                    filter = key.filter,
-                    eventFeedFilter = key.eventFeedFilter
+                    page = listingStoreKey.page,
+                    size = listingStoreKey.size,
+                    publisherId = listingStoreKey.publisherId,
+                    filter = listingStoreKey.filter,
+                    eventFeedFilter = listingStoreKey.eventFeedFilter
                 )
             },
             sourceOfTruth = SourceOfTruth.Companion.of(
-                nonFlowReader = { key ->
-                    val offset = (key.page * key.size).toLong()
-                    val limit = key.size.toLong()
+                reader = { listingStoreKey ->
+                    val queryOffset = (listingStoreKey.page * listingStoreKey.size).toLong()
+                    val queryLimit = listingStoreKey.size.toLong()
 
                     localDataSource.getListings(
-                        limit = limit,
-                        offset = offset,
-                        publisherId = key.publisherId,
-                        filter = key.filter,
-                        eventFeedFilter = key.eventFeedFilter
+                        limit = queryLimit,
+                        offset = queryOffset,
+                        publisherId = listingStoreKey.publisherId,
+                        filter = listingStoreKey.filter,
+                        eventFeedFilter = listingStoreKey.eventFeedFilter
                     )
                 },
-                writer = { key, listings ->
-                    if (key.page == 0) {
-                        localDataSource.deleteListings(key.publisherId, key.filter, key.eventFeedFilter)
+                writer = { listingStoreKey, listingsList ->
+                    if (listingStoreKey.page == 0) {
+                        localDataSource.deleteListings(
+                            publisherId = listingStoreKey.publisherId,
+                            filter = listingStoreKey.filter,
+                            eventFeedFilter = listingStoreKey.eventFeedFilter
+                        )
                     }
-                    listings.forEach { listing ->
+                    listingsList.forEach { listing ->
                         localDataSource.upsertListing(listing)
                     }
                 }

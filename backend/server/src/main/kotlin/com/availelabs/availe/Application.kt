@@ -2,6 +2,8 @@ package com.availelabs.availe
 
 import com.availelabs.availe.auth.AuthenticationFilter
 import com.availelabs.availe.auth.KeycloakTokenVerifier
+import com.availelabs.availe.auth.OptionalAuthenticationFilter
+import com.availelabs.availe.auth.RequestIdentityResolver
 import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.controllers.AccountController
 import com.availelabs.availe.controllers.InteractionController
@@ -53,7 +55,6 @@ internal fun main() {
         .then(EventFilters.AddEventName())
         .then(AutoMarshallingEvents(Jackson, ::println))
 
-    // Repositories
     val userRepository = UserRepository(databaseContext)
     val interactionRepository = InteractionRepository(databaseContext)
 
@@ -68,21 +69,21 @@ internal fun main() {
         serviceCreator = serviceListingCreator
     )
 
-    // Data Services
     val valkeyCacheService = valkeyCacheServiceSetup()
 
-    // Domain Services
     val listingService = ListingService(listingRepository)
     val userProvisioningService = UserProvisioningService(valkeyCacheService, userRepository)
     val userProfileService = UserProfileService(userRepository, valkeyCacheService)
 
-    // Auth
     val keycloakTokenVerifier = KeycloakTokenVerifier(applicationEvents)
-    val authenticationFilter = AuthenticationFilter(keycloakTokenVerifier, userProvisioningService, applicationEvents)
+    val requestIdentityResolver =
+        RequestIdentityResolver(keycloakTokenVerifier, userProvisioningService, applicationEvents)
 
-    // Controllers
+    val authenticationFilter = AuthenticationFilter(requestIdentityResolver, applicationEvents)
+    val optionalAuthenticationFilter = OptionalAuthenticationFilter(requestIdentityResolver)
+
     val listingController =
-        ListingController(listingService, applicationEvents, authenticationFilter, keycloakTokenVerifier)
+        ListingController(listingService, applicationEvents, authenticationFilter, optionalAuthenticationFilter)
     val accountController = AccountController(userRepository, userProfileService, authenticationFilter)
     val usersController = UsersController(userRepository)
     val interactionController = InteractionController(interactionRepository, authenticationFilter)

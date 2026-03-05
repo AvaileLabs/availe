@@ -19,11 +19,7 @@ import com.availelabs.availe.repositories.store.ListingStoreFactory
 import com.availelabs.availe.services.MessageService
 import com.availelabs.availe.sources.local.ListingLocalDataSource
 import com.availelabs.availe.sources.local.LocalDataCleaner
-import com.availelabs.availe.sources.remote.AuthenticationRemoteDataSource
-import com.availelabs.availe.sources.remote.InteractionRemoteDataSource
-import com.availelabs.availe.sources.remote.ListingRemoteDataSource
-import com.availelabs.availe.sources.remote.MessagingRemoteDataSource
-import com.availelabs.availe.sources.remote.UserRemoteDataSource
+import com.availelabs.availe.sources.remote.*
 import com.availelabs.availe.xmpp.session.XmppSession
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
@@ -134,6 +130,8 @@ object DataLayerFactory {
 
                 install(Auth) {
                     bearer {
+                        sendWithoutRequest { true }
+
                         loadTokens {
                             val tokens = authenticationRemoteDataSource.getTokens()
                             if (tokens?.accessToken != null && tokens.refreshToken != null) {
