@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -48,7 +49,7 @@ fun AppShellScreen(
 ) {
     val childStack by appShellComponent.childStack.subscribeAsState()
     val chatOverlay by appShellComponent.chatOverlay.subscribeAsState()
-    val authenticationState by appShellComponent.authenticationState.subscribeAsState()
+    val authenticationState by appShellComponent.authenticationState.collectAsState()
     val isAuthenticationLoading by appShellComponent.isAuthenticationLoading.subscribeAsState()
     val showBackArrow by appShellComponent.showBackArrow.subscribeAsState()
     val activeConfiguration = childStack.active.configuration

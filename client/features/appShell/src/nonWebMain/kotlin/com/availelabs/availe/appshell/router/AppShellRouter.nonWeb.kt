@@ -98,6 +98,10 @@ actual class AppShellRouter actual constructor(
         stackNavigation.pushToFront(AppShellConfiguration.ListingEditor(listingId, null))
     }
 
+    actual override fun navigateToLogin() {
+        onExplicitLoginCallback()
+    }
+
     actual fun navigateToHome() {
         val dashboard = dashboardComponent
         if (dashboard != null) {

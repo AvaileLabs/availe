@@ -8,6 +8,7 @@ import com.arkivanov.mvikotlin.core.instancekeeper.getStore
 import com.arkivanov.mvikotlin.extensions.coroutines.labels
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
 import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
+import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.Email
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
@@ -30,6 +31,8 @@ interface IListingDetailsComponent {
     fun onProfileClicked(userId: UserId)
     fun onEditListingClicked()
     fun onToggleRsvpClicked()
+    fun onDismissLoginGuardClicked()
+    fun onConfirmLoginGuardClicked()
 }
 
 class ListingDetailsComponent(
@@ -70,6 +73,14 @@ class ListingDetailsComponent(
                 }
             }
         }
+
+        scope.launch {
+            sessionManager.authenticationState.collect { authenticationState ->
+                if (authenticationState is AuthenticationState.LoggedIn) {
+                    store.accept(ListingDetailsStore.Intent.DismissLoginGuard)
+                }
+            }
+        }
     }
 
     override fun onIntent(intent: ListingDetailsStore.Intent) {
@@ -95,5 +106,14 @@ class ListingDetailsComponent(
 
     override fun onToggleRsvpClicked() {
         store.accept(ListingDetailsStore.Intent.ToggleRsvp)
+    }
+
+    override fun onDismissLoginGuardClicked() {
+        store.accept(ListingDetailsStore.Intent.DismissLoginGuard)
+    }
+
+    override fun onConfirmLoginGuardClicked() {
+        store.accept(ListingDetailsStore.Intent.DismissLoginGuard)
+        navigator.navigateToLogin()
     }
 }

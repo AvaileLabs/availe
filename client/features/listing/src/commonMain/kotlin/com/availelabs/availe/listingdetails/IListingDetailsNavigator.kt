@@ -9,4 +9,5 @@ interface IListingDetailsNavigator {
     fun navigateToChat(jid: Jid)
     fun navigateToProfile(userId: UserId)
     fun navigateToEditListing(listingId: ListingId)
+    fun navigateToLogin()
 }

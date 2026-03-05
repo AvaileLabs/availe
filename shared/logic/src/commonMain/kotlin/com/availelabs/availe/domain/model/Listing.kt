@@ -67,7 +67,8 @@ sealed interface NewListing : CommonListingProperties {
     data class Event(
         override val commonData: CommonListingData,
         override val publisher: PublicProfile,
-        val startTime: Instant
+        val startTime: Instant,
+        val autoRsvp: Boolean
     ) : CommonListingProperties by commonData, NewListing
 
     data class Service(

@@ -30,13 +30,15 @@ interface ListingDetailsStore : Store<Intent, State, Label> {
     sealed interface Intent {
         data object RetryRequested : Intent
         data object ToggleRsvp : Intent
+        data object DismissLoginGuard : Intent
     }
 
     data class State(
         val listing: Listing? = null,
         val isLoading: Boolean = false,
         val errorMessage: UiText? = null,
-        val currentUserId: UserId? = null
+        val currentUserId: UserId? = null,
+        val showLoginGuard: Boolean = false
     )
 
     sealed interface Label {
@@ -72,6 +74,7 @@ internal class ListingDetailsStoreFactory(
         data class SetError(val message: UiText?) : Message
         data class SetCurrentUser(val userId: UserId?) : Message
         data class UpdateRsvpState(val isRsvped: Boolean) : Message
+        data class SetShowLoginGuard(val showLoginGuard: Boolean) : Message
     }
 
     private class ListingDetailsBootstrapper(
@@ -95,6 +98,7 @@ internal class ListingDetailsStoreFactory(
             when (intent) {
                 Intent.RetryRequested -> fetchListing(listingId)
                 Intent.ToggleRsvp -> handleToggleRsvp()
+                Intent.DismissLoginGuard -> dispatch(Message.SetShowLoginGuard(false))
             }
         }
 
@@ -135,18 +139,17 @@ internal class ListingDetailsStoreFactory(
 
         private fun handleToggleRsvp() {
             val currentState = state()
+            val userId = currentState.currentUserId
+            if (userId == null) {
+                dispatch(Message.SetShowLoginGuard(true))
+                return
+            }
+
             val currentListing = currentState.listing ?: return
             val currentRsvpState = currentListing.interactionState.isRsvped
             val newRsvpState = !currentRsvpState
 
             dispatch(Message.UpdateRsvpState(newRsvpState))
-
-            val userId = currentState.currentUserId
-            if (userId == null) {
-                dispatch(Message.UpdateRsvpState(currentRsvpState))
-                publish(Label.DisplayError(AppError.AuthenticationError.SessionExpired))
-                return
-            }
 
             scope.launch {
                 val result = if (newRsvpState) {
@@ -170,6 +173,7 @@ internal class ListingDetailsStoreFactory(
                 is Message.ListingLoaded -> copy(listing = msg.listing)
                 is Message.SetError -> copy(errorMessage = msg.message)
                 is Message.SetCurrentUser -> copy(currentUserId = msg.userId)
+                is Message.SetShowLoginGuard -> copy(showLoginGuard = msg.showLoginGuard)
                 is Message.UpdateRsvpState -> {
                     val currentListing = listing
                     if (currentListing != null) {

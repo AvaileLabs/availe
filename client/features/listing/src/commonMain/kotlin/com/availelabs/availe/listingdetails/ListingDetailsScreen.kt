@@ -27,6 +27,7 @@ import com.availelabs.availe.domain.extensions.canBeModifiedBy
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.extensions.toDisplayString
 import com.availelabs.availe.ui.components.TimeFormat
+import com.availelabs.availe.ui.components.dialogs.LoginGuardModal
 import com.availelabs.availe.ui.components.formatEventTime
 import com.availelabs.availe.ui.model.asString
 import com.composables.icons.lucide.*
@@ -83,6 +84,13 @@ fun ListingDetailsScreen(
                     onProfileClicked = { userId -> listingDetailsComponent.onProfileClicked(userId) },
                     onEditClicked = { listingDetailsComponent.onEditListingClicked() },
                     onToggleRsvpClicked = { listingDetailsComponent.onToggleRsvpClicked() }
+                )
+            }
+
+            if (state.showLoginGuard) {
+                LoginGuardModal(
+                    onConfirm = listingDetailsComponent::onConfirmLoginGuardClicked,
+                    onDismiss = listingDetailsComponent::onDismissLoginGuardClicked
                 )
             }
         }
@@ -227,7 +235,8 @@ private fun MobileListingLayout(
                     listing = listing,
                     currentUserId = currentUserId,
                     onEditClicked = onEditClicked,
-                    onToggleRsvpClicked = onToggleRsvpClicked
+                    onToggleRsvpClicked = onToggleRsvpClicked,
+                    modifier = Modifier.weight(1f).padding(start = 16.dp)
                 )
             }
         }
@@ -407,31 +416,45 @@ private fun ListingActionButtons(
 ) {
     val isOwner = currentUserId != null && listing.canBeModifiedBy(currentUserId)
 
-    if (isOwner) {
-        PrimaryButton(onClick = onEditClicked, modifier = modifier) {
-            Text("Edit Listing")
-        }
-    } else {
-        if (listing.interactionState.isRsvped) {
-            OutlinedButton(
-                onClick = onToggleRsvpClicked,
-                modifier = modifier,
-                borderColor = Color(0xFF10B981),
-                contentColor = Color(0xFF10B981)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Lucide.CircleCheck, null, Modifier.size(18.dp), tint = Color(0xFF10B981))
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(Res.string.status_going),
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF10B981)
-                    )
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.weight(1f)) {
+            if (listing.interactionState.isRsvped) {
+                OutlinedButton(
+                    onClick = onToggleRsvpClicked,
+                    modifier = Modifier.fillMaxWidth(),
+                    borderColor = Color(0xFF10B981),
+                    contentColor = Color(0xFF10B981)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Lucide.CircleCheck, null, Modifier.size(18.dp), tint = Color(0xFF10B981))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(Res.string.status_going),
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF10B981)
+                        )
+                    }
+                }
+            } else {
+                PrimaryButton(
+                    onClick = onToggleRsvpClicked,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(Res.string.action_rsvp))
                 }
             }
-        } else {
-            PrimaryButton(onClick = onToggleRsvpClicked, modifier = modifier) {
-                Text(stringResource(Res.string.action_rsvp))
+        }
+
+        if (isOwner) {
+            OutlinedButton(
+                onClick = onEditClicked,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Edit Listing")
             }
         }
     }

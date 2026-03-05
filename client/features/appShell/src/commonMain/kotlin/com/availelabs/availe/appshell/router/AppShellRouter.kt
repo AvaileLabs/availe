@@ -47,6 +47,7 @@ expect class AppShellRouter(
     override fun openUrl(url: String)
     override fun dismissLogin()
     override fun navigateToEditListing(listingId: ListingId)
+    override fun navigateToLogin()
 
     fun navigateToHome()
     fun onSettingsClicked()

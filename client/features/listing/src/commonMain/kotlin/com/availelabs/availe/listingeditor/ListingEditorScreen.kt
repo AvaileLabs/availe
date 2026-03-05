@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -24,8 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import availe.client.designsystem.generated.resources.*
 import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -34,6 +31,7 @@ import com.arkivanov.decompose.value.Value
 import com.availelabs.availe.ListingEditorState
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.ui.components.dialogs.ActionConfirmationModal
+import com.availelabs.availe.ui.components.dialogs.DimmedDialog
 import com.availelabs.availe.ui.layout.WindowSizeClass
 import com.availelabs.availe.ui.layout.rememberWindowSize
 import com.availelabs.availe.ui.model.asString
@@ -451,31 +449,6 @@ private fun DraftOptionsDialog(
                         fontWeight = FontWeight.Medium
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DimmedDialog(
-    onDismissRequest: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.8f))
-                .clickable(enabled = true, onClick = onDismissRequest),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(modifier = Modifier.clickable(enabled = false) {}) {
-                content()
             }
         }
     }

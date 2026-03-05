@@ -43,13 +43,14 @@ import com.availelabs.availe.settings.ISettingsNavigator
 import com.availelabs.availe.settings.SettingsComponent
 import com.availelabs.availe.ui.model.LayoutMode
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalDecomposeApi::class)
 interface IAppShellComponent : WebNavigationOwner, BackHandlerOwner {
     val childStack: Value<ChildStack<AppShellConfiguration, AppShellChildComponent>>
     val chatOverlay: Value<ChildSlot<AppShellConfiguration.ChatOverlay, AppShellChildComponent.ChatOverlay>>
-    val authenticationState: Value<AuthenticationState>
+    val authenticationState: StateFlow<AuthenticationState>
     val isAuthenticationLoading: Value<Boolean>
     val showBackArrow: Value<Boolean>
     val shouldShowChatOverlay: Value<Boolean>
@@ -114,8 +115,8 @@ class AppShellComponent(
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
 
-    override val authenticationState: Value<AuthenticationState> =
-        appContainer.sessionManager.authenticationState.asValue(lifecycle)
+    override val authenticationState: StateFlow<AuthenticationState> =
+        appContainer.sessionManager.authenticationState
 
     override val chatOverlay: Value<ChildSlot<AppShellConfiguration.ChatOverlay, AppShellChildComponent.ChatOverlay>> =
         childSlot(
@@ -320,6 +321,7 @@ class AppShellComponent(
     override fun openUrl(url: String) = router.openUrl(url)
     override fun dismissLogin() = router.dismissLogin()
     override fun navigateToEditListing(listingId: ListingId) = router.navigateToEditListing(listingId)
+    override fun navigateToLogin() = router.navigateToLogin()
 
     private fun createChildComponent(
         configuration: AppShellConfiguration,

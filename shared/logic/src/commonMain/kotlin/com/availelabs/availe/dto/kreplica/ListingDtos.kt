@@ -56,6 +56,9 @@ private interface ListingEventDto {
 
         @Replicate.Property(include = [DtoVariant.DATA, DtoVariant.CREATE, DtoVariant.PATCH])
         val startTime: Instant
+
+        @Replicate.Property(include = [DtoVariant.CREATE])
+        val autoRsvp: Boolean
     }
 }
 

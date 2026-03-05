@@ -15,15 +15,17 @@ fun LoginGuardModal(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ActionConfirmationModal(
-        icon = Lucide.Lock,
-        iconContentColor = Theme[colors][onBackground],
-        iconBackgroundColor = Theme[colors][outline].copy(alpha = 0.1f),
-        title = stringResource(Res.string.authentication_guard_title),
-        message = stringResource(Res.string.authentication_guard_body),
-        confirmText = stringResource(Res.string.authentication_sign_in),
-        cancelText = stringResource(Res.string.generic_cancel),
-        onConfirm = onConfirm,
-        onDismiss = onDismiss
-    )
+    DimmedDialog(onDismissRequest = onDismiss) {
+        ActionConfirmationModal(
+            icon = Lucide.Lock,
+            iconContentColor = Theme[colors][onBackground],
+            iconBackgroundColor = Theme[colors][outline].copy(alpha = 0.1f),
+            title = stringResource(Res.string.authentication_guard_title),
+            message = stringResource(Res.string.authentication_guard_body),
+            confirmText = stringResource(Res.string.authentication_sign_in),
+            cancelText = stringResource(Res.string.generic_cancel),
+            onConfirm = onConfirm,
+            onDismiss = onDismiss
+        )
+    }
 }

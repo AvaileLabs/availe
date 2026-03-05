@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
+
 package com.availelabs.availe.controllers
 
 import com.availelabs.availe.ApiParameters
@@ -33,7 +35,6 @@ import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
-@OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
 internal class ListingController(
     private val listingService: IListingService,
     private val events: Events,
@@ -85,12 +86,13 @@ internal class ListingController(
         val bodyLens = Body.auto<TypeV1ListingDtoCreateRequest>().toLens()
         val exampleEventCreateRequest =
             ListingEventDtoSchema.V1.CreateRequest(
-                ListingTitle("Example Event"),
-                null,
-                examplePrice,
-                emptyList(),
-                ListingLocation("New York, NY"),
-                Clock.System.now()
+                title = ListingTitle("Example Event"),
+                description = null,
+                price = examplePrice,
+                imageLinks = emptyList(),
+                location = ListingLocation("New York, NY"),
+                startTime = Clock.System.now(),
+                autoRsvp = true
             )
 
         return ApiRoutes.LISTINGS meta {

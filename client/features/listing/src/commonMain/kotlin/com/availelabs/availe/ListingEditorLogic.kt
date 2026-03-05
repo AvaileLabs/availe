@@ -222,7 +222,12 @@ fun ListingEditorState.toNewListing(publisher: PublicProfile): NewListing? {
         ListingCategory.Item -> NewListing.Item(commonData, publisher)
         ListingCategory.Event -> {
             val eventStartTime = this.startTime ?: return null
-            NewListing.Event(commonData, publisher, eventStartTime)
+            NewListing.Event(
+                commonData = commonData,
+                publisher = publisher,
+                startTime = eventStartTime,
+                autoRsvp = true
+            )
         }
         ListingCategory.Service -> NewListing.Service(commonData, publisher)
     }

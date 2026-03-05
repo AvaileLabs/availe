@@ -78,6 +78,7 @@ class MainStoreFactory(
                 is AuthenticationState.LoggedIn -> {
                     dispatch(Message.SetAuthenticated(true))
                     dispatch(Message.SetAuthenticationServiceAvailable(true))
+                    dispatch(Message.SetLoading(false))
                 }
 
                 is AuthenticationState.LoggedOut -> {
@@ -110,6 +111,7 @@ class MainStoreFactory(
                 dispatch(Message.SetLoading(true))
                 when (val loginResult = authenticationRepository.login(sessionManager::updateState)) {
                     is LoginResult.Success -> {
+                        dispatch(Message.SetLoading(false))
                     }
 
                     is LoginResult.Cancelled -> {

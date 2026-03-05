@@ -73,7 +73,7 @@
 
     <string name="action_rsvp">RSVP</string>
     <string name="action_cancel_rsvp">Cancel RSVP</string>
-    <string name="status_going">You\'re Going!</string>
+    <string name="status_going">You&#39;re Going!</string>
     <string name="interaction_error_rsvp">Failed to update RSVP status. Please try again.</string>
 
     <string name="listing_editor_title_invalid">Title is invalid</string>

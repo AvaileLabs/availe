@@ -123,7 +123,8 @@ fun NewListing.toCreateRequestDto(): TypeV1ListingDtoCreateRequest {
             price = this.price,
             imageLinks = this.imageLinks,
             location = this.location,
-            startTime = this.startTime
+            startTime = this.startTime,
+            autoRsvp = this.autoRsvp
         )
 
         is NewListing.Item -> ListingItemDtoSchema.V1.CreateRequest(
@@ -155,7 +156,8 @@ fun TypeV1ListingDtoCreateRequest.toDomain(publisher: PublicProfile): NewListing
                 location = location
             ),
             publisher = publisher,
-            startTime = startTime
+            startTime = startTime,
+            autoRsvp = autoRsvp
         )
 
         is ListingItemDtoSchema.V1.CreateRequest -> NewListing.Item(
