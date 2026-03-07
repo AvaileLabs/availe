@@ -1,14 +1,26 @@
 package com.availelabs.availe.preferences
 
+import com.availelabs.availe.domain.model.EventFeedFilter
 import com.availelabs.availe.domain.model.ListingCategoryFilter
 import com.russhwolf.settings.Settings
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlin.jvm.JvmInline
+
+@Serializable
+data class ListingFetchConfiguration(
+    val categoryFilter: ListingCategoryFilter,
+    val eventFeedFilter: EventFeedFilter
+)
+
+@JvmInline
+value class PreferenceKey(val value: String)
 
 internal interface IListingPreferences {
-    suspend fun getLastListingsFetchTimeMilliseconds(filter: ListingCategoryFilter): Long?
-    suspend fun updateLastListingsFetchTime(timestampMilliseconds: Long, filter: ListingCategoryFilter)
+    suspend fun getLastListingsFetchTimeMilliseconds(configuration: ListingFetchConfiguration): Long?
+    suspend fun updateLastListingsFetchTime(timestampMilliseconds: Long, configuration: ListingFetchConfiguration)
     suspend fun clear()
-
-    suspend fun saveDraft(json: String)
+    suspend fun saveDraft(draftJsonString: String)
     suspend fun getDraft(): String?
     suspend fun clearDraft()
 }
@@ -17,29 +29,34 @@ internal class ListingPreferences(
     private val settings: Settings
 ) : IListingPreferences {
 
-    override suspend fun getLastListingsFetchTimeMilliseconds(filter: ListingCategoryFilter): Long? {
-        val key = generateKey(filter)
-        if (settings.hasKey(key)) {
-            return settings.getLong(key, 0L)
+    private val jsonSerializer = Json { encodeDefaults = true }
+
+    override suspend fun getLastListingsFetchTimeMilliseconds(configuration: ListingFetchConfiguration): Long? {
+        val preferenceKey = generateKey(configuration)
+        if (settings.hasKey(preferenceKey.value)) {
+            return settings.getLong(preferenceKey.value, 0L)
         }
         return null
     }
 
-    override suspend fun updateLastListingsFetchTime(timestampMilliseconds: Long, filter: ListingCategoryFilter) {
-        val key = generateKey(filter)
-        settings.putLong(key, timestampMilliseconds)
+    override suspend fun updateLastListingsFetchTime(
+        timestampMilliseconds: Long,
+        configuration: ListingFetchConfiguration
+    ) {
+        val preferenceKey = generateKey(configuration)
+        settings.putLong(preferenceKey.value, timestampMilliseconds)
     }
 
     override suspend fun clear() {
         val keysToRemove = settings.keys.filter { it.startsWith(KEY_PREFIX) }
-        keysToRemove.forEach { key ->
-            settings.remove(key)
+        keysToRemove.forEach { keyToRemove ->
+            settings.remove(keyToRemove)
         }
         clearDraft()
     }
 
-    override suspend fun saveDraft(json: String) {
-        settings.putString(KEY_DRAFT, json)
+    override suspend fun saveDraft(draftJsonString: String) {
+        settings.putString(KEY_DRAFT, draftJsonString)
     }
 
     override suspend fun getDraft(): String? {
@@ -56,12 +73,9 @@ internal class ListingPreferences(
         }
     }
 
-    private fun generateKey(filter: ListingCategoryFilter): String {
-        if (filter.isAll) {
-            return "${KEY_PREFIX}all"
-        }
-        val sortedCategories = filter.categories.map { it.name }.sorted().joinToString("_")
-        return "${KEY_PREFIX}$sortedCategories"
+    private fun generateKey(configuration: ListingFetchConfiguration): PreferenceKey {
+        val serializedConfiguration = jsonSerializer.encodeToString(configuration)
+        return PreferenceKey("${KEY_PREFIX}${serializedConfiguration}")
     }
 
     companion object {

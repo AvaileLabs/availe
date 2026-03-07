@@ -20,6 +20,8 @@ interface IListingLocalDataSource {
         eventFeedFilter: EventFeedFilter = EventFeedFilter.None
     ): Flow<List<Listing>>
 
+    fun getListingByIdStream(id: ListingId): Flow<Listing?>
+
     suspend fun getListingById(id: ListingId): Listing?
     suspend fun deleteListingById(id: ListingId)
     suspend fun deleteListings(
@@ -89,7 +91,7 @@ internal class ListingLocalDataSource(
         emitAll(
             queryFlow.map { selectListings ->
                 val currentInstant = Clock.System.now()
-                selectListings.map { it.toDomain() }.filter { listing ->
+                selectListings.map { listingEntity -> listingEntity.toDomain() }.filter { listing ->
                     if (listing !is Listing.Event) return@filter true
                     when (eventFeedFilter) {
                         EventFeedFilter.None -> true
@@ -98,6 +100,17 @@ internal class ListingLocalDataSource(
                         EventFeedFilter.Going -> listing.interactionState.isRsvped
                     }
                 }
+            }
+        )
+    }
+
+    override fun getListingByIdStream(id: ListingId): Flow<Listing?> = flow {
+        val database = databaseProvider.getDatabase()
+        val queryFlow = database.listingQueries.selectById(id).asFlow().map { query -> query.awaitAsOneOrNull() }
+
+        emitAll(
+            queryFlow.map { selectByIdResult ->
+                selectByIdResult?.toDomain()
             }
         )
     }

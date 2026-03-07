@@ -2,8 +2,6 @@
 
 package com.availelabs.availe.listingdetails
 
-import availe.client.designsystem.generated.resources.Res
-import availe.client.designsystem.generated.resources.listing_not_found
 import com.arkivanov.mvikotlin.core.store.Reducer
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
@@ -13,7 +11,6 @@ import com.availelabs.availe.domain.model.InteractionType
 import com.availelabs.availe.domain.model.Listing
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
-import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.listingdetails.ListingDetailsStore.*
 import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.repositories.IInteractionRepository
@@ -29,6 +26,7 @@ interface ListingDetailsStore : Store<Intent, State, Label> {
 
     sealed interface Intent {
         data object RetryRequested : Intent
+        data object RefreshRequested : Intent
         data object ToggleRsvp : Intent
         data object DismissLoginGuard : Intent
     }
@@ -36,6 +34,7 @@ interface ListingDetailsStore : Store<Intent, State, Label> {
     data class State(
         val listing: Listing? = null,
         val isLoading: Boolean = false,
+        val isRefreshing: Boolean = false,
         val errorMessage: UiText? = null,
         val currentUserId: UserId? = null,
         val showLoginGuard: Boolean = false
@@ -58,18 +57,20 @@ internal class ListingDetailsStoreFactory(
         object : ListingDetailsStore, Store<Intent, State, Label> by storeFactory.create(
             name = ListingDetailsStore::class.simpleName,
             initialState = State(),
-            bootstrapper = ListingDetailsBootstrapper(listingId),
+            bootstrapper = ListingDetailsBootstrapper(),
             executorFactory = { ListingDetailsExecutor() },
             reducer = ListingDetailsReducer
         ) {}
 
     private sealed interface Action {
-        data class FetchListing(val listingId: ListingId) : Action
+        data object ObserveListing : Action
+        data object FetchNetworkListing : Action
         data object FetchCurrentUser : Action
     }
 
     private sealed interface Message {
         data class SetLoading(val isLoading: Boolean) : Message
+        data class SetRefreshing(val isRefreshing: Boolean) : Message
         data class ListingLoaded(val listing: Listing) : Message
         data class SetError(val message: UiText?) : Message
         data class SetCurrentUser(val userId: UserId?) : Message
@@ -77,11 +78,10 @@ internal class ListingDetailsStoreFactory(
         data class SetShowLoginGuard(val showLoginGuard: Boolean) : Message
     }
 
-    private class ListingDetailsBootstrapper(
-        private val listingId: ListingId
-    ) : CoroutineBootstrapper<Action>() {
+    private class ListingDetailsBootstrapper : CoroutineBootstrapper<Action>() {
         override fun invoke() {
-            dispatch(Action.FetchListing(listingId))
+            dispatch(Action.ObserveListing)
+            dispatch(Action.FetchNetworkListing)
             dispatch(Action.FetchCurrentUser)
         }
     }
@@ -89,44 +89,62 @@ internal class ListingDetailsStoreFactory(
     private inner class ListingDetailsExecutor : CoroutineExecutor<Intent, Action, State, Message, Label>() {
         override fun executeAction(action: Action) {
             when (action) {
-                is Action.FetchListing -> fetchListing(action.listingId)
+                Action.ObserveListing -> observeListing()
+                Action.FetchNetworkListing -> fetchNetworkListing(isRefresh = false)
                 Action.FetchCurrentUser -> fetchCurrentUser()
             }
         }
 
         override fun executeIntent(intent: Intent) {
             when (intent) {
-                Intent.RetryRequested -> fetchListing(listingId)
+                Intent.RetryRequested -> fetchNetworkListing(isRefresh = false)
+                Intent.RefreshRequested -> fetchNetworkListing(isRefresh = true)
                 Intent.ToggleRsvp -> handleToggleRsvp()
                 Intent.DismissLoginGuard -> dispatch(Message.SetShowLoginGuard(false))
             }
         }
 
-        private fun fetchListing(id: ListingId) {
-            dispatch(Message.SetLoading(true))
+        private fun observeListing() {
+            scope.launch {
+                listingRepository.getListingByIdStream(listingId).collect { listing ->
+                    if (listing != null) {
+                        dispatch(Message.ListingLoaded(listing))
+                        dispatch(Message.SetError(null))
+                    }
+                }
+            }
+        }
+
+        private fun fetchNetworkListing(isRefresh: Boolean) {
+            if (isRefresh) {
+                dispatch(Message.SetRefreshing(true))
+            } else {
+                if (state().listing == null) {
+                    dispatch(Message.SetLoading(true))
+                }
+            }
             dispatch(Message.SetError(null))
 
             scope.launch {
-                when (val result = listingRepository.getListingById(id)) {
+                when (val result = listingRepository.fetchAndCacheListingById(listingId)) {
                     is RepositoryOperationResult.Success -> {
-                        when (val findResult = result.value) {
-                            is FindResult.Found -> {
-                                dispatch(Message.ListingLoaded(findResult.value))
-                            }
-
-                            is FindResult.NotFound -> {
-                                dispatch(Message.SetError(UiText.ResourceString(Res.string.listing_not_found)))
-                            }
-                        }
                     }
 
                     is RepositoryOperationResult.Failure -> {
-                        val uiText = ErrorMessageMapper.map(result.error)
-                        dispatch(Message.SetError(uiText))
+                        if (state().listing != null) {
+                            publish(Label.DisplayError(result.error))
+                        } else {
+                            val uiText = ErrorMessageMapper.map(result.error)
+                            dispatch(Message.SetError(uiText))
+                        }
                     }
                 }
 
-                dispatch(Message.SetLoading(false))
+                if (isRefresh) {
+                    dispatch(Message.SetRefreshing(false))
+                } else {
+                    dispatch(Message.SetLoading(false))
+                }
             }
         }
 
@@ -160,7 +178,6 @@ internal class ListingDetailsStoreFactory(
 
                 when (result) {
                     is RepositoryOperationResult.Success -> {
-                        dispatch(Message.ListingLoaded(result.value))
                     }
 
                     is RepositoryOperationResult.Failure -> {
@@ -176,6 +193,7 @@ internal class ListingDetailsStoreFactory(
         override fun State.reduce(msg: Message): State =
             when (msg) {
                 is Message.SetLoading -> copy(isLoading = msg.isLoading)
+                is Message.SetRefreshing -> copy(isRefreshing = msg.isRefreshing)
                 is Message.ListingLoaded -> copy(listing = msg.listing)
                 is Message.SetError -> copy(errorMessage = msg.message)
                 is Message.SetCurrentUser -> copy(currentUserId = msg.userId)

@@ -114,16 +114,16 @@ class HomeComponent(
             for (feedType in allFeedTypes) {
                 val currentPages = pages.value
                 val activeIndex = currentPages.selectedIndex
-                val activeConfig = currentPages.items[activeIndex].configuration
+                val activeConfiguration = currentPages.items[activeIndex].configuration
 
-                if (activeConfig is HomeConfiguration.Feed && activeConfig.feedType == feedType) {
+                if (activeConfiguration is HomeConfiguration.Feed && activeConfiguration.feedType == feedType) {
                     continue
                 }
 
                 try {
                     val filter = feedType.toListingCategoryFilter()
                     val eventFeedFilter = feedType.toEventFeedFilter()
-                    if (listingRepository.isListingCacheStale(filter)) {
+                    if (listingRepository.isListingCacheStale(filter, eventFeedFilter)) {
                         listingRepository.prefetchListings(
                             page = 0,
                             size = 20,

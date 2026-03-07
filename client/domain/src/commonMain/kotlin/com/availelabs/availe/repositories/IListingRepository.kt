@@ -2,7 +2,6 @@ package com.availelabs.availe.repositories
 
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.DeleteResult
-import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
@@ -23,6 +22,8 @@ interface IListingRepository {
         eventFeedFilter: EventFeedFilter = EventFeedFilter.None
     ): Flow<DataStream<List<Listing>>>
 
+    fun getListingByIdStream(id: ListingId): Flow<Listing?>
+
     suspend fun prefetchListings(
         page: Int,
         size: Int,
@@ -31,7 +32,7 @@ interface IListingRepository {
         eventFeedFilter: EventFeedFilter = EventFeedFilter.None
     )
 
-    suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>>
+    suspend fun fetchAndCacheListingById(id: ListingId): RepositoryOperationResult<Unit>
     suspend fun existsById(id: ListingId): RepositoryOperationResult<Boolean>
     suspend fun createListing(newListing: NewListing): RepositoryOperationResult<InsertResult<Listing>>
     suspend fun updateListing(
@@ -40,7 +41,10 @@ interface IListingRepository {
     ): RepositoryOperationResult<UpdateResult<Listing>>
 
     suspend fun deleteListing(id: ListingId): RepositoryOperationResult<DeleteResult>
-    suspend fun isListingCacheStale(filter: ListingCategoryFilter = ListingCategoryFilter.All): Boolean
+    suspend fun isListingCacheStale(
+        filter: ListingCategoryFilter = ListingCategoryFilter.All,
+        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
+    ): Boolean
 
     suspend fun saveDraft(draft: ListingDraft)
     suspend fun getDraft(): ListingDraft?

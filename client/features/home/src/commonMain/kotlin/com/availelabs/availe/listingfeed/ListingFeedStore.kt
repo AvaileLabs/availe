@@ -17,6 +17,7 @@ import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.UiText
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
@@ -125,6 +126,7 @@ internal class ListingFeedStoreFactory(
 
     private inner class ListingFeedExecutor : CoroutineExecutor<Intent, Action, State, Message, Label>() {
         private val pageSize = 20
+        private var activeFetchJob: Job? = null
 
         override fun executeAction(action: Action) {
             when (action) {
@@ -181,7 +183,9 @@ internal class ListingFeedStoreFactory(
             val startTimeMilliseconds = System.now().toEpochMilliseconds()
             val minimumRefreshDurationMilliseconds = 375L
 
-            scope.launch {
+            activeFetchJob?.cancel()
+
+            activeFetchJob = scope.launch {
                 val forceRefresh = trigger == FetchTrigger.UserPullToRefresh || trigger == FetchTrigger.DataChanged
 
                 listingRepository.getListingsPageStream(
@@ -245,8 +249,16 @@ internal class ListingFeedStoreFactory(
         private fun observeAuthentication() {
             scope.launch {
                 sessionManager.authenticationState.collectLatest { authenticationState ->
+                    val wasAuthenticated = state().isAuthenticated
                     when (authenticationState) {
-                        is AuthenticationState.LoggedIn -> dispatch(Message.SetAuthenticated(true))
+                        is AuthenticationState.LoggedIn -> {
+                            dispatch(Message.SetAuthenticated(true))
+                            if (!wasAuthenticated) {
+                                dispatch(Message.ResetState)
+                                fetchListingsPage(0, FetchTrigger.DataChanged)
+                            }
+                        }
+
                         is AuthenticationState.LoggedOut,
                         is AuthenticationState.SessionExpired,
                         is AuthenticationState.InitializationFailed -> dispatch(Message.SetAuthenticated(false))
@@ -297,15 +309,25 @@ internal class ListingFeedStoreFactory(
                     hasLoadedSuccessfully = true
                 )
 
-                is Message.AppendListings -> copy(
-                    listingUiModels = listingUiModels + msg.listingUiModels,
-                    currentPage = msg.page,
-                    isLoading = false,
-                    isRefreshing = false,
-                    isSyncing = false,
-                    paginationError = null,
-                    hasLoadedSuccessfully = true
-                )
+                is Message.AppendListings -> {
+                    val incomingMap = msg.listingUiModels.associateBy { it.id }
+                    val existingIds = listingUiModels.map { it.id }.toSet()
+
+                    val updatedExisting = listingUiModels.map { oldModel ->
+                        incomingMap[oldModel.id] ?: oldModel
+                    }
+                    val newItems = msg.listingUiModels.filterNot { existingIds.contains(it.id) }
+
+                    copy(
+                        listingUiModels = updatedExisting + newItems,
+                        currentPage = msg.page,
+                        isLoading = false,
+                        isRefreshing = false,
+                        isSyncing = false,
+                        paginationError = null,
+                        hasLoadedSuccessfully = true
+                    )
+                }
 
                 is Message.SetInlineError -> copy(
                     inlineError = msg.message,

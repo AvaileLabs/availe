@@ -2,6 +2,10 @@
 
 package com.availelabs.availe.listingdetails
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -10,9 +14,13 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -20,20 +28,24 @@ import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.*
 import coil3.compose.AsyncImage
 import com.availelabs.availe.domain.extensions.canBeModifiedBy
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.extensions.toDisplayString
+import com.availelabs.availe.ui.RefreshStateHolder
 import com.availelabs.availe.ui.components.TimeFormat
 import com.availelabs.availe.ui.components.dialogs.LoginGuardModal
 import com.availelabs.availe.ui.components.formatEventTime
 import com.availelabs.availe.ui.model.asString
+import com.availelabs.availe.ui.modifiers.refreshTrigger
 import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
 import com.composeunstyled.Text
+import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.absoluteValue
@@ -44,19 +56,26 @@ fun ListingDetailsScreen(
     listingDetailsComponent: IListingDetailsComponent
 ) {
     val state by listingDetailsComponent.state.collectAsState()
+    val refreshState = remember { RefreshStateHolder() }
 
     AppScaffold {
         Box(
-            modifier = Modifier.fillMaxSize().background(Theme[colors][background])
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Theme[colors][background])
+                .refreshTrigger(
+                    state = refreshState,
+                    onRefresh = { listingDetailsComponent.onIntent(ListingDetailsStore.Intent.RefreshRequested) }
+                )
         ) {
-            if (state.isLoading) {
+            if (state.isLoading && state.listing == null) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     IntermediateProgressIndicator()
                 }
-            } else if (state.errorMessage != null) {
+            } else if (state.errorMessage != null && state.listing == null) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -86,6 +105,12 @@ fun ListingDetailsScreen(
                     onToggleRsvpClicked = { listingDetailsComponent.onToggleRsvpClicked() }
                 )
             }
+
+            PullToRefreshIndicator(
+                isRefreshing = state.isRefreshing,
+                pullProgress = refreshState.pullProgress,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
 
             if (state.showLoginGuard) {
                 LoginGuardModal(
@@ -670,6 +695,56 @@ private fun Section(sectionTitle: String, content: @Composable () -> Unit) {
         SelectionContainer {
             Column {
                 content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun PullToRefreshIndicator(
+    isRefreshing: Boolean,
+    pullProgress: Float,
+    modifier: Modifier = Modifier
+) {
+    val showIndicator = isRefreshing || pullProgress > 0f
+
+    AnimatedVisibility(
+        visible = showIndicator,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = modifier
+    ) {
+        val yOffset = if (isRefreshing) 16.dp else (pullProgress * 48).dp
+
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(0, yOffset.roundToPx()) }
+                .shadow(4.dp, CircleShape)
+                .background(Theme[colors][card], CircleShape)
+                .outline(1.dp, Theme[colors][outline], CircleShape)
+                .padding(8.dp)
+                .size(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isRefreshing) {
+                IntermediateProgressIndicator(
+                    modifier = Modifier.size(20.dp)
+                )
+            } else {
+                val rotation by animateFloatAsState(targetValue = pullProgress * 180f)
+                val scale by animateFloatAsState(targetValue = pullProgress.coerceIn(0f, 1f))
+
+                Box(
+                    modifier = Modifier
+                        .rotate(rotation)
+                        .scale(scale)
+                ) {
+                    Icon(
+                        imageVector = Lucide.ArrowDown,
+                        contentDescription = stringResource(Res.string.accessibility_pull_to_refresh),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }

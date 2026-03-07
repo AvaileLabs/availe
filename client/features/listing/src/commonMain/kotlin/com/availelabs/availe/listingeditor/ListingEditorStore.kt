@@ -6,18 +6,14 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.*
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.ListingCategory
-import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.PublicProfile
-import com.availelabs.availe.domain.model.UserDisplayName
-import com.availelabs.availe.domain.types.FindResult
+import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.types.RepositoryOperationResult
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 interface IListingEditorStore : Store<ListingEditorIntent, ListingEditorState, ListingEditorLabel>
@@ -58,17 +54,17 @@ internal class ListingEditorStoreFactory(
         override fun invoke() {
             if (listingId != null) {
                 scope.launch {
-                    when (val result = listingRepository.getListingById(listingId)) {
-                        is RepositoryOperationResult.Success -> {
-                            if (result.value is FindResult.Found) {
-                                val listing = (result.value as FindResult.Found).value
-                                dispatch(Action.PopulateListing(listing))
-                            }
-                        }
+                    var listing = listingRepository.getListingByIdStream(listingId).firstOrNull()
 
-                        is RepositoryOperationResult.Failure -> {
-
+                    if (listing == null) {
+                        val fetchResult = listingRepository.fetchAndCacheListingById(listingId)
+                        if (fetchResult is RepositoryOperationResult.Success) {
+                            listing = listingRepository.getListingByIdStream(listingId).firstOrNull()
                         }
+                    }
+
+                    if (listing != null) {
+                        dispatch(Action.PopulateListing(listing))
                     }
                 }
             } else {

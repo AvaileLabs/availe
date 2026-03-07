@@ -9,9 +9,11 @@ import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
 import com.availelabs.availe.extensions.toAppError
 import com.availelabs.availe.model.DataStream
 import com.availelabs.availe.model.ListingDraft
+import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.network.ISafeNetworkCaller
 import com.availelabs.availe.network.toAppError
 import com.availelabs.availe.preferences.IListingPreferences
+import com.availelabs.availe.preferences.ListingFetchConfiguration
 import com.availelabs.availe.repositories.model.ListingStoreKey
 import com.availelabs.availe.repositories.store.ListingStoreFactory
 import com.availelabs.availe.sources.local.IListingLocalDataSource
@@ -39,7 +41,7 @@ internal class ListingRepository(
     private val store = storeFactory.create()
     private val _updates = MutableSharedFlow<Unit>()
     override val updates: Flow<Unit> = _updates.asSharedFlow()
-    private val json = Json { ignoreUnknownKeys = true }
+    private val jsonSerializer = Json { ignoreUnknownKeys = true }
 
     override fun getListingsPageStream(
         page: Int,
@@ -51,38 +53,45 @@ internal class ListingRepository(
     ): Flow<DataStream<List<Listing>>> = flow {
         emit(DataStream.Loading)
 
-        val shouldRefresh = if (forceRefresh) true else isListingCacheStale(filter)
-        val key = ListingStoreKey(page, size, publisherId, filter, eventFeedFilter)
+        val shouldRefresh = if (forceRefresh) true else isListingCacheStale(filter, eventFeedFilter)
+        val listingStoreKey = ListingStoreKey(page, size, publisherId, filter, eventFeedFilter)
+        val fetchConfiguration = ListingFetchConfiguration(filter, eventFeedFilter)
 
-        val request = if (shouldRefresh) {
-            StoreReadRequest.cached(key, refresh = true)
+        val storeReadRequest = if (shouldRefresh) {
+            StoreReadRequest.cached(listingStoreKey, refresh = true)
         } else {
-            StoreReadRequest.cached(key, refresh = false)
+            StoreReadRequest.cached(listingStoreKey, refresh = false)
         }
 
-        var lastData: List<Listing>? = null
+        var lastLoadedData: List<Listing>? = null
 
-        val stream = store.stream(request)
-            .transform { response ->
-                if (response.origin is StoreReadResponseOrigin.Fetcher && response is StoreReadResponse.Data) {
+        val dataStream = store.stream(storeReadRequest)
+            .filterNot { storeReadResponse ->
+                shouldRefresh &&
+                        storeReadResponse is StoreReadResponse.Data &&
+                        storeReadResponse.origin is StoreReadResponseOrigin.SourceOfTruth &&
+                        storeReadResponse.value.isEmpty()
+            }
+            .transform { storeReadResponse ->
+                if (storeReadResponse.origin is StoreReadResponseOrigin.Fetcher && storeReadResponse is StoreReadResponse.Data) {
                     try {
                         listingPreferences.updateLastListingsFetchTime(
                             timestampMilliseconds = Clock.System.now().toEpochMilliseconds(),
-                            filter = key.filter
+                            configuration = fetchConfiguration
                         )
                     } catch (_: Exception) {
                     }
                 }
 
-                when (response) {
+                when (storeReadResponse) {
                     is StoreReadResponse.Data -> {
-                        val data = response.requireData()
-                        lastData = data
-                        emit(DataStream.Data(data))
+                        val responseData = storeReadResponse.requireData()
+                        lastLoadedData = responseData
+                        emit(DataStream.Data(responseData))
                     }
 
                     is StoreReadResponse.Error -> {
-                        emit(DataStream.Error(response.toAppError()))
+                        emit(DataStream.Error(storeReadResponse.toAppError()))
                     }
 
                     is StoreReadResponse.Loading -> {
@@ -90,8 +99,8 @@ internal class ListingRepository(
                     }
 
                     is StoreReadResponse.NoNewData -> {
-                        if (lastData != null) {
-                            emit(DataStream.Data(lastData))
+                        if (lastLoadedData != null) {
+                            emit(DataStream.Data(lastLoadedData!!))
                         }
                     }
 
@@ -103,7 +112,11 @@ internal class ListingRepository(
                 emit(DataStream.Error(exception.toAppError()))
             }
 
-        emitAll(stream)
+        emitAll(dataStream)
+    }
+
+    override fun getListingByIdStream(id: ListingId): Flow<Listing?> {
+        return localDataSource.getListingByIdStream(id)
     }
 
     override suspend fun prefetchListings(
@@ -113,30 +126,54 @@ internal class ListingRepository(
         filter: ListingCategoryFilter,
         eventFeedFilter: EventFeedFilter
     ) {
-        val key = ListingStoreKey(page, size, publisherId, filter, eventFeedFilter)
+        val listingStoreKey = ListingStoreKey(page, size, publisherId, filter, eventFeedFilter)
+        val fetchConfiguration = ListingFetchConfiguration(filter, eventFeedFilter)
         try {
-            store.fresh(key)
+            store.fresh(listingStoreKey)
             listingPreferences.updateLastListingsFetchTime(
                 timestampMilliseconds = Clock.System.now().toEpochMilliseconds(),
-                filter = filter
+                configuration = fetchConfiguration
             )
         } catch (_: Exception) {
         }
     }
 
-    override suspend fun getListingById(id: ListingId): RepositoryOperationResult<FindResult<Listing>> {
-        return safeNetworkCaller.execute {
+    override suspend fun fetchAndCacheListingById(id: ListingId): RepositoryOperationResult<Unit> {
+        val networkResult = safeNetworkCaller.execute {
             remoteDataSource.getListingById(id)
+        }
+
+        return when (networkResult) {
+            is RepositoryOperationResult.Success -> {
+                when (val findResult = networkResult.value) {
+                    is FindResult.Found -> {
+                        try {
+                            localDataSource.upsertListing(findResult.value)
+                            RepositoryOperationResult.Success(Unit)
+                        } catch (exception: Exception) {
+                            RepositoryOperationResult.Failure(AppError.UnknownError(exception.message))
+                        }
+                    }
+
+                    is FindResult.NotFound -> {
+                        RepositoryOperationResult.Failure(AppError.BusinessError.ResourceNotFound)
+                    }
+                }
+            }
+
+            is RepositoryOperationResult.Failure -> {
+                RepositoryOperationResult.Failure(networkResult.error)
+            }
         }
     }
 
     override suspend fun createListing(newListing: NewListing): RepositoryOperationResult<InsertResult<Listing>> {
-        val result = safeNetworkCaller.execute {
+        val networkResult = safeNetworkCaller.execute {
             remoteDataSource.createListing(newListing)
         }
 
-        if (result is RepositoryOperationResult.Success) {
-            val insertResult = result.value
+        if (networkResult is RepositoryOperationResult.Success) {
+            val insertResult = networkResult.value
             if (insertResult is InsertResult.Inserted) {
                 try {
                     localDataSource.upsertListing(insertResult.value)
@@ -148,7 +185,7 @@ internal class ListingRepository(
             }
         }
 
-        return result
+        return networkResult
     }
 
     override suspend fun existsById(id: ListingId): RepositoryOperationResult<Boolean> {
@@ -161,12 +198,12 @@ internal class ListingRepository(
         id: ListingId,
         patch: TypeV1ListingDtoPatchRequest
     ): RepositoryOperationResult<UpdateResult<Listing>> {
-        val result = safeNetworkCaller.execute {
+        val networkResult = safeNetworkCaller.execute {
             remoteDataSource.updateListing(id, patch)
         }
 
-        if (result is RepositoryOperationResult.Success) {
-            val updateResult = result.value
+        if (networkResult is RepositoryOperationResult.Success) {
+            val updateResult = networkResult.value
             if (updateResult is UpdateResult.Updated) {
                 try {
                     localDataSource.upsertListing(updateResult.value)
@@ -178,15 +215,15 @@ internal class ListingRepository(
             }
         }
 
-        return result
+        return networkResult
     }
 
     override suspend fun deleteListing(id: ListingId): RepositoryOperationResult<DeleteResult> {
-        val result = safeNetworkCaller.execute {
+        val networkResult = safeNetworkCaller.execute {
             remoteDataSource.deleteListing(id)
         }
 
-        if (result is RepositoryOperationResult.Success && result.value is DeleteResult.Deleted) {
+        if (networkResult is RepositoryOperationResult.Success && networkResult.value is DeleteResult.Deleted) {
             try {
                 localDataSource.deleteListingById(id)
                 store.clear()
@@ -195,17 +232,18 @@ internal class ListingRepository(
             }
         }
 
-        return result
+        return networkResult
     }
 
-    override suspend fun isListingCacheStale(filter: ListingCategoryFilter): Boolean {
+    override suspend fun isListingCacheStale(filter: ListingCategoryFilter, eventFeedFilter: EventFeedFilter): Boolean {
         return try {
             if (localDataSource.isListingDatabaseEmpty()) {
                 return true
             }
 
+            val fetchConfiguration = ListingFetchConfiguration(filter, eventFeedFilter)
             val lastFetchTimeMilliseconds =
-                listingPreferences.getLastListingsFetchTimeMilliseconds(filter) ?: return true
+                listingPreferences.getLastListingsFetchTimeMilliseconds(fetchConfiguration) ?: return true
 
             val currentTimestampMilliseconds = Clock.System.now().toEpochMilliseconds()
             val stalenessThresholdMilliseconds = 15 * 60 * 1000
@@ -218,17 +256,16 @@ internal class ListingRepository(
 
     override suspend fun saveDraft(draft: ListingDraft) {
         try {
-            val jsonString = json.encodeToString(draft)
-            listingPreferences.saveDraft(jsonString)
+            val draftJsonString = jsonSerializer.encodeToString(draft)
+            listingPreferences.saveDraft(draftJsonString)
         } catch (_: Exception) {
-            // Ignore persistence errors for drafts
         }
     }
 
     override suspend fun getDraft(): ListingDraft? {
         return try {
-            val jsonString = listingPreferences.getDraft() ?: return null
-            json.decodeFromString<ListingDraft>(jsonString)
+            val draftJsonString = listingPreferences.getDraft() ?: return null
+            jsonSerializer.decodeFromString<ListingDraft>(draftJsonString)
         } catch (_: Exception) {
             null
         }
@@ -238,7 +275,6 @@ internal class ListingRepository(
         try {
             listingPreferences.clearDraft()
         } catch (_: Exception) {
-            // Ignore persistence errors
         }
     }
 }
