@@ -87,7 +87,6 @@ internal class ListingFeedStoreFactory(
         data object ObserveExternalUpdates : Action
         data object ExternalUpdateReceived : Action
         data object DataPurged : Action
-        data object LoadInitialPage : Action
     }
 
     private sealed interface Message {
@@ -120,7 +119,6 @@ internal class ListingFeedStoreFactory(
             dispatch(Action.ObserveAuthentication)
             dispatch(Action.ObserveSessionInvalidation)
             dispatch(Action.ObserveExternalUpdates)
-            dispatch(Action.LoadInitialPage)
         }
     }
 
@@ -160,7 +158,6 @@ internal class ListingFeedStoreFactory(
                 Action.ObserveExternalUpdates -> observeExternalUpdates()
                 Action.ExternalUpdateReceived -> fetchListingsPage(0, FetchTrigger.DataChanged)
                 Action.DataPurged -> dispatch(Message.ResetState)
-                Action.LoadInitialPage -> fetchListingsPage(0, FetchTrigger.InitialLoad)
             }
         }
 
@@ -235,12 +232,12 @@ internal class ListingFeedStoreFactory(
             trigger: FetchTrigger,
             currentListingUiModels: List<ListingUiModel>
         ): LoadingIndicator {
-            return if (trigger == FetchTrigger.LoadMore) {
+            return if (currentListingUiModels.isEmpty()) {
+                LoadingIndicator.Fullscreen
+            } else if (trigger == FetchTrigger.LoadMore) {
                 LoadingIndicator.Pagination
             } else if (trigger == FetchTrigger.DataChanged) {
                 LoadingIndicator.Linear
-            } else if (currentListingUiModels.isEmpty()) {
-                LoadingIndicator.Fullscreen
             } else {
                 LoadingIndicator.Overlay
             }
@@ -248,12 +245,22 @@ internal class ListingFeedStoreFactory(
 
         private fun observeAuthentication() {
             scope.launch {
+                var isInitialStateResolved = false
+
                 sessionManager.authenticationState.collectLatest { authenticationState ->
+                    if (authenticationState == AuthenticationState.Unknown) {
+                        return@collectLatest
+                    }
+
                     val wasAuthenticated = state().isAuthenticated
+
                     when (authenticationState) {
                         is AuthenticationState.LoggedIn -> {
                             dispatch(Message.SetAuthenticated(true))
-                            if (!wasAuthenticated) {
+                            if (!isInitialStateResolved) {
+                                isInitialStateResolved = true
+                                fetchListingsPage(0, FetchTrigger.InitialLoad)
+                            } else if (!wasAuthenticated) {
                                 dispatch(Message.ResetState)
                                 fetchListingsPage(0, FetchTrigger.DataChanged)
                             }
@@ -261,7 +268,16 @@ internal class ListingFeedStoreFactory(
 
                         is AuthenticationState.LoggedOut,
                         is AuthenticationState.SessionExpired,
-                        is AuthenticationState.InitializationFailed -> dispatch(Message.SetAuthenticated(false))
+                        is AuthenticationState.InitializationFailed -> {
+                            dispatch(Message.SetAuthenticated(false))
+                            if (!isInitialStateResolved) {
+                                isInitialStateResolved = true
+                                fetchListingsPage(0, FetchTrigger.InitialLoad)
+                            } else if (wasAuthenticated) {
+                                dispatch(Message.ResetState)
+                                fetchListingsPage(0, FetchTrigger.DataChanged)
+                            }
+                        }
 
                         AuthenticationState.Unknown -> {}
                     }

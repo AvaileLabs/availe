@@ -1,7 +1,7 @@
 package com.availelabs.availe.listingfeed
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -112,16 +113,44 @@ fun ListingFeedScreen(
                 )
 
                 if (state.isSyncing) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp)
-                            .background(Theme[colors][primary])
-                            .align(Alignment.TopCenter)
+                    AnimatedLinearProgressIndicator(
+                        modifier = Modifier.align(Alignment.TopCenter)
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AnimatedLinearProgressIndicator(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition()
+    val translation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(3.dp)
+            .clipToBounds()
+    ) {
+        val barWidth = maxWidth * 0.4f
+        val maxOffset = maxWidth + barWidth
+        val currentOffset = (maxOffset * translation) - barWidth
+
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(barWidth)
+                .offset(x = currentOffset)
+                .background(Theme[colors][primary])
+        )
     }
 }
 

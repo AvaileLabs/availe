@@ -84,10 +84,12 @@ class HomeComponent(
         val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
         lifecycle.doOnDestroy { scope.cancel() }
 
-        runStructuredPrefetching(scope)
-
         scope.launch {
             sessionManager.authenticationState.collect { authenticationState ->
+                if (authenticationState == AuthenticationState.Unknown) {
+                    return@collect
+                }
+
                 if (authenticationState is AuthenticationState.LoggedIn) {
                     _actions.value = listOf(
                         AppBarAction(
@@ -99,6 +101,8 @@ class HomeComponent(
                 } else {
                     _actions.value = emptyList()
                 }
+
+                runStructuredPrefetching(scope)
             }
         }
     }
