@@ -54,10 +54,23 @@
 
 **Architectural Rules**
 
+* **Single Source of Truth (SSOT) Architecture**:
+    * The local database is the absolute Single Source of Truth.
+    * The Presentation Layer (UI/MVI Stores) must **never** consume network responses directly.
+    * Network requests must act purely as fetchers that upsert data into the local database.
+    * The UI must strictly observe reactive streams (`Flow`) emitted directly from the local database. This guarantees
+      that background syncs, optimistic updates, and manual refreshes automatically propagate to all screens
+      simultaneously without manual state synchronization.
 * **Dependency Flow**: Dependencies must flow downwards. `App Shell` -> `Features` -> `Session` / `UI Components` ->
   `Design System` / `Domain`.
 * **Feature Isolation**: Feature modules must not depend on each other directly. They interact via shared `Domain`
   models or by defining Navigation Interfaces that the `App Shell` implements.
+* **Auth-Aware Initialization (Preventing Race Conditions)**:
+    * Feature Stores and Components must never fire initial network requests blindly upon initialization.
+    * Network fetch triggers must be strictly gated behind the `AuthenticationState`. The system must wait for the
+      global session state to resolve to a definitive state (`LoggedIn` or `LoggedOut`, strictly ignoring `Unknown` or
+      uninitialized states) before firing the initial load. This ensures the backend always receives the correct
+      authorization context.
 * **The Thin Screen Rule (Feature Implementation)**:
     * Feature Screens must act primarily as **Layout Orchestrators** and Glue code.
     * Complex UI elements (e.g., `MessageBubble`, `ContactRow`) that rely on Domain Models must be extracted to
@@ -94,16 +107,24 @@
 * **UI Separation**:
     * `designSystem` must remain pure and never import `domain`.
     * `uiComponents` is the designated place for UI code that requires `domain` models.
-* **Reactive Flow**:
+* **Reactive Flow & Premature Emission Suppression**:
     * **Repositories (Data/Domain)** must return `StateFlow<T>` or `Flow<T>`.
     * **Components (Presentation)** must convert these Flows to `Value<T>` using `asValue(lifecycle)` for UI
       consumption.
+    * **Flicker Prevention**: The Data Layer must actively curate its reactive streams to protect the UI from
+      false-positive empty states. When performing a forced network refresh on an empty local cache (e.g., via Store5),
+      the Repository must intercept and suppress the initial empty emission from the local database. The stream should
+      hold the `Loading` state until the network either delivers real data or explicitly confirms the remote source is
+      empty (see `ListingRepository.kt` `filterNot` implementation).
 * **Lifecycle Management**: Feature Components are responsible for managing their own coroutine scopes and lifecycles
   via Essenty/Decompose.
-* **Structured Concurrency**:
+* **Structured Concurrency & Collector Management**:
     * Background tasks (e.g., prefetching) must be launched within a `CoroutineScope` tied to the Component's lifecycle.
     * Use sequential execution for background queues to avoid overloading the system, while prioritizing active user
       actions.
+    * **MVI Store Collector Management**: When a Store dynamically switches its active data stream (e.g., changing
+      pagination pages or applying a new filter), the previous collector `Job` must be explicitly canceled before the
+      new one is launched to prevent memory leaks and UI state thrashing.
 
 **Interaction & UX Standards**
 
@@ -159,5 +180,11 @@
     * Use sealed interfaces to enforce type safety and prevent invalid states.
     * Always use value classes whenever possible to improve type safety.
     * Reference `shared/logic/src/commonMain/kotlin/com/availelabs/availe/domain/model/ValueObjects.kt` for definitions.
+    * **Type-Safe Persistence & Cache Keys (The Boundary Transformation Pattern)**: Never use manual string
+      concatenation to build keys for local storage, preferences, or cache invalidation. Instead, define a strict
+      `Configuration` data class that encapsulates all query parameters (e.g., Categories, Filters). Serialize this data
+      class to JSON to guarantee deterministic string generation immune to delimiter collisions, and wrap the output in
+      a heavily typed Value Class (e.g., `value class PreferenceKey(val value: String)`). See `ListingPreferences.kt`
+      and `ListingFetchConfiguration` for reference.
 * **Sharing Code**: Code should only be placed in `:shared` directories if it is genuinely shared between the Client and
   the Server.
