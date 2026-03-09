@@ -42,14 +42,14 @@ interface ListingFeedStore : Store<Intent, State, Label> {
     }
 
     data class State(
-        val databaseState: DatabaseState<ListingUiModel> = DatabaseState.Uninitialized,
-        val networkSyncState: NetworkSyncState = NetworkSyncState.Idle,
-        val paginationState: PaginationState = PaginationState.Available,
+        override val databaseState: DatabaseState<ListingUiModel> = DatabaseState.Uninitialized,
+        override val networkSyncState: NetworkSyncState = NetworkSyncState.Idle,
+        override val paginationState: PaginationState = PaginationState.Available,
         val paginationError: UiText? = null,
         val isAuthenticated: Boolean = false,
         val currentLimit: Long = 20L,
         val networkPage: Int = 0
-    )
+    ) : IFeedUiState<ListingUiModel>
 
     sealed interface Label {
         data class NavigateToListingDetails(val listingId: ListingId) : Label
@@ -124,7 +124,7 @@ internal class ListingFeedStoreFactory(
                 is Intent.ListingClicked -> publish(Label.NavigateToListingDetails(intent.listingId))
                 Intent.LoadNextPage -> {
                     val currentState = state()
-                    if (currentState.paginationState is PaginationState.Available && currentState.networkSyncState is NetworkSyncState.Idle && currentState.paginationError == null) {
+                    if (currentState.canLoadMore) {
                         val newLimit = currentState.currentLimit + 20L
                         val nextPage = currentState.networkPage + 1
                         dispatch(Message.SetCurrentLimit(newLimit))
@@ -185,7 +185,7 @@ internal class ListingFeedStoreFactory(
 
                         if (trigger is SyncTrigger.Pagination) {
                             dispatch(Message.SetPaginationError(uiText))
-                        } else if (state().databaseState is DatabaseState.Populated) {
+                        } else if (state().showListings) {
                             publish(Label.DisplayError(result.error))
                         }
                     }

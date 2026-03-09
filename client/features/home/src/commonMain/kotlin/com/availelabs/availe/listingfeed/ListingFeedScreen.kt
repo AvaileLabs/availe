@@ -24,7 +24,7 @@ import com.availelabs.availe.ui.RefreshStateHolder
 import com.availelabs.availe.ui.components.*
 import com.availelabs.availe.ui.layout.WindowSizeClass
 import com.availelabs.availe.ui.layout.rememberWindowSize
-import com.availelabs.availe.ui.model.*
+import com.availelabs.availe.ui.model.asString
 import com.availelabs.availe.ui.modifiers.refreshTrigger
 import com.availelabs.availe.ui.util.InfiniteGridHandler
 import com.availelabs.availe.ui.util.InfiniteListHandler
@@ -45,14 +45,6 @@ fun ListingFeedScreen(
     val state by component.state.subscribeAsState()
     val refreshState = remember { RefreshStateHolder() }
     val windowSize = rememberWindowSize()
-
-    val currentNetworkSyncState = state.networkSyncState
-    val currentDatabaseState = state.databaseState
-
-    val isRefreshing =
-        currentNetworkSyncState is NetworkSyncState.Active && currentNetworkSyncState.trigger == SyncTrigger.PullToRefresh
-    val isSyncing =
-        currentDatabaseState is DatabaseState.Populated && currentNetworkSyncState is NetworkSyncState.Active && (currentNetworkSyncState.trigger == SyncTrigger.InitialLoad || currentNetworkSyncState.trigger == SyncTrigger.BackgroundUpdate)
 
     WithTouchSlop(touchSlop = 8.dp) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -100,12 +92,12 @@ fun ListingFeedScreen(
                 }
 
                 PullToRefreshIndicator(
-                    isRefreshing = isRefreshing,
+                    isRefreshing = state.isRefreshing,
                     pullProgress = refreshState.pullProgress,
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
 
-                if (isSyncing) {
+                if (state.isTopSyncing) {
                     LinearSyncIndicator(
                         modifier = Modifier.align(Alignment.TopCenter)
                     )
@@ -128,7 +120,7 @@ private fun DesktopGridLayout(
 
     InfiniteGridHandler(
         gridState = gridState,
-        enabled = state.paginationState is PaginationState.Available && state.networkSyncState is NetworkSyncState.Idle,
+        enabled = state.canLoadMore,
         onLoadMore = onLoadNextPage
     )
 
@@ -142,68 +134,54 @@ private fun DesktopGridLayout(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
     ) {
-        when (val databaseState = state.databaseState) {
-            is DatabaseState.Uninitialized -> {
+        if (state.showCenterSpinner) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(400.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    IntermediateProgressIndicator()
+                }
+            }
+        }
+
+        if (state.showEmptyState) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                EmptyState(onRefresh = onRefresh)
+            }
+        }
+
+        if (state.showInlineError) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                ErrorState(error = state.inlineErrorMessage?.asString() ?: "", onRetry = onRefresh)
+            }
+        }
+
+        if (state.showListings) {
+            items(state.listings, key = { it.id.value }) { listingUiModel ->
+                ListingItem(
+                    listingUiModel = listingUiModel,
+                    onListingClick = onListingClick
+                )
             }
 
-            is DatabaseState.Empty -> {
-                when (val networkSyncState = state.networkSyncState) {
-                    is NetworkSyncState.Active -> {
-                        if (networkSyncState.trigger == SyncTrigger.InitialLoad) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().height(400.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    IntermediateProgressIndicator()
-                                }
-                            }
-                        } else {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                EmptyState(onRefresh = onRefresh)
-                            }
-                        }
-                    }
-
-                    is NetworkSyncState.Error -> {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            ErrorState(error = networkSyncState.error.asString(), onRetry = onRefresh)
-                        }
-                    }
-
-                    is NetworkSyncState.Idle -> {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            EmptyState(onRefresh = onRefresh)
-                        }
+            if (state.showPaginationSpinner) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IntermediateProgressIndicator()
                     }
                 }
             }
 
-            is DatabaseState.Populated -> {
-                items(databaseState.items, key = { it.id.value }) { listingUiModel ->
-                    ListingItem(
-                        listingUiModel = listingUiModel,
-                        onListingClick = onListingClick
+            if (state.showPaginationError) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    PaginationErrorFooter(
+                        error = state.paginationError?.asString() ?: "",
+                        onRetry = onLoadNextPage
                     )
-                }
-
-                val networkSyncState = state.networkSyncState
-                if (networkSyncState is NetworkSyncState.Active && networkSyncState.trigger == SyncTrigger.Pagination) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            IntermediateProgressIndicator()
-                        }
-                    }
-                } else if (networkSyncState is NetworkSyncState.Error && networkSyncState.trigger == SyncTrigger.Pagination) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        PaginationErrorFooter(
-                            error = networkSyncState.error.asString(),
-                            onRetry = onLoadNextPage
-                        )
-                    }
                 }
             }
         }
@@ -222,7 +200,7 @@ private fun MobileListLayout(
 
     InfiniteListHandler(
         listState = listState,
-        enabled = state.paginationState is PaginationState.Available && state.networkSyncState is NetworkSyncState.Idle,
+        enabled = state.canLoadMore,
         onLoadMore = onLoadNextPage
     )
 
@@ -231,78 +209,61 @@ private fun MobileListLayout(
         state = listState,
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
-        when (val databaseState = state.databaseState) {
-            is DatabaseState.Uninitialized -> {
+        if (state.showCenterSpinner) {
+            item {
+                Box(
+                    modifier = Modifier.fillParentMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    IntermediateProgressIndicator()
+                }
+            }
+        }
+
+        if (state.showEmptyState) {
+            item {
+                EmptyState(
+                    onRefresh = onRefresh,
+                    modifier = Modifier.fillParentMaxSize()
+                )
+            }
+        }
+
+        if (state.showInlineError) {
+            item {
+                ErrorState(
+                    error = state.inlineErrorMessage?.asString() ?: "",
+                    onRetry = onRefresh,
+                    modifier = Modifier.fillParentMaxSize()
+                )
+            }
+        }
+
+        if (state.showListings) {
+            items(state.listings, key = { it.id.value }) { listingUiModel ->
+                ListingItem(
+                    listingUiModel = listingUiModel,
+                    onListingClick = onListingClick
+                )
             }
 
-            is DatabaseState.Empty -> {
-                when (val networkSyncState = state.networkSyncState) {
-                    is NetworkSyncState.Active -> {
-                        if (networkSyncState.trigger == SyncTrigger.InitialLoad) {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillParentMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    IntermediateProgressIndicator()
-                                }
-                            }
-                        } else {
-                            item {
-                                EmptyState(
-                                    onRefresh = onRefresh,
-                                    modifier = Modifier.fillParentMaxSize()
-                                )
-                            }
-                        }
-                    }
-
-                    is NetworkSyncState.Error -> {
-                        item {
-                            ErrorState(
-                                error = networkSyncState.error.asString(),
-                                onRetry = onRefresh,
-                                modifier = Modifier.fillParentMaxSize()
-                            )
-                        }
-                    }
-
-                    is NetworkSyncState.Idle -> {
-                        item {
-                            EmptyState(
-                                onRefresh = onRefresh,
-                                modifier = Modifier.fillParentMaxSize()
-                            )
-                        }
+            if (state.showPaginationSpinner) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IntermediateProgressIndicator()
                     }
                 }
             }
 
-            is DatabaseState.Populated -> {
-                items(databaseState.items, key = { it.id.value }) { listingUiModel ->
-                    ListingItem(
-                        listingUiModel = listingUiModel,
-                        onListingClick = onListingClick
+            if (state.showPaginationError) {
+                item {
+                    PaginationErrorFooter(
+                        error = state.paginationError?.asString() ?: "",
+                        onRetry = onLoadNextPage
                     )
-                }
-
-                val networkSyncState = state.networkSyncState
-                if (networkSyncState is NetworkSyncState.Active && networkSyncState.trigger == SyncTrigger.Pagination) {
-                    item {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            IntermediateProgressIndicator()
-                        }
-                    }
-                } else if (networkSyncState is NetworkSyncState.Error && networkSyncState.trigger == SyncTrigger.Pagination) {
-                    item {
-                        PaginationErrorFooter(
-                            error = networkSyncState.error.asString(),
-                            onRetry = onLoadNextPage
-                        )
-                    }
                 }
             }
         }

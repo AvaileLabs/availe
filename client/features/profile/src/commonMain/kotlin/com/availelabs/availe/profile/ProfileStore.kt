@@ -45,13 +45,13 @@ interface ProfileStore : Store<Intent, State, Label> {
         val targetUserId: UserId,
         val profile: PublicProfile? = null,
         val isCurrentUser: Boolean = false,
-        val databaseState: DatabaseState<ProfileListingUiModel> = DatabaseState.Uninitialized,
-        val networkSyncState: NetworkSyncState = NetworkSyncState.Idle,
-        val paginationState: PaginationState = PaginationState.Available,
+        override val databaseState: DatabaseState<ProfileListingUiModel> = DatabaseState.Uninitialized,
+        override val networkSyncState: NetworkSyncState = NetworkSyncState.Idle,
+        override val paginationState: PaginationState = PaginationState.Available,
         val paginationError: UiText? = null,
         val currentLimit: Long = 20L,
         val networkPage: Int = 0
-    )
+    ) : IFeedUiState<ProfileListingUiModel>
 
     sealed interface Label {
         data class NavigateToListingDetails(val listingId: ListingId) : Label
@@ -135,7 +135,7 @@ internal class ProfileStoreFactory(
 
                 Intent.LoadNextPage -> {
                     val currentState = state()
-                    if (currentState.paginationState is PaginationState.Available && currentState.networkSyncState is NetworkSyncState.Idle && currentState.paginationError == null) {
+                    if (currentState.canLoadMore) {
                         val newLimit = currentState.currentLimit + 20L
                         val nextPage = currentState.networkPage + 1
                         dispatch(Message.SetCurrentLimit(newLimit))
@@ -207,7 +207,7 @@ internal class ProfileStoreFactory(
 
                         if (trigger is SyncTrigger.Pagination) {
                             dispatch(Message.SetPaginationError(uiText))
-                        } else if (state().databaseState is DatabaseState.Populated) {
+                        } else if (state().showListings) {
                             publish(Label.ErrorOccurred(result.error))
                         }
                     }
