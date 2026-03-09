@@ -128,9 +128,10 @@ class HomeComponent(
                     val filter = feedType.toListingCategoryFilter()
                     val eventFeedFilter = feedType.toEventFeedFilter()
                     if (listingRepository.isListingCacheStale(filter, eventFeedFilter)) {
-                        listingRepository.prefetchListings(
+                        listingRepository.syncFeedPage(
                             page = 0,
                             size = 20,
+                            publisherId = null,
                             filter = filter,
                             eventFeedFilter = eventFeedFilter
                         )

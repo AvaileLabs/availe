@@ -15,7 +15,6 @@ import com.availelabs.availe.platform.PlatformActivity
 import com.availelabs.availe.preferences.DatabasePreferences
 import com.availelabs.availe.preferences.ListingPreferences
 import com.availelabs.availe.repositories.*
-import com.availelabs.availe.repositories.store.ListingStoreFactory
 import com.availelabs.availe.services.MessageService
 import com.availelabs.availe.sources.local.ListingLocalDataSource
 import com.availelabs.availe.sources.local.LocalDataCleaner
@@ -198,15 +197,9 @@ object DataLayerFactory {
                 scope = applicationScope
             )
 
-            val listingStoreFactory = ListingStoreFactory(
-                remoteDataSource = listingRemoteDataSource,
-                localDataSource = listingLocalDataSource
-            )
-
             val listingRepository = ListingRepository(
                 remoteDataSource = listingRemoteDataSource,
                 localDataSource = listingLocalDataSource,
-                storeFactory = listingStoreFactory,
                 listingPreferences = listingPreferences,
                 safeNetworkCaller = safeNetworkCaller
             )

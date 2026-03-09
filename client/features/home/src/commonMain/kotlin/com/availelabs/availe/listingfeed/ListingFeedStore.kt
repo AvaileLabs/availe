@@ -8,21 +8,18 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.listingfeed.ListingFeedStore.*
-import com.availelabs.availe.model.DataStream
 import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.model.toEventFeedFilter
 import com.availelabs.availe.model.toListingCategoryFilter
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
+import com.availelabs.availe.types.PageSyncResult
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
-import com.availelabs.availe.ui.model.UiText
+import com.availelabs.availe.ui.model.*
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlin.time.Clock.System
 import kotlin.time.Instant
 
 data class ListingUiModel(
@@ -45,16 +42,13 @@ interface ListingFeedStore : Store<Intent, State, Label> {
     }
 
     data class State(
-        val listingUiModels: List<ListingUiModel> = emptyList(),
-        val isLoading: Boolean = false,
-        val isRefreshing: Boolean = false,
-        val isSyncing: Boolean = false,
-        val inlineError: UiText? = null,
+        val databaseState: DatabaseState<ListingUiModel> = DatabaseState.Uninitialized,
+        val networkSyncState: NetworkSyncState = NetworkSyncState.Idle,
+        val paginationState: PaginationState = PaginationState.Available,
         val paginationError: UiText? = null,
         val isAuthenticated: Boolean = false,
-        val currentPage: Int = 0,
-        val endReached: Boolean = false,
-        val hasLoadedSuccessfully: Boolean = false
+        val currentLimit: Long = 20L,
+        val networkPage: Int = 0
     )
 
     sealed interface Label {
@@ -80,166 +74,122 @@ internal class ListingFeedStoreFactory(
         ) {}
 
     private sealed interface Action {
-        data class ListingsLoaded(val listings: List<Listing>, val page: Int) : Action
-        data class ListingsError(val error: AppError, val isPagination: Boolean) : Action
+        data class ObserveDatabase(val limit: Long) : Action
+        data class SyncNetwork(val page: Int, val trigger: SyncTrigger) : Action
         data object ObserveAuthentication : Action
         data object ObserveSessionInvalidation : Action
-        data object ObserveExternalUpdates : Action
-        data object ExternalUpdateReceived : Action
-        data object DataPurged : Action
     }
 
     private sealed interface Message {
-        data class LoadingStateChanged(val loadingIndicator: LoadingIndicator, val isActive: Boolean) : Message
-        data class AppendListings(val listingUiModels: List<ListingUiModel>, val page: Int) : Message
-        data class ReplaceListings(val listingUiModels: List<ListingUiModel>) : Message
-        data class SetInlineError(val message: UiText?) : Message
-        data class SetPaginationError(val message: UiText?) : Message
+        data class SetDatabaseState(val databaseState: DatabaseState<ListingUiModel>) : Message
+        data class SetNetworkSyncState(val networkSyncState: NetworkSyncState) : Message
+        data class SetPaginationState(val paginationState: PaginationState) : Message
+        data class SetPaginationError(val error: UiText?) : Message
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
-        data class SetEndReached(val endReached: Boolean) : Message
+        data class SetNetworkPage(val page: Int) : Message
+        data class SetCurrentLimit(val limit: Long) : Message
         data object ResetState : Message
-    }
-
-    private sealed interface FetchTrigger {
-        data object InitialLoad : FetchTrigger
-        data object UserPullToRefresh : FetchTrigger
-        data object LoadMore : FetchTrigger
-        data object DataChanged : FetchTrigger
-    }
-
-    private sealed interface LoadingIndicator {
-        data object Fullscreen : LoadingIndicator
-        data object Overlay : LoadingIndicator
-        data object Pagination : LoadingIndicator
-        data object Linear : LoadingIndicator
     }
 
     private class ListingFeedBootstrapper : CoroutineBootstrapper<Action>() {
         override fun invoke() {
             dispatch(Action.ObserveAuthentication)
             dispatch(Action.ObserveSessionInvalidation)
-            dispatch(Action.ObserveExternalUpdates)
+            dispatch(Action.ObserveDatabase(20L))
         }
     }
 
     private inner class ListingFeedExecutor : CoroutineExecutor<Intent, Action, State, Message, Label>() {
         private val pageSize = 20
-        private var activeFetchJob: Job? = null
+        private var databaseObservationJob: Job? = null
 
         override fun executeAction(action: Action) {
             when (action) {
-                is Action.ListingsLoaded -> {
-                    val uiModels = action.listings.map { it.toListingUiModel() }
-
-                    if (action.page == 0) {
-                        dispatch(Message.ReplaceListings(uiModels))
-                    } else {
-                        dispatch(Message.AppendListings(uiModels, action.page))
-                    }
-
-                    if (action.listings.isEmpty()) {
-                        dispatch(Message.SetEndReached(true))
-                    }
-                }
-
-                is Action.ListingsError -> {
-                    val uiText = ErrorMessageMapper.map(action.error)
-                    if (action.isPagination) {
-                        dispatch(Message.SetPaginationError(uiText))
-                    } else if (state().listingUiModels.isEmpty()) {
-                        dispatch(Message.SetInlineError(uiText))
-                    } else {
-                        publish(Label.DisplayError(action.error))
-                    }
-                }
-
+                is Action.ObserveDatabase -> observeDatabase(action.limit)
+                is Action.SyncNetwork -> syncNetwork(action.page, action.trigger)
                 Action.ObserveAuthentication -> observeAuthentication()
                 Action.ObserveSessionInvalidation -> observeSessionInvalidation()
-                Action.ObserveExternalUpdates -> observeExternalUpdates()
-                Action.ExternalUpdateReceived -> fetchListingsPage(0, FetchTrigger.DataChanged)
-                Action.DataPurged -> dispatch(Message.ResetState)
             }
         }
 
         override fun executeIntent(intent: Intent) {
             when (intent) {
-                Intent.RefreshListingsRequested -> fetchListingsPage(0, FetchTrigger.UserPullToRefresh)
+                Intent.RefreshListingsRequested -> {
+                    dispatch(Message.SetCurrentLimit(20L))
+                    dispatch(Message.SetPaginationState(PaginationState.Available))
+                    executeAction(Action.ObserveDatabase(20L))
+                    executeAction(Action.SyncNetwork(page = 0, trigger = SyncTrigger.PullToRefresh))
+                }
+
                 is Intent.ListingClicked -> publish(Label.NavigateToListingDetails(intent.listingId))
                 Intent.LoadNextPage -> {
-                    val state = state()
-                    if (!state.isLoading && !state.endReached) {
-                        fetchListingsPage(state.currentPage + 1, FetchTrigger.LoadMore)
+                    val currentState = state()
+                    if (currentState.paginationState is PaginationState.Available && currentState.networkSyncState is NetworkSyncState.Idle && currentState.paginationError == null) {
+                        val newLimit = currentState.currentLimit + 20L
+                        val nextPage = currentState.networkPage + 1
+                        dispatch(Message.SetCurrentLimit(newLimit))
+                        executeAction(Action.ObserveDatabase(newLimit))
+                        executeAction(Action.SyncNetwork(page = nextPage, trigger = SyncTrigger.Pagination))
                     }
                 }
             }
         }
 
-        private fun fetchListingsPage(page: Int, trigger: FetchTrigger) {
-            val currentListingUiModels = state().listingUiModels
-            val loadingIndicator = resolveLoadingIndicator(trigger, currentListingUiModels)
-            val startTimeMilliseconds = System.now().toEpochMilliseconds()
-            val minimumRefreshDurationMilliseconds = 375L
+        private fun observeDatabase(limit: Long) {
+            databaseObservationJob?.cancel()
+            databaseObservationJob = scope.launch {
+                listingRepository.observeFeed(
+                    limit = limit,
+                    publisherId = null,
+                    filter = feedType.toListingCategoryFilter(),
+                    eventFeedFilter = feedType.toEventFeedFilter()
+                ).collect { listings ->
+                    val uiModels = listings.map { it.toListingUiModel() }
+                    val newDatabaseState = if (uiModels.isEmpty()) {
+                        DatabaseState.Empty
+                    } else {
+                        DatabaseState.Populated(uiModels)
+                    }
+                    dispatch(Message.SetDatabaseState(newDatabaseState))
+                }
+            }
+        }
 
-            activeFetchJob?.cancel()
+        private fun syncNetwork(page: Int, trigger: SyncTrigger) {
+            scope.launch {
+                dispatch(Message.SetNetworkSyncState(NetworkSyncState.Active(trigger)))
+                dispatch(Message.SetPaginationError(null))
 
-            activeFetchJob = scope.launch {
-                val forceRefresh = trigger == FetchTrigger.UserPullToRefresh || trigger == FetchTrigger.DataChanged
-
-                listingRepository.getListingsPageStream(
+                val result = listingRepository.syncFeedPage(
                     page = page,
                     size = pageSize,
-                    forceRefresh = forceRefresh,
+                    publisherId = null,
                     filter = feedType.toListingCategoryFilter(),
                     eventFeedFilter = feedType.toEventFeedFilter()
                 )
-                    .catch { throwable ->
-                        val appError = AppError.UnknownError(throwable.message ?: "Unknown stream error")
-                        forward(Action.ListingsError(appError, isPagination = trigger == FetchTrigger.LoadMore))
-                        dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
-                    }
-                    .collect { streamResult ->
-                        when (streamResult) {
-                            is DataStream.Loading -> {
-                                dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = true))
-                            }
 
-                            is DataStream.Data -> {
-                                forward(Action.ListingsLoaded(streamResult.value, page))
-                            }
-
-                            is DataStream.Error -> {
-                                forward(
-                                    Action.ListingsError(
-                                        streamResult.error,
-                                        isPagination = trigger == FetchTrigger.LoadMore
-                                    )
-                                )
-                                dispatch(Message.LoadingStateChanged(loadingIndicator, isActive = false))
-                            }
+                when (result) {
+                    is PageSyncResult.Success -> {
+                        dispatch(Message.SetNetworkPage(page))
+                        dispatch(Message.SetNetworkSyncState(NetworkSyncState.Idle))
+                        if (!result.hasMoreAvailable) {
+                            dispatch(Message.SetPaginationState(PaginationState.EndReached))
+                        } else if (page == 0) {
+                            dispatch(Message.SetPaginationState(PaginationState.Available))
                         }
                     }
 
-                if (trigger is FetchTrigger.UserPullToRefresh) {
-                    val elapsedTimeMilliseconds = System.now().toEpochMilliseconds() - startTimeMilliseconds
-                    if (elapsedTimeMilliseconds < minimumRefreshDurationMilliseconds) {
-                        delay(minimumRefreshDurationMilliseconds - elapsedTimeMilliseconds)
+                    is PageSyncResult.Failure -> {
+                        val uiText = ErrorMessageMapper.map(result.error)
+                        dispatch(Message.SetNetworkSyncState(NetworkSyncState.Error(uiText, trigger)))
+
+                        if (trigger is SyncTrigger.Pagination) {
+                            dispatch(Message.SetPaginationError(uiText))
+                        } else if (state().databaseState is DatabaseState.Populated) {
+                            publish(Label.DisplayError(result.error))
+                        }
                     }
                 }
-            }
-        }
-
-        private fun resolveLoadingIndicator(
-            trigger: FetchTrigger,
-            currentListingUiModels: List<ListingUiModel>
-        ): LoadingIndicator {
-            return if (currentListingUiModels.isEmpty()) {
-                LoadingIndicator.Fullscreen
-            } else if (trigger == FetchTrigger.LoadMore) {
-                LoadingIndicator.Pagination
-            } else if (trigger == FetchTrigger.DataChanged) {
-                LoadingIndicator.Linear
-            } else {
-                LoadingIndicator.Overlay
             }
         }
 
@@ -259,10 +209,11 @@ internal class ListingFeedStoreFactory(
                             dispatch(Message.SetAuthenticated(true))
                             if (!isInitialStateResolved) {
                                 isInitialStateResolved = true
-                                fetchListingsPage(0, FetchTrigger.InitialLoad)
+                                executeAction(Action.SyncNetwork(page = 0, trigger = SyncTrigger.InitialLoad))
                             } else if (!wasAuthenticated) {
                                 dispatch(Message.ResetState)
-                                fetchListingsPage(0, FetchTrigger.DataChanged)
+                                executeAction(Action.ObserveDatabase(20L))
+                                executeAction(Action.SyncNetwork(page = 0, trigger = SyncTrigger.InitialLoad))
                             }
                         }
 
@@ -272,10 +223,11 @@ internal class ListingFeedStoreFactory(
                             dispatch(Message.SetAuthenticated(false))
                             if (!isInitialStateResolved) {
                                 isInitialStateResolved = true
-                                fetchListingsPage(0, FetchTrigger.InitialLoad)
+                                executeAction(Action.SyncNetwork(page = 0, trigger = SyncTrigger.InitialLoad))
                             } else if (wasAuthenticated) {
                                 dispatch(Message.ResetState)
-                                fetchListingsPage(0, FetchTrigger.DataChanged)
+                                executeAction(Action.ObserveDatabase(20L))
+                                executeAction(Action.SyncNetwork(page = 0, trigger = SyncTrigger.InitialLoad))
                             }
                         }
 
@@ -288,15 +240,7 @@ internal class ListingFeedStoreFactory(
         private fun observeSessionInvalidation() {
             scope.launch {
                 sessionManager.sessionInvalidated.collect {
-                    forward(Action.DataPurged)
-                }
-            }
-        }
-
-        private fun observeExternalUpdates() {
-            scope.launch {
-                listingRepository.updates.collect {
-                    forward(Action.ExternalUpdateReceived)
+                    dispatch(Message.ResetState)
                 }
             }
         }
@@ -305,72 +249,20 @@ internal class ListingFeedStoreFactory(
     private object ListingFeedReducer : Reducer<State, Message> {
         override fun State.reduce(msg: Message): State =
             when (msg) {
-                is Message.LoadingStateChanged -> {
-                    when (msg.loadingIndicator) {
-                        LoadingIndicator.Fullscreen -> copy(isLoading = msg.isActive)
-                        LoadingIndicator.Overlay -> copy(isRefreshing = msg.isActive)
-                        LoadingIndicator.Pagination -> copy(isLoading = msg.isActive)
-                        LoadingIndicator.Linear -> copy(isSyncing = msg.isActive)
-                    }
-                }
-
-                is Message.ReplaceListings -> copy(
-                    listingUiModels = msg.listingUiModels,
-                    currentPage = 0,
-                    isLoading = false,
-                    isRefreshing = false,
-                    isSyncing = false,
-                    inlineError = null,
-                    paginationError = null,
-                    hasLoadedSuccessfully = true
-                )
-
-                is Message.AppendListings -> {
-                    val incomingMap = msg.listingUiModels.associateBy { it.id }
-                    val existingIds = listingUiModels.map { it.id }.toSet()
-
-                    val updatedExisting = listingUiModels.map { oldModel ->
-                        incomingMap[oldModel.id] ?: oldModel
-                    }
-                    val newItems = msg.listingUiModels.filterNot { existingIds.contains(it.id) }
-
-                    copy(
-                        listingUiModels = updatedExisting + newItems,
-                        currentPage = msg.page,
-                        isLoading = false,
-                        isRefreshing = false,
-                        isSyncing = false,
-                        paginationError = null,
-                        hasLoadedSuccessfully = true
-                    )
-                }
-
-                is Message.SetInlineError -> copy(
-                    inlineError = msg.message,
-                    isLoading = false,
-                    isRefreshing = false,
-                    isSyncing = false
-                )
-
-                is Message.SetPaginationError -> copy(
-                    paginationError = msg.message,
-                    isLoading = false,
-                    isRefreshing = false,
-                    isSyncing = false
-                )
-
+                is Message.SetDatabaseState -> copy(databaseState = msg.databaseState)
+                is Message.SetNetworkSyncState -> copy(networkSyncState = msg.networkSyncState)
+                is Message.SetPaginationState -> copy(paginationState = msg.paginationState)
+                is Message.SetPaginationError -> copy(paginationError = msg.error)
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
-                is Message.SetEndReached -> copy(endReached = msg.endReached)
+                is Message.SetNetworkPage -> copy(networkPage = msg.page)
+                is Message.SetCurrentLimit -> copy(currentLimit = msg.limit)
                 Message.ResetState -> copy(
-                    listingUiModels = emptyList(),
-                    currentPage = 0,
-                    endReached = false,
-                    isLoading = false,
-                    isRefreshing = false,
-                    isSyncing = false,
-                    inlineError = null,
+                    databaseState = DatabaseState.Uninitialized,
+                    networkSyncState = NetworkSyncState.Idle,
+                    paginationState = PaginationState.Available,
                     paginationError = null,
-                    hasLoadedSuccessfully = false
+                    currentLimit = 20L,
+                    networkPage = 0
                 )
             }
     }

@@ -2,9 +2,6 @@
 
 package com.availelabs.availe.profile
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,9 +23,8 @@ import com.availelabs.availe.domain.model.ImageUrl
 import com.availelabs.availe.navigation.DeepLinkRoute
 import com.availelabs.availe.profile.ProfileStore.Intent
 import com.availelabs.availe.ui.RefreshStateHolder
-import com.availelabs.availe.ui.components.LinkContextMenuArea
-import com.availelabs.availe.ui.components.ListingCard
-import com.availelabs.availe.ui.model.asString
+import com.availelabs.availe.ui.components.*
+import com.availelabs.availe.ui.model.*
 import com.availelabs.availe.ui.modifiers.refreshTrigger
 import com.availelabs.availe.ui.util.InfiniteListHandler
 import com.composables.icons.lucide.Lucide
@@ -49,91 +45,135 @@ fun ProfileScreen(
     val refreshState = remember { RefreshStateHolder() }
     val listState = rememberLazyListState()
 
+    val currentNetworkSyncState = state.networkSyncState
+    val currentDatabaseState = state.databaseState
+
+    val isRefreshing =
+        currentNetworkSyncState is NetworkSyncState.Active && currentNetworkSyncState.trigger == SyncTrigger.PullToRefresh
+    val isSyncing =
+        currentDatabaseState is DatabaseState.Populated && currentNetworkSyncState is NetworkSyncState.Active && (currentNetworkSyncState.trigger == SyncTrigger.InitialLoad || currentNetworkSyncState.trigger == SyncTrigger.BackgroundUpdate)
+
     InfiniteListHandler(
         listState = listState,
-        enabled = !state.isLoading && !state.endReached && state.paginationError == null,
+        enabled = state.paginationState is PaginationState.Available && state.networkSyncState is NetworkSyncState.Idle,
         onLoadMore = { component.onIntent(Intent.LoadNextPage) }
     )
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .refreshTrigger(
-                state = refreshState,
-                onRefresh = { component.onIntent(Intent.RefreshRequested) }
-            )
-            .fillMaxSize()
-            .background(Theme[colors][background])
-    ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            item {
-                ProfileHeader(
-                    userId = state.targetUserId.value.toString(),
-                    displayName = state.profile?.displayName?.value,
-                    avatarUrl = state.profile?.avatarUrl,
-                    isCurrentUser = state.isCurrentUser,
-                    onMessageClick = { component.onIntent(Intent.MessageClicked) },
-                    onSettingsClick = { component.onIntent(Intent.SettingsClicked) }
+    WithTouchSlop(touchSlop = 8.dp) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .refreshTrigger(
+                    state = refreshState,
+                    onRefresh = { component.onIntent(Intent.RefreshRequested) }
                 )
-            }
-
-            if (state.isLoading && state.listings.isEmpty()) {
+                .background(Theme[colors][background])
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize()
+            ) {
                 item {
-                    Box(
-                        modifier = Modifier.fillParentMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        IntermediateProgressIndicator()
-                    }
-                }
-            } else if (state.error != null && state.listings.isEmpty()) {
-                item {
-                    ErrorState(
-                        error = state.error!!.asString(),
-                        onRetry = { component.onIntent(Intent.RefreshRequested) }
+                    ProfileHeader(
+                        userId = state.targetUserId.value.toString(),
+                        displayName = state.profile?.displayName?.value,
+                        avatarUrl = state.profile?.avatarUrl,
+                        isCurrentUser = state.isCurrentUser,
+                        onMessageClick = { component.onIntent(Intent.MessageClicked) },
+                        onSettingsClick = { component.onIntent(Intent.SettingsClicked) }
                     )
                 }
-            } else if (state.listings.isEmpty() && !state.isLoading) {
-                item {
-                    EmptyState()
-                }
-            } else {
-                items(state.listings, key = { it.id.value }) { listing ->
-                    LinkContextMenuArea(route = DeepLinkRoute.ListingDetails(listing.id)) {
-                        ListingCard(
-                            title = listing.title,
-                            price = listing.price,
-                            imageUrl = listing.imageUrl,
-                            category = listing.category,
-                            description = listing.description,
-                            startTime = listing.startTime,
-                            isRsvped = listing.isRsvped,
-                            onClick = { component.onIntent(Intent.ListingClicked(listing.id)) }
-                        )
+
+                when (val databaseState = state.databaseState) {
+                    is DatabaseState.Uninitialized -> {
+                    }
+
+                    is DatabaseState.Empty -> {
+                        when (val networkSyncState = state.networkSyncState) {
+                            is NetworkSyncState.Active -> {
+                                if (networkSyncState.trigger == SyncTrigger.InitialLoad) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier.fillParentMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            IntermediateProgressIndicator()
+                                        }
+                                    }
+                                } else {
+                                    item {
+                                        EmptyState()
+                                    }
+                                }
+                            }
+
+                            is NetworkSyncState.Error -> {
+                                item {
+                                    ErrorState(
+                                        error = networkSyncState.error.asString(),
+                                        onRetry = { component.onIntent(Intent.RefreshRequested) }
+                                    )
+                                }
+                            }
+
+                            is NetworkSyncState.Idle -> {
+                                item {
+                                    EmptyState()
+                                }
+                            }
+                        }
+                    }
+
+                    is DatabaseState.Populated -> {
+                        items(databaseState.items, key = { it.id.value }) { listing ->
+                            LinkContextMenuArea(route = DeepLinkRoute.ListingDetails(listing.id)) {
+                                ListingCard(
+                                    title = listing.title,
+                                    price = listing.price,
+                                    imageUrl = listing.imageUrl,
+                                    category = listing.category,
+                                    description = listing.description,
+                                    startTime = listing.startTime,
+                                    isRsvped = listing.isRsvped,
+                                    onClick = { component.onIntent(Intent.ListingClicked(listing.id)) }
+                                )
+                            }
+                        }
+
+                        val networkSyncState = state.networkSyncState
+                        if (networkSyncState is NetworkSyncState.Active && networkSyncState.trigger == SyncTrigger.Pagination) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    IntermediateProgressIndicator()
+                                }
+                            }
+                        } else if (networkSyncState is NetworkSyncState.Error && networkSyncState.trigger == SyncTrigger.Pagination) {
+                            item {
+                                PaginationErrorFooter(
+                                    error = networkSyncState.error.asString(),
+                                    onRetry = { component.onIntent(Intent.LoadNextPage) }
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            if (state.isLoading && state.listings.isNotEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        IntermediateProgressIndicator()
-                    }
-                }
+            PullToRefreshIndicator(
+                isRefreshing = isRefreshing,
+                pullProgress = refreshState.pullProgress,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+
+            if (isSyncing) {
+                LinearSyncIndicator(
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
             }
         }
-
-        PullToRefreshIndicator(
-            isRefreshing = state.isRefreshing,
-            pullProgress = refreshState.pullProgress,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
     }
 }
 
@@ -208,6 +248,27 @@ private fun ProfileHeader(
 }
 
 @Composable
+private fun PaginationErrorFooter(
+    error: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(error, color = Theme[colors][destructive])
+        Spacer(Modifier.height(8.dp))
+        PrimaryButton(onClick = onRetry) {
+            Text(stringResource(Res.string.generic_retry))
+        }
+    }
+}
+
+@Composable
 private fun ErrorState(error: String, onRetry: () -> Unit) {
     Column(
         modifier = Modifier
@@ -235,23 +296,5 @@ private fun EmptyState() {
             text = stringResource(Res.string.home_empty_state),
             style = Theme[textStyles][body]
         )
-    }
-}
-
-@Composable
-private fun PullToRefreshIndicator(
-    isRefreshing: Boolean,
-    pullProgress: Float,
-    modifier: Modifier = Modifier
-) {
-    AnimatedVisibility(
-        visible = isRefreshing || pullProgress > 0,
-        enter = fadeIn(),
-        exit = fadeOut(),
-        modifier = modifier
-    ) {
-        if (isRefreshing) {
-            IntermediateProgressIndicator(modifier = Modifier.padding(16.dp))
-        }
     }
 }

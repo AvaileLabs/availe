@@ -7,14 +7,16 @@ import app.cash.sqldelight.coroutines.asFlow
 import com.availelabs.availe.database.IDatabaseProvider
 import com.availelabs.availe.database.toDomain
 import com.availelabs.availe.domain.model.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 
 interface IListingLocalDataSource {
     suspend fun upsertListing(listing: Listing)
     fun getListings(
         limit: Long,
-        offset: Long,
         publisherId: UserId?,
         filter: ListingCategoryFilter,
         eventFeedFilter: EventFeedFilter = EventFeedFilter.None
@@ -69,7 +71,6 @@ internal class ListingLocalDataSource(
 
     override fun getListings(
         limit: Long,
-        offset: Long,
         publisherId: UserId?,
         filter: ListingCategoryFilter,
         eventFeedFilter: EventFeedFilter
@@ -81,27 +82,50 @@ internal class ListingLocalDataSource(
             filter.categories.toList()
         }
 
-        val queryFlow = database.listingQueries.selectListings(
-            publisher_id = publisherId,
-            categories = categories,
-            limit = limit,
-            offset = offset
-        ).asFlow().map { query -> query.awaitAsList() }
-
-        emitAll(
-            queryFlow.map { selectListings ->
-                val currentInstant = Clock.System.now()
-                selectListings.map { listingEntity -> listingEntity.toDomain() }.filter { listing ->
-                    if (listing !is Listing.Event) return@filter true
-                    when (eventFeedFilter) {
-                        EventFeedFilter.None -> true
-                        EventFeedFilter.Upcoming -> listing.startTime >= currentInstant
-                        EventFeedFilter.Past -> listing.startTime < currentInstant
-                        EventFeedFilter.Going -> listing.interactionState.isRsvped
-                    }
+        when (eventFeedFilter) {
+            EventFeedFilter.None -> {
+                val queryFlow = database.listingQueries.observeListings(
+                    publisher_id = publisherId,
+                    categories = categories,
+                    limit = limit
+                ).asFlow().map { query ->
+                    query.awaitAsList().map { observeListings -> observeListings.toDomain() }
                 }
+                emitAll(queryFlow)
             }
-        )
+
+            EventFeedFilter.Upcoming -> {
+                val queryFlow = database.listingQueries.observeUpcomingEvents(
+                    publisher_id = publisherId,
+                    current_time = Clock.System.now(),
+                    limit = limit
+                ).asFlow().map { query ->
+                    query.awaitAsList().map { observeUpcomingEvents -> observeUpcomingEvents.toDomain() }
+                }
+                emitAll(queryFlow)
+            }
+
+            EventFeedFilter.Past -> {
+                val queryFlow = database.listingQueries.observePastEvents(
+                    publisher_id = publisherId,
+                    current_time = Clock.System.now(),
+                    limit = limit
+                ).asFlow().map { query ->
+                    query.awaitAsList().map { observePastEvents -> observePastEvents.toDomain() }
+                }
+                emitAll(queryFlow)
+            }
+
+            EventFeedFilter.Going -> {
+                val queryFlow = database.listingQueries.observeGoingEvents(
+                    publisher_id = publisherId,
+                    limit = limit
+                ).asFlow().map { query ->
+                    query.awaitAsList().map { observeGoingEvents -> observeGoingEvents.toDomain() }
+                }
+                emitAll(queryFlow)
+            }
+        }
     }
 
     override fun getListingByIdStream(id: ListingId): Flow<Listing?> = flow {
@@ -139,24 +163,32 @@ internal class ListingLocalDataSource(
             filter.categories.toList()
         }
 
-        if (eventFeedFilter == EventFeedFilter.None) {
-            database.listingQueries.deleteListings(
-                publisher_id = publisherId,
-                categories = categories
-            )
-        } else {
-            val listingsToDelete = getListings(
-                limit = Long.MAX_VALUE,
-                offset = 0L,
-                publisherId = publisherId,
-                filter = filter,
-                eventFeedFilter = eventFeedFilter
-            ).first()
+        when (eventFeedFilter) {
+            EventFeedFilter.None -> {
+                database.listingQueries.deleteListings(
+                    publisher_id = publisherId,
+                    categories = categories
+                )
+            }
 
-            database.transaction {
-                listingsToDelete.forEach { listing ->
-                    database.listingQueries.deleteById(listing.id)
-                }
+            EventFeedFilter.Upcoming -> {
+                database.listingQueries.deleteUpcomingEvents(
+                    publisher_id = publisherId,
+                    current_time = Clock.System.now()
+                )
+            }
+
+            EventFeedFilter.Past -> {
+                database.listingQueries.deletePastEvents(
+                    publisher_id = publisherId,
+                    current_time = Clock.System.now()
+                )
+            }
+
+            EventFeedFilter.Going -> {
+                database.listingQueries.deleteGoingEvents(
+                    publisher_id = publisherId
+                )
             }
         }
     }

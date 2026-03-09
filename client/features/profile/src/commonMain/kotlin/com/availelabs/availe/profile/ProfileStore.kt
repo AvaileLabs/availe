@@ -6,19 +6,17 @@ import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineBootstrapper
 import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.model.DataStream
 import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.profile.ProfileStore.*
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.repositories.IUserRepository
+import com.availelabs.availe.types.PageSyncResult
 import com.availelabs.availe.types.RepositoryOperationResult
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
-import com.availelabs.availe.ui.model.UiText
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.catch
+import com.availelabs.availe.ui.model.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlin.time.Clock.System
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -47,13 +45,12 @@ interface ProfileStore : Store<Intent, State, Label> {
         val targetUserId: UserId,
         val profile: PublicProfile? = null,
         val isCurrentUser: Boolean = false,
-        val listings: List<ProfileListingUiModel> = emptyList(),
-        val isLoading: Boolean = false,
-        val isRefreshing: Boolean = false,
-        val error: UiText? = null,
+        val databaseState: DatabaseState<ProfileListingUiModel> = DatabaseState.Uninitialized,
+        val networkSyncState: NetworkSyncState = NetworkSyncState.Idle,
+        val paginationState: PaginationState = PaginationState.Available,
         val paginationError: UiText? = null,
-        val currentPage: Int = 0,
-        val endReached: Boolean = false
+        val currentLimit: Long = 20L,
+        val networkPage: Int = 0
     )
 
     sealed interface Label {
@@ -84,22 +81,20 @@ internal class ProfileStoreFactory(
 
     private sealed interface Action {
         data class SetIsCurrentUser(val isCurrentUser: Boolean) : Action
-        data class ListingsLoaded(val listings: List<Listing>, val page: Int) : Action
-        data class ListingsError(val error: AppError, val isPagination: Boolean) : Action
-        data object LoadInitialPage : Action
+        data class ObserveDatabase(val limit: Long) : Action
+        data class SyncNetwork(val page: Int, val trigger: SyncTrigger) : Action
         data object LoadProfile : Action
     }
 
     private sealed interface Message {
         data class SetIsCurrentUser(val isCurrentUser: Boolean) : Message
-        data class SetLoading(val isLoading: Boolean) : Message
-        data class SetRefreshing(val isRefreshing: Boolean) : Message
-        data class AppendListings(val listings: List<ProfileListingUiModel>, val page: Int) : Message
-        data class ReplaceListings(val listings: List<ProfileListingUiModel>) : Message
+        data class SetDatabaseState(val databaseState: DatabaseState<ProfileListingUiModel>) : Message
+        data class SetNetworkSyncState(val networkSyncState: NetworkSyncState) : Message
+        data class SetPaginationState(val paginationState: PaginationState) : Message
         data class SetProfile(val profile: PublicProfile) : Message
-        data class SetError(val error: UiText?) : Message
         data class SetPaginationError(val error: UiText?) : Message
-        data class SetEndReached(val endReached: Boolean) : Message
+        data class SetNetworkPage(val page: Int) : Message
+        data class SetCurrentLimit(val limit: Long) : Message
     }
 
     private inner class ProfileBootstrapper : CoroutineBootstrapper<Action>() {
@@ -108,7 +103,8 @@ internal class ProfileStoreFactory(
                 val currentUserProfile = sessionManager.getCurrentUserProfile()
                 val isMine = currentUserProfile?.id == targetUserId
                 dispatch(Action.SetIsCurrentUser(isMine))
-                dispatch(Action.LoadInitialPage)
+                dispatch(Action.ObserveDatabase(20L))
+                dispatch(Action.SyncNetwork(page = 0, trigger = SyncTrigger.InitialLoad))
                 dispatch(Action.LoadProfile)
             }
         }
@@ -116,28 +112,35 @@ internal class ProfileStoreFactory(
 
     private inner class ProfileExecutor : CoroutineExecutor<Intent, Action, State, Message, Label>() {
         private val pageSize = 20
+        private var databaseObservationJob: Job? = null
 
         override fun executeAction(action: Action) {
             when (action) {
                 is Action.SetIsCurrentUser -> dispatch(Message.SetIsCurrentUser(action.isCurrentUser))
-                is Action.LoadInitialPage -> fetchListings(0, isRefresh = false)
+                is Action.ObserveDatabase -> observeDatabase(action.limit)
+                is Action.SyncNetwork -> syncNetwork(action.page, action.trigger)
                 is Action.LoadProfile -> fetchProfile()
-                is Action.ListingsLoaded -> handleListingsLoaded(action.listings, action.page)
-                is Action.ListingsError -> handleListingsError(action.error, action.isPagination)
             }
         }
 
         override fun executeIntent(intent: Intent) {
             when (intent) {
                 Intent.RefreshRequested -> {
-                    fetchListings(0, isRefresh = true)
+                    dispatch(Message.SetCurrentLimit(20L))
+                    dispatch(Message.SetPaginationState(PaginationState.Available))
+                    executeAction(Action.ObserveDatabase(20L))
+                    executeAction(Action.SyncNetwork(page = 0, trigger = SyncTrigger.PullToRefresh))
                     fetchProfile()
                 }
 
                 Intent.LoadNextPage -> {
-                    val state = state()
-                    if (!state.isLoading && !state.endReached) {
-                        fetchListings(state.currentPage + 1, isRefresh = false)
+                    val currentState = state()
+                    if (currentState.paginationState is PaginationState.Available && currentState.networkSyncState is NetworkSyncState.Idle && currentState.paginationError == null) {
+                        val newLimit = currentState.currentLimit + 20L
+                        val nextPage = currentState.networkPage + 1
+                        dispatch(Message.SetCurrentLimit(newLimit))
+                        executeAction(Action.ObserveDatabase(newLimit))
+                        executeAction(Action.SyncNetwork(page = nextPage, trigger = SyncTrigger.Pagination))
                     }
                 }
 
@@ -158,77 +161,56 @@ internal class ProfileStoreFactory(
             }
         }
 
-        private fun fetchListings(page: Int, isRefresh: Boolean) {
-            val startTime = System.now().toEpochMilliseconds()
-            val minimumRefreshDuration = 500L
+        private fun observeDatabase(limit: Long) {
+            databaseObservationJob?.cancel()
+            databaseObservationJob = scope.launch {
+                listingRepository.observeFeed(
+                    limit = limit,
+                    publisherId = targetUserId
+                ).collect { listings ->
+                    val uiModels = listings.map { it.toProfileUiModel() }
+                    val newDatabaseState = if (uiModels.isEmpty()) {
+                        DatabaseState.Empty
+                    } else {
+                        DatabaseState.Populated(uiModels)
+                    }
+                    dispatch(Message.SetDatabaseState(newDatabaseState))
+                }
+            }
+        }
 
+        private fun syncNetwork(page: Int, trigger: SyncTrigger) {
             scope.launch {
-                listingRepository.getListingsPageStream(
+                dispatch(Message.SetNetworkSyncState(NetworkSyncState.Active(trigger)))
+                dispatch(Message.SetPaginationError(null))
+
+                val result = listingRepository.syncFeedPage(
                     page = page,
                     size = pageSize,
-                    forceRefresh = isRefresh,
                     publisherId = targetUserId
                 )
-                    .catch { throwable ->
-                        val appError = AppError.UnknownError(throwable.message ?: "Unknown error")
-                        forward(Action.ListingsError(appError, isPagination = page > 0))
-                        updateLoadingState(isActive = false, isRefresh = isRefresh)
-                    }
-                    .collect { streamResult ->
-                        when (streamResult) {
-                            DataStream.Loading -> {
-                                updateLoadingState(isActive = true, isRefresh = isRefresh)
-                            }
 
-                            is DataStream.Data -> {
-                                if (isRefresh) {
-                                    val elapsedTime = System.now().toEpochMilliseconds() - startTime
-                                    if (elapsedTime < minimumRefreshDuration) {
-                                        delay(minimumRefreshDuration - elapsedTime)
-                                    }
-                                }
-                                forward(Action.ListingsLoaded(streamResult.value, page))
-                                updateLoadingState(isActive = false, isRefresh = isRefresh)
-                            }
-
-                            is DataStream.Error -> {
-                                forward(Action.ListingsError(streamResult.error, isPagination = page > 0))
-                                updateLoadingState(isActive = false, isRefresh = isRefresh)
-                            }
+                when (result) {
+                    is PageSyncResult.Success -> {
+                        dispatch(Message.SetNetworkPage(page))
+                        dispatch(Message.SetNetworkSyncState(NetworkSyncState.Idle))
+                        if (!result.hasMoreAvailable) {
+                            dispatch(Message.SetPaginationState(PaginationState.EndReached))
+                        } else if (page == 0) {
+                            dispatch(Message.SetPaginationState(PaginationState.Available))
                         }
                     }
-            }
-        }
 
-        private fun updateLoadingState(isActive: Boolean, isRefresh: Boolean) {
-            if (isRefresh) {
-                dispatch(Message.SetRefreshing(isActive))
-            } else {
-                dispatch(Message.SetLoading(isActive))
-            }
-        }
+                    is PageSyncResult.Failure -> {
+                        val uiText = ErrorMessageMapper.map(result.error)
+                        dispatch(Message.SetNetworkSyncState(NetworkSyncState.Error(uiText, trigger)))
 
-        private fun handleListingsLoaded(listings: List<Listing>, page: Int) {
-            val uiModels = listings.map { it.toProfileUiModel() }
-            if (page == 0) {
-                dispatch(Message.ReplaceListings(uiModels))
-            } else {
-                dispatch(Message.AppendListings(uiModels, page))
-            }
-            if (listings.isEmpty()) {
-                dispatch(Message.SetEndReached(true))
-            }
-        }
-
-        private fun handleListingsError(error: AppError, isPagination: Boolean) {
-            val uiText = ErrorMessageMapper.map(error)
-            if (isPagination) {
-                dispatch(Message.SetPaginationError(uiText))
-            } else {
-                if (state().listings.isEmpty()) {
-                    dispatch(Message.SetError(uiText))
-                } else {
-                    publish(Label.ErrorOccurred(error))
+                        if (trigger is SyncTrigger.Pagination) {
+                            dispatch(Message.SetPaginationError(uiText))
+                        } else if (state().databaseState is DatabaseState.Populated) {
+                            publish(Label.ErrorOccurred(result.error))
+                        }
+                    }
                 }
             }
         }
@@ -237,26 +219,13 @@ internal class ProfileStoreFactory(
     private object ProfileReducer : Reducer<State, Message> {
         override fun State.reduce(msg: Message): State = when (msg) {
             is Message.SetIsCurrentUser -> copy(isCurrentUser = msg.isCurrentUser)
-            is Message.SetLoading -> copy(isLoading = msg.isLoading)
-            is Message.SetRefreshing -> copy(isRefreshing = msg.isRefreshing)
+            is Message.SetDatabaseState -> copy(databaseState = msg.databaseState)
+            is Message.SetNetworkSyncState -> copy(networkSyncState = msg.networkSyncState)
+            is Message.SetPaginationState -> copy(paginationState = msg.paginationState)
             is Message.SetProfile -> copy(profile = msg.profile)
-            is Message.ReplaceListings -> copy(
-                listings = msg.listings,
-                currentPage = 0,
-                endReached = false,
-                error = null,
-                paginationError = null
-            )
-
-            is Message.AppendListings -> copy(
-                listings = listings + msg.listings,
-                currentPage = msg.page,
-                paginationError = null
-            )
-
-            is Message.SetError -> copy(error = msg.error)
             is Message.SetPaginationError -> copy(paginationError = msg.error)
-            is Message.SetEndReached -> copy(endReached = msg.endReached)
+            is Message.SetNetworkPage -> copy(networkPage = msg.page)
+            is Message.SetCurrentLimit -> copy(currentLimit = msg.limit)
         }
     }
 

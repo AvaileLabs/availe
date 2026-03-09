@@ -5,32 +5,28 @@ import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
-import com.availelabs.availe.model.DataStream
 import com.availelabs.availe.model.ListingDraft
+import com.availelabs.availe.types.PageSyncResult
 import com.availelabs.availe.types.RepositoryOperationResult
 import kotlinx.coroutines.flow.Flow
 
 interface IListingRepository {
-    val updates: Flow<Unit>
-
-    fun getListingsPageStream(
-        page: Int,
-        size: Int,
-        forceRefresh: Boolean,
+    fun observeFeed(
+        limit: Long,
         publisherId: UserId? = null,
         filter: ListingCategoryFilter = ListingCategoryFilter.All,
         eventFeedFilter: EventFeedFilter = EventFeedFilter.None
-    ): Flow<DataStream<List<Listing>>>
+    ): Flow<List<Listing>>
+
+    suspend fun syncFeedPage(
+        page: Int,
+        size: Int,
+        publisherId: UserId? = null,
+        filter: ListingCategoryFilter = ListingCategoryFilter.All,
+        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
+    ): PageSyncResult
 
     fun getListingByIdStream(id: ListingId): Flow<Listing?>
-
-    suspend fun prefetchListings(
-        page: Int,
-        size: Int,
-        publisherId: UserId? = null,
-        filter: ListingCategoryFilter = ListingCategoryFilter.All,
-        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
-    )
 
     suspend fun fetchAndCacheListingById(id: ListingId): RepositoryOperationResult<Unit>
     suspend fun existsById(id: ListingId): RepositoryOperationResult<Boolean>
