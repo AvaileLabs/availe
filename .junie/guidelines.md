@@ -61,6 +61,32 @@
     * The UI must strictly observe reactive streams (`Flow`) emitted directly from the local database. This guarantees
       that background syncs, optimistic updates, and manual refreshes automatically propagate to all screens
       simultaneously without manual state synchronization.
+* **The "Dual-Pipe" SSOT Pattern (For Feeds & Lists)**:
+    * Complex paginated feeds must implement a strict "Dual-Pipe" separation of Read and Write operations in the
+      Repository layer (e.g., `IListingRepository`).
+    * **Do**: Create a **Read Pipe**: A permanent, unbreakable `Flow` that directly observes the local database (
+      `IListingLocalDataSource`). Example: `fun observeFeed(limit: Long): Flow<List<Listing>>`.
+    * **Do**: Create a **Write Pipe**: A fire-and-forget `suspend` function that fetches network data (via Ktor) and
+      inserts it into the database, returning a strongly typed result. Example:
+      `suspend fun syncFeedPage(...): PageSyncResult`.
+    * **Avoid**: Never merge network flows and database flows using `Store5` for paginated lists. Never return network
+      data directly to the UI layer.
+* **SQL-Driven Pagination & Filtering**:
+    * All filtering and pagination logic must be pushed down to the SQLite schema (`.sq` files) to guarantee data
+      integrity.
+    * **Do**: Write explicit queries with `WHERE` and `ORDER BY` clauses for specific feed types (e.g.,
+      `observeUpcomingEvents` in `Listing.sq`).
+    * **Do**: Implement pagination using an expanding `LIMIT` (e.g., 20, 40, 60) driven by the MVI Store's state.
+    * **Avoid**: Never use `OFFSET` for observable feed pagination, as older items will fall out of the active
+      observation window and fail to receive reactive updates. Never fetch a generic list from the database and apply
+      domain filters (like "Past" or "Upcoming") in-memory via Kotlin; this causes "Swiss Cheese" pagination where a
+      page of 20 items might resolve to 0 items after filtering.
+* **The Restricted Role of Store5**:
+    * Confine the use of the `Store5` library strictly to single-entity caching.
+    * **Do**: Use `Store5` for fetching and observing individual entities by ID (e.g., `getListingById` using
+      `ListingStoreKey.Single`).
+    * **Avoid**: Never use `Store5`'s stream-merging capabilities for paginated collections that require complex local
+      mutations.
 * **Dependency Flow**: Dependencies must flow downwards. `App Shell` -> `Features` -> `Session` / `UI Components` ->
   `Design System` / `Domain`.
 * **Feature Isolation**: Feature modules must not depend on each other directly. They interact via shared `Domain`
@@ -107,24 +133,19 @@
 * **UI Separation**:
     * `designSystem` must remain pure and never import `domain`.
     * `uiComponents` is the designated place for UI code that requires `domain` models.
-* **Reactive Flow & Premature Emission Suppression**:
+* **Reactive Flow**:
     * **Repositories (Data/Domain)** must return `StateFlow<T>` or `Flow<T>`.
     * **Components (Presentation)** must convert these Flows to `Value<T>` using `asValue(lifecycle)` for UI
       consumption.
-    * **Flicker Prevention**: The Data Layer must actively curate its reactive streams to protect the UI from
-      false-positive empty states. When performing a forced network refresh on an empty local cache (e.g., via Store5),
-      the Repository must intercept and suppress the initial empty emission from the local database. The stream should
-      hold the `Loading` state until the network either delivers real data or explicitly confirms the remote source is
-      empty (see `ListingRepository.kt` `filterNot` implementation).
 * **Lifecycle Management**: Feature Components are responsible for managing their own coroutine scopes and lifecycles
   via Essenty/Decompose.
-* **Structured Concurrency & Collector Management**:
+* **Structured Concurrency**:
     * Background tasks (e.g., prefetching) must be launched within a `CoroutineScope` tied to the Component's lifecycle.
     * Use sequential execution for background queues to avoid overloading the system, while prioritizing active user
       actions.
-    * **MVI Store Collector Management**: When a Store dynamically switches its active data stream (e.g., changing
-      pagination pages or applying a new filter), the previous collector `Job` must be explicitly canceled before the
-      new one is launched to prevent memory leaks and UI state thrashing.
+    * **MVI Store Feed Observer Management**: When observing a paginated feed from the database, the read job must be
+      permanent for the lifecycle of the screen. To load more items, do not cancel the job; instead, issue a new SQL
+      query with an expanded `LIMIT` and let the reactive flow handle the update.
 
 **Interaction & UX Standards**
 
@@ -153,6 +174,16 @@
       the application boundary (`RootNavigationMapper`). Features receive only Type-Safe objects.
     * Use the `DeepLinkRoute` sealed interfaces defined in `:client:core` as the single source of truth for both link
       generation (`DeepLinkBuilder`) and parsing.
+* **State Management (Banning "Boolean Soup")**:
+    * MVI Store states (e.g., `ListingFeedStore.State`) must never use raw booleans to represent mutually exclusive
+      loading or data states (e.g., `isLoading`, `isSyncing`, `isRefreshing`).
+    * **Do**: Use explicitly typed sealed interfaces located in the UI Components layer (e.g.,
+      `:client:uiComponents/src/commonMain/kotlin/com/availelabs/availe/ui/model/FeedStateModels.kt`).
+    * **Do**: Use `DatabaseState` (`Uninitialized`, `Empty`, `Populated`) to represent local data.
+    * **Do**: Use `NetworkSyncState` (`Idle`, `Active`, `Error`) with explicit `SyncTrigger`s (`InitialLoad`,
+      `PullToRefresh`, `Pagination`) to represent network activity.
+    * **Do**: Map these states exhaustively using `when` blocks in Jetpack Compose screens (e.g.,
+      `ListingFeedScreen.kt`) to guarantee no overlapping loaders or invalid UI states.
 * **State-Driven UI**:
     * UI elements like Tabs or Lists must be derived from the Component State (e.g., Decompose `ChildPages`), not
       hardcoded in Composable lists. This ensures the UI is always in sync with the actual navigation hierarchy.
