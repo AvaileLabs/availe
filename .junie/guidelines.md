@@ -98,7 +98,12 @@
       uninitialized states) before firing the initial load. This ensures the backend always receives the correct
       authorization context.
 * **The Thin Screen Rule (Feature Implementation)**:
-    * Feature Screens must act primarily as **Layout Orchestrators** and Glue code.
+    * Feature Screens must act primarily as **Layout Orchestrators** and Glue code. Compose screens must be perfectly "
+      dumb".
+    * **Do**: Expose pre-calculated, explicitly named boolean flags (e.g., `state.showCenterSpinner`,
+      `state.canLoadMore`) from the MVI Store's State for the UI to consume.
+    * **Avoid**: Never place complex state evaluation logic (`&&`, `||`, type checks like `is Active`) directly inside
+      `@Composable` functions.
     * Complex UI elements (e.g., `MessageBubble`, `ContactRow`) that rely on Domain Models must be extracted to
       `:client:uiComponents`.
     * Features should focus on connecting State/Store to Components, not defining complex drawing logic.
@@ -174,16 +179,24 @@
       the application boundary (`RootNavigationMapper`). Features receive only Type-Safe objects.
     * Use the `DeepLinkRoute` sealed interfaces defined in `:client:core` as the single source of truth for both link
       generation (`DeepLinkBuilder`) and parsing.
-* **State Management (Banning "Boolean Soup")**:
-    * MVI Store states (e.g., `ListingFeedStore.State`) must never use raw booleans to represent mutually exclusive
-      loading or data states (e.g., `isLoading`, `isSyncing`, `isRefreshing`).
+
+
+* **State Management (Banning "Boolean Soup" & Shared UI State Pattern)**:
+    * MVI Store core internal states must never use raw booleans to represent mutually exclusive loading or data
+      states (e.g., `isLoading`, `isSyncing`, `isRefreshing`).
     * **Do**: Use explicitly typed sealed interfaces located in the UI Components layer (e.g.,
-      `:client:uiComponents/src/commonMain/kotlin/com/availelabs/availe/ui/model/FeedStateModels.kt`).
-    * **Do**: Use `DatabaseState` (`Uninitialized`, `Empty`, `Populated`) to represent local data.
-    * **Do**: Use `NetworkSyncState` (`Idle`, `Active`, `Error`) with explicit `SyncTrigger`s (`InitialLoad`,
-      `PullToRefresh`, `Pagination`) to represent network activity.
-    * **Do**: Map these states exhaustively using `when` blocks in Jetpack Compose screens (e.g.,
-      `ListingFeedScreen.kt`) to guarantee no overlapping loaders or invalid UI states.
+      `:client:uiComponents/src/commonMain/kotlin/com/availelabs/availe/ui/model/FeedStateModels.kt`) for internal state
+      mapping.
+    * **Do**: Use `DatabaseState` (`Uninitialized`, `Empty`, `Populated`) to represent local data, and
+      `NetworkSyncState` (`Idle`, `Active`, `Error`) with explicit `SyncTrigger`s (`InitialLoad`, `PullToRefresh`,
+      `Pagination`) to represent network activity.
+    * **The Shared UI State Interface Pattern**: To prevent duplicating presentation logic across similar features (
+      e.g., multiple feeds), extract the derived UI flags into a generic interface with default getters in the
+      `uiComponents` module (e.g., `IFeedUiState<T>`). Feature MVI states then simply implement this interface to
+      inherit all presentation flags.
+    * **The Smart-Cast Fix**: When writing default getters in interfaces that check the types of other properties,
+      always capture the property in a local immutable variable first (`val currentSync = networkSyncState`) before
+      performing `is` checks to prevent Kotlin compiler smart-cast errors.
 * **State-Driven UI**:
     * UI elements like Tabs or Lists must be derived from the Component State (e.g., Decompose `ChildPages`), not
       hardcoded in Composable lists. This ensures the UI is always in sync with the actual navigation hierarchy.
