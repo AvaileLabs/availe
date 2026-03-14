@@ -55,13 +55,13 @@ browser = "1.9.0"
 russhwolf-multiplatformSettings = "1.3.0"
 gradle-buildconfig = "6.0.9"
 mvikotlin = "4.3.0"
-sqldelight = "2.3.1"
+sqldelight = "2.2.1"
 bouncycastleBom = "1.83"
 jedis = "7.4.0"
 
 # npm / JS tooling
-sqljs = "1.13.0"
-copyWebpackPlugin = "13.0.1"
+sqljs = "1.14.1"
+copyWebpackPlugin = "14.0.0"
 
 [libraries]
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
