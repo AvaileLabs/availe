@@ -116,10 +116,10 @@ internal class SessionRepository(
                     )
                 )
                 true
-            } catch (exception: OpenIdConnectException) {
+            } catch (_: OpenIdConnectException) {
                 handleExpiredSession()
                 false
-            } catch (exception: Exception) {
+            } catch (_: Exception) {
                 false
             }
         }

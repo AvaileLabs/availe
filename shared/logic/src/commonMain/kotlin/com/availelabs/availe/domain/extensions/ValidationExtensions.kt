@@ -7,10 +7,7 @@ private const val MAXIMUM_TITLE_LENGTH = 100
 
 @OptIn(ExperimentalUuidApi::class)
 fun Listing.canBeModifiedBy(userId: UserId): Boolean {
-    if (this.publisher.id == userId) return true
-
-    val userIdString = userId.value.toString()
-    return this.publisher.jid.value.startsWith(userIdString, ignoreCase = true)
+    return this.publisher.id == userId
 }
 
 fun PriceAmount.isValid(): Boolean {

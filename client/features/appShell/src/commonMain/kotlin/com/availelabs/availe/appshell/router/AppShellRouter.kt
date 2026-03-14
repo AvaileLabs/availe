@@ -42,7 +42,6 @@ expect class AppShellRouter(
     override fun navigateToChat(jid: Jid)
     override fun navigateToProfile(userId: UserId)
     override fun navigateToListing(listingId: ListingId)
-    override fun navigateToChat(userId: UserId)
     override fun navigateToSettings()
     override fun openUrl(url: String)
     override fun dismissLogin()

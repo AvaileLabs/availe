@@ -23,7 +23,6 @@ import com.availelabs.availe.chat.details.ChatComponent
 import com.availelabs.availe.chat.root.ChatRootComponent
 import com.availelabs.availe.chat.root.IChatNavigator
 import com.availelabs.availe.dashboard.DashboardConfiguration
-import com.availelabs.availe.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingCategory
@@ -316,7 +315,6 @@ class AppShellComponent(
 
     override fun navigateToProfile(userId: UserId) = router.navigateToProfile(userId)
     override fun navigateToListing(listingId: ListingId) = router.navigateToListing(listingId)
-    override fun navigateToChat(userId: UserId) = router.navigateToChat(userId)
     override fun navigateToSettings() = router.navigateToSettings()
     override fun openUrl(url: String) = router.openUrl(url)
     override fun dismissLogin() = router.dismissLogin()

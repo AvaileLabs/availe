@@ -59,7 +59,7 @@ class ProfileComponent(
                 when (label) {
                     is ProfileStore.Label.NavigateToListingDetails -> navigator.navigateToListing(label.listingId)
                     ProfileStore.Label.NavigateBack -> navigator.navigateBack()
-                    ProfileStore.Label.NavigateToChat -> navigator.navigateToChat(targetUserId)
+                    is ProfileStore.Label.NavigateToChat -> navigator.navigateToChat(label.jid)
                     ProfileStore.Label.NavigateToSettings -> navigator.navigateToSettings()
                     is ProfileStore.Label.ErrorOccurred -> {
                         messageService.show(ToastMessage.Error(label.error))

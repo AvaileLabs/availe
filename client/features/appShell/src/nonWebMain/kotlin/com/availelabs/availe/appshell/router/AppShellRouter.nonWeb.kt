@@ -77,10 +77,6 @@ actual class AppShellRouter actual constructor(
         stackNavigation.pushToFront(AppShellConfiguration.ListingDetails(listingId))
     }
 
-    actual override fun navigateToChat(userId: UserId) {
-
-    }
-
     @OptIn(DelicateDecomposeApi::class)
     actual override fun navigateToSettings() {
         stackNavigation.bringToFront(AppShellConfiguration.Settings)

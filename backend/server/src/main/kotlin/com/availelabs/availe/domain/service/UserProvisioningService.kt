@@ -26,45 +26,45 @@ class UserProvisioningService(
     )
 
     override fun GetOrProvisionUser(verifiedKeycloakToken: VerifiedKeycloakToken): UserId {
-        val subject = verifiedKeycloakToken.subject
-        val cacheKey = "user:$subject"
+        val authenticationSubject = verifiedKeycloakToken.subject
+        val cacheKey = "user:$authenticationSubject"
 
         val cachedUser = cacheService.Get(cacheKey, CachedUser::class)
         if (cachedUser != null) {
             return cachedUser.id
         }
 
-        val jid = verifiedKeycloakToken.jid ?: throw IllegalStateException("JID is missing in the verified token.")
-        val email = verifiedKeycloakToken.email
+        val targetUserId = verifiedKeycloakToken.userId
+        val userJabberIdentifier =
+            verifiedKeycloakToken.jid ?: throw IllegalStateException("JID is missing in the verified token.")
+        val userEmailAddress = verifiedKeycloakToken.email
 
-        val existingUserResult = userRepository.FindByJid(jid)
-
-        val userId = when (existingUserResult) {
-            is DbFindResult.Found -> existingUserResult.value.id
+        val resolvedUserId = when (val existingUserDatabaseResult = userRepository.FindById(targetUserId)) {
+            is DbFindResult.Found -> existingUserDatabaseResult.value.id
             is DbFindResult.NotFound -> {
                 try {
-                    val newUser = userRepository.UpsertUser(jid, email)
-                    newUser.id
-                } catch (e: Exception) {
-                    logger.warn("Race condition detected during user provisioning. Attempting recovery. Error: ${e.message}")
+                    val provisionedUser = userRepository.UpsertUser(
+                        id = targetUserId,
+                        jid = userJabberIdentifier,
+                        email = userEmailAddress
+                    )
+                    provisionedUser.id
+                } catch (databaseException: Exception) {
+                    logger.warn("Race condition detected during user provisioning. Attempting recovery. Error: ${databaseException.message}")
 
-                    // Race Condition Handling:
-                    // Another thread might have inserted the user between our FindByJid and UpsertUser calls.
-                    // We attempt to fetch the user one more time.
-                    val retryResult = userRepository.FindByJid(jid)
-                    if (retryResult is DbFindResult.Found) {
-                        retryResult.value.id
+                    val retryDatabaseResult = userRepository.FindById(targetUserId)
+                    if (retryDatabaseResult is DbFindResult.Found) {
+                        retryDatabaseResult.value.id
                     } else {
-                        // If we still can't find it, the error was something else (e.g., DB connection).
-                        throw e
+                        throw databaseException
                     }
                 }
             }
         }
 
-        val userToCache = CachedUser(userId)
+        val userToCache = CachedUser(resolvedUserId)
         cacheService.Set(cacheKey, userToCache, timeToLiveSeconds = 3600)
 
-        return userId
+        return resolvedUserId
     }
 }

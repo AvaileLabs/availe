@@ -56,7 +56,7 @@ interface ProfileStore : Store<Intent, State, Label> {
     sealed interface Label {
         data class NavigateToListingDetails(val listingId: ListingId) : Label
         data object NavigateBack : Label
-        data object NavigateToChat : Label
+        data class NavigateToChat(val jid: Jid) : Label
         data object NavigateToSettings : Label
         data class ErrorOccurred(val error: AppError) : Label
     }
@@ -146,7 +146,13 @@ internal class ProfileStoreFactory(
 
                 is Intent.ListingClicked -> publish(Label.NavigateToListingDetails(intent.listingId))
                 Intent.BackClicked -> publish(Label.NavigateBack)
-                Intent.MessageClicked -> publish(Label.NavigateToChat)
+                Intent.MessageClicked -> {
+                    val currentPublicProfile = state().profile
+                    if (currentPublicProfile != null) {
+                        publish(Label.NavigateToChat(currentPublicProfile.jid))
+                    }
+                }
+
                 Intent.SettingsClicked -> publish(Label.NavigateToSettings)
             }
         }
@@ -168,11 +174,11 @@ internal class ProfileStoreFactory(
                     limit = limit,
                     publisherId = targetUserId
                 ).collect { listings ->
-                    val uiModels = listings.map { it.toProfileUiModel() }
-                    val newDatabaseState = if (uiModels.isEmpty()) {
+                    val userInterfaceModels = listings.map { it.toProfileUiModel() }
+                    val newDatabaseState = if (userInterfaceModels.isEmpty()) {
                         DatabaseState.Empty
                     } else {
-                        DatabaseState.Populated(uiModels)
+                        DatabaseState.Populated(userInterfaceModels)
                     }
                     dispatch(Message.SetDatabaseState(newDatabaseState))
                 }
@@ -184,17 +190,17 @@ internal class ProfileStoreFactory(
                 dispatch(Message.SetNetworkSyncState(NetworkSyncState.Active(trigger)))
                 dispatch(Message.SetPaginationError(null))
 
-                val result = listingRepository.syncFeedPage(
+                val synchronizationResult = listingRepository.syncFeedPage(
                     page = page,
                     size = pageSize,
                     publisherId = targetUserId
                 )
 
-                when (result) {
+                when (synchronizationResult) {
                     is PageSyncResult.Success -> {
                         dispatch(Message.SetNetworkPage(page))
                         dispatch(Message.SetNetworkSyncState(NetworkSyncState.Idle))
-                        if (!result.hasMoreAvailable) {
+                        if (!synchronizationResult.hasMoreAvailable) {
                             dispatch(Message.SetPaginationState(PaginationState.EndReached))
                         } else if (page == 0) {
                             dispatch(Message.SetPaginationState(PaginationState.Available))
@@ -202,13 +208,13 @@ internal class ProfileStoreFactory(
                     }
 
                     is PageSyncResult.Failure -> {
-                        val uiText = ErrorMessageMapper.map(result.error)
-                        dispatch(Message.SetNetworkSyncState(NetworkSyncState.Error(uiText, trigger)))
+                        val userInterfaceTextError = ErrorMessageMapper.map(synchronizationResult.error)
+                        dispatch(Message.SetNetworkSyncState(NetworkSyncState.Error(userInterfaceTextError, trigger)))
 
                         if (trigger is SyncTrigger.Pagination) {
-                            dispatch(Message.SetPaginationError(uiText))
+                            dispatch(Message.SetPaginationError(userInterfaceTextError))
                         } else if (state().showListings) {
-                            publish(Label.ErrorOccurred(result.error))
+                            publish(Label.ErrorOccurred(synchronizationResult.error))
                         }
                     }
                 }
@@ -230,21 +236,21 @@ internal class ProfileStoreFactory(
     }
 
     private fun Listing.toProfileUiModel(): ProfileListingUiModel {
-        val category = when (this) {
+        val listingCategory = when (this) {
             is Listing.Item -> ListingCategory.Item
             is Listing.Event -> ListingCategory.Event
             is Listing.Service -> ListingCategory.Service
         }
-        val startTime = (this as? Listing.Event)?.startTime
+        val listingStartTime = (this as? Listing.Event)?.startTime
 
         return ProfileListingUiModel(
             id = this.id,
             title = this.title,
             price = this.price,
             imageUrl = this.imageLinks.firstOrNull(),
-            category = category,
+            category = listingCategory,
             description = this.description,
-            startTime = startTime,
+            startTime = listingStartTime,
             isRsvped = this.interactionState.isRsvped
         )
     }
