@@ -3,13 +3,12 @@ package com.availelabs.availe.di
 import com.arkivanov.essenty.instancekeeper.InstanceKeeper
 import com.arkivanov.essenty.instancekeeper.getOrCreate
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.auth.*
-import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.database.DatabaseProvider
 import com.availelabs.availe.database.createDatabaseFileController
 import com.availelabs.availe.database.createSqlDriverFactory
 import com.availelabs.availe.domain.model.AuthToken
+import com.availelabs.availe.network.ClientNetworkEndpoint
 import com.availelabs.availe.network.SafeNetworkCaller
 import com.availelabs.availe.platform.PlatformActivity
 import com.availelabs.availe.preferences.DatabasePreferences
@@ -80,6 +79,7 @@ object DataLayerFactory {
             )
 
             val safeNetworkCaller = SafeNetworkCaller(localDataCleaner)
+            val clientNetworkEndpoint = ClientNetworkEndpoint.current
 
             val openIdConnectClient = OpenIdConnectClient(discoveryUri = AuthenticationConstants.DISCOVERY_URI) {
                 this.scope = setOf(
@@ -162,8 +162,8 @@ object DataLayerFactory {
                 defaultRequest {
                     url {
                         protocol = URLProtocol.HTTP
-                        host = NetworkConstants.HOST_IP
-                        port = SharedNetworkConstants.SERVER_API_PORT
+                        host = clientNetworkEndpoint.httpEndpoint.hostAddress.value
+                        port = clientNetworkEndpoint.httpEndpoint.port
                         path("/api/")
                     }
                 }
@@ -187,7 +187,8 @@ object DataLayerFactory {
             val xmppSession = XmppSession(httpClient)
 
             val messagingRemoteDataSource = MessagingRemoteDataSource(
-                xmppSession = xmppSession
+                xmppSession = xmppSession,
+                xmppEndpoint = clientNetworkEndpoint.xmppEndpoint,
             )
 
             val messagingRepository = MessagingRepository(

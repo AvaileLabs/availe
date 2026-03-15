@@ -87,6 +87,15 @@
       `ListingStoreKey.Single`).
     * **Avoid**: Never use `Store5`'s stream-merging capabilities for paginated collections that require complex local
       mutations.
+* **Client Network Endpoint Resolution (The Platform Boundary Pattern)**:
+    * Client networking code must not read `NetworkConstants.HOST_IP` or assemble service base URLs directly inside
+      repositories, remote data sources, auth constants, or DI wiring.
+    * **Do**: Define a single typed endpoint boundary in `:client:data` (e.g., `ClientNetworkEndpoint`) that resolves
+      the concrete HTTP, XMPP, and Keycloak endpoints for the current platform.
+    * **Do**: Keep platform-specific host selection inside `expect/actual` implementations at that boundary, so the
+      rest of the client consumes typed endpoints rather than raw host strings.
+    * **Local JVM Development**: When the backend stack runs on the same machine, prefer loopback (`localhost` /
+      `127.0.0.1`) over a build-time LAN address. This is more stable across sleep/wake and network changes.
 * **Dependency Flow**: Dependencies must flow downwards. `App Shell` -> `Features` -> `Session` / `UI Components` ->
   `Design System` / `Domain`.
 * **Feature Isolation**: Feature modules must not depend on each other directly. They interact via shared `Domain`
@@ -223,6 +232,12 @@
 * **Type Safety**:
     * Use sealed interfaces to enforce type safety and prevent invalid states.
     * Always use value classes whenever possible to improve type safety.
+    * **Prefer Structural Correctness Over Defensive Fallbacks**: Do not default to fallback branches, silent recovery,
+      or catch-all defensive logic when the state space can be modeled correctly instead.
+    * **Do**: Make invalid states unrepresentable through value classes, sealed interfaces, typed configuration models,
+      and explicit result types.
+    * **Do**: Reserve defensive handling for true external boundaries only (network payloads, persistence, platform
+      APIs, third-party integrations), and even there prefer explicit typed failures over hidden fallback behavior.
     * Reference `shared/logic/src/commonMain/kotlin/com/availelabs/availe/domain/model/ValueObjects.kt` for definitions.
     * **Type-Safe Persistence & Cache Keys (The Boundary Transformation Pattern)**: Never use manual string
       concatenation to build keys for local storage, preferences, or cache invalidation. Instead, define a strict

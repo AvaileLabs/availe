@@ -1,10 +1,9 @@
 package com.availelabs.availe.sources.remote
 
-import com.availelabs.availe.NetworkConstants
-import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.domain.model.AuthToken
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.MessageContent
+import com.availelabs.availe.network.XmppEndpoint
 import com.availelabs.availe.repositories.MessagingConnectionState
 import com.availelabs.availe.xmpp.dto.XmppMessageStanza
 import com.availelabs.availe.xmpp.model.MessageBody
@@ -24,7 +23,8 @@ internal interface IMessagingRemoteDataSource {
 }
 
 internal class MessagingRemoteDataSource(
-    private val xmppSession: IXmppSession
+    private val xmppSession: IXmppSession,
+    private val xmppEndpoint: XmppEndpoint,
 ) : IMessagingRemoteDataSource {
 
     private val scope = CoroutineScope(Dispatchers.Main)
@@ -48,8 +48,8 @@ internal class MessagingRemoteDataSource(
             xmppJid = XmppJid(jid.value),
             authIdentity = authIdentity,
             password = token.value,
-            host = NetworkConstants.HOST_IP,
-            port = SharedNetworkConstants.EJABBERD_ADMIN_PORT
+            host = xmppEndpoint.hostAddress.value,
+            port = xmppEndpoint.port,
         )
     }
 

@@ -44,6 +44,10 @@ val xmppDomainProvider = providers.provider {
     }
 }
 
+val useLocalIpProvider = providers.provider {
+    useLocalIp.toString()
+}
+
 buildConfig {
     packageName("com.availelabs.availe")
     className("NetworkConstants")
@@ -55,5 +59,6 @@ buildConfig {
     sourceSets.named<BuildConfigSourceSet>("main") {
         buildConfigField("String", "HOST_IP", hostIpProvider)
         buildConfigField("String", "XMPP_DOMAIN", xmppDomainProvider)
+        buildConfigField("Boolean", "USE_LOCAL_IP", useLocalIpProvider)
     }
 }
