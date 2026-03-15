@@ -1,10 +1,10 @@
 package com.availelabs.availe.preferences
 
 import com.availelabs.availe.domain.model.EventFeedFilter
+import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.ListingCategoryFilter
 import com.russhwolf.settings.Settings
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlin.jvm.JvmInline
 
 @Serializable
@@ -28,8 +28,6 @@ internal interface IListingPreferences {
 internal class ListingPreferences(
     private val settings: Settings
 ) : IListingPreferences {
-
-    private val jsonSerializer = Json { encodeDefaults = true }
 
     override suspend fun getLastListingsFetchTimeMilliseconds(configuration: ListingFetchConfiguration): Long? {
         val preferenceKey = generateKey(configuration)
@@ -74,12 +72,31 @@ internal class ListingPreferences(
     }
 
     private fun generateKey(configuration: ListingFetchConfiguration): PreferenceKey {
-        val serializedConfiguration = jsonSerializer.encodeToString(configuration)
-        return PreferenceKey("${KEY_PREFIX}${serializedConfiguration}")
+        return PreferenceKey(
+            buildString {
+                append(KEY_PREFIX)
+                append(configuration.categoryFilter.toPreferenceSegment())
+                append(KEY_DELIMITER)
+                append(configuration.eventFeedFilter.name)
+            }
+        )
+    }
+
+    private fun ListingCategoryFilter.toPreferenceSegment(): String {
+        if (isAll) {
+            return ALL_CATEGORIES_SEGMENT
+        }
+
+        return categories
+            .sortedBy(ListingCategory::name)
+            .joinToString(separator = CATEGORY_DELIMITER) { category -> category.name }
     }
 
     companion object {
         private const val KEY_PREFIX = "last_listing_fetch_timestamp_"
         private const val KEY_DRAFT = "listing_editor_draft"
+        private const val KEY_DELIMITER = "|"
+        private const val CATEGORY_DELIMITER = ","
+        private const val ALL_CATEGORIES_SEGMENT = "ALL"
     }
 }

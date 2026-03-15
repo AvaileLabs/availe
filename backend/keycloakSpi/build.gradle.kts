@@ -12,6 +12,12 @@ dependencies {
     compileOnly(libs.keycloak.server.spi.private)
     compileOnly(libs.keycloak.services)
     implementation(libs.kotlin.stdlib)
+    implementation(projects.shared.logic)
+
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.kotlin.test)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 java {
@@ -26,4 +32,8 @@ tasks.named<Jar>("jar") {
     from(sourceSets.main.get().output)
 
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }

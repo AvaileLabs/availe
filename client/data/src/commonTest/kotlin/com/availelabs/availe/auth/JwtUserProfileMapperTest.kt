@@ -1,44 +1,44 @@
 package com.availelabs.availe.auth
 
-import com.availelabs.availe.configuration.SharedNetworkConstants
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class JwtUserProfileMapperTest {
     @OptIn(ExperimentalEncodingApi::class)
     @Test
-    fun jidClaimWithoutDomainIsNormalizedToXmppDomain() {
+    fun jidClaimIsUsedAsIssuedByBackend() {
         val payloadJson =
-            """{"sub":"00000000-0000-0000-0000-000000000001","email":"test@example.com","jid":"myuser"}"""
+            """{"sub":"00000000-0000-0000-0000-000000000001","email":"test@example.com","jid":"myuser@xmpp.availe.io"}"""
         val payloadBase64 = Base64.UrlSafe.encode(payloadJson.encodeToByteArray()).trimEnd('=')
         val token = "header.$payloadBase64.signature"
 
         val profile = JwtUserProfileMapper.decodeUserProfile(token)
 
         assertNotNull(profile)
-        assertEquals("myuser@${SharedNetworkConstants.XMPP_DOMAIN}", profile.jid.value)
+        assertEquals("myuser@xmpp.availe.io", profile.jid.value)
     }
 
     @OptIn(ExperimentalEncodingApi::class)
     @Test
-    fun jidClaimThatLooksLikeEmailUsesLocalpartOnly() {
+    fun jidClaimDomainIsPreserved() {
         val payloadJson =
-            """{"sub":"00000000-0000-0000-0000-000000000001","email":"test@example.com","jid":"rafael@gmail.com"}"""
+            """{"sub":"00000000-0000-0000-0000-000000000001","email":"test@example.com","jid":"rafael@xmpp.availe.io"}"""
         val payloadBase64 = Base64.UrlSafe.encode(payloadJson.encodeToByteArray()).trimEnd('=')
         val token = "header.$payloadBase64.signature"
 
         val profile = JwtUserProfileMapper.decodeUserProfile(token)
 
         assertNotNull(profile)
-        assertEquals("rafael@${SharedNetworkConstants.XMPP_DOMAIN}", profile.jid.value)
+        assertEquals("rafael@xmpp.availe.io", profile.jid.value)
     }
 
     @OptIn(ExperimentalEncodingApi::class)
     @Test
-    fun missingJidClaimUsesEmailLocalpartOnly() {
+    fun missingJidClaimReturnsNullProfile() {
         val payloadJson =
             """{"sub":"00000000-0000-0000-0000-000000000001","email":"rafael@gmail.com"}"""
         val payloadBase64 = Base64.UrlSafe.encode(payloadJson.encodeToByteArray()).trimEnd('=')
@@ -46,7 +46,6 @@ class JwtUserProfileMapperTest {
 
         val profile = JwtUserProfileMapper.decodeUserProfile(token)
 
-        assertNotNull(profile)
-        assertEquals("rafael@${SharedNetworkConstants.XMPP_DOMAIN}", profile.jid.value)
+        assertNull(profile)
     }
 }

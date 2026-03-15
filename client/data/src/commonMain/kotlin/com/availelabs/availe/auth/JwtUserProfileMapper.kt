@@ -2,7 +2,6 @@
 
 package com.availelabs.availe.auth
 
-import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.dto.JwtPayloadDto
 import kotlinx.serialization.json.Json
@@ -38,9 +37,7 @@ internal object JwtUserProfileMapper {
 
     private fun JwtPayloadDto.toUserProfile(): UserProfile {
         val email = this.email ?: throw IllegalArgumentException("Email claim is required")
-
-        // Use the 'jid' claim if available (from Keycloak User Attribute), otherwise construct it
-        val jidValue = this.jid?.value ?: "${this.subject.value}@${SharedNetworkConstants.XMPP_DOMAIN}"
+        val jidValue = this.jid?.value ?: throw IllegalArgumentException("JID claim is required")
         val userJid = Jid(jidValue)
 
         return UserProfile(

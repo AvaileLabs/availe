@@ -11,7 +11,40 @@ import org.keycloak.models.KeycloakSession
 import org.keycloak.models.RealmModel
 import org.keycloak.models.UserModel
 
-class JidEventListenerProvider(private val keycloakSession: KeycloakSession) : EventListenerProvider {
+@JvmInline
+value class XmppDomain(val value: String) {
+    init {
+        require(value.isNotBlank())
+    }
+}
+
+data class JidEventListenerConfiguration(
+    val xmppDomain: XmppDomain
+)
+
+internal object JidAttributeAssigner {
+    private const val JID_ATTRIBUTE_NAME = "jid"
+
+    fun createJidValue(userId: String, configuration: JidEventListenerConfiguration): String {
+        require(userId.isNotBlank())
+        return "$userId@${configuration.xmppDomain.value}"
+    }
+
+    fun assignTo(userModel: UserModel, configuration: JidEventListenerConfiguration): String {
+        val userId = requireNotNull(userModel.id)
+        val jidValue = createJidValue(
+            userId = userId,
+            configuration = configuration
+        )
+        userModel.setSingleAttribute(JID_ATTRIBUTE_NAME, jidValue)
+        return jidValue
+    }
+}
+
+class JidEventListenerProvider(
+    private val keycloakSession: KeycloakSession,
+    private val configuration: JidEventListenerConfiguration
+) : EventListenerProvider {
 
     private val logger = Logger.getLogger(JidEventListenerProvider::class.java)
 
@@ -62,8 +95,10 @@ class JidEventListenerProvider(private val keycloakSession: KeycloakSession) : E
         val userModel: UserModel? = keycloakSession.users().getUserById(realmModel, userId)
 
         if (userModel != null) {
-            val jidValue = "${userId}@localhost"
-            userModel.setSingleAttribute("jid", jidValue)
+            val jidValue = JidAttributeAssigner.assignTo(
+                userModel = userModel,
+                configuration = configuration
+            )
             logger.infof("Successfully assigned JID %s to user %s", jidValue, userId)
         } else {
             logger.warnf("User %s not found in current session context", userId)

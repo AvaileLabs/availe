@@ -59,6 +59,12 @@ kotlin {
             implementation(libs.kotlin.test)
         }
 
+        jvmTest.dependencies {
+            implementation(libs.kotlin.testJunit)
+            implementation(libs.multiplatform.settings.no.arg)
+            implementation(libs.ktor.client.mock)
+        }
+
         jvmMain.dependencies {
             implementation(libs.sqldelight.sqlite.driver)
         }
