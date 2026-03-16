@@ -11,6 +11,7 @@ fun TypeV1ListingDtoData.toDomainListing(): Listing {
         is ListingEventDtoSchema.V1.Data -> {
             val publisherDomain = this.publisher.toDomain()
             val interactionStateDomain = this.interactionState.toDomain()
+            val scheduleDomain = this.schedule.toDomain()
 
             val common = CommonListingData(
                 title = this.title,
@@ -25,7 +26,7 @@ fun TypeV1ListingDtoData.toDomainListing(): Listing {
                 createdAt = createdAt,
                 publisher = publisherDomain,
                 interactionState = interactionStateDomain,
-                startTime = this.startTime
+                schedule = scheduleDomain
             )
         }
 
@@ -85,7 +86,7 @@ fun Listing.toDataDto(): TypeV1ListingDtoData {
             location = this.location,
             publisher = publisherDto,
             interactionState = interactionDto,
-            startTime = this.startTime,
+            schedule = this.schedule.toDataDto(),
             schemaVersion = 1
         )
 
@@ -123,7 +124,7 @@ fun NewListing.toCreateRequestDto(): TypeV1ListingDtoCreateRequest {
             price = this.price,
             imageLinks = this.imageLinks,
             location = this.location,
-            startTime = this.startTime,
+            schedule = this.schedule.toCreateRequestDto(),
             autoRsvp = this.autoRsvp
         )
 
@@ -156,7 +157,7 @@ fun TypeV1ListingDtoCreateRequest.toDomain(publisher: PublicProfile): NewListing
                 location = location
             ),
             publisher = publisher,
-            startTime = startTime,
+            schedule = schedule.toDomain(),
             autoRsvp = autoRsvp
         )
 
@@ -215,5 +216,47 @@ private fun InteractionState.toDto(): InteractionStateDtoSchema.V1.Data {
         isFavorited = this.isFavorited,
         isRsvped = this.isRsvped,
         schemaVersion = 1
+    )
+}
+
+fun EventScheduleDtoSchema.V1.Data.toDomain(): EventSchedule {
+    return EventSchedule(
+        startLocalTime = this.startLocalTime,
+        endLocalTime = this.endLocalTime,
+        startInstant = this.startInstant,
+        endInstant = this.endInstant,
+        timeZoneIdentifier = this.timeZoneIdentifier
+    )
+}
+
+fun EventSchedule.toDataDto(): EventScheduleDtoSchema.V1.Data {
+    return EventScheduleDtoSchema.V1.Data(
+        startLocalTime = this.startLocalTime,
+        endLocalTime = this.endLocalTime,
+        startInstant = this.startInstant,
+        endInstant = this.endInstant,
+        timeZoneIdentifier = this.timeZoneIdentifier,
+        schemaVersion = 1
+    )
+}
+
+fun EventSchedule.toCreateRequestDto(): EventScheduleDtoSchema.V1.CreateRequest {
+    return EventScheduleDtoSchema.V1.CreateRequest(
+        startLocalTime = this.startLocalTime,
+        endLocalTime = this.endLocalTime,
+        startInstant = this.startInstant,
+        endInstant = this.endInstant,
+        timeZoneIdentifier = this.timeZoneIdentifier,
+        schemaVersion = 1
+    )
+}
+
+fun EventScheduleDtoSchema.V1.CreateRequest.toDomain(): EventSchedule {
+    return EventSchedule(
+        startLocalTime = this.startLocalTime,
+        endLocalTime = this.endLocalTime,
+        startInstant = this.startInstant,
+        endInstant = this.endInstant,
+        timeZoneIdentifier = this.timeZoneIdentifier
     )
 }

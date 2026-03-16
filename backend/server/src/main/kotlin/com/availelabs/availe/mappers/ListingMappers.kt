@@ -2,19 +2,7 @@
 
 package com.availelabs.availe.mappers
 
-import com.availelabs.availe.domain.model.CommonListingData
-import com.availelabs.availe.domain.model.ImageUrl
-import com.availelabs.availe.domain.model.InteractionState
-import com.availelabs.availe.domain.model.Jid
-import com.availelabs.availe.domain.model.Listing
-import com.availelabs.availe.domain.model.ListingCreationTime
-import com.availelabs.availe.domain.model.ListingDescription
-import com.availelabs.availe.domain.model.ListingId
-import com.availelabs.availe.domain.model.ListingLocation
-import com.availelabs.availe.domain.model.ListingTitle
-import com.availelabs.availe.domain.model.PublicProfile
-import com.availelabs.availe.domain.model.UserDisplayName
-import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.domain.model.*
 import com.example.jooq.enums.ListingTypeEnum
 import com.example.jooq.tables.records.ListingsRecord
 import org.jooq.Record
@@ -55,15 +43,16 @@ internal fun Record.toDomainListing(
         jid = Jid(this[usersTable.JID]!!)
     )
 
-    val interactionState = InteractionState(
-        isFavorited = this.get("is_favorited", Boolean::class.javaObjectType) ?: false,
-        isRsvped = this.get("is_rsvped", Boolean::class.javaObjectType) ?: false
+    val defaultInteractionState = InteractionState(
+        isFavorited = false,
+        isRsvped = false
     )
 
     val commonListingData = CommonListingData(
         title = ListingTitle(this[listingsTable.TITLE]!!),
         description = this[listingsTable.DESCRIPTION]?.let { ListingDescription(it) },
-        price = org.javamoney.moneta.Money.of(this[listingsTable.PRICE_AMOUNT], this[listingsTable.PRICE_CURRENCY]).toSharedPrice(),
+        price = org.javamoney.moneta.Money.of(this[listingsTable.PRICE_AMOUNT], this[listingsTable.PRICE_CURRENCY])
+            .toSharedPrice(),
         imageLinks = this[listingsTable.IMAGE_LINKS]?.filterNotNull()?.map { ImageUrl(it) } ?: emptyList(),
         location = ListingLocation(this[listingsTable.LOCATION]!!)
     )
@@ -73,16 +62,68 @@ internal fun Record.toDomainListing(
 
     return when (this[listingsTable.LISTING_TYPE]) {
         ListingTypeEnum.item -> {
-            Listing.Item(commonListingData, domainIdentifier, domainCreationTime, publisherProfile, interactionState)
+            Listing.Item(
+                commonData = commonListingData,
+                id = domainIdentifier,
+                createdAt = domainCreationTime,
+                publisher = publisherProfile,
+                interactionState = defaultInteractionState
+            )
         }
 
         ListingTypeEnum.event -> {
-            val eventStartTime = this[eventDetailsTable.START_TIME]!!.toInstant().toKotlinInstant()
-            Listing.Event(commonListingData, domainIdentifier, domainCreationTime, publisherProfile, interactionState, eventStartTime)
+            val startLocalTimeDatabaseRecord = this[eventDetailsTable.START_LOCAL_TIME]!!
+            val startLocalTimeKotlin = kotlinx.datetime.LocalDateTime(
+                year = startLocalTimeDatabaseRecord.year,
+                month = startLocalTimeDatabaseRecord.monthValue,
+                day = startLocalTimeDatabaseRecord.dayOfMonth,
+                hour = startLocalTimeDatabaseRecord.hour,
+                minute = startLocalTimeDatabaseRecord.minute,
+                second = startLocalTimeDatabaseRecord.second,
+                nanosecond = startLocalTimeDatabaseRecord.nano
+            )
+
+            val endLocalTimeDatabaseRecord = this[eventDetailsTable.END_LOCAL_TIME]!!
+            val endLocalTimeKotlin = kotlinx.datetime.LocalDateTime(
+                year = endLocalTimeDatabaseRecord.year,
+                month = endLocalTimeDatabaseRecord.monthValue,
+                day = endLocalTimeDatabaseRecord.dayOfMonth,
+                hour = endLocalTimeDatabaseRecord.hour,
+                minute = endLocalTimeDatabaseRecord.minute,
+                second = endLocalTimeDatabaseRecord.second,
+                nanosecond = endLocalTimeDatabaseRecord.nano
+            )
+
+            val startInstantKotlin = this[eventDetailsTable.START_INSTANT]!!.toInstant().toKotlinInstant()
+            val endInstantKotlin = this[eventDetailsTable.END_INSTANT]!!.toInstant().toKotlinInstant()
+            val timeZoneIdentifierKotlin = TimeZoneIdentifier(this[eventDetailsTable.TIME_ZONE_IDENTIFIER]!!)
+
+            val eventSchedule = EventSchedule(
+                startLocalTime = startLocalTimeKotlin,
+                endLocalTime = endLocalTimeKotlin,
+                startInstant = startInstantKotlin,
+                endInstant = endInstantKotlin,
+                timeZoneIdentifier = timeZoneIdentifierKotlin
+            )
+
+            Listing.Event(
+                commonData = commonListingData,
+                id = domainIdentifier,
+                createdAt = domainCreationTime,
+                publisher = publisherProfile,
+                interactionState = defaultInteractionState,
+                schedule = eventSchedule
+            )
         }
 
         ListingTypeEnum.service -> {
-            Listing.Service(commonListingData, domainIdentifier, domainCreationTime, publisherProfile, interactionState)
+            Listing.Service(
+                commonData = commonListingData,
+                id = domainIdentifier,
+                createdAt = domainCreationTime,
+                publisher = publisherProfile,
+                interactionState = defaultInteractionState
+            )
         }
 
         null -> throw IllegalStateException("Listing type from Database was null")

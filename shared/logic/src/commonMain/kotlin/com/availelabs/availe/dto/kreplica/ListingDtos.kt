@@ -5,7 +5,6 @@ import io.availe.Replicate
 import io.availe.models.DtoVariant
 import io.availe.models.DtoVisibility
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 
 @Serializable
@@ -54,8 +53,7 @@ private interface ListingEventDto {
         @Replicate.Flatten
         val commonData: ListingDtoSchema.V1
 
-        @Replicate.Property(include = [DtoVariant.DATA, DtoVariant.CREATE, DtoVariant.PATCH])
-        val startTime: Instant
+        val schedule: EventScheduleDtoSchema.V1
 
         @Replicate.Property(include = [DtoVariant.CREATE])
         val autoRsvp: Boolean

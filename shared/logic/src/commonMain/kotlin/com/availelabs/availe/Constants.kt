@@ -2,6 +2,7 @@ package com.availelabs.availe
 
 object ApiRoutes {
     const val LISTINGS = "listings"
+    const val EVENTS = "events"
 }
 
 object ApiParameters {

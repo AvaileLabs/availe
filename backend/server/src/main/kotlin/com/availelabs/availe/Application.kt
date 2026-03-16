@@ -5,18 +5,17 @@ import com.availelabs.availe.auth.KeycloakTokenVerifier
 import com.availelabs.availe.auth.OptionalAuthenticationFilter
 import com.availelabs.availe.auth.RequestIdentityResolver
 import com.availelabs.availe.configuration.SharedNetworkConstants
-import com.availelabs.availe.controllers.AccountController
-import com.availelabs.availe.controllers.InteractionController
-import com.availelabs.availe.controllers.ListingController
-import com.availelabs.availe.controllers.UsersController
+import com.availelabs.availe.controllers.*
 import com.availelabs.availe.domain.service.UserProvisioningService
 import com.availelabs.availe.observability.catchLensFailure
+import com.availelabs.availe.repositories.event.EventRepository
 import com.availelabs.availe.repositories.interaction.InteractionRepository
 import com.availelabs.availe.repositories.listing.ListingRepository
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.EventListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ItemListingCreator
 import com.availelabs.availe.repositories.listing.helpers.creators.implementations.ServiceListingCreator
 import com.availelabs.availe.repositories.user.UserRepository
+import com.availelabs.availe.service.EventService
 import com.availelabs.availe.service.ListingService
 import com.availelabs.availe.service.UserProfileService
 import com.availelabs.availe.setup.hikariSetup
@@ -63,15 +62,19 @@ internal fun main() {
     val serviceListingCreator = ServiceListingCreator(databaseContext)
 
     val listingRepository = ListingRepository(
-        dsl = databaseContext,
-        itemCreator = itemListingCreator,
-        eventCreator = eventListingCreator,
-        serviceCreator = serviceListingCreator
+        databaseContext = databaseContext,
+        itemListingCreator = itemListingCreator,
+        eventListingCreator = eventListingCreator,
+        serviceListingCreator = serviceListingCreator
     )
+
+    val eventRepository = EventRepository(databaseContext)
 
     val valkeyCacheService = valkeyCacheServiceSetup()
 
-    val listingService = ListingService(listingRepository)
+    val listingService = ListingService(listingRepository, interactionRepository)
+    val eventService = EventService(eventRepository, interactionRepository)
+
     val userProvisioningService = UserProvisioningService(valkeyCacheService, userRepository)
     val userProfileService = UserProfileService(userRepository, valkeyCacheService)
 
@@ -84,12 +87,14 @@ internal fun main() {
 
     val listingController =
         ListingController(listingService, applicationEvents, authenticationFilter, optionalAuthenticationFilter)
+    val eventController = EventController(eventService, optionalAuthenticationFilter)
     val accountController = AccountController(userRepository, userProfileService, authenticationFilter)
     val usersController = UsersController(userRepository)
     val interactionController = InteractionController(interactionRepository, listingService, authenticationFilter)
 
     val apiContractRoutingHandler = contract {
         routes += listingController.listOfRoutes
+        routes += eventController.listOfRoutes
         routes += accountController.routes
         routes += usersController.routes
         routes += interactionController.routes

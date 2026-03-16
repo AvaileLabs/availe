@@ -38,6 +38,7 @@ dependencies {
     implementation(libs.logback)
 
     implementation(libs.kotlin.reflect)
+    implementation(libs.kotlinx.datetime)
 
     implementation(platform(libs.http4k.bom))
     implementation(libs.http4k.core)

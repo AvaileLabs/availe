@@ -67,3 +67,7 @@ value class UserDisplayName(val value: String)
 @Serializable
 @JvmInline
 value class ListingLocation(val value: String)
+
+@Serializable
+@JvmInline
+value class TimeZoneIdentifier(val value: String)

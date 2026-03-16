@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalUuidApi::class, ExperimentalTime::class)
+@file:OptIn(ExperimentalUuidApi::class)
 
 package com.availelabs.availe.controllers
 
@@ -19,6 +19,7 @@ import com.availelabs.availe.mappers.toDomain
 import com.availelabs.availe.observability.ListingCreated
 import com.availelabs.availe.service.IListingService
 import io.availe.models.Patchable
+import kotlinx.datetime.LocalDateTime
 import org.http4k.contract.ContractRoute
 import org.http4k.contract.div
 import org.http4k.contract.meta
@@ -26,8 +27,7 @@ import org.http4k.core.*
 import org.http4k.events.Events
 import org.http4k.format.KotlinxSerialization.auto
 import org.http4k.lens.*
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
@@ -49,17 +49,27 @@ internal class ListingController(
         .map({ UserId(it.toKotlinUuid()) }, { it.value.toJavaUuid() })
         .optional(ApiParameters.PUBLISHER_ID)
     private val categoriesQueryLens = Query.enum<ListingCategory>().multi.optional(ApiParameters.CATEGORIES)
-    private val eventFeedFilterQueryLens =
-        Query.enum<EventFeedFilter>().defaulted("eventFeedFilter", EventFeedFilter.None)
 
     private val examplePrice = Price(PriceAmount("10.00"), CurrencyCode("USD"))
     private val examplePublisher = PublicProfileDtoSchema.V1.Data(
         id = UserId(Uuid.random()),
         displayName = UserDisplayName("Alice Seller"),
         avatarUrl = null,
-        jid = Jid("alice@localhost")
+        jid = Jid("alice@localhost"),
+        schemaVersion = 1
     )
-    private val exampleInteraction = InteractionStateDtoSchema.V1.Data(isFavorited = false, isRsvped = false)
+    private val exampleInteraction =
+        InteractionStateDtoSchema.V1.Data(isFavorited = false, isRsvped = false, schemaVersion = 1)
+
+    private val exampleScheduleDtoData = EventScheduleDtoSchema.V1.Data(
+        startLocalTime = LocalDateTime(2026, 10, 24, 20, 0),
+        endLocalTime = LocalDateTime(2026, 10, 24, 23, 0),
+        startInstant = Instant.parse("2026-10-25T00:00:00Z"),
+        endInstant = Instant.parse("2026-10-25T03:00:00Z"),
+        timeZoneIdentifier = TimeZoneIdentifier("America/New_York"),
+        schemaVersion = 1
+    )
+
     private val exampleResponseEvent = ListingEventDtoSchema.V1.Data(
         id = ListingId(Uuid.random()),
         title = ListingTitle("Example Event"),
@@ -69,7 +79,8 @@ internal class ListingController(
         location = ListingLocation("New York, NY"),
         publisher = examplePublisher,
         interactionState = exampleInteraction,
-        startTime = Clock.System.now()
+        schedule = exampleScheduleDtoData,
+        schemaVersion = 1
     )
 
     val listOfRoutes = listOf(
@@ -83,22 +94,33 @@ internal class ListingController(
 
     fun createListing(): ContractRoute {
         val bodyLens = Body.auto<TypeV1ListingDtoCreateRequest>().toLens()
-        val exampleEventCreateRequest =
+
+        val exampleScheduleCreateRequestDto = EventScheduleDtoSchema.V1.CreateRequest(
+            startLocalTime = LocalDateTime(2026, 10, 24, 20, 0),
+            endLocalTime = LocalDateTime(2026, 10, 24, 23, 0),
+            startInstant = Instant.parse("2026-10-25T00:00:00Z"),
+            endInstant = Instant.parse("2026-10-25T03:00:00Z"),
+            timeZoneIdentifier = TimeZoneIdentifier("America/New_York"),
+            schemaVersion = 1
+        )
+
+        val exampleEventCreateRequestDto =
             ListingEventDtoSchema.V1.CreateRequest(
                 title = ListingTitle("Example Event"),
                 description = null,
                 price = examplePrice,
                 imageLinks = emptyList(),
                 location = ListingLocation("New York, NY"),
-                startTime = Clock.System.now(),
-                autoRsvp = true
+                schedule = exampleScheduleCreateRequestDto,
+                autoRsvp = true,
+                schemaVersion = 1
             )
 
         return ApiRoutes.LISTINGS meta {
             summary = "Create a new listing."
             description =
                 "Creates a new Event listing. Publisher is derived from authorization filter. Items and Services are disabled for MVP."
-            receiving(bodyLens to exampleEventCreateRequest)
+            receiving(bodyLens to exampleEventCreateRequestDto)
             returning(Status.CREATED, responseBodyLens to exampleResponseEvent)
             returning(Status.CONFLICT)
             returning(Status.UNAUTHORIZED)
@@ -201,14 +223,12 @@ internal class ListingController(
             queries += pageSizeQueryLens
             queries += publisherIdQueryLens
             queries += categoriesQueryLens
-            queries += eventFeedFilterQueryLens
             returning(Status.OK, listResponseBodyLens to listOf(exampleResponseEvent))
         } bindContract Method.GET to optionalAuthenticationFilter.then { request: Request ->
             val pageNumber = pageNumberQueryLens(request)
             val pageSize = pageSizeQueryLens(request)
             val publisherId = publisherIdQueryLens(request)
             val categoriesList = categoriesQueryLens(request)
-            val eventFeedFilter = eventFeedFilterQueryLens(request)
 
             val viewingUser = SecurityContexts.optionalAuthenticatedUserLens(request)
 
@@ -219,12 +239,11 @@ internal class ListingController(
             }
 
             val listings = listingService.getListingsPage(
-                pageNumber,
-                pageSize,
-                viewingUser?.id,
-                publisherId,
-                filter,
-                eventFeedFilter
+                pageNumber = pageNumber,
+                pageSize = pageSize,
+                viewingUserId = viewingUser?.id,
+                publisherId = publisherId,
+                filter = filter
             )
             val responseDataTransferObjects = listings.map { it.toDataDto() }
             Response(Status.OK).with(listResponseBodyLens of responseDataTransferObjects)
@@ -233,13 +252,13 @@ internal class ListingController(
 
     fun updateListing(): ContractRoute {
         val patchBodyLens = Body.auto<TypeV1ListingDtoPatchRequest>().toLens()
-        val examplePatchRequest =
+        val examplePatchRequestDto =
             ListingEventDtoSchema.V1.PatchRequest(title = Patchable.Set(ListingTitle("New Title")))
 
         return ApiRoutes.LISTINGS / listingIdPath meta {
             summary = "Update an existing listing."
             description = "Updates fields on a listing. Only authenticated publishers can update their own listings."
-            receiving(patchBodyLens to examplePatchRequest)
+            receiving(patchBodyLens to examplePatchRequestDto)
             returning(Status.OK, responseBodyLens to exampleResponseEvent)
             returning(Status.NOT_FOUND)
             returning(Status.FORBIDDEN)

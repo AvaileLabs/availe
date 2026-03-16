@@ -9,6 +9,7 @@ import com.availelabs.availe.domain.types.FindResult
 import com.availelabs.availe.domain.types.InsertResult
 import com.availelabs.availe.domain.types.UpdateResult
 import com.availelabs.availe.dto.kreplica.TypeV1ListingDtoPatchRequest
+import com.availelabs.availe.repositories.interaction.IInteractionRepository
 import com.availelabs.availe.repositories.listing.IListingRepository
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -21,8 +22,7 @@ interface IListingService {
         pageSize: Int,
         viewingUserId: UserId?,
         publisherId: UserId? = null,
-        filter: ListingCategoryFilter = ListingCategoryFilter.All,
-        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
+        filter: ListingCategoryFilter = ListingCategoryFilter.All
     ): List<Listing>
 
     fun updateListing(
@@ -35,18 +35,49 @@ interface IListingService {
 }
 
 class ListingService(
-    private val listingRepository: IListingRepository
+    private val listingRepository: IListingRepository,
+    private val interactionRepository: IInteractionRepository
 ) : IListingService {
+
     override fun createListing(newListing: NewListing): InsertResult<Listing> {
         return listingRepository.createListing(newListing)
     }
 
     override fun getListingById(id: ListingId, viewingUserId: UserId?): FindResult<Listing> {
-        return listingRepository.getListingById(id, viewingUserId)
+        val findResult = listingRepository.getListingById(id)
+        if (findResult is FindResult.NotFound) {
+            return FindResult.NotFound
+        }
+
+        val foundListing = (findResult as FindResult.Found).value
+
+        if (viewingUserId == null) {
+            return FindResult.Found(foundListing)
+        }
+
+        val listingIdentifiersList = listOf(foundListing.id)
+        val interactionStateMap = interactionRepository.getUserInteractions(viewingUserId, listingIdentifiersList)
+        val listingInteractionState =
+            interactionStateMap[foundListing.id] ?: InteractionState(isFavorited = false, isRsvped = false)
+
+        val updatedListing = foundListing.withInteractionState(listingInteractionState)
+        return FindResult.Found(updatedListing)
     }
 
     override fun getAllListings(viewingUserId: UserId?): List<Listing> {
-        return listingRepository.getAllListings(viewingUserId)
+        val databaseListings = listingRepository.getAllListings()
+        if (viewingUserId == null || databaseListings.isEmpty()) {
+            return databaseListings
+        }
+
+        val listingIdentifiersList = databaseListings.map { it.id }
+        val interactionStateMap = interactionRepository.getUserInteractions(viewingUserId, listingIdentifiersList)
+
+        return databaseListings.map { listing ->
+            val listingInteractionState =
+                interactionStateMap[listing.id] ?: InteractionState(isFavorited = false, isRsvped = false)
+            listing.withInteractionState(listingInteractionState)
+        }
     }
 
     override fun getListingsPage(
@@ -54,10 +85,21 @@ class ListingService(
         pageSize: Int,
         viewingUserId: UserId?,
         publisherId: UserId?,
-        filter: ListingCategoryFilter,
-        eventFeedFilter: EventFeedFilter
+        filter: ListingCategoryFilter
     ): List<Listing> {
-        return listingRepository.getListingsPage(pageNumber, pageSize, viewingUserId, publisherId, filter, eventFeedFilter)
+        val databaseListings = listingRepository.getListingsPage(pageNumber, pageSize, publisherId, filter)
+        if (viewingUserId == null || databaseListings.isEmpty()) {
+            return databaseListings
+        }
+
+        val listingIdentifiersList = databaseListings.map { it.id }
+        val interactionStateMap = interactionRepository.getUserInteractions(viewingUserId, listingIdentifiersList)
+
+        return databaseListings.map { listing ->
+            val listingInteractionState =
+                interactionStateMap[listing.id] ?: InteractionState(isFavorited = false, isRsvped = false)
+            listing.withInteractionState(listingInteractionState)
+        }
     }
 
     override fun updateListing(
@@ -65,7 +107,7 @@ class ListingService(
         patch: TypeV1ListingDtoPatchRequest,
         requestingPublisherId: UserId
     ): UpdateResult<Listing> {
-        val listing = when (val result = listingRepository.getListingById(listingId, requestingPublisherId)) {
+        val listing = when (val result = listingRepository.getListingById(listingId)) {
             is FindResult.Found -> result.value
             is FindResult.NotFound -> return UpdateResult.NotFound
         }
@@ -74,11 +116,11 @@ class ListingService(
             return UpdateResult.Forbidden
         }
 
-        return listingRepository.updateListing(listingId, patch, requestingPublisherId)
+        return listingRepository.updateListing(listingId, patch)
     }
 
     override fun deleteListing(listingId: ListingId, requestingPublisherId: UserId): DeleteResult {
-        val listing = when (val result = listingRepository.getListingById(listingId, requestingPublisherId)) {
+        val listing = when (val result = listingRepository.getListingById(listingId)) {
             is FindResult.Found -> result.value
             is FindResult.NotFound -> return DeleteResult.NotFound
         }
