@@ -1,5 +1,6 @@
 package com.availelabs.availe.service
 
+import com.availelabs.availe.domain.extensions.withInteractionState
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.repositories.event.IEventRepository
 import com.availelabs.availe.repositories.interaction.IInteractionRepository

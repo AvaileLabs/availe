@@ -3,6 +3,7 @@
 package com.availelabs.availe.service
 
 import com.availelabs.availe.domain.extensions.canBeModifiedBy
+import com.availelabs.availe.domain.extensions.withInteractionState
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.domain.types.DeleteResult
 import com.availelabs.availe.domain.types.FindResult

@@ -1,4 +1,7 @@
-package com.availelabs.availe.domain.model
+package com.availelabs.availe.domain.extensions
+
+import com.availelabs.availe.domain.model.InteractionState
+import com.availelabs.availe.domain.model.Listing
 
 fun Listing.withInteractionState(interactionState: InteractionState): Listing {
     return when (this) {
