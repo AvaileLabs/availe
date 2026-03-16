@@ -65,17 +65,17 @@
     * Complex paginated feeds must implement a strict "Dual-Pipe" separation of Read and Write operations in the
       Repository layer (e.g., `IListingRepository`).
     * **Do**: Create a **Read Pipe**: A permanent, unbreakable `Flow` that directly observes the local database (
-      `IListingLocalDataSource`). Example: `fun observeFeed(limit: Long): Flow<List<Listing>>`.
+      `IListingLocalDataSource`). Example:
+      `fun observeListings(limit: Long, filter: ListingCategoryFilter): Flow<List<Listing>>`.
     * **Do**: Create a **Write Pipe**: A fire-and-forget `suspend` function that fetches network data (via Ktor) and
       inserts it into the database, returning a strongly typed result. Example:
-      `suspend fun syncFeedPage(...): PageSyncResult`.
+      `suspend fun syncListingsPage(...): PageSyncResult`.
     * **Avoid**: Never merge network flows and database flows using `Store5` for paginated lists. Never return network
       data directly to the UI layer.
 * **SQL-Driven Pagination & Filtering**:
     * All filtering and pagination logic must be pushed down to the SQLite schema (`.sq` files) to guarantee data
       integrity.
-    * **Do**: Write explicit queries with `WHERE` and `ORDER BY` clauses for specific feed types (e.g.,
-      `observeUpcomingEvents` in `Listing.sq`).
+    * **Do**: Write explicit queries with `WHERE` and `ORDER BY` clauses for specific feed types.
     * **Do**: Implement pagination using an expanding `LIMIT` (e.g., 20, 40, 60) driven by the MVI Store's state.
     * **Avoid**: Never use `OFFSET` for observable feed pagination, as older items will fall out of the active
       observation window and fail to receive reactive updates. Never fetch a generic list from the database and apply
@@ -100,6 +100,11 @@
   `Design System` / `Domain`.
 * **Feature Isolation**: Feature modules must not depend on each other directly. They interact via shared `Domain`
   models or by defining Navigation Interfaces that the `App Shell` implements.
+* **Strict Domain Segregation (Preventing Leakage)**:
+    * Generic domain interfaces (e.g., `IListingRepository`) must never accept parameters that belong to a specific
+      subtype (e.g., `EventFeedFilter`).
+    * Subtype-specific querying must be isolated into dedicated repositories and routes (e.g., `IEventRepository`,
+      `/api/events`) to uphold the Open-Closed Principle.
 * **Auth-Aware Initialization (Preventing Race Conditions)**:
     * Feature Stores and Components must never fire initial network requests blindly upon initialization.
     * Network fetch triggers must be strictly gated behind the `AuthenticationState`. The system must wait for the
@@ -159,7 +164,10 @@
       actions.
     * **MVI Store Feed Observer Management**: When observing a paginated feed from the database, the read job must be
       permanent for the lifecycle of the screen. To load more items, do not cancel the job; instead, issue a new SQL
-      query with an expanded `LIMIT` and let the reactive flow handle the update.
+      query with an expanded `LIMIT` and let the reactive flow handle the update. For time-sensitive feeds (e.g.,
+      Upcoming/Past events), SQL queries must not rely on a static `Clock.System.now()` evaluated at launch. Instead,
+      the UI/Domain must pass a ticking `Flow<Instant>` mapped via `flatMapLatest` to the SQL query to ensure time-based
+      boundaries stay accurate without manual refreshes.
 
 **Interaction & UX Standards**
 
@@ -188,7 +196,6 @@
       the application boundary (`RootNavigationMapper`). Features receive only Type-Safe objects.
     * Use the `DeepLinkRoute` sealed interfaces defined in `:client:core` as the single source of truth for both link
       generation (`DeepLinkBuilder`) and parsing.
-
 
 * **State Management (Banning "Boolean Soup" & Shared UI State Pattern)**:
     * MVI Store core internal states must never use raw booleans to represent mutually exclusive loading or data
@@ -223,7 +230,6 @@
     * Use **C# Style** for interfaces (Prefix with `I`, e.g., `IListingRepository`, `IHomeNavigator`,
       `IProfileComponent`).
     * Give variables and files explicit full names with no abbreviations.
-* **Comments**: Do not include any code comments at all.
 * **File Structure**:
     * Keep interfaces and implementations in the same file when possible, with the interface on top and the
       implementation below.
@@ -239,6 +245,11 @@
     * **Do**: Reserve defensive handling for true external boundaries only (network payloads, persistence, platform
       APIs, third-party integrations), and even there prefer explicit typed failures over hidden fallback behavior.
     * Reference `shared/logic/src/commonMain/kotlin/com/availelabs/availe/domain/model/ValueObjects.kt` for definitions.
+    * **Dual-Layer Time & DST Safety**: Time-based authoring must utilize a Dual-Layer approach. Raw `Instant`s must
+      never be used alone for user-authored schedules. Systems must preserve the user's civil time (`LocalDateTime`) and
+      IANA Time Zone (`TimeZoneIdentifier`), and explicitly resolve DST ambiguities using sealed interfaces (e.g.,
+      `Unambiguous`, `Ambiguous`, `Skipped`) rather than falling back to system defaults. The Domain Layer and KReplica
+      DTOs must operate exclusively in ISO-8601 formats, pushing all locale/formatting concerns purely to the UI layer.
     * **Type-Safe Persistence & Cache Keys (The Boundary Transformation Pattern)**: Never use manual string
       concatenation to build keys for local storage, preferences, or cache invalidation. Instead, define a strict
       `Configuration` data class that encapsulates all query parameters (e.g., Categories, Filters). Serialize this data
