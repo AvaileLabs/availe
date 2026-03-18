@@ -174,6 +174,11 @@ object DataLayerFactory {
                 json = json
             )
 
+            val eventRemoteDataSource = EventRemoteDataSource(
+                httpClient = httpClient,
+                json = json
+            )
+
             val userRemoteDataSource = UserRemoteDataSource(
                 httpClient = httpClient,
                 json = json
@@ -205,6 +210,13 @@ object DataLayerFactory {
                 safeNetworkCaller = safeNetworkCaller
             )
 
+            val eventRepository = EventRepository(
+                remoteDataSource = eventRemoteDataSource,
+                localDataSource = listingLocalDataSource,
+                listingPreferences = listingPreferences,
+                safeNetworkCaller = safeNetworkCaller
+            )
+
             val userRepository = UserRepository(
                 remoteDataSource = userRemoteDataSource,
                 safeNetworkCaller = safeNetworkCaller
@@ -222,6 +234,7 @@ object DataLayerFactory {
                 sessionRepository = sessionRepository,
                 authenticationRepository = authenticationRepository,
                 listingRepository = listingRepository,
+                eventRepository = eventRepository,
                 messagingRepository = messagingRepository,
                 userRepository = userRepository,
                 interactionRepository = interactionRepository,
@@ -235,6 +248,7 @@ object DataLayerFactory {
         override val sessionRepository: SessionRepository,
         override val authenticationRepository: AuthenticationRepository,
         override val listingRepository: ListingRepository,
+        override val eventRepository: EventRepository,
         override val messagingRepository: MessagingRepository,
         override val userRepository: UserRepository,
         override val interactionRepository: InteractionRepository,

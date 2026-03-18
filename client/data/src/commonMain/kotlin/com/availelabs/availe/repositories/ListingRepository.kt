@@ -31,14 +31,13 @@ internal class ListingRepository(
     override fun observeFeed(
         limit: Long,
         publisherId: UserId?,
-        filter: ListingCategoryFilter,
-        eventFeedFilter: EventFeedFilter
+        filter: ListingCategoryFilter
     ): Flow<List<Listing>> {
         return localDataSource.getListings(
             limit = limit,
             publisherId = publisherId,
             filter = filter,
-            eventFeedFilter = eventFeedFilter
+            eventFeedFilter = EventFeedFilter.None
         )
     }
 
@@ -46,18 +45,16 @@ internal class ListingRepository(
         page: Int,
         size: Int,
         publisherId: UserId?,
-        filter: ListingCategoryFilter,
-        eventFeedFilter: EventFeedFilter
+        filter: ListingCategoryFilter
     ): PageSyncResult {
-        val fetchConfiguration = ListingFetchConfiguration(filter, eventFeedFilter)
+        val fetchConfiguration = ListingFetchConfiguration(filter, EventFeedFilter.None)
 
         val networkResult = safeNetworkCaller.execute {
             remoteDataSource.getListingsPage(
                 page = page,
                 size = size,
                 publisherId = publisherId,
-                filter = filter,
-                eventFeedFilter = eventFeedFilter
+                filter = filter
             )
         }
 
@@ -69,7 +66,7 @@ internal class ListingRepository(
                         localDataSource.deleteListings(
                             publisherId = publisherId,
                             filter = filter,
-                            eventFeedFilter = eventFeedFilter
+                            eventFeedFilter = EventFeedFilter.None
                         )
                     }
                     fetchedListings.forEach { listing ->
@@ -193,13 +190,13 @@ internal class ListingRepository(
         return networkResult
     }
 
-    override suspend fun isListingCacheStale(filter: ListingCategoryFilter, eventFeedFilter: EventFeedFilter): Boolean {
+    override suspend fun isListingCacheStale(filter: ListingCategoryFilter): Boolean {
         return try {
             if (localDataSource.isListingDatabaseEmpty()) {
                 return true
             }
 
-            val fetchConfiguration = ListingFetchConfiguration(filter, eventFeedFilter)
+            val fetchConfiguration = ListingFetchConfiguration(filter, EventFeedFilter.None)
             val lastFetchTimeMilliseconds =
                 listingPreferences.getLastListingsFetchTimeMilliseconds(fetchConfiguration) ?: return true
 
@@ -214,7 +211,7 @@ internal class ListingRepository(
 
     override suspend fun saveDraft(draft: ListingDraft) {
         try {
-            val draftJsonString = jsonSerializer.encodeToString(draft)
+            val draftJsonString = jsonSerializer.encodeToString(ListingDraft.serializer(), draft)
             listingPreferences.saveDraft(draftJsonString)
         } catch (_: Exception) {
         }
@@ -223,7 +220,7 @@ internal class ListingRepository(
     override suspend fun getDraft(): ListingDraft? {
         return try {
             val draftJsonString = listingPreferences.getDraft() ?: return null
-            jsonSerializer.decodeFromString<ListingDraft>(draftJsonString)
+            jsonSerializer.decodeFromString<ListingDraft>(ListingDraft.serializer(), draftJsonString)
         } catch (_: Exception) {
             null
         }

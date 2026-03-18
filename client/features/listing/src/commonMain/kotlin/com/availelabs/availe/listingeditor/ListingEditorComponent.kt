@@ -28,8 +28,9 @@ import com.availelabs.availe.ui.model.ActionIcon
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.*
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.getString
-import kotlin.time.Instant
 
 interface IListingEditorComponent {
     val state: Value<ListingEditorState>
@@ -41,7 +42,11 @@ interface IListingEditorComponent {
     fun onCurrencySelected(currency: SupportedCurrency)
     fun onTypeSelected(type: ListingCategory)
     fun onImageUrlChanged(url: String)
-    fun onStartTimeChanged(startTime: Instant?)
+    fun onStartDateChanged(startDate: LocalDate?)
+    fun onStartTimeChanged(startTime: LocalTime?)
+    fun onEndDateChanged(endDate: LocalDate?)
+    fun onEndTimeChanged(endTime: LocalTime?)
+    fun onTimeZoneIdentifierChanged(timeZoneIdentifier: TimeZoneIdentifier)
     fun onPageSelected(index: Int)
     fun onPublishClicked()
     fun onConfirmPublish()
@@ -229,8 +234,24 @@ class ListingEditorComponent(
         store.accept(ListingEditorIntent.ChangeImage(ImageUrl(url)))
     }
 
-    override fun onStartTimeChanged(startTime: Instant?) {
+    override fun onStartDateChanged(startDate: LocalDate?) {
+        store.accept(ListingEditorIntent.ChangeStartDate(startDate))
+    }
+
+    override fun onStartTimeChanged(startTime: LocalTime?) {
         store.accept(ListingEditorIntent.ChangeStartTime(startTime))
+    }
+
+    override fun onEndDateChanged(endDate: LocalDate?) {
+        store.accept(ListingEditorIntent.ChangeEndDate(endDate))
+    }
+
+    override fun onEndTimeChanged(endTime: LocalTime?) {
+        store.accept(ListingEditorIntent.ChangeEndTime(endTime))
+    }
+
+    override fun onTimeZoneIdentifierChanged(timeZoneIdentifier: TimeZoneIdentifier) {
+        store.accept(ListingEditorIntent.ChangeTimeZoneIdentifier(timeZoneIdentifier))
     }
 
     override fun onPageSelected(index: Int) {

@@ -34,7 +34,7 @@ internal class EventController(
         .map({ UserId(it.toKotlinUuid()) }, { it.value.toJavaUuid() })
         .optional(ApiParameters.PUBLISHER_ID)
     private val eventFeedFilterQueryLens =
-        Query.enum<EventFeedFilter>().defaulted("eventFeedFilter", EventFeedFilter.None)
+        Query.enum<EventFeedFilter>().defaulted(ApiParameters.EVENT_FEED_FILTER, EventFeedFilter.None)
 
     val listOfRoutes = listOf(
         getEventFeed()

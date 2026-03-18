@@ -30,6 +30,8 @@ private class ApplicationContainer(
         get() = dataContainer.authenticationRepository
     override val listingRepository: IListingRepository
         get() = dataContainer.listingRepository
+    override val eventRepository: IEventRepository
+        get() = dataContainer.eventRepository
     override val messagingRepository: IMessagingRepository
         get() = dataContainer.messagingRepository
     override val userRepository: IUserRepository

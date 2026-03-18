@@ -241,7 +241,7 @@ internal class ProfileStoreFactory(
             is Listing.Event -> ListingCategory.Event
             is Listing.Service -> ListingCategory.Service
         }
-        val listingStartTime = (this as? Listing.Event)?.startTime
+        val listingStartTimeInstant = (this as? Listing.Event)?.schedule?.startInstant
 
         return ProfileListingUiModel(
             id = this.id,
@@ -250,7 +250,7 @@ internal class ProfileStoreFactory(
             imageUrl = this.imageLinks.firstOrNull(),
             category = listingCategory,
             description = this.description,
-            startTime = listingStartTime,
+            startTime = listingStartTimeInstant,
             isRsvped = this.interactionState.isRsvped
         )
     }

@@ -339,6 +339,7 @@ class AppShellComponent(
                         HomeComponent(
                             componentContext = childContext,
                             listingRepository = appContainer.listingRepository,
+                            eventRepository = appContainer.eventRepository,
                             sessionManager = appContainer.sessionManager,
                             messageService = appContainer.messageService,
                             navigator = router,
@@ -421,6 +422,7 @@ class AppShellComponent(
                 HomeComponent(
                     componentContext = context,
                     listingRepository = appContainer.listingRepository,
+                    eventRepository = appContainer.eventRepository,
                     sessionManager = appContainer.sessionManager,
                     messageService = appContainer.messageService,
                     navigator = router,

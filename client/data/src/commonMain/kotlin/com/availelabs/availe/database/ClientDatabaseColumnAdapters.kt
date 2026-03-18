@@ -2,6 +2,7 @@ package com.availelabs.availe.database
 
 import com.availelabs.availe.db.*
 import com.availelabs.availe.domain.model.*
+import kotlinx.datetime.LocalDateTime
 import kotlin.time.Instant
 
 internal fun SelectById.toDomain(): Listing {
@@ -18,7 +19,11 @@ internal fun SelectById.toDomain(): Listing {
         imageLinks = image_links,
         isRsvped = is_rsvped,
         isFavorited = is_favorited,
-        startTime = start_time
+        startLocalTime = start_local_time,
+        endLocalTime = end_local_time,
+        startInstant = start_instant,
+        endInstant = end_instant,
+        timeZoneIdentifier = time_zone_identifier
     )
 }
 
@@ -36,7 +41,11 @@ internal fun ObserveListings.toDomain(): Listing {
         imageLinks = image_links,
         isRsvped = is_rsvped,
         isFavorited = is_favorited,
-        startTime = start_time
+        startLocalTime = start_local_time,
+        endLocalTime = end_local_time,
+        startInstant = start_instant,
+        endInstant = end_instant,
+        timeZoneIdentifier = time_zone_identifier
     )
 }
 
@@ -54,7 +63,11 @@ internal fun ObserveUpcomingEvents.toDomain(): Listing {
         imageLinks = image_links,
         isRsvped = is_rsvped,
         isFavorited = is_favorited,
-        startTime = start_time
+        startLocalTime = start_local_time,
+        endLocalTime = end_local_time,
+        startInstant = start_instant,
+        endInstant = end_instant,
+        timeZoneIdentifier = time_zone_identifier
     )
 }
 
@@ -72,7 +85,11 @@ internal fun ObservePastEvents.toDomain(): Listing {
         imageLinks = image_links,
         isRsvped = is_rsvped,
         isFavorited = is_favorited,
-        startTime = start_time
+        startLocalTime = start_local_time,
+        endLocalTime = end_local_time,
+        startInstant = start_instant,
+        endInstant = end_instant,
+        timeZoneIdentifier = time_zone_identifier
     )
 }
 
@@ -90,7 +107,11 @@ internal fun ObserveGoingEvents.toDomain(): Listing {
         imageLinks = image_links,
         isRsvped = is_rsvped,
         isFavorited = is_favorited,
-        startTime = start_time
+        startLocalTime = start_local_time,
+        endLocalTime = end_local_time,
+        startInstant = start_instant,
+        endInstant = end_instant,
+        timeZoneIdentifier = time_zone_identifier
     )
 }
 
@@ -107,7 +128,11 @@ private fun mapRawDataToListing(
     imageLinks: List<ImageUrl>,
     isRsvped: Boolean,
     isFavorited: Boolean,
-    startTime: Instant?
+    startLocalTime: LocalDateTime?,
+    endLocalTime: LocalDateTime?,
+    startInstant: Instant?,
+    endInstant: Instant?,
+    timeZoneIdentifier: TimeZoneIdentifier?
 ): Listing {
     val price = Price(
         amount = priceAmount,
@@ -136,14 +161,23 @@ private fun mapRawDataToListing(
 
     return when (listingType) {
         ListingCategory.Item -> Listing.Item(commonData, id, createdAt, publisher, interactionState)
-        ListingCategory.Event -> Listing.Event(
-            commonData,
-            id,
-            createdAt,
-            publisher,
-            interactionState,
-            startTime ?: Instant.fromEpochMilliseconds(0)
-        )
+        ListingCategory.Event -> {
+            val eventSchedule = EventSchedule(
+                startLocalTime = requireNotNull(startLocalTime),
+                endLocalTime = requireNotNull(endLocalTime),
+                startInstant = requireNotNull(startInstant),
+                endInstant = requireNotNull(endInstant),
+                timeZoneIdentifier = requireNotNull(timeZoneIdentifier)
+            )
+            Listing.Event(
+                commonData,
+                id,
+                createdAt,
+                publisher,
+                interactionState,
+                eventSchedule
+            )
+        }
 
         ListingCategory.Service -> Listing.Service(commonData, id, createdAt, publisher, interactionState)
     }

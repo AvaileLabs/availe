@@ -30,6 +30,7 @@ import com.arkivanov.decompose.router.pages.ChildPages
 import com.arkivanov.decompose.value.Value
 import com.availelabs.availe.ListingEditorState
 import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.ui.components.EventScheduleWizard
 import com.availelabs.availe.ui.components.dialogs.ActionConfirmationModal
 import com.availelabs.availe.ui.components.dialogs.DimmedDialog
 import com.availelabs.availe.ui.layout.WindowSizeClass
@@ -45,8 +46,9 @@ import com.composeunstyled.DropdownPanelAnchor
 import com.composeunstyled.Text
 import com.composeunstyled.theme.Theme
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Instant
 
 @Composable
 fun ListingEditorScreen(
@@ -317,8 +319,17 @@ private fun ListingEditorWizardContent(
                     )
 
                     ListingEditorPageConfig.Schedule -> ListingEditorScheduleStep(
+                        startDate = state.startDate,
                         startTime = state.startTime,
-                        onStartTimeChanged = component::onStartTimeChanged
+                        endDate = state.endDate,
+                        endTime = state.endTime,
+                        timeZoneIdentifier = state.timeZoneIdentifier,
+                        timeResolutionError = state.timeResolutionError,
+                        onStartDateChanged = component::onStartDateChanged,
+                        onStartTimeChanged = component::onStartTimeChanged,
+                        onEndDateChanged = component::onEndDateChanged,
+                        onEndTimeChanged = component::onEndTimeChanged,
+                        onTimeZoneIdentifierChanged = component::onTimeZoneIdentifierChanged
                     )
 
                     ListingEditorPageConfig.Pricing -> ListingEditorPricingStep(
@@ -529,33 +540,31 @@ private fun ListingEditorBasicsStep(
 
 @Composable
 private fun ListingEditorScheduleStep(
-    startTime: Instant?,
-    onStartTimeChanged: (Instant?) -> Unit
+    startDate: LocalDate?,
+    startTime: LocalTime?,
+    endDate: LocalDate?,
+    endTime: LocalTime?,
+    timeZoneIdentifier: TimeZoneIdentifier,
+    timeResolutionError: LocalTimeResolution?,
+    onStartDateChanged: (LocalDate?) -> Unit,
+    onStartTimeChanged: (LocalTime?) -> Unit,
+    onEndDateChanged: (LocalDate?) -> Unit,
+    onEndTimeChanged: (LocalTime?) -> Unit,
+    onTimeZoneIdentifierChanged: (TimeZoneIdentifier) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        var textValue by remember { mutableStateOf(startTime?.toString() ?: "") }
-
-        TextField(
-            value = textValue,
-            onValueChange = { stringValue ->
-                textValue = stringValue
-                try {
-                    val parsedTime = Instant.parse(stringValue)
-                    onStartTimeChanged(parsedTime)
-                } catch (exception: Exception) {
-                    onStartTimeChanged(null)
-                }
-            },
-            label = { Text(stringResource(Res.string.listing_editor_label_start_time)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Format: YYYY-MM-DDThh:mm:ssZ (e.g., 2026-10-24T20:00:00Z)",
-            style = Theme[textStyles][body].copy(fontSize = Theme[textStyles][body].fontSize * 0.8),
-            color = Theme[colors][onBackground].copy(alpha = 0.6f)
+        EventScheduleWizard(
+            startDate = startDate,
+            startTime = startTime,
+            endDate = endDate,
+            endTime = endTime,
+            timeZoneIdentifier = timeZoneIdentifier,
+            timeResolutionError = timeResolutionError,
+            onStartDateChanged = onStartDateChanged,
+            onStartTimeChanged = onStartTimeChanged,
+            onEndDateChanged = onEndDateChanged,
+            onEndTimeChanged = onEndTimeChanged,
+            onTimeZoneIdentifierChanged = onTimeZoneIdentifierChanged
         )
     }
 }
@@ -715,9 +724,10 @@ private fun ListingEditorReviewStep(
             SelectionContainer {
                 Text(stringResource(Res.string.listing_editor_review_title_format, editorState.title.value))
             }
-            if (editorState.startTime != null && editorState.type == ListingCategory.Event) {
+            if (editorState.type == ListingCategory.Event && editorState.startDate != null && editorState.startTime != null) {
                 SelectionContainer {
-                    Text(stringResource(Res.string.listing_editor_review_start_time_format, editorState.startTime.toString()))
+                    val formattedStart = "${editorState.startDate} at ${editorState.startTime}"
+                    Text(stringResource(Res.string.listing_editor_review_start_time_format, formattedStart))
                 }
             }
             if (editorState.priceAmount.value.isNotBlank()) {

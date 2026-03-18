@@ -10,6 +10,7 @@ import com.availelabs.availe.model.ConversationType
 import com.availelabs.availe.model.MessageStatus
 import com.availelabs.availe.model.MessageType
 import com.availelabs.availe.model.UnreadCount
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlin.time.ExperimentalTime
@@ -120,6 +121,16 @@ internal object ClientDatabaseFactory {
             override fun encode(value: MessageStatus): String = value.name
         }
 
+        val localDateTimeColumnAdapter = object : ColumnAdapter<LocalDateTime, String> {
+            override fun decode(databaseValue: String): LocalDateTime = LocalDateTime.parse(databaseValue)
+            override fun encode(value: LocalDateTime): String = value.toString()
+        }
+
+        val timeZoneIdentifierColumnAdapter = object : ColumnAdapter<TimeZoneIdentifier, String> {
+            override fun decode(databaseValue: String): TimeZoneIdentifier = TimeZoneIdentifier(databaseValue)
+            override fun encode(value: TimeZoneIdentifier): String = value.value
+        }
+
         return ClientDatabase.Companion(
             driver = sqlDriver,
             chat_conversationAdapter = Chat_conversation.Adapter(
@@ -142,7 +153,11 @@ internal object ClientDatabaseFactory {
             ),
             listing_event_detailsAdapter = Listing_event_details.Adapter(
                 listing_idAdapter = listingIdColumnAdapter,
-                start_timeAdapter = instantLongColumnAdapter
+                start_local_timeAdapter = localDateTimeColumnAdapter,
+                end_local_timeAdapter = localDateTimeColumnAdapter,
+                start_instantAdapter = instantLongColumnAdapter,
+                end_instantAdapter = instantLongColumnAdapter,
+                time_zone_identifierAdapter = timeZoneIdentifierColumnAdapter
             ),
             listing_item_detailsAdapter = Listing_item_details.Adapter(
                 listing_idAdapter = listingIdColumnAdapter

@@ -489,7 +489,7 @@ private fun ListingActionButtons(
 private fun ListingWhenAndWhereSection(listing: Listing.Event) {
     Section(stringResource(Res.string.listing_when_and_where)) {
         Text(
-            text = formatEventTime(listing.startTime, TimeFormat.Standard),
+            text = formatEventTime(listing.schedule.startInstant, TimeFormat.Standard),
             style = Theme[textStyles][body].copy(fontWeight = FontWeight.Medium)
         )
         Spacer(Modifier.height(4.dp))

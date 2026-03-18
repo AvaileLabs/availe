@@ -11,6 +11,7 @@ import com.availelabs.availe.decompose.asValue
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.model.ToastMessage
+import com.availelabs.availe.repositories.IEventRepository
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
@@ -25,6 +26,7 @@ class ListingFeedComponent(
     componentContext: ComponentContext,
     private val feedType: ListingFeedType,
     private val listingRepository: IListingRepository,
+    private val eventRepository: IEventRepository,
     private val sessionManager: ISessionRepository,
     private val messageService: IMessageService,
     private val onNavigateToListingDetails: (ListingId) -> Unit
@@ -34,6 +36,7 @@ class ListingFeedComponent(
         ListingFeedStoreFactory(
             storeFactory = DefaultStoreFactory(),
             listingRepository = listingRepository,
+            eventRepository = eventRepository,
             sessionManager = sessionManager,
             feedType = feedType
         ).create()

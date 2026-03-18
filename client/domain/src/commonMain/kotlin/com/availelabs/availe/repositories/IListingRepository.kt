@@ -14,16 +14,14 @@ interface IListingRepository {
     fun observeFeed(
         limit: Long,
         publisherId: UserId? = null,
-        filter: ListingCategoryFilter = ListingCategoryFilter.All,
-        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
+        filter: ListingCategoryFilter = ListingCategoryFilter.All
     ): Flow<List<Listing>>
 
     suspend fun syncFeedPage(
         page: Int,
         size: Int,
         publisherId: UserId? = null,
-        filter: ListingCategoryFilter = ListingCategoryFilter.All,
-        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
+        filter: ListingCategoryFilter = ListingCategoryFilter.All
     ): PageSyncResult
 
     fun getListingByIdStream(id: ListingId): Flow<Listing?>
@@ -38,8 +36,7 @@ interface IListingRepository {
 
     suspend fun deleteListing(id: ListingId): RepositoryOperationResult<DeleteResult>
     suspend fun isListingCacheStale(
-        filter: ListingCategoryFilter = ListingCategoryFilter.All,
-        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
+        filter: ListingCategoryFilter = ListingCategoryFilter.All
     ): Boolean
 
     suspend fun saveDraft(draft: ListingDraft)

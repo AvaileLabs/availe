@@ -14,10 +14,10 @@ import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.listingfeed.IListingFeedComponent
 import com.availelabs.availe.listingfeed.ListingFeedComponent
+import com.availelabs.availe.model.EventFeedQuery
 import com.availelabs.availe.model.ListingFeedType
-import com.availelabs.availe.model.toEventFeedFilter
-import com.availelabs.availe.model.toListingCategoryFilter
 import com.availelabs.availe.navigation.FeedTypeMapper
+import com.availelabs.availe.repositories.IEventRepository
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
@@ -25,6 +25,8 @@ import com.availelabs.availe.ui.model.ActionIcon
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.flowOf
+import kotlin.time.Clock
 
 @OptIn(ExperimentalDecomposeApi::class)
 interface IHomeComponent : WebNavigationOwner {
@@ -36,6 +38,7 @@ interface IHomeComponent : WebNavigationOwner {
 class HomeComponent(
     componentContext: ComponentContext,
     private val listingRepository: IListingRepository,
+    private val eventRepository: IEventRepository,
     private val sessionManager: ISessionRepository,
     private val messageService: IMessageService,
     private val navigator: IHomeNavigator,
@@ -125,15 +128,19 @@ class HomeComponent(
                 }
 
                 try {
-                    val filter = feedType.toListingCategoryFilter()
-                    val eventFeedFilter = feedType.toEventFeedFilter()
-                    if (listingRepository.isListingCacheStale(filter, eventFeedFilter)) {
-                        listingRepository.syncFeedPage(
+                    val dummyTickingNowFlow = flowOf(Clock.System.now())
+                    val eventFeedQuery = when (feedType) {
+                        is ListingFeedType.Upcoming -> EventFeedQuery.Upcoming(dummyTickingNowFlow)
+                        is ListingFeedType.Past -> EventFeedQuery.Past(dummyTickingNowFlow)
+                        is ListingFeedType.Going -> EventFeedQuery.Going
+                    }
+
+                    if (eventRepository.isEventCacheStale(eventFeedQuery)) {
+                        eventRepository.syncEventFeedPage(
                             page = 0,
                             size = 20,
                             publisherId = null,
-                            filter = filter,
-                            eventFeedFilter = eventFeedFilter
+                            query = eventFeedQuery
                         )
                     }
                 } catch (_: Exception) {
@@ -156,6 +163,7 @@ class HomeComponent(
                 componentContext = componentContext,
                 feedType = configuration.feedType,
                 listingRepository = listingRepository,
+                eventRepository = eventRepository,
                 sessionManager = sessionManager,
                 messageService = messageService,
                 onNavigateToListingDetails = navigator::navigateToListingDetails

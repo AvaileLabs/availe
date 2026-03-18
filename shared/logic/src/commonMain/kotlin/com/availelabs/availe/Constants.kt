@@ -11,6 +11,7 @@ object ApiParameters {
     const val PAGE_SIZE = "size"
     const val PUBLISHER_ID = "publisherId"
     const val CATEGORIES = "categories"
+    const val EVENT_FEED_FILTER = "eventFeedFilter"
 }
 
 object ApiMediaTypes {

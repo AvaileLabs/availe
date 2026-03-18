@@ -63,7 +63,15 @@ internal class ListingLocalDataSource(
 
             when (listing) {
                 is Listing.Item -> database.listingQueries.upsertItemDetails(listing.id)
-                is Listing.Event -> database.listingQueries.upsertEventDetails(listing.id, listing.startTime)
+                is Listing.Event -> database.listingQueries.upsertEventDetails(
+                    listing_id = listing.id,
+                    start_local_time = listing.schedule.startLocalTime,
+                    end_local_time = listing.schedule.endLocalTime,
+                    start_instant = listing.schedule.startInstant,
+                    end_instant = listing.schedule.endInstant,
+                    time_zone_identifier = listing.schedule.timeZoneIdentifier
+                )
+
                 is Listing.Service -> database.listingQueries.upsertServiceDetails(listing.id)
             }
         }
@@ -97,7 +105,7 @@ internal class ListingLocalDataSource(
             EventFeedFilter.Upcoming -> {
                 val queryFlow = database.listingQueries.observeUpcomingEvents(
                     publisher_id = publisherId,
-                    current_time = Clock.System.now(),
+                    current_instant = Clock.System.now(),
                     limit = limit
                 ).asFlow().map { query ->
                     query.awaitAsList().map { observeUpcomingEvents -> observeUpcomingEvents.toDomain() }
@@ -108,7 +116,7 @@ internal class ListingLocalDataSource(
             EventFeedFilter.Past -> {
                 val queryFlow = database.listingQueries.observePastEvents(
                     publisher_id = publisherId,
-                    current_time = Clock.System.now(),
+                    current_instant = Clock.System.now(),
                     limit = limit
                 ).asFlow().map { query ->
                     query.awaitAsList().map { observePastEvents -> observePastEvents.toDomain() }
@@ -174,14 +182,14 @@ internal class ListingLocalDataSource(
             EventFeedFilter.Upcoming -> {
                 database.listingQueries.deleteUpcomingEvents(
                     publisher_id = publisherId,
-                    current_time = Clock.System.now()
+                    current_instant = Clock.System.now()
                 )
             }
 
             EventFeedFilter.Past -> {
                 database.listingQueries.deletePastEvents(
                     publisher_id = publisherId,
-                    current_time = Clock.System.now()
+                    current_instant = Clock.System.now()
                 )
             }
 

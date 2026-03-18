@@ -8,18 +8,20 @@ import com.arkivanov.mvikotlin.extensions.coroutines.CoroutineExecutor
 import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.listingfeed.ListingFeedStore.*
+import com.availelabs.availe.model.EventFeedQuery
 import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.model.error.AppError
-import com.availelabs.availe.model.toEventFeedFilter
-import com.availelabs.availe.model.toListingCategoryFilter
+import com.availelabs.availe.repositories.IEventRepository
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.types.PageSyncResult
 import com.availelabs.availe.ui.mapper.ErrorMessageMapper
 import com.availelabs.availe.ui.model.*
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.flow
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 data class ListingUiModel(
@@ -60,6 +62,7 @@ interface ListingFeedStore : Store<Intent, State, Label> {
 internal class ListingFeedStoreFactory(
     private val storeFactory: StoreFactory,
     private val listingRepository: IListingRepository,
+    private val eventRepository: IEventRepository,
     private val sessionManager: ISessionRepository,
     private val feedType: ListingFeedType
 ) {
@@ -103,6 +106,13 @@ internal class ListingFeedStoreFactory(
         private val pageSize = 20
         private var databaseObservationJob: Job? = null
 
+        private val tickingClockFlow: Flow<Instant> = flow {
+            while (currentCoroutineContext().isActive) {
+                emit(Clock.System.now())
+                delay(60_000L)
+            }
+        }
+
         override fun executeAction(action: Action) {
             when (action) {
                 is Action.ObserveDatabase -> observeDatabase(action.limit)
@@ -138,11 +148,16 @@ internal class ListingFeedStoreFactory(
         private fun observeDatabase(limit: Long) {
             databaseObservationJob?.cancel()
             databaseObservationJob = scope.launch {
-                listingRepository.observeFeed(
+                val eventFeedQuery = when (feedType) {
+                    ListingFeedType.Upcoming -> EventFeedQuery.Upcoming(tickingClockFlow)
+                    ListingFeedType.Going -> EventFeedQuery.Going
+                    ListingFeedType.Past -> EventFeedQuery.Past(tickingClockFlow)
+                }
+
+                eventRepository.observeEventFeed(
                     limit = limit,
                     publisherId = null,
-                    filter = feedType.toListingCategoryFilter(),
-                    eventFeedFilter = feedType.toEventFeedFilter()
+                    query = eventFeedQuery
                 ).collect { listings ->
                     val uiModels = listings.map { it.toListingUiModel() }
                     val newDatabaseState = if (uiModels.isEmpty()) {
@@ -160,12 +175,17 @@ internal class ListingFeedStoreFactory(
                 dispatch(Message.SetNetworkSyncState(NetworkSyncState.Active(trigger)))
                 dispatch(Message.SetPaginationError(null))
 
-                val result = listingRepository.syncFeedPage(
+                val eventFeedQuery = when (feedType) {
+                    ListingFeedType.Upcoming -> EventFeedQuery.Upcoming(tickingClockFlow)
+                    ListingFeedType.Going -> EventFeedQuery.Going
+                    ListingFeedType.Past -> EventFeedQuery.Past(tickingClockFlow)
+                }
+
+                val result = eventRepository.syncEventFeedPage(
                     page = page,
                     size = pageSize,
                     publisherId = null,
-                    filter = feedType.toListingCategoryFilter(),
-                    eventFeedFilter = feedType.toEventFeedFilter()
+                    query = eventFeedQuery
                 )
 
                 when (result) {
@@ -273,7 +293,7 @@ internal class ListingFeedStoreFactory(
             is Listing.Event -> ListingCategory.Event
             is Listing.Service -> ListingCategory.Service
         }
-        val startTime = (this as? Listing.Event)?.startTime
+        val startTime = (this as? Listing.Event)?.schedule?.startInstant
 
         return ListingUiModel(
             id = this.id,

@@ -7,6 +7,7 @@ interface IDataContainer {
     val sessionRepository: ISessionRepository
     val authenticationRepository: IAuthenticationRepository
     val listingRepository: IListingRepository
+    val eventRepository: IEventRepository
     val messagingRepository: IMessagingRepository
     val userRepository: IUserRepository
     val interactionRepository: IInteractionRepository

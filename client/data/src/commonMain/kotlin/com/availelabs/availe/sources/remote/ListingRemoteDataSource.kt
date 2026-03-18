@@ -28,8 +28,7 @@ internal interface IListingRemoteDataSource {
         page: Int,
         size: Int,
         publisherId: UserId? = null,
-        filter: ListingCategoryFilter,
-        eventFeedFilter: EventFeedFilter = EventFeedFilter.None
+        filter: ListingCategoryFilter
     ): List<Listing>
 
     suspend fun getListingById(id: ListingId): FindResult<Listing>
@@ -52,8 +51,7 @@ internal class ListingRemoteDataSource(
         page: Int,
         size: Int,
         publisherId: UserId?,
-        filter: ListingCategoryFilter,
-        eventFeedFilter: EventFeedFilter
+        filter: ListingCategoryFilter
     ): List<Listing> {
         val response = httpClient.get(ApiRoutes.LISTINGS) {
             parameter(ApiParameters.PAGE_NUMBER, page)
@@ -66,14 +64,11 @@ internal class ListingRemoteDataSource(
                     parameter(ApiParameters.CATEGORIES, category.name)
                 }
             }
-            if (eventFeedFilter != EventFeedFilter.None) {
-                parameter("eventFeedFilter", eventFeedFilter.name)
-            }
         }
         response.ensureSuccess()
         val jsonString = response.bodyAsText()
-        val dtos = json.decodeFromString(ListSerializer(TypeV1ListingDtoData.serializer()), jsonString)
-        return dtos.map { it.toDomainListing() }
+        val dataTransferObjects = json.decodeFromString(ListSerializer(TypeV1ListingDtoData.serializer()), jsonString)
+        return dataTransferObjects.map { it.toDomainListing() }
     }
 
     override suspend fun getListingById(id: ListingId): FindResult<Listing> {
@@ -82,8 +77,8 @@ internal class ListingRemoteDataSource(
         return when (response.status) {
             HttpStatusCode.OK -> {
                 val jsonString = response.bodyAsText()
-                val dto = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)
-                FindResult.Found(dto.toDomainListing())
+                val dataTransferObject = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)
+                FindResult.Found(dataTransferObject.toDomainListing())
             }
 
             HttpStatusCode.NotFound -> FindResult.NotFound
@@ -108,18 +103,18 @@ internal class ListingRemoteDataSource(
     }
 
     override suspend fun createListing(listing: NewListing): InsertResult<Listing> {
-        val dto = listing.toCreateRequestDto()
+        val dataTransferObject = listing.toCreateRequestDto()
         val response = httpClient.post(ApiRoutes.LISTINGS) {
             header(HttpHeaders.ContentType, ApiMediaTypes.LISTINGS_V1_JSON)
             header(HttpHeaders.Accept, ApiMediaTypes.LISTINGS_V1_JSON)
-            setBody(dto)
+            setBody(dataTransferObject)
         }
 
         return when (response.status) {
             HttpStatusCode.Created -> {
                 val jsonString = response.bodyAsText()
-                val responseDto = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)
-                InsertResult.Inserted(responseDto.toDomainListing())
+                val responseDataTransferObject = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)
+                InsertResult.Inserted(responseDataTransferObject.toDomainListing())
             }
 
             HttpStatusCode.Conflict -> InsertResult.AlreadyExists
@@ -143,8 +138,8 @@ internal class ListingRemoteDataSource(
         return when (response.status) {
             HttpStatusCode.OK -> {
                 val jsonString = response.bodyAsText()
-                val responseDto = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)
-                UpdateResult.Updated(responseDto.toDomainListing())
+                val responseDataTransferObject = json.decodeFromString(TypeV1ListingDtoData.serializer(), jsonString)
+                UpdateResult.Updated(responseDataTransferObject.toDomainListing())
             }
 
             HttpStatusCode.NotFound -> UpdateResult.NotFound

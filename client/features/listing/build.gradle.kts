@@ -27,6 +27,7 @@ kotlin {
             implementation(libs.mvikotlin)
             implementation(libs.mvikotlin.main)
             implementation(libs.mvikotlin.coroutines)
+            implementation(libs.kotlinx.datetime)
 
             implementation(libs.runtime)
             implementation(libs.foundation)
