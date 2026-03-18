@@ -1,6 +1,5 @@
 <resources>
     <string name="application_name">Availe</string>
-
     <string name="generic_retry">Retry</string>
     <string name="generic_refresh">Refresh</string>
     <string name="generic_cancel">Cancel</string>
@@ -12,7 +11,6 @@
     <string name="generic_delete">Delete</string>
     <string name="generic_options">Options</string>
     <string name="generic_actions">Actions</string>
-
     <string name="accessibility_navigation_home">Home Screen</string>
     <string name="accessibility_navigation_details">Details Screen</string>
     <string name="accessibility_navigation_chat">Chat Screen</string>
@@ -26,13 +24,11 @@
     <string name="accessibility_favorite">Favorite</string>
     <string name="accessibility_action_settings">Settings</string>
     <string name="accessibility_navigation_profile">Profile Screen</string>
-
     <string name="navigation_home">Home</string>
     <string name="navigation_details">Details</string>
     <string name="navigation_chat">Chat</string>
     <string name="navigation_settings">Settings</string>
     <string name="navigation_profile">Profile</string>
-
     <string name="feed_latest">Latest</string>
     <string name="feed_category_items">Items</string>
     <string name="feed_category_events">Events</string>
@@ -40,7 +36,6 @@
     <string name="feed_upcoming">Upcoming</string>
     <string name="feed_going">Going</string>
     <string name="feed_past">Past</string>
-
     <string name="authentication_log_in">Log In</string>
     <string name="authentication_sign_in">Sign In</string>
     <string name="authentication_guard_title">Sign in required</string>
@@ -51,10 +46,8 @@
     <string name="authentication_error_logout">An unexpected error occurred during logout.</string>
     <string name="authentication_info_cancelled">Login cancelled</string>
     <string name="authentication_listing_create_requirement">You must be logged in to create a listing</string>
-
     <string name="home_empty_state">No listings found</string>
     <string name="home_listing_exists">Listing already exists</string>
-
     <string name="listing_not_found">Listing not found</string>
     <string name="listing_price_total">Total Price</string>
     <string name="listing_contact_seller">Contact Seller</string>
@@ -70,15 +63,12 @@
     <string name="listing_reviews_label">%1$d Reviews</string>
     <string name="listing_rating_count_format">%1$s (%2$d)</string>
     <string name="listing_date_time_format">%1$s • %2$s</string>
-
     <string name="action_rsvp">RSVP</string>
     <string name="action_cancel_rsvp">Cancel RSVP</string>
-    <string name="status_going">You&#39;re Going!</string>
+    <string name="status_going">You\'re Going!</string>
     <string name="interaction_error_rsvp">Failed to update RSVP status. Please try again.</string>
-
     <string name="listing_editor_title_invalid">Title is invalid</string>
     <string name="listing_editor_price_required">Price is required</string>
-
     <string name="settings_title">Settings</string>
     <string name="settings_greeting">Hello, %1$s</string>
     <string name="settings_section_account">Account Settings</string>
@@ -88,7 +78,6 @@
     <string name="settings_manage_account_hint">This will open the account management page in a new browser tab.
     </string>
     <string name="settings_logout">Log Out</string>
-
     <string name="chat_title">Messaging</string>
     <string name="chat_input_placeholder">Type a message...</string>
     <string name="chat_status_connecting">Connecting...</string>
@@ -98,8 +87,6 @@
     <string name="chat_status_disconnected">Disconnected</string>
     <string name="chat_status_online">Online</string>
     <string name="chat_empty_details_state">Select a conversation to start messaging</string>
-
-
     <string name="error_no_internet">No internet connection. Please check your network.</string>
     <string name="error_request_timeout">The connection timed out. Please try again.</string>
     <string name="error_server_unreachable">The server is experiencing issues. Please try again later.</string>
@@ -112,16 +99,12 @@
     <string name="error_authentication_required">User not authenticated</string>
     <string name="error_listing_exists">Listing already exists</string>
     <string name="error_listing_not_found">Listing not found</string>
-
     <string name="action_copy_link">Copy link</string>
     <string name="action_open_in_new_tab">Open in new tab</string>
-
     <string name="category_item">Item</string>
     <string name="category_event">Event</string>
     <string name="category_service">Service</string>
-
     <string name="profile_title">User Profile</string>
-
     <string name="listing_editor_step_type">Type</string>
     <string name="listing_editor_step_schedule">Schedule</string>
     <string name="listing_editor_step_basics">Basics</string>
@@ -130,7 +113,6 @@
     <string name="listing_editor_step_review">Review</string>
     <string name="listing_editor_steps_title">Steps</string>
     <string name="listing_editor_step_progress_format">%1$s (%2$d of %3$d)</string>
-
     <string name="listing_editor_label_type">Listing type</string>
     <string name="listing_editor_label_title">Title</string>
     <string name="listing_editor_label_description">Description</string>
@@ -140,23 +122,18 @@
     <string name="listing_editor_no_image_preview">No image preview</string>
     <string name="listing_editor_image_preview_desc">Listing Image Preview</string>
     <string name="listing_editor_schedule_invalid">Please select a valid future date and time.</string>
-
     <string name="listing_editor_review_type_format">Type: %1$s</string>
     <string name="listing_editor_review_title_format">Title: %1$s</string>
     <string name="listing_editor_review_price_format">Price: %1$s</string>
     <string name="listing_editor_review_description_format">Description: %1$s</string>
     <string name="listing_editor_review_image_url_format">Image URL: %1$s</string>
     <string name="listing_editor_review_start_time_format">When: %1$s</string>
-
     <string name="listing_editor_action_next">Next</string>
     <string name="listing_editor_action_publish">Publish</string>
-
     <string name="listing_editor_draft_action_clear_step_format">Clear %1$s</string>
     <string name="listing_editor_draft_action_delete">Delete Draft</string>
-
     <string name="listing_editor_delete_confirm_title">Delete Draft?</string>
     <string name="listing_editor_delete_confirm_body">This cannot be undone. All progress will be lost.</string>
-
     <string name="listing_editor_publish_confirm_title">Publish Listing?</string>
     <string name="listing_editor_publish_confirm_body">Your listing will be visible to everyone. You can edit it
         later.
@@ -164,4 +141,25 @@
     <string name="listing_editor_publish_success">Listing published successfully</string>
     <string name="listing_editor_draft_discarded">Draft discarded</string>
     <string name="currency_display_format">%1$s (%2$s)</string>
+    <string name="dialog_date_picker_title">Select a date</string>
+    <string name="dialog_date_picker_confirm">Set date</string>
+    <string name="dialog_time_picker_title">Select a time</string>
+    <string name="dialog_time_picker_confirm">Set time</string>
+    <string name="dialog_time_picker_twenty_four_hour">Use 24 hours</string>
+    <string name="dialog_time_zone_picker_title">Select Time Zone</string>
+    <string name="dialog_time_zone_picker_search">Search</string>
+    <string name="listing_editor_schedule_start">Start</string>
+    <string name="listing_editor_schedule_end">End</string>
+    <string name="listing_editor_schedule_time_zone">Time Zone</string>
+    <string name="listing_editor_schedule_select_date">Select date</string>
+    <string name="listing_editor_schedule_select_time">Select time</string>
+    <string name="listing_editor_schedule_daylight_saving_time_error">The selected time does not exist in this timezone
+        due to Daylight Saving Time shifting forward. Please select a valid time.
+    </string>
+    <string name="listing_details_action_edit_listing">Edit Listing</string>
+    <string name="accessibility_picker_previous_month">Go to previous month</string>
+    <string name="accessibility_picker_next_month">Go to next month</string>
+    <string name="accessibility_step_complete">Complete</string>
+    <string name="accessibility_step_satisfied">Satisfied</string>
+    <string name="accessibility_step_incomplete">Incomplete</string>
 </resources>

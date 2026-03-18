@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import availe.client.designsystem.generated.resources.*
 import com.availelabs.availe.domain.model.LocalTimeResolution
 import com.availelabs.availe.domain.model.TimeZoneIdentifier
 import com.availelabs.availe.ui.components.pickers.DatePickerDialog
@@ -17,6 +18,7 @@ import com.composables.uikit.components.Text
 import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
 import kotlinx.datetime.*
+import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 
 @Composable
@@ -70,7 +72,7 @@ fun EventScheduleWizard(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = "Start",
+                text = stringResource(Res.string.listing_editor_schedule_start),
                 style = Theme[textStyles][caption],
                 color = Theme[colors][onBackground].copy(alpha = 0.7f)
             )
@@ -95,7 +97,7 @@ fun EventScheduleWizard(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = "End",
+                text = stringResource(Res.string.listing_editor_schedule_end),
                 style = Theme[textStyles][caption],
                 color = Theme[colors][onBackground].copy(alpha = 0.7f)
             )
@@ -120,7 +122,7 @@ fun EventScheduleWizard(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = "Time Zone",
+                text = stringResource(Res.string.listing_editor_schedule_time_zone),
                 style = Theme[textStyles][caption],
                 color = Theme[colors][onBackground].copy(alpha = 0.7f)
             )
@@ -134,7 +136,7 @@ fun EventScheduleWizard(
 
         if (timeResolutionError is LocalTimeResolution.Skipped) {
             Text(
-                text = "The selected time does not exist in this timezone due to Daylight Saving Time shifting forward. Please select a valid time.",
+                text = stringResource(Res.string.listing_editor_schedule_daylight_saving_time_error),
                 style = Theme[textStyles][body],
                 color = Theme[colors][destructive]
             )
@@ -215,16 +217,18 @@ private fun ScheduleInputBox(
     }
 }
 
+@Composable
 private fun formatLocalDateForDisplay(localDate: LocalDate?): String {
-    if (localDate == null) return "Select date"
+    if (localDate == null) return stringResource(Res.string.listing_editor_schedule_select_date)
     val monthNamePrefix = localDate.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
-    val dayOfMonthString = localDate.dayOfMonth.toString()
+    val dayOfMonthString = localDate.day.toString()
     val yearString = localDate.year.toString()
     return "$monthNamePrefix $dayOfMonthString, $yearString"
 }
 
+@Composable
 private fun formatLocalTimeForDisplay(localTime: LocalTime?): String {
-    if (localTime == null) return "Select time"
+    if (localTime == null) return stringResource(Res.string.listing_editor_schedule_select_time)
     val displayHourValue = when {
         localTime.hour == 0 -> 12
         localTime.hour > 12 -> localTime.hour - 12

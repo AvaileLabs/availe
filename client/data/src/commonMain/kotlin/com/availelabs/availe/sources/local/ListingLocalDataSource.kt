@@ -105,6 +105,7 @@ internal class ListingLocalDataSource(
             EventFeedFilter.Upcoming -> {
                 val queryFlow = database.listingQueries.observeUpcomingEvents(
                     publisher_id = publisherId,
+                    event_category = ListingCategory.Event,
                     current_instant = Clock.System.now(),
                     limit = limit
                 ).asFlow().map { query ->
@@ -116,6 +117,7 @@ internal class ListingLocalDataSource(
             EventFeedFilter.Past -> {
                 val queryFlow = database.listingQueries.observePastEvents(
                     publisher_id = publisherId,
+                    event_category = ListingCategory.Event,
                     current_instant = Clock.System.now(),
                     limit = limit
                 ).asFlow().map { query ->
@@ -127,6 +129,7 @@ internal class ListingLocalDataSource(
             EventFeedFilter.Going -> {
                 val queryFlow = database.listingQueries.observeGoingEvents(
                     publisher_id = publisherId,
+                    event_category = ListingCategory.Event,
                     limit = limit
                 ).asFlow().map { query ->
                     query.awaitAsList().map { observeGoingEvents -> observeGoingEvents.toDomain() }
@@ -182,6 +185,7 @@ internal class ListingLocalDataSource(
             EventFeedFilter.Upcoming -> {
                 database.listingQueries.deleteUpcomingEvents(
                     publisher_id = publisherId,
+                    event_category = ListingCategory.Event,
                     current_instant = Clock.System.now()
                 )
             }
@@ -189,13 +193,15 @@ internal class ListingLocalDataSource(
             EventFeedFilter.Past -> {
                 database.listingQueries.deletePastEvents(
                     publisher_id = publisherId,
+                    event_category = ListingCategory.Event,
                     current_instant = Clock.System.now()
                 )
             }
 
             EventFeedFilter.Going -> {
                 database.listingQueries.deleteGoingEvents(
-                    publisher_id = publisherId
+                    publisher_id = publisherId,
+                    event_category = ListingCategory.Event
                 )
             }
         }

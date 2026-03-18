@@ -13,8 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import availe.client.designsystem.generated.resources.Res
-import availe.client.designsystem.generated.resources.listing_editor_steps_title
+import availe.client.designsystem.generated.resources.*
 import com.arkivanov.decompose.router.pages.ChildPages
 import com.availelabs.availe.ListingEditorState
 import com.composables.icons.lucide.Check
@@ -261,7 +260,7 @@ internal fun ListingStepRow(
             StepStatus.Complete -> {
                 Icon(
                     imageVector = Lucide.CircleCheck,
-                    contentDescription = "Complete",
+                    contentDescription = stringResource(Res.string.accessibility_step_complete),
                     tint = successColor,
                     modifier = Modifier.size(16.dp)
                 )
@@ -270,7 +269,7 @@ internal fun ListingStepRow(
             StepStatus.Satisfied -> {
                 Icon(
                     imageVector = Lucide.Check,
-                    contentDescription = "Satisfied",
+                    contentDescription = stringResource(Res.string.accessibility_step_satisfied),
                     tint = successColor,
                     modifier = Modifier.size(16.dp)
                 )
@@ -279,7 +278,7 @@ internal fun ListingStepRow(
             StepStatus.Incomplete -> {
                 Icon(
                     imageVector = Lucide.Circle,
-                    contentDescription = "Incomplete",
+                    contentDescription = stringResource(Res.string.accessibility_step_incomplete),
                     tint = pendingColor,
                     modifier = Modifier.size(16.dp)
                 )

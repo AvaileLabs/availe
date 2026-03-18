@@ -479,7 +479,7 @@ private fun ListingActionButtons(
                 onClick = onEditClicked,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Edit Listing")
+                Text(stringResource(Res.string.listing_details_action_edit_listing))
             }
         }
     }

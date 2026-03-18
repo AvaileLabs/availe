@@ -7,11 +7,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import availe.client.designsystem.generated.resources.*
 import com.availelabs.availe.ui.components.dialogs.DimmedDialog
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
 import kotlinx.datetime.LocalTime
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun TimePickerDialog(
@@ -29,16 +31,19 @@ fun TimePickerDialog(
                 .padding(20.dp)
         ) {
             var currentSelectedTime by remember { mutableStateOf(initialTime ?: LocalTime(12, 0)) }
-            var currentIs24Hour by remember { mutableStateOf(is24Hour) }
+            var currentIsTwentyFourHourFormat by remember { mutableStateOf(is24Hour) }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Select a time", style = Theme[textStyles][title])
+                Text(
+                    text = stringResource(Res.string.dialog_time_picker_title),
+                    style = Theme[textStyles][title]
+                )
                 Spacer(Modifier.height(20.dp))
 
                 TimePicker(
                     time = currentSelectedTime,
                     onTimeChange = { newTime -> currentSelectedTime = newTime },
-                    use24HourFormat = currentIs24Hour,
+                    use24HourFormat = currentIsTwentyFourHourFormat,
                     showSecondsPicker = false,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -51,10 +56,13 @@ fun TimePickerDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Checkbox(
-                        checked = currentIs24Hour,
-                        onCheckedChange = { isChecked -> currentIs24Hour = isChecked }
+                        checked = currentIsTwentyFourHourFormat,
+                        onCheckedChange = { isChecked -> currentIsTwentyFourHourFormat = isChecked }
                     )
-                    Text("Use 24 hours", style = Theme[textStyles][body])
+                    Text(
+                        text = stringResource(Res.string.dialog_time_picker_twenty_four_hour),
+                        style = Theme[textStyles][body]
+                    )
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -67,7 +75,7 @@ fun TimePickerDialog(
                         onClick = onDismissRequest,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(Res.string.generic_cancel))
                     }
                     PrimaryButton(
                         onClick = {
@@ -76,7 +84,7 @@ fun TimePickerDialog(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Set time")
+                        Text(stringResource(Res.string.dialog_time_picker_confirm))
                     }
                 }
             }

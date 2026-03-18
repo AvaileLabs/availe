@@ -14,6 +14,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import availe.client.designsystem.generated.resources.Res
+import availe.client.designsystem.generated.resources.accessibility_picker_next_month
+import availe.client.designsystem.generated.resources.accessibility_picker_previous_month
+import availe.client.designsystem.generated.resources.dialog_date_picker_confirm
+import availe.client.designsystem.generated.resources.dialog_date_picker_title
+import availe.client.designsystem.generated.resources.generic_cancel
 import com.availelabs.availe.ui.components.dialogs.DimmedDialog
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.ChevronRight
@@ -25,6 +31,7 @@ import com.composables.uikit.components.Text
 import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
 import kotlinx.datetime.*
+import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 
 @Composable
@@ -46,7 +53,10 @@ fun DatePickerDialog(
             var currentSelectedDate by remember { mutableStateOf(initialDate) }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Select a date", style = Theme[textStyles][com.composables.uikit.styling.title])
+                Text(
+                    text = stringResource(Res.string.dialog_date_picker_title),
+                    style = Theme[textStyles][title]
+                )
                 Spacer(Modifier.height(20.dp))
                 CalendarView(
                     modifier = Modifier.fillMaxWidth(),
@@ -66,7 +76,7 @@ fun DatePickerDialog(
                         onClick = onDismissRequest,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(Res.string.generic_cancel))
                     }
                     PrimaryButton(
                         onClick = {
@@ -79,7 +89,7 @@ fun DatePickerDialog(
                         enabled = currentSelectedDate != null,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Set date")
+                        Text(stringResource(Res.string.dialog_date_picker_confirm))
                     }
                 }
             }
@@ -120,7 +130,7 @@ private fun CalendarView(
         modifier: Modifier = Modifier
     ) {
         val textColor = when {
-            date == selectedDate -> Theme[colors][onPrimary]
+            date == selectedDate -> Theme[colors][onAccent]
             enabled -> color
             else -> Theme[colors][onCard].copy(alpha = 0.3f)
         }
@@ -145,12 +155,12 @@ private fun CalendarView(
                     Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Theme[colors][primary])
+                        .background(Theme[colors][accent])
                 )
             }
             Text(
-                text = date.dayOfMonth.toString(),
-                style = Theme[textStyles][com.composables.uikit.styling.caption].copy(color = textColor)
+                text = date.day.toString(),
+                style = Theme[textStyles][caption].copy(color = textColor)
             )
         }
     }
@@ -183,14 +193,14 @@ private fun CalendarView(
             ) {
                 Icon(
                     imageVector = Lucide.ChevronLeft,
-                    contentDescription = "Go to previous month",
+                    contentDescription = stringResource(Res.string.accessibility_picker_previous_month),
                     tint = if (canGoPrevious) Theme[colors][onCard] else Theme[colors][outline].copy(alpha = 0.2f)
                 )
             }
 
             val monthName = firstOfSelectedMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }
             val yearNumber = firstOfSelectedMonth.year
-            Text("$monthName $yearNumber", style = Theme[textStyles][com.composables.uikit.styling.body])
+            Text("$monthName $yearNumber", style = Theme[textStyles][body])
 
             Box(
                 modifier = Modifier
@@ -203,7 +213,7 @@ private fun CalendarView(
             ) {
                 Icon(
                     imageVector = Lucide.ChevronRight,
-                    contentDescription = "Go to next month",
+                    contentDescription = stringResource(Res.string.accessibility_picker_next_month),
                     tint = if (canGoNext) Theme[colors][onCard] else Theme[colors][outline].copy(alpha = 0.2f)
                 )
             }
@@ -216,7 +226,7 @@ private fun CalendarView(
                 Box(Modifier.width(cellWidth), contentAlignment = Alignment.Center) {
                     Text(
                         text = dayLetter,
-                        style = Theme[textStyles][com.composables.uikit.styling.caption].copy(
+                        style = Theme[textStyles][caption].copy(
                             color = Theme[colors][onCard].copy(
                                 alpha = 0.5f
                             )
