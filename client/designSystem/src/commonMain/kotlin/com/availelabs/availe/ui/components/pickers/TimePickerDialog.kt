@@ -9,7 +9,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.*
 import com.availelabs.availe.ui.components.dialogs.DimmedDialog
-import com.composables.uikit.components.*
+import com.composables.uikit.components.Checkbox
+import com.composables.uikit.components.OutlinedButton
+import com.composables.uikit.components.PrimaryButton
+import com.composables.uikit.components.Text
 import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
 import kotlinx.datetime.LocalTime
@@ -40,7 +43,7 @@ fun TimePickerDialog(
                 )
                 Spacer(Modifier.height(20.dp))
 
-                TimePicker(
+                TimePickerWithPointerDragSupport(
                     time = currentSelectedTime,
                     onTimeChange = { newTime -> currentSelectedTime = newTime },
                     use24HourFormat = currentIsTwentyFourHourFormat,
