@@ -162,4 +162,22 @@
     <string name="accessibility_step_complete">Complete</string>
     <string name="accessibility_step_satisfied">Satisfied</string>
     <string name="accessibility_step_incomplete">Incomplete</string>
+
+    <string name="listing_editor_schedule_adjustment_start_date_title">Adjust Start Date?</string>
+    <string name="listing_editor_schedule_adjustment_start_date_body">The end date you selected is before the start
+        date. Would you like to automatically adjust the start date to match?
+    </string>
+    <string name="listing_editor_schedule_adjustment_end_date_title">Adjust End Date?</string>
+    <string name="listing_editor_schedule_adjustment_end_date_body">The start date you selected is after the end date.
+        Would you like to automatically adjust the end date to match?
+    </string>
+    <string name="listing_editor_schedule_adjustment_start_time_title">Adjust Start Time?</string>
+    <string name="listing_editor_schedule_adjustment_start_time_body">The end time you selected is before the start
+        time. Would you like to automatically adjust the start time to match?
+    </string>
+    <string name="listing_editor_schedule_adjustment_end_time_title">Adjust End Time?</string>
+    <string name="listing_editor_schedule_adjustment_end_time_body">The start time you selected is after the end time.
+        Would you like to automatically adjust the end time to match?
+    </string>
+    <string name="listing_editor_action_adjust">Adjust</string>
 </resources>

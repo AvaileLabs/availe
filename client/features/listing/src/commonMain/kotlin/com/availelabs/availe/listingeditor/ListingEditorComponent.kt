@@ -23,7 +23,6 @@ import com.availelabs.availe.model.ToastMessage
 import com.availelabs.availe.repositories.IListingRepository
 import com.availelabs.availe.repositories.ISessionRepository
 import com.availelabs.availe.services.IMessageService
-import com.availelabs.availe.toDraft
 import com.availelabs.availe.ui.model.ActionIcon
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
@@ -31,34 +30,6 @@ import kotlinx.coroutines.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.getString
-
-interface IListingEditorComponent {
-    val state: Value<ListingEditorState>
-    val actions: Value<List<AppBarAction>>
-    val pages: Value<ChildPages<ListingEditorPageConfig, ListingEditorPage>>
-    fun onTitleChanged(title: String)
-    fun onDescriptionChanged(description: String)
-    fun onPriceAmountChanged(amount: String)
-    fun onCurrencySelected(currency: SupportedCurrency)
-    fun onTypeSelected(type: ListingCategory)
-    fun onImageUrlChanged(url: String)
-    fun onStartDateChanged(startDate: LocalDate?)
-    fun onStartTimeChanged(startTime: LocalTime?)
-    fun onEndDateChanged(endDate: LocalDate?)
-    fun onEndTimeChanged(endTime: LocalTime?)
-    fun onTimeZoneIdentifierChanged(timeZoneIdentifier: TimeZoneIdentifier)
-    fun onPageSelected(index: Int)
-    fun onPublishClicked()
-    fun onConfirmPublish()
-    fun onCancelPublish()
-    fun onDiscardDraftClicked()
-    fun onConfirmDiscardDraft()
-    fun onCancelDiscardDraft()
-    fun onRequestDeleteDraft()
-    fun onCancelDeleteDraft()
-    fun onClearStep(config: ListingEditorPageConfig)
-    fun onBackClicked()
-}
 
 @OptIn(ExperimentalDecomposeApi::class, ExperimentalCoroutinesApi::class)
 class ListingEditorComponent(
@@ -269,6 +240,14 @@ class ListingEditorComponent(
 
     override fun onCancelPublish() {
         store.accept(ListingEditorIntent.CancelPublish)
+    }
+
+    override fun onConfirmScheduleAdjustment() {
+        store.accept(ListingEditorIntent.ConfirmScheduleAdjustment)
+    }
+
+    override fun onCancelScheduleAdjustment() {
+        store.accept(ListingEditorIntent.CancelScheduleAdjustment)
     }
 
     override fun onDiscardDraftClicked() {

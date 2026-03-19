@@ -45,27 +45,6 @@ fun EventScheduleWizard(
     val currentSystemDate = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date }
     val maximumAllowedDate = remember { currentSystemDate.plus(5, DateTimeUnit.YEAR) }
 
-    fun handleStartDateSelected(newStartDate: LocalDate) {
-        onStartDateChanged(newStartDate)
-        if (endDate == null) {
-            onEndDateChanged(newStartDate)
-        } else if (newStartDate > endDate) {
-            onEndDateChanged(newStartDate)
-        }
-    }
-
-    fun handleStartTimeSelected(newStartTime: LocalTime) {
-        onStartTimeChanged(newStartTime)
-        if (startDate != null && startDate == endDate && endTime != null && newStartTime >= endTime) {
-            val startMomentInstant = LocalDateTime(startDate, newStartTime).toInstant(TimeZone.UTC)
-            val newEndMomentInstant = startMomentInstant.plus(1, DateTimeUnit.HOUR, TimeZone.UTC)
-            val newEndLocalDateTime = newEndMomentInstant.toLocalDateTime(TimeZone.UTC)
-
-            onEndDateChanged(newEndLocalDateTime.date)
-            onEndTimeChanged(newEndLocalDateTime.time)
-        }
-    }
-
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -148,7 +127,9 @@ fun EventScheduleWizard(
             initialDate = startDate,
             minDate = currentSystemDate,
             maxDate = maximumAllowedDate,
-            onDateSelected = ::handleStartDateSelected,
+            onDateSelected = { newDate ->
+                onStartDateChanged(newDate)
+            },
             onDismissRequest = { isStartDatePickerVisible = false }
         )
     }
@@ -157,18 +138,21 @@ fun EventScheduleWizard(
         TimePickerDialog(
             initialTime = startTime,
             is24Hour = false,
-            onTimeSelected = ::handleStartTimeSelected,
+            onTimeSelected = { newTime ->
+                onStartTimeChanged(newTime)
+            },
             onDismissRequest = { isStartTimePickerVisible = false }
         )
     }
 
     if (isEndDatePickerVisible) {
-        val minimumEndDate = startDate ?: currentSystemDate
         DatePickerDialog(
             initialDate = endDate,
-            minDate = minimumEndDate,
+            minDate = currentSystemDate,
             maxDate = maximumAllowedDate,
-            onDateSelected = { newEndDate -> onEndDateChanged(newEndDate) },
+            onDateSelected = { newDate ->
+                onEndDateChanged(newDate)
+            },
             onDismissRequest = { isEndDatePickerVisible = false }
         )
     }
@@ -177,7 +161,9 @@ fun EventScheduleWizard(
         TimePickerDialog(
             initialTime = endTime,
             is24Hour = false,
-            onTimeSelected = { newEndTime -> onEndTimeChanged(newEndTime) },
+            onTimeSelected = { newTime ->
+                onEndTimeChanged(newTime)
+            },
             onDismissRequest = { isEndTimePickerVisible = false }
         )
     }

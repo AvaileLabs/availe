@@ -2,10 +2,9 @@ package com.availelabs.availe
 
 import com.availelabs.availe.domain.extensions.isValid
 import com.availelabs.availe.domain.model.*
-import com.availelabs.availe.dto.kreplica.*
 import com.availelabs.availe.listingeditor.ListingEditorPageConfig
+import com.availelabs.availe.listingeditor.toEditorState
 import com.availelabs.availe.model.ListingDraft
-import io.availe.models.Patchable
 import kotlinx.datetime.*
 
 sealed interface ListingEditorError {
@@ -25,11 +24,7 @@ data class ListingEditorState(
     val priceAmount: PriceAmount = PriceAmount(""),
     val priceCurrency: SupportedCurrency = SupportedCurrency.USD,
     val imageUrl: ImageUrl = ImageUrl(""),
-    val startDate: LocalDate? = null,
-    val startTime: LocalTime? = null,
-    val endDate: LocalDate? = null,
-    val endTime: LocalTime? = null,
-    val timeZoneIdentifier: TimeZoneIdentifier = TimeZoneIdentifier(TimeZone.currentSystemDefault().id),
+    val scheduleBounds: DraftEventBounds = DraftEventBounds(),
     val timeResolutionError: LocalTimeResolution? = null,
     val type: ListingCategory? = null,
     val isSubmitting: Boolean = false,
@@ -37,6 +32,7 @@ data class ListingEditorState(
     val showDiscardDraftDialog: Boolean = false,
     val showDeleteDraftConfirmation: Boolean = false,
     val showPublishConfirmationDialog: Boolean = false,
+    val pendingScheduleAdjustment: PendingScheduleAdjustment? = null,
     val isBasicsStepValid: Boolean = false,
     val isPricingStepValid: Boolean = false,
     val isScheduleStepValid: Boolean = false
@@ -56,6 +52,8 @@ sealed interface ListingEditorIntent {
     data class ChangeEndDate(val endDate: LocalDate?) : ListingEditorIntent
     data class ChangeEndTime(val endTime: LocalTime?) : ListingEditorIntent
     data class ChangeTimeZoneIdentifier(val timeZoneIdentifier: TimeZoneIdentifier) : ListingEditorIntent
+    data object ConfirmScheduleAdjustment : ListingEditorIntent
+    data object CancelScheduleAdjustment : ListingEditorIntent
     data object AskToPublish : ListingEditorIntent
     data object CancelPublish : ListingEditorIntent
     data object ConfirmPublish : ListingEditorIntent
@@ -77,17 +75,20 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
 
         is ListingEditorIntent.RestoreDraft -> {
             val currency = SupportedCurrency.fromCode(intent.draft.priceCurrencyCode) ?: SupportedCurrency.USD
+            val restoredBounds = DraftEventBounds(
+                startDate = intent.draft.startDate,
+                startTime = intent.draft.startTime,
+                endDate = intent.draft.endDate,
+                endTime = intent.draft.endTime,
+                timeZoneIdentifier = intent.draft.timeZoneIdentifier
+            )
             state.copy(
                 title = intent.draft.title,
                 description = intent.draft.description,
                 priceAmount = intent.draft.priceAmount,
                 priceCurrency = currency,
                 imageUrl = intent.draft.imageUrl,
-                startDate = intent.draft.startDate,
-                startTime = intent.draft.startTime,
-                endDate = intent.draft.endDate,
-                endTime = intent.draft.endTime,
-                timeZoneIdentifier = intent.draft.timeZoneIdentifier,
+                scheduleBounds = restoredBounds,
                 type = intent.draft.type,
                 error = null
             ).recalculateValidation()
@@ -126,23 +127,69 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
         }
 
         is ListingEditorIntent.ChangeStartDate -> {
-            state.copy(startDate = intent.startDate, error = null).recalculateValidation()
+            val currentBounds = state.scheduleBounds
+            val newStartDate = intent.startDate
+            if (newStartDate != null && currentBounds.endDate != null && newStartDate > currentBounds.endDate) {
+                val proposedBounds = currentBounds.copy(startDate = newStartDate, endDate = newStartDate)
+                state.copy(pendingScheduleAdjustment = PendingScheduleAdjustment.ShiftEndDate(proposedBounds))
+            } else {
+                state.copy(scheduleBounds = currentBounds.copy(startDate = newStartDate)).recalculateValidation()
+            }
         }
 
         is ListingEditorIntent.ChangeStartTime -> {
-            state.copy(startTime = intent.startTime, error = null).recalculateValidation()
+            val currentBounds = state.scheduleBounds
+            val newStartTime = intent.startTime
+            if (newStartTime != null && currentBounds.startDate != null && currentBounds.endDate != null && currentBounds.startDate == currentBounds.endDate && currentBounds.endTime != null && newStartTime > currentBounds.endTime) {
+                val proposedBounds = currentBounds.copy(startTime = newStartTime, endTime = newStartTime)
+                state.copy(pendingScheduleAdjustment = PendingScheduleAdjustment.ShiftEndTime(proposedBounds))
+            } else {
+                state.copy(scheduleBounds = currentBounds.copy(startTime = newStartTime)).recalculateValidation()
+            }
         }
 
         is ListingEditorIntent.ChangeEndDate -> {
-            state.copy(endDate = intent.endDate, error = null).recalculateValidation()
+            val currentBounds = state.scheduleBounds
+            val newEndDate = intent.endDate
+            if (newEndDate != null && currentBounds.startDate != null && newEndDate < currentBounds.startDate) {
+                val proposedBounds = currentBounds.copy(endDate = newEndDate, startDate = newEndDate)
+                state.copy(pendingScheduleAdjustment = PendingScheduleAdjustment.ShiftStartDate(proposedBounds))
+            } else {
+                state.copy(scheduleBounds = currentBounds.copy(endDate = newEndDate)).recalculateValidation()
+            }
         }
 
         is ListingEditorIntent.ChangeEndTime -> {
-            state.copy(endTime = intent.endTime, error = null).recalculateValidation()
+            val currentBounds = state.scheduleBounds
+            val newEndTime = intent.endTime
+            if (newEndTime != null && currentBounds.startDate != null && currentBounds.endDate != null && currentBounds.startDate == currentBounds.endDate && currentBounds.startTime != null && newEndTime < currentBounds.startTime) {
+                val proposedBounds = currentBounds.copy(endTime = newEndTime, startTime = newEndTime)
+                state.copy(pendingScheduleAdjustment = PendingScheduleAdjustment.ShiftStartTime(proposedBounds))
+            } else {
+                state.copy(scheduleBounds = currentBounds.copy(endTime = newEndTime)).recalculateValidation()
+            }
         }
 
         is ListingEditorIntent.ChangeTimeZoneIdentifier -> {
-            state.copy(timeZoneIdentifier = intent.timeZoneIdentifier, error = null).recalculateValidation()
+            val currentBounds = state.scheduleBounds
+            val updatedBounds = currentBounds.copy(timeZoneIdentifier = intent.timeZoneIdentifier)
+            state.copy(scheduleBounds = updatedBounds, error = null).recalculateValidation()
+        }
+
+        ListingEditorIntent.ConfirmScheduleAdjustment -> {
+            val pendingAdjustment = state.pendingScheduleAdjustment
+            if (pendingAdjustment != null) {
+                state.copy(
+                    scheduleBounds = pendingAdjustment.proposedBounds,
+                    pendingScheduleAdjustment = null
+                ).recalculateValidation()
+            } else {
+                state
+            }
+        }
+
+        ListingEditorIntent.CancelScheduleAdjustment -> {
+            state.copy(pendingScheduleAdjustment = null)
         }
 
         ListingEditorIntent.AskToPublish -> {
@@ -179,11 +226,7 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
             priceAmount = PriceAmount(""),
             priceCurrency = SupportedCurrency.USD,
             imageUrl = ImageUrl(""),
-            startDate = null,
-            startTime = null,
-            endDate = null,
-            endTime = null,
-            timeZoneIdentifier = TimeZoneIdentifier(TimeZone.currentSystemDefault().id),
+            scheduleBounds = DraftEventBounds(),
             timeResolutionError = null,
             type = if (state.isEditing) state.type else null,
             error = null
@@ -205,10 +248,12 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
                 )
 
                 ListingEditorPageConfig.Schedule -> state.copy(
-                    startDate = null,
-                    startTime = null,
-                    endDate = null,
-                    endTime = null
+                    scheduleBounds = state.scheduleBounds.copy(
+                        startDate = null,
+                        startTime = null,
+                        endDate = null,
+                        endTime = null
+                    )
                 )
 
                 ListingEditorPageConfig.Pricing -> state.copy(
@@ -234,15 +279,15 @@ private fun ListingEditorState.recalculateValidation(): ListingEditorState {
     var calculatedTimeResolutionError: LocalTimeResolution? = null
 
     if (this.type == ListingCategory.Event) {
-        if (this.startDate != null && this.startTime != null && this.endDate != null && this.endTime != null) {
+        if (this.scheduleBounds.startDate != null && this.scheduleBounds.startTime != null && this.scheduleBounds.endDate != null && this.scheduleBounds.endTime != null) {
             try {
-                val timeZone = TimeZone.of(this.timeZoneIdentifier.value)
+                val timeZone = TimeZone.of(this.scheduleBounds.timeZoneIdentifier.value)
 
-                val startLocalDateTime = LocalDateTime(this.startDate, this.startTime)
+                val startLocalDateTime = LocalDateTime(this.scheduleBounds.startDate, this.scheduleBounds.startTime)
                 val startInstant = startLocalDateTime.toInstant(timeZone)
                 val isStartSkipped = startInstant.toLocalDateTime(timeZone) != startLocalDateTime
 
-                val endLocalDateTime = LocalDateTime(this.endDate, this.endTime)
+                val endLocalDateTime = LocalDateTime(this.scheduleBounds.endDate, this.scheduleBounds.endTime)
                 val endInstant = endLocalDateTime.toInstant(timeZone)
                 val isEndSkipped = endInstant.toLocalDateTime(timeZone) != endLocalDateTime
 
@@ -268,147 +313,4 @@ private fun ListingEditorState.recalculateValidation(): ListingEditorState {
         isScheduleStepValid = scheduleValid,
         timeResolutionError = calculatedTimeResolutionError
     )
-}
-
-fun ListingEditorState.toNewListing(publisher: PublicProfile): NewListing? {
-    val type = this.type ?: return null
-    val price = Price(this.priceAmount, this.priceCurrency.code)
-    val imageLinks = if (this.imageUrl.value.isNotBlank()) listOf(this.imageUrl) else emptyList()
-
-    val commonData = CommonListingData(
-        title = this.title,
-        description = if (this.description.value.isBlank()) null else this.description,
-        price = price,
-        imageLinks = imageLinks,
-        location = ListingLocation("Unknown")
-    )
-
-    return when (type) {
-        ListingCategory.Item -> NewListing.Item(commonData, publisher)
-        ListingCategory.Event -> {
-            if (!this.isScheduleStepValid || this.startDate == null || this.startTime == null || this.endDate == null || this.endTime == null) return null
-
-            val timeZone = TimeZone.of(this.timeZoneIdentifier.value)
-            val startLocal = LocalDateTime(this.startDate, this.startTime)
-            val endLocal = LocalDateTime(this.endDate, this.endTime)
-
-            val schedule = EventSchedule(
-                startLocalTime = startLocal,
-                endLocalTime = endLocal,
-                startInstant = startLocal.toInstant(timeZone),
-                endInstant = endLocal.toInstant(timeZone),
-                timeZoneIdentifier = this.timeZoneIdentifier
-            )
-
-            NewListing.Event(
-                commonData = commonData,
-                publisher = publisher,
-                schedule = schedule,
-                autoRsvp = true
-            )
-        }
-
-        ListingCategory.Service -> NewListing.Service(commonData, publisher)
-    }
-}
-
-fun ListingEditorState.toPatchRequest(): TypeV1ListingDtoPatchRequest? {
-    val type = this.type ?: return null
-    val imageLinks = if (this.imageUrl.value.isNotBlank()) listOf(this.imageUrl) else emptyList()
-    val descriptionValue = if (this.description.value.isBlank()) null else this.description
-
-    val priceObj = Price(this.priceAmount, this.priceCurrency.code)
-
-    return when (type) {
-        ListingCategory.Item -> ListingItemDtoSchema.V1.PatchRequest(
-            title = Patchable.Set(this.title),
-            description = Patchable.Set(descriptionValue),
-            price = Patchable.Set(priceObj),
-            imageLinks = Patchable.Set(imageLinks)
-        )
-
-        ListingCategory.Event -> {
-            val schedulePatch =
-                if (this.startDate != null && this.startTime != null && this.endDate != null && this.endTime != null && this.isScheduleStepValid) {
-                    val timeZone = TimeZone.of(this.timeZoneIdentifier.value)
-                    val startLocal = LocalDateTime(this.startDate, this.startTime)
-                    val endLocal = LocalDateTime(this.endDate, this.endTime)
-                    Patchable.Set(
-                        EventScheduleDtoSchema.V1.PatchRequest(
-                            startLocalTime = Patchable.Set(startLocal),
-                            endLocalTime = Patchable.Set(endLocal),
-                            startInstant = Patchable.Set(startLocal.toInstant(timeZone)),
-                            endInstant = Patchable.Set(endLocal.toInstant(timeZone)),
-                            timeZoneIdentifier = Patchable.Set(this.timeZoneIdentifier)
-                        )
-                    )
-                } else {
-                    Patchable.Unchanged
-                }
-
-            ListingEventDtoSchema.V1.PatchRequest(
-                title = Patchable.Set(this.title),
-                description = Patchable.Set(descriptionValue),
-                price = Patchable.Set(priceObj),
-                imageLinks = Patchable.Set(imageLinks),
-                schedule = schedulePatch
-            )
-        }
-
-        ListingCategory.Service -> ListingServiceDtoSchema.V1.PatchRequest(
-            title = Patchable.Set(this.title),
-            description = Patchable.Set(descriptionValue),
-            price = Patchable.Set(priceObj),
-            imageLinks = Patchable.Set(imageLinks)
-        )
-    }
-}
-
-fun ListingEditorState.toDraft(stepIndex: Int): ListingDraft? {
-    val type = this.type ?: return null
-    return ListingDraft(
-        title = this.title,
-        description = this.description,
-        priceAmount = this.priceAmount,
-        priceCurrencyCode = this.priceCurrency.code,
-        imageUrl = this.imageUrl,
-        startDate = this.startDate,
-        startTime = this.startTime,
-        endDate = this.endDate,
-        endTime = this.endTime,
-        timeZoneIdentifier = this.timeZoneIdentifier,
-        type = type,
-        stepIndex = stepIndex
-    )
-}
-
-private fun Listing.toEditorState(): ListingEditorState {
-    val commonData = this.commonData
-    val category = when (this) {
-        is Listing.Item -> ListingCategory.Item
-        is Listing.Event -> ListingCategory.Event
-        is Listing.Service -> ListingCategory.Service
-    }
-    val schedule = (this as? Listing.Event)?.schedule
-
-    val currency = SupportedCurrency.fromCode(commonData.price.currency) ?: SupportedCurrency.USD
-
-    return ListingEditorState(
-        isEditing = true,
-        title = commonData.title,
-        description = commonData.description ?: ListingDescription(""),
-        priceAmount = commonData.price.amount,
-        priceCurrency = currency,
-        imageUrl = commonData.imageLinks.firstOrNull() ?: ImageUrl(""),
-        startDate = schedule?.startLocalTime?.date,
-        startTime = schedule?.startLocalTime?.time,
-        endDate = schedule?.endLocalTime?.date,
-        endTime = schedule?.endLocalTime?.time,
-        timeZoneIdentifier = schedule?.timeZoneIdentifier ?: TimeZoneIdentifier(TimeZone.currentSystemDefault().id),
-        type = category,
-        error = null,
-        isSubmitting = false,
-        showDiscardDraftDialog = false,
-        showPublishConfirmationDialog = false
-    ).recalculateValidation()
 }

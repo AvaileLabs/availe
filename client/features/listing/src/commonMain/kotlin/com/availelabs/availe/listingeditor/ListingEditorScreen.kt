@@ -29,6 +29,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.pages.ChildPages
 import com.arkivanov.decompose.value.Value
 import com.availelabs.availe.ListingEditorState
+import com.availelabs.availe.PendingScheduleAdjustment
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.ui.components.EventScheduleWizard
 import com.availelabs.availe.ui.components.dialogs.ActionConfirmationModal
@@ -191,6 +192,40 @@ fun ListingEditorScreen(
                 )
             }
         }
+
+        if (state.pendingScheduleAdjustment != null) {
+            val adjustment = state.pendingScheduleAdjustment!!
+            val title = when (adjustment) {
+                is PendingScheduleAdjustment.ShiftStartDate -> stringResource(Res.string.listing_editor_schedule_adjustment_start_date_title)
+                is PendingScheduleAdjustment.ShiftEndDate -> stringResource(Res.string.listing_editor_schedule_adjustment_end_date_title)
+                is PendingScheduleAdjustment.ShiftStartTime -> stringResource(Res.string.listing_editor_schedule_adjustment_start_time_title)
+                is PendingScheduleAdjustment.ShiftEndTime -> stringResource(Res.string.listing_editor_schedule_adjustment_end_time_title)
+            }
+            val message = when (adjustment) {
+                is PendingScheduleAdjustment.ShiftStartDate -> stringResource(Res.string.listing_editor_schedule_adjustment_start_date_body)
+                is PendingScheduleAdjustment.ShiftEndDate -> stringResource(Res.string.listing_editor_schedule_adjustment_end_date_body)
+                is PendingScheduleAdjustment.ShiftStartTime -> stringResource(Res.string.listing_editor_schedule_adjustment_start_time_body)
+                is PendingScheduleAdjustment.ShiftEndTime -> stringResource(Res.string.listing_editor_schedule_adjustment_end_time_body)
+            }
+            val icon = when (adjustment) {
+                is PendingScheduleAdjustment.ShiftStartDate, is PendingScheduleAdjustment.ShiftEndDate -> Lucide.Calendar
+                is PendingScheduleAdjustment.ShiftStartTime, is PendingScheduleAdjustment.ShiftEndTime -> Lucide.Clock
+            }
+
+            DimmedDialog(onDismissRequest = component::onCancelScheduleAdjustment) {
+                ActionConfirmationModal(
+                    icon = icon,
+                    iconContentColor = Theme[colors][primary],
+                    iconBackgroundColor = Theme[colors][primary].copy(alpha = 0.1f),
+                    title = title,
+                    message = message,
+                    confirmText = stringResource(Res.string.listing_editor_action_adjust),
+                    cancelText = stringResource(Res.string.generic_cancel),
+                    onConfirm = component::onConfirmScheduleAdjustment,
+                    onDismiss = component::onCancelScheduleAdjustment
+                )
+            }
+        }
     }
 }
 
@@ -319,11 +354,11 @@ private fun ListingEditorWizardContent(
                     )
 
                     ListingEditorPageConfig.Schedule -> ListingEditorScheduleStep(
-                        startDate = state.startDate,
-                        startTime = state.startTime,
-                        endDate = state.endDate,
-                        endTime = state.endTime,
-                        timeZoneIdentifier = state.timeZoneIdentifier,
+                        startDate = state.scheduleBounds.startDate,
+                        startTime = state.scheduleBounds.startTime,
+                        endDate = state.scheduleBounds.endDate,
+                        endTime = state.scheduleBounds.endTime,
+                        timeZoneIdentifier = state.scheduleBounds.timeZoneIdentifier,
                         timeResolutionError = state.timeResolutionError,
                         onStartDateChanged = component::onStartDateChanged,
                         onStartTimeChanged = component::onStartTimeChanged,
@@ -724,9 +759,10 @@ private fun ListingEditorReviewStep(
             SelectionContainer {
                 Text(stringResource(Res.string.listing_editor_review_title_format, editorState.title.value))
             }
-            if (editorState.type == ListingCategory.Event && editorState.startDate != null && editorState.startTime != null) {
+            if (editorState.type == ListingCategory.Event && editorState.scheduleBounds.startDate != null && editorState.scheduleBounds.startTime != null) {
                 SelectionContainer {
-                    val formattedStart = "${editorState.startDate} at ${editorState.startTime}"
+                    val formattedStart =
+                        "${editorState.scheduleBounds.startDate} at ${editorState.scheduleBounds.startTime}"
                     Text(stringResource(Res.string.listing_editor_review_start_time_format, formattedStart))
                 }
             }
