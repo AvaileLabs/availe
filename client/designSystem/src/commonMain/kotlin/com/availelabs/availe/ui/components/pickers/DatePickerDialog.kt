@@ -14,12 +14,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import availe.client.designsystem.generated.resources.Res
-import availe.client.designsystem.generated.resources.accessibility_picker_next_month
-import availe.client.designsystem.generated.resources.accessibility_picker_previous_month
-import availe.client.designsystem.generated.resources.dialog_date_picker_confirm
-import availe.client.designsystem.generated.resources.dialog_date_picker_title
-import availe.client.designsystem.generated.resources.generic_cancel
+import availe.client.designsystem.generated.resources.*
 import com.availelabs.availe.ui.components.dialogs.DimmedDialog
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.ChevronRight
@@ -132,7 +127,7 @@ private fun CalendarView(
         val textColor = when {
             date == selectedDate -> Theme[colors][onAccent]
             enabled -> color
-            else -> Theme[colors][onCard].copy(alpha = 0.3f)
+            else -> Theme[colors][onCard].copy(alpha = 0.25f)
         }
 
         Box(
@@ -160,7 +155,8 @@ private fun CalendarView(
             }
             Text(
                 text = date.day.toString(),
-                style = Theme[textStyles][caption].copy(color = textColor)
+                color = textColor,
+                style = Theme[textStyles][caption]
             )
         }
     }
@@ -226,11 +222,8 @@ private fun CalendarView(
                 Box(Modifier.width(cellWidth), contentAlignment = Alignment.Center) {
                     Text(
                         text = dayLetter,
-                        style = Theme[textStyles][caption].copy(
-                            color = Theme[colors][onCard].copy(
-                                alpha = 0.5f
-                            )
-                        )
+                        color = Theme[colors][onCard].copy(alpha = 0.5f),
+                        style = Theme[textStyles][caption]
                     )
                 }
             }
