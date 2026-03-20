@@ -22,6 +22,8 @@ import com.availelabs.availe.decompose.asValue
 import com.availelabs.availe.di.IApplicationContainer
 import com.availelabs.availe.features.session.IMainStore
 import com.availelabs.availe.features.session.MainStoreFactory
+import com.availelabs.availe.logging.LogCategory
+import com.availelabs.availe.logging.logger
 import com.availelabs.availe.login.ILoginComponent
 import com.availelabs.availe.login.ILoginNavigator
 import com.availelabs.availe.login.LoginComponent
@@ -56,6 +58,8 @@ class RootComponent(
         componentContext: ComponentContext,
         appContainer: IApplicationContainer
     ) : this(componentContext, appContainer, null)
+
+    private val classLogger by logger(LogCategory.ROUTING)
 
     override val backDispatcher: BackDispatcher? = backHandler as? BackDispatcher
 
@@ -93,10 +97,10 @@ class RootComponent(
         source = loginOverlayNavigation,
         serializer = LoginConfiguration.serializer(),
         handleBackButton = true,
-        childFactory = { _, ctx ->
+        childFactory = { _, childComponentContext ->
             RootChildComponent.Login(
                 LoginComponent(
-                    componentContext = ctx,
+                    componentContext = childComponentContext,
                     navigator = this
                 )
             )
@@ -125,7 +129,7 @@ class RootComponent(
 
         scope.launch {
             mainStore.labels.collect { label ->
-                val toast = when (label) {
+                val toastMessageToShow = when (label) {
                     is IMainStore.Label.ErrorOccurred -> {
                         ToastMessage.Error(
                             error = label.error
@@ -139,7 +143,7 @@ class RootComponent(
                     }
                 }
 
-                appContainer.messageService.show(toast)
+                appContainer.messageService.show(toastMessageToShow)
             }
         }
     }
@@ -149,14 +153,17 @@ class RootComponent(
     }
 
     override fun onBackClicked() {
+        classLogger.d { "Back clicked in RootComponent." }
         childStackNavigation.pop()
     }
 
     override fun showLoginGuard() {
+        classLogger.i { "Showing Login Guard overlay." }
         loginOverlayNavigation.activate(LoginConfiguration)
     }
 
     override fun dismissLoginOverlay() {
+        classLogger.i { "Dismissing Login Guard overlay." }
         loginOverlayNavigation.dismiss()
     }
 

@@ -1,5 +1,6 @@
 package com.availelabs.availe.di
 
+import co.touchlab.kermit.Severity
 import com.arkivanov.essenty.instancekeeper.InstanceKeeper
 import com.arkivanov.essenty.instancekeeper.getOrCreate
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
@@ -8,6 +9,10 @@ import com.availelabs.availe.database.DatabaseProvider
 import com.availelabs.availe.database.createDatabaseFileController
 import com.availelabs.availe.database.createSqlDriverFactory
 import com.availelabs.availe.domain.model.AuthToken
+import com.availelabs.availe.environment.EnvironmentBuildConfig
+import com.availelabs.availe.logging.AppLogger
+import com.availelabs.availe.logging.LogEnvironment
+import com.availelabs.availe.logging.logRuleset
 import com.availelabs.availe.network.ClientNetworkEndpoint
 import com.availelabs.availe.network.SafeNetworkCaller
 import com.availelabs.availe.platform.PlatformActivity
@@ -45,6 +50,23 @@ object DataLayerFactory {
         instanceKeeper: InstanceKeeper
     ): IDataContainer {
         return instanceKeeper.getOrCreate {
+            val applicationLogRuleset = logRuleset {
+                default(Severity.Assert)
+                // disabled logging
+                // category(LogCategory.NETWORK, Severity.Warn)
+                // category(LogCategory.XMPP, Severity.Info)
+                // override(SafeNetworkCaller::class, Severity.Verbose)
+            }
+
+            val loggingEnvironmentString = EnvironmentBuildConfig.LOGGING_ENVIRONMENT
+            val logEnvironment = if (loggingEnvironmentString.lowercase() == "dev") {
+                LogEnvironment.Development
+            } else {
+                LogEnvironment.Production
+            }
+
+            AppLogger.initialize(logEnvironment, applicationLogRuleset)
+
             val applicationScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
             val sqlDriverFactory = createSqlDriverFactory(activity)

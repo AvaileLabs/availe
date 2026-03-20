@@ -4,13 +4,13 @@ import com.availelabs.availe.xmpp.model.XmppJid
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.websocket.*
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class XmppSessionFailureNotMaskedTest {
     @Test
-    fun connectFailureDoesNotBecomeDisconnected() = runBlocking {
+    fun connectFailureDoesNotBecomeDisconnected() = runTest {
         val httpClient = HttpClient(
             MockEngine { throw IllegalStateException("boom") }
         ) {

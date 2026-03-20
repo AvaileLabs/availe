@@ -27,6 +27,8 @@ kotlin {
             implementation(projects.client.domain)
             implementation(projects.shared.configuration)
 
+            implementation(libs.kermit)
+
             // Decompose
             api(libs.decompose)
             api(libs.essenty.lifecycle)

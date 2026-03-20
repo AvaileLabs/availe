@@ -13,6 +13,8 @@ import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.auth.LoginError
 import com.availelabs.availe.auth.LoginResult
 import com.availelabs.availe.features.session.IMainStore.*
+import com.availelabs.availe.logging.LogCategory
+import com.availelabs.availe.logging.logger
 import com.availelabs.availe.model.error.AppError
 import com.availelabs.availe.repositories.IAuthenticationRepository
 import com.availelabs.availe.repositories.ISessionRepository
@@ -26,6 +28,8 @@ class MainStoreFactory(
     private val authenticationRepository: IAuthenticationRepository,
     private val sessionManager: ISessionRepository
 ) {
+
+    private val classLogger by logger(LogCategory.UI)
 
     fun create(): IMainStore =
         object : IMainStore, Store<Intent, State, Label> by storeFactory.create(
@@ -65,6 +69,7 @@ class MainStoreFactory(
         }
 
         override fun executeIntent(intent: Intent) {
+            classLogger.d { "Received Intent: $intent" }
             when (intent) {
                 Intent.LoginRequested -> performLogin()
                 Intent.LogoutRequested -> performLogout()
@@ -74,6 +79,7 @@ class MainStoreFactory(
         }
 
         private fun handleAuthenticationState(authenticationState: AuthenticationState) {
+            classLogger.i { "Authentication state updated to: ${authenticationState::class.simpleName}" }
             when (authenticationState) {
                 is AuthenticationState.LoggedIn -> {
                     dispatch(Message.SetAuthenticated(true))
@@ -87,18 +93,20 @@ class MainStoreFactory(
                 }
 
                 is AuthenticationState.SessionExpired -> {
+                    classLogger.w { "Authentication session expired." }
                     dispatch(Message.SetAuthenticated(false))
                     dispatch(Message.SetAuthenticationServiceAvailable(true))
-                    val message = UiText.ResourceString(Res.string.error_session_expired)
-                    dispatch(Message.SetError(message))
+                    val errorMessage = UiText.ResourceString(Res.string.error_session_expired)
+                    dispatch(Message.SetError(errorMessage))
                     publish(Label.ErrorOccurred(AppError.AuthenticationError.SessionExpired))
                 }
 
                 is AuthenticationState.InitializationFailed -> {
+                    classLogger.e { "Authentication initialization failed." }
                     dispatch(Message.SetAuthenticated(false))
                     dispatch(Message.SetAuthenticationServiceAvailable(false))
-                    val message = UiText.ResourceString(Res.string.authentication_service_unavailable)
-                    dispatch(Message.SetError(message))
+                    val errorMessage = UiText.ResourceString(Res.string.authentication_service_unavailable)
+                    dispatch(Message.SetError(errorMessage))
                 }
 
                 AuthenticationState.Unknown -> {
@@ -111,15 +119,18 @@ class MainStoreFactory(
                 dispatch(Message.SetLoading(true))
                 when (val loginResult = authenticationRepository.login(sessionManager::updateState)) {
                     is LoginResult.Success -> {
+                        classLogger.d { "Login successful." }
                         dispatch(Message.SetLoading(false))
                     }
 
                     is LoginResult.Cancelled -> {
+                        classLogger.i { "Login cancelled by user." }
                         dispatch(Message.SetLoading(false))
                         publish(Label.InfoOccurred("Login cancelled"))
                     }
 
                     is LoginResult.Failed -> {
+                        classLogger.e { "Login failed with error: ${loginResult.error::class.simpleName}" }
                         dispatch(Message.SetLoading(false))
                         val errorMessage = ErrorMessageMapper.map(loginResult.error)
                         dispatch(Message.SetError(errorMessage))
@@ -134,7 +145,9 @@ class MainStoreFactory(
                 dispatch(Message.SetLoading(true))
                 try {
                     authenticationRepository.logout()
+                    classLogger.d { "Logout successful." }
                 } catch (exception: Exception) {
+                    classLogger.e(exception) { "Logout failed." }
                     val errorMessage = UiText.ResourceString(Res.string.authentication_error_logout)
                     dispatch(Message.SetError(errorMessage))
                     publish(Label.ErrorOccurred(AppError.UnknownError(exception.message)))

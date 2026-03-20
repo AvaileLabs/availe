@@ -58,6 +58,7 @@ mvikotlin = "4.3.0"
 sqldelight = "2.3.2"
 bouncycastleBom = "1.83"
 jedis = "7.4.0"
+kermit = "2.1.0"
 
 # npm / JS tooling
 sqljs = "1.14.1"
@@ -89,6 +90,7 @@ kotlin-browser = { module = "org.jetbrains.kotlin-wrappers:kotlin-browser", vers
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 junit = { module = "junit:junit", version.ref = "junit" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-testExt-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-testExt" }
@@ -166,6 +168,7 @@ bouncycastle-pkix = { module = "org.bouncycastle:bcpkix-jdk18on" }
 bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on" }
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 jedis = { module = "redis.clients:jedis", version.ref = "jedis" }
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

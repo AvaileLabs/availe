@@ -3,6 +3,8 @@ package com.availelabs.availe.sources.remote
 import com.availelabs.availe.domain.model.AuthToken
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.MessageContent
+import com.availelabs.availe.logging.LogCategory
+import com.availelabs.availe.logging.logger
 import com.availelabs.availe.network.XmppEndpoint
 import com.availelabs.availe.repositories.MessagingConnectionState
 import com.availelabs.availe.xmpp.dto.XmppMessageStanza
@@ -27,23 +29,25 @@ internal class MessagingRemoteDataSource(
     private val xmppEndpoint: XmppEndpoint,
 ) : IMessagingRemoteDataSource {
 
+    private val classLogger by logger(LogCategory.XMPP)
+
     private val scope = CoroutineScope(Dispatchers.Main)
 
     override val connectionStatus: StateFlow<MessagingConnectionState> = xmppSession.sessionState
         .map { sessionState ->
             val mappedState = mapSessionState(sessionState)
-            println("MessagingRemoteDataSource: Mapping session state $sessionState to connection state $mappedState")
+            classLogger.d { "Mapping session state $sessionState to connection state $mappedState" }
             mappedState
         }
         .stateIn(scope, SharingStarted.Eagerly, MessagingConnectionState.Disconnected)
 
     override val incomingMessages = xmppSession.incomingStanzas
         .filterIsInstance<XmppMessageStanza>()
-        .onEach { println("MessagingRemoteDataSource: Received incoming message stanza from ${it.senderJid?.value}") }
+        .onEach { classLogger.d { "Received incoming message stanza from ${it.senderJid?.value}" } }
         .shareIn(scope, SharingStarted.WhileSubscribed())
 
     override suspend fun connect(jid: Jid, authIdentity: String, token: AuthToken) {
-        println("MessagingRemoteDataSource: Initiating connection request for user: ${jid.value}")
+        classLogger.i { "Initiating connection request for user: ${jid.value}" }
         xmppSession.connect(
             xmppJid = XmppJid(jid.value),
             authIdentity = authIdentity,
@@ -54,12 +58,12 @@ internal class MessagingRemoteDataSource(
     }
 
     override suspend fun disconnect() {
-        println("MessagingRemoteDataSource: Initiating explicit disconnect request.")
+        classLogger.i { "Initiating explicit disconnect request." }
         xmppSession.disconnect()
     }
 
     override suspend fun sendMessage(to: Jid, body: MessageContent) {
-        println("MessagingRemoteDataSource: Preparing to send message to: ${to.value}")
+        classLogger.d { "Preparing to send message to: ${to.value}" }
         val stanza = XmppMessageStanza(
             recipientJid = XmppJid(to.value),
             body = MessageBody(body.value),
@@ -67,10 +71,8 @@ internal class MessagingRemoteDataSource(
         )
         try {
             xmppSession.sendStanza(stanza)
-        } catch (e: IllegalStateException) {
-            println("MessagingRemoteDataSource: Attempted to send message while disconnected: ${e.message}")
-            // We ignore the error here. The Repository keeps the message as Pending.
-            // When the session reconnects, XEP-0198 or the Repository flush logic will handle it.
+        } catch (exception: IllegalStateException) {
+            classLogger.w(exception) { "Attempted to send message while disconnected." }
         }
     }
 

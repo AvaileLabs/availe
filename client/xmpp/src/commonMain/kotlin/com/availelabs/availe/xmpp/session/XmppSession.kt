@@ -1,5 +1,7 @@
 package com.availelabs.availe.xmpp.session
 
+import com.availelabs.availe.logging.LogCategory
+import com.availelabs.availe.logging.logger
 import com.availelabs.availe.xmpp.dto.*
 import com.availelabs.availe.xmpp.model.ResourceName
 import com.availelabs.availe.xmpp.model.SaslMechanism
@@ -17,7 +19,6 @@ import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 import nl.adaptivity.xmlutil.serialization.XML
-import kotlin.collections.ArrayDeque
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.uuid.ExperimentalUuidApi
@@ -42,6 +43,8 @@ interface IXmppSession {
 class XmppSession(
     private val httpClient: HttpClient
 ) : IXmppSession {
+
+    private val classLogger by logger(LogCategory.XMPP)
 
     private val mutableSessionState = MutableStateFlow<SessionState>(SessionState.Disconnected)
     override val sessionState: StateFlow<SessionState> = mutableSessionState.asStateFlow()
@@ -109,16 +112,16 @@ class XmppSession(
         port: Int
     ) {
         connectionMutex.withLock {
-            println("XmppSession: Attempting connection to host: $host, port: $port for JID: ${xmppJid.value}")
+            classLogger.i { "Attempting connection to host: $host, port: $port for JID: ${xmppJid.value}" }
 
             if (mutableSessionState.value !is SessionState.Disconnected && mutableSessionState.value !is SessionState.Failed) {
-                println("XmppSession: Found active/connecting session (${mutableSessionState.value}). Forcing disconnect before reconnecting.")
+                classLogger.w { "Found active/connecting session (${mutableSessionState.value}). Forcing disconnect before reconnecting." }
                 performInternalDisconnect()
             }
 
             try {
                 mutableSessionState.value = SessionState.Connecting
-                println("XmppSession: Initiating WebSocket connection request...")
+                classLogger.d { "Initiating WebSocket connection request..." }
 
                 httpClient.webSocket(
                     method = HttpMethod.Get,
@@ -129,30 +132,29 @@ class XmppSession(
                         headers.append("Sec-WebSocket-Protocol", "xmpp")
                     }
                 ) {
-                    println("XmppSession: WebSocket connection established successfully. Starting XMPP handshake.")
+                    classLogger.i { "WebSocket connection established successfully. Starting XMPP handshake." }
                     defaultClientWebSocketSession = this
                     performXmppHandshake(xmppJid, authIdentity, password)
                 }
 
-                println("XmppSession: WebSocket session block has completed execution.")
+                classLogger.d { "WebSocket session block has completed execution." }
             } catch (cancellationException: CancellationException) {
-                println("XmppSession: Connection was cancelled by the coroutine scope.")
+                classLogger.w(cancellationException) { "Connection was cancelled by the coroutine scope." }
                 throw cancellationException
             } catch (exception: Throwable) {
-                println("XmppSession: Connection encountered a terminal exception: ${exception.message}")
-                exception.printStackTrace()
+                classLogger.e(exception) { "Connection encountered a terminal exception." }
                 val errorMessage = exception.message?.takeIf { it.isNotBlank() }
                     ?: exception::class.simpleName
                     ?: "Unknown connection error"
                 mutableSessionState.value = SessionState.Failed(errorMessage, exception)
             } finally {
-                println("XmppSession: Cleaning up session resources. Previous state was: ${mutableSessionState.value}")
+                classLogger.d { "Cleaning up session resources. Previous state was: ${mutableSessionState.value}" }
                 performInternalDisconnect()
                 if (mutableSessionState.value !is SessionState.Failed) {
-                    println("XmppSession: Transitioning state to Disconnected.")
+                    classLogger.d { "Transitioning state to Disconnected." }
                     mutableSessionState.value = SessionState.Disconnected
                 } else {
-                    println("XmppSession: Retaining Failed state for error reporting.")
+                    classLogger.d { "Retaining Failed state for error reporting." }
                 }
             }
         }
@@ -160,15 +162,15 @@ class XmppSession(
 
     override suspend fun disconnect() {
         connectionMutex.withLock {
-            println("XmppSession: Explicit disconnect requested.")
+            classLogger.i { "Explicit disconnect requested." }
             if (defaultClientWebSocketSession != null) {
                 try {
                     val xmppCloseStanza = XmppClose()
                     val xmppCloseXml = xmlFormat.encodeToString(IXmppStreamElement.serializer(), xmppCloseStanza)
-                    println("XmppSession: Sending stream close stanza.")
+                    classLogger.d { "Sending stream close stanza." }
                     defaultClientWebSocketSession?.send(Frame.Text(xmppCloseXml))
                 } catch (exception: Exception) {
-                    println("XmppSession: Failed to send close stanza: ${exception.message}")
+                    classLogger.w(exception) { "Failed to send close stanza." }
                 }
             }
             performInternalDisconnect()
@@ -187,7 +189,7 @@ class XmppSession(
         keepAliveJob = null
         try {
             defaultClientWebSocketSession?.close()
-        } catch (e: Exception) {
+        } catch (exception: Exception) {
         }
         defaultClientWebSocketSession = null
     }
@@ -195,17 +197,17 @@ class XmppSession(
     override suspend fun sendStanza(stanza: IXmppStreamElement) {
         val currentSession = defaultClientWebSocketSession
             ?: run {
-                println("XmppSession: Cannot send stanza. No active WebSocket session exists.")
+                classLogger.w { "Cannot send stanza. No active WebSocket session exists." }
                 throw IllegalStateException("Not connected")
             }
 
         val xmlString = xmlFormat.encodeToString(IXmppStreamElement.serializer(), stanza)
-        println("XmppSession: Transmitting stanza: $xmlString")
+        classLogger.v { "Transmitting stanza: $xmlString" }
 
         if (smState.enabled && isCountableStanza(stanza)) {
             smState.outSeq++
             smState.unacked.addLast(xmlString)
-            println("XmppSession: [SM] Incremented outSeq to ${smState.outSeq}, queued stanza.")
+            classLogger.v { "[SM] Incremented outSeq to ${smState.outSeq}, queued stanza." }
         }
 
         currentSession.send(Frame.Text(xmlString))
@@ -218,25 +220,25 @@ class XmppSession(
         password: String
     ) {
         val domain = xmppJid.value.substringAfterLast("@").substringBefore("/")
-        println("XmppSession: Beginning handshake for domain: $domain")
+        classLogger.i { "Beginning handshake for domain: $domain" }
 
         mutableSessionState.value = SessionState.Negotiating
         val initialStreamOpen = XmppStreamOpen(to = domain)
         val initialStreamOpenXml = xmlFormat.encodeToString(XmppStreamOpen.serializer(), initialStreamOpen)
-        println("XmppSession: Sending initial stream open: $initialStreamOpenXml")
+        classLogger.d { "Sending initial stream open: $initialStreamOpenXml" }
         send(Frame.Text(initialStreamOpenXml))
 
-        println("XmppSession: Awaiting initial stream open response from server...")
+        classLogger.d { "Awaiting initial stream open response from server..." }
         val streamOpenResponse = waitForStanza<IXmppStreamElement>()
         if (streamOpenResponse !is XmppStreamOpen) {
-            println("XmppSession: Unexpected response received instead of stream open: ${streamOpenResponse::class.simpleName}")
+            classLogger.w { "Unexpected response received instead of stream open: ${streamOpenResponse::class.simpleName}" }
         } else {
-            println("XmppSession: Initial stream open response received: $streamOpenResponse")
+            classLogger.d { "Initial stream open response received: $streamOpenResponse" }
         }
 
-        println("XmppSession: Awaiting server stream features...")
+        classLogger.d { "Awaiting server stream features..." }
         val streamFeatures = waitForStanza<XmppStreamFeatures>()
-        println("XmppSession: Received server stream features: $streamFeatures")
+        classLogger.d { "Received server stream features: $streamFeatures" }
         val saslMechanisms = streamFeatures.mechanisms?.mechanism ?: emptyList()
 
         val supportsPlainMechanism = saslMechanisms.contains(SaslMechanism("PLAIN"))
@@ -245,7 +247,7 @@ class XmppSession(
         }
 
         val selectedMechanism = SaslMechanism("PLAIN")
-        println("XmppSession: Selecting PLAIN authentication mechanism.")
+        classLogger.i { "Selecting PLAIN authentication mechanism." }
 
         mutableSessionState.value = SessionState.Authenticating
 
@@ -253,47 +255,47 @@ class XmppSession(
         val authenticationBase64 = Base64.encode(authenticationString.encodeToByteArray())
         val authenticationStanza = XmppSaslAuth(mechanism = selectedMechanism, content = authenticationBase64)
         val authenticationXml = xmlFormat.encodeToString(XmppSaslAuth.serializer(), authenticationStanza)
-        println("XmppSession: Sending SASL authentication request.")
+        classLogger.d { "Sending SASL authentication request." }
         send(Frame.Text(authenticationXml))
 
-        println("XmppSession: Awaiting SASL authentication result...")
+        classLogger.d { "Awaiting SASL authentication result..." }
         waitForStanza<XmppSaslSuccess>()
-        println("XmppSession: SASL authentication was successful.")
+        classLogger.i { "SASL authentication was successful." }
 
         mutableSessionState.value = SessionState.Negotiating
         val restartStreamOpen = XmppStreamOpen(to = domain)
         val restartStreamOpenXml = xmlFormat.encodeToString(XmppStreamOpen.serializer(), restartStreamOpen)
-        println("XmppSession: Sending stream restart open: $restartStreamOpenXml")
+        classLogger.d { "Sending stream restart open: $restartStreamOpenXml" }
         send(Frame.Text(restartStreamOpenXml))
 
-        println("XmppSession: Awaiting post-authentication stream open response...")
+        classLogger.d { "Awaiting post-authentication stream open response..." }
         waitForStanza<XmppStreamOpen>()
-        println("XmppSession: Received stream restart confirmation.")
+        classLogger.d { "Received stream restart confirmation." }
 
-        println("XmppSession: Awaiting post-authentication stream features...")
+        classLogger.d { "Awaiting post-authentication stream features..." }
         val postAuthFeatures = waitForStanza<XmppStreamFeatures>()
 
         var isResumed = false
         if (postAuthFeatures.sm != null) {
             if (smState.smId != null) {
-                println("XmppSession: [SM] Attempting resumption with previd=${smState.smId}, h=${smState.inH}")
+                classLogger.i { "[SM] Attempting resumption with previd=${smState.smId}, h=${smState.inH}" }
                 val resumeStanza = XmppSmResume(previd = smState.smId!!, h = smState.inH)
                 val resumeXml = xmlFormat.encodeToString(IXmppStreamElement.serializer(), resumeStanza)
                 send(Frame.Text(resumeXml))
 
                 val resumeResponse = waitForStanza<IXmppStreamElement>()
                 if (resumeResponse is XmppSmResumed) {
-                    println("XmppSession: [SM] Session Resumed! Server h=${resumeResponse.h}")
+                    classLogger.i { "[SM] Session Resumed! Server h=${resumeResponse.h}" }
                     isResumed = true
                     processAck(resumeResponse.h)
                     if (smState.unacked.isNotEmpty()) {
-                        println("XmppSession: [SM] Replaying ${smState.unacked.size} unacked stanzas.")
+                        classLogger.i { "[SM] Replaying ${smState.unacked.size} unacked stanzas." }
                         for (xml in smState.unacked) {
                             send(Frame.Text(xml))
                         }
                     }
                 } else {
-                    println("XmppSession: [SM] Resumption failed (Got ${resumeResponse::class.simpleName}). Clearing SM state.")
+                    classLogger.w { "[SM] Resumption failed (Got ${resumeResponse::class.simpleName}). Clearing SM state." }
                     smState.smId = null
                     smState.unacked.clear()
                     smState.inH = 0
@@ -303,21 +305,21 @@ class XmppSession(
             }
 
             if (!isResumed) {
-                println("XmppSession: [SM] Enabling Stream Management.")
+                classLogger.i { "[SM] Enabling Stream Management." }
                 val enableStanza = XmppSmEnable(resume = "true")
                 val enableXml = xmlFormat.encodeToString(IXmppStreamElement.serializer(), enableStanza)
                 send(Frame.Text(enableXml))
 
                 val enableResponse = waitForStanza<IXmppStreamElement>()
                 if (enableResponse is XmppSmEnabled) {
-                    println("XmppSession: [SM] Stream Management Enabled. ID=${enableResponse.id}")
+                    classLogger.i { "[SM] Stream Management Enabled. ID=${enableResponse.id}" }
                     smState.enabled = true
                     smState.smId = enableResponse.id
                     smState.inH = 0
                     smState.outSeq = 0
                     smState.unacked.clear()
                 } else {
-                    println("XmppSession: [SM] Failed to enable Stream Management.")
+                    classLogger.w { "[SM] Failed to enable Stream Management." }
                 }
             }
         }
@@ -332,25 +334,25 @@ class XmppSession(
                 payload = XmppBindPayload(resource = ResourceName(randomResource))
             )
             val resourceBindXml = xmlFormat.encodeToString(XmppIqStanza.serializer(), resourceBindStanza)
-            println("XmppSession: Sending resource bind request: $resourceBindXml")
+            classLogger.d { "Sending resource bind request: $resourceBindXml" }
             send(Frame.Text(resourceBindXml))
 
-            println("XmppSession: Awaiting resource bind result...")
+            classLogger.d { "Awaiting resource bind result..." }
             val resourceBindResult = waitForStanza<XmppIqStanza>()
-            println("XmppSession: Received resource bind result: $resourceBindResult")
+            classLogger.d { "Received resource bind result: $resourceBindResult" }
             if (resourceBindResult.type == "error") {
-                println("XmppSession: Resource binding failed with a server error.")
+                classLogger.e { "Resource binding failed with a server error." }
                 throw IllegalStateException("Failed to bind resource")
             }
 
-            println("XmppSession: Sending initial presence stanza.")
+            classLogger.d { "Sending initial presence stanza." }
             val initialPresenceStanza = XmppPresenceStanza()
             val initialPresenceXml = xmlFormat.encodeToString(IXmppStreamElement.serializer(), initialPresenceStanza)
-            println("XmppSession: Transmitting presence: $initialPresenceXml")
+            classLogger.d { "Transmitting presence: $initialPresenceXml" }
             send(Frame.Text(initialPresenceXml))
         }
 
-        println("XmppSession: XMPP Session is now fully active.")
+        classLogger.i { "XMPP Session is now fully active." }
         mutableSessionState.value = SessionState.Active
         startKeepAlive()
         processIncomingLoop()
@@ -369,13 +371,13 @@ class XmppSession(
                         stanzaText = xmppStreamBuffer.extractNextStanza()
                     }
                 } catch (exception: Exception) {
-                    println("XmppSession: Error while receiving frame from socket: ${exception.message}")
+                    classLogger.e(exception) { "Error while receiving frame from socket." }
                     throw IllegalStateException("Connection closed while waiting for stanza", exception)
                 }
             }
 
             if (stanzaText != null) {
-                println("XmppSession: Handshake received: $stanzaText")
+                classLogger.v { "Handshake received: $stanzaText" }
                 val parsableStanza = prepareStanzaForParsing(stanzaText)
 
                 try {
@@ -393,8 +395,7 @@ class XmppSession(
                         if (decodedElement is T) return decodedElement
                     }
                 } catch (exception: Exception) {
-                    println("XmppSession: Failed to parse stanza during handshake: ${exception.message}")
-                    exception.printStackTrace()
+                    classLogger.e(exception) { "Failed to parse stanza during handshake." }
                     throw exception
                 }
             }
@@ -404,7 +405,7 @@ class XmppSession(
 
     @OptIn(ExperimentalUuidApi::class)
     private suspend fun DefaultClientWebSocketSession.processIncomingLoop() {
-        println("XmppSession: Entering main incoming stanza processing loop.")
+        classLogger.d { "Entering main incoming stanza processing loop." }
         try {
             for (incomingFrame in incoming) {
                 if (incomingFrame is Frame.Text) {
@@ -418,34 +419,39 @@ class XmppSession(
 
                             when (decodedElement) {
                                 is XmppSmRequest -> {
-                                    println("XmppSession: [SM] Server requested ACK. Sending h=${smState.inH}")
+                                    classLogger.d { "[SM] Server requested ACK. Sending h=${smState.inH}" }
                                     val ackStanza = XmppSmAck(h = smState.inH)
                                     val ackXml = xmlFormat.encodeToString(IXmppStreamElement.serializer(), ackStanza)
                                     send(Frame.Text(ackXml))
                                 }
+
                                 is XmppSmAck -> {
-                                    println("XmppSession: [SM] Server ACK'd h=${decodedElement.h}")
+                                    classLogger.d { "[SM] Server ACK'd h=${decodedElement.h}" }
                                     processAck(decodedElement.h)
                                 }
+
                                 is XmppClose -> {
-                                    println("XmppSession: Received server-initiated stream close.")
+                                    classLogger.i { "Received server-initiated stream close." }
                                     return
                                 }
+
                                 is XmppStreamError -> {
-                                    println("XmppSession: Received server-initiated stream error: ${decodedElement.text}")
+                                    classLogger.e { "Received server-initiated stream error: ${decodedElement.text}" }
                                     throw IllegalStateException("Stream Error: ${decodedElement.text}")
                                 }
+
                                 is XmppIqStanza -> {
                                     val payload = decodedElement.payload
                                     if (payload is XmppPingPayload && decodedElement.type == "get") {
-                                        println("XmppSession: Received Ping from server. Replying Pong.")
+                                        classLogger.d { "Received Ping from server. Replying Pong." }
                                         val pongStanza = XmppIqStanza(
                                             identifier = decodedElement.identifier,
                                             type = "result",
                                             recipientJid = decodedElement.senderJid,
                                             senderJid = null
                                         )
-                                        val pongXml = xmlFormat.encodeToString(IXmppStreamElement.serializer(), pongStanza)
+                                        val pongXml =
+                                            xmlFormat.encodeToString(IXmppStreamElement.serializer(), pongStanza)
                                         send(Frame.Text(pongXml))
                                     } else {
                                         if (smState.enabled && isCountableStanza(decodedElement)) {
@@ -454,6 +460,7 @@ class XmppSession(
                                         mutableIncomingStanzas.emit(decodedElement)
                                     }
                                 }
+
                                 else -> {
                                     if (smState.enabled && isCountableStanza(decodedElement)) {
                                         smState.inH++
@@ -462,16 +469,16 @@ class XmppSession(
                                 }
                             }
                         } catch (exception: Exception) {
-                            println("XmppSession: Stanza decoding failed in loop: ${exception.message}")
+                            classLogger.e(exception) { "Stanza decoding failed in loop." }
                         }
                     }
                 }
             }
         } catch (exception: Exception) {
-            println("XmppSession: Incoming loop encountered an exception: ${exception.message}")
+            classLogger.e(exception) { "Incoming loop encountered an exception." }
             if (isActive) throw exception
         } finally {
-            println("XmppSession: Exiting main incoming stanza processing loop.")
+            classLogger.d { "Exiting main incoming stanza processing loop." }
         }
     }
 
@@ -484,7 +491,7 @@ class XmppSession(
                 }
             }
             smState.lastAckedByServer = h
-            println("XmppSession: [SM] Removed $count acknowledged stanzas from queue. Remaining: ${smState.unacked.size}")
+            classLogger.d { "[SM] Removed $count acknowledged stanzas from queue. Remaining: ${smState.unacked.size}" }
         }
     }
 
@@ -506,7 +513,7 @@ class XmppSession(
 
     @OptIn(ExperimentalUuidApi::class)
     private fun startKeepAlive() {
-        println("XmppSession: Starting background keep-alive task.")
+        classLogger.d { "Starting background keep-alive task." }
         keepAliveJob = coroutineScope.launch {
             while (isActive) {
                 delay(30_000)
@@ -519,7 +526,7 @@ class XmppSession(
                         )
                         sendStanza(pingStanza)
                     } catch (exception: Exception) {
-                        println("XmppSession: Keep-alive ping failed to send: ${exception.message}")
+                        classLogger.w(exception) { "Keep-alive ping failed to send." }
                         break
                     }
                 }

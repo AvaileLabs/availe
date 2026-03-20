@@ -36,6 +36,7 @@ kotlin {
 
             implementation(libs.store5)
             implementation(libs.xmlutil)
+            implementation(libs.kermit)
 
             implementation(libs.oidc.appsupport)
             implementation(libs.oidc.ktor)
@@ -123,6 +124,8 @@ val databaseSchemaHashProvider: Provider<String> = providers.provider {
     }
 }
 
+val loggingEnvironmentProvider: String = providers.gradleProperty("availe.logging.environment").getOrElse("prod")
+
 buildConfig {
     packageName("com.availelabs.availe.database")
     className("DatabaseBuildConfig")
@@ -132,4 +135,8 @@ buildConfig {
     }
 
     buildConfigField("String", "SCHEMA_HASH", databaseSchemaHashProvider)
+
+    forClass(packageName = "com.availelabs.availe.environment", className = "EnvironmentBuildConfig") {
+        buildConfigField("String", "LOGGING_ENVIRONMENT", "\"$loggingEnvironmentProvider\"")
+    }
 }

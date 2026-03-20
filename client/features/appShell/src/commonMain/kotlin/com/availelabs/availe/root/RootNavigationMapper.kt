@@ -6,6 +6,8 @@ import com.availelabs.availe.appshell.model.AppShellIntent
 import com.availelabs.availe.domain.model.Jid
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.domain.model.UserId
+import com.availelabs.availe.logging.LogCategory
+import com.availelabs.availe.logging.logger
 import com.availelabs.availe.model.ListingFeedType
 import com.availelabs.availe.navigation.DeepLinkRoute
 import com.availelabs.availe.navigation.FeedTypeMapper
@@ -16,21 +18,24 @@ import kotlin.uuid.Uuid
 object RootNavigationMapper {
     private const val CHAT_QUERY_PARAMETER = "chat_jid"
 
+    private val classLogger by logger(LogCategory.ROUTING)
+
     fun getInitialIntent(deepLinkUrl: String?): RootConfiguration {
+        classLogger.d { "Parsing deep link url: $deepLinkUrl" }
+
         if (deepLinkUrl == null) {
             return RootConfiguration.AppShell(AppShellIntent.Home(ListingFeedType.Upcoming))
         }
 
         return try {
-            val url = Url(deepLinkUrl)
-            val pathSegments = url.segments.filter { segment -> segment.isNotEmpty() }
-            val chatJidValue = url.parameters[CHAT_QUERY_PARAMETER]
+            val parsedUrl = Url(deepLinkUrl)
+            val pathSegments = parsedUrl.segments.filter { segment -> segment.isNotEmpty() }
+            val chatJidValue = parsedUrl.parameters[CHAT_QUERY_PARAMETER]
 
             val intent = if (pathSegments.isEmpty()) {
                 AppShellIntent.Home(ListingFeedType.Upcoming)
             } else {
-                val rootSegment = pathSegments.first()
-                when (rootSegment) {
+                when (val rootSegment = pathSegments.first()) {
                     DeepLinkRoute.ListingDetails.PATH -> {
                         parseListingIntent(pathSegments, chatJidValue)
                     }
@@ -56,14 +61,18 @@ object RootNavigationMapper {
                     }
 
                     else -> {
+                        classLogger.w { "Unknown deep link root segment: $rootSegment, falling back to FeedType mapper." }
                         val feedType = FeedTypeMapper.fromPathSegment(rootSegment)
                         AppShellIntent.Home(feedType)
                     }
                 }
             }
 
+            classLogger.d { "Deep link parsed successfully to intent: ${intent::class.simpleName}" }
+
             RootConfiguration.AppShell(intent)
-        } catch (_: Exception) {
+        } catch (exception: Exception) {
+            classLogger.w(exception) { "Failed to parse deep link url, falling back to default Home intent." }
             RootConfiguration.AppShell(AppShellIntent.Home(ListingFeedType.Upcoming))
         }
     }

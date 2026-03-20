@@ -8,6 +8,8 @@ import com.availelabs.availe.auth.AuthenticationState
 import com.availelabs.availe.database.IDatabaseProvider
 import com.availelabs.availe.dispatchers.ioDispatcher
 import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.logging.LogCategory
+import com.availelabs.availe.logging.logger
 import com.availelabs.availe.mapper.toDomain
 import com.availelabs.availe.model.*
 import com.availelabs.availe.sources.remote.IMessagingRemoteDataSource
@@ -23,6 +25,8 @@ internal class MessagingRepository(
     private val sessionManager: ISessionRepository,
     private val scope: CoroutineScope
 ) : IMessagingRepository {
+
+    private val classLogger by logger(LogCategory.XMPP)
 
     override val connectionStatus: StateFlow<MessagingConnectionState> =
         messagingRemoteDataSource.connectionStatus
@@ -86,7 +90,7 @@ internal class MessagingRepository(
             messagingRemoteDataSource.sendMessage(to, body)
             database.chatQueries.updateMessageStatus(MessageStatus.Sent, messageId)
         } catch (exception: Exception) {
-            println("MessagingRepository: Failed to send message immediately. Leaving as Pending. Error: ${exception.message}")
+            classLogger.w(exception) { "Failed to send message immediately. Leaving as Pending." }
         }
     }
 
@@ -132,7 +136,7 @@ internal class MessagingRepository(
         scope.launch(ioDispatcher) {
             messagingRemoteDataSource.incomingMessages.collect { stanza ->
                 if (stanza.type == "error") {
-                    println("MessagingRepository: Received error stanza, ignoring: $stanza")
+                    classLogger.w { "Received error stanza, ignoring: $stanza" }
                     return@collect
                 }
 
@@ -198,9 +202,9 @@ internal class MessagingRepository(
                                             authIdentity = userProfile.id.value.toString(),
                                             token = state.accessToken
                                         )
-                                        println("MessagingRepository: Connection closed normally. Reconnecting in 3s...")
-                                    } catch (e: Exception) {
-                                        println("MessagingRepository: Connection failed with exception: ${e.message}. Reconnecting in 3s...")
+                                        classLogger.i { "Connection closed normally. Reconnecting in 3s..." }
+                                    } catch (exception: Exception) {
+                                        classLogger.e(exception) { "Connection failed with exception. Reconnecting in 3s..." }
                                     }
                                     delay(3000)
                                 }
@@ -247,7 +251,7 @@ internal class MessagingRepository(
         }
 
         if (pendingMessages.isNotEmpty()) {
-            println("MessagingRepository: Flushing ${pendingMessages.size} pending messages...")
+            classLogger.i { "Flushing ${pendingMessages.size} pending messages..." }
         }
 
         pendingMessages.forEach { messageEntity ->
@@ -257,9 +261,9 @@ internal class MessagingRepository(
                     body = messageEntity.content
                 )
                 database.chatQueries.updateMessageStatus(MessageStatus.Sent, messageEntity.id)
-                println("MessagingRepository: Successfully flushed message ${messageEntity.id}")
+                classLogger.d { "Successfully flushed message ${messageEntity.id}" }
             } catch (exception: Exception) {
-                println("MessagingRepository: Failed to flush message ${messageEntity.id}: ${exception.message}")
+                classLogger.e(exception) { "Failed to flush message ${messageEntity.id}" }
             }
         }
     }
