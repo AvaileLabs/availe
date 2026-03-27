@@ -90,7 +90,12 @@ private fun <P : ContainerRunSpecification.PortList> createOpenSearchNodeSpec(
         portMappings = portMappings,
         volumes = volumes,
         ulimits = ulimits,
-        logStrategy = logStrategy
+        logStrategy = logStrategy,
+        requiresDataBackup = true,
+        containerHealthCheckVerificationAction = {
+            val openSearchSecurityReconciler = OpenSearchSecurityReconciler()
+            openSearchSecurityReconciler.waitForClusterAvailability(60)
+        }
     )
 }
 
@@ -118,6 +123,8 @@ internal fun openSearchDashboardsSpec(): ContainerRunSpecification<OpenSearchDas
         environmentVariables = environmentVariables,
         portMappings = OpenSearchDashboardsPortsList,
         volumes = volumes,
-        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE,
+        requiresDataBackup = false,
+        containerHealthCheckVerificationAction = null
     )
 }

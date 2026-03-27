@@ -4,13 +4,15 @@ import com.availelabs.availe.NetworkConstants
 import com.availelabs.infrastructure.generated.InfrastructureConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
-import com.availelabs.orchestration.postgreskeycloak.loadPostgresKeycloakConfig
+import com.availelabs.orchestration.postgreskeycloak.PostgresKeycloakConfig
+import com.availelabs.utils.ServiceWaiter
 import java.io.File
 
-internal fun keycloakRunSpec(): ContainerRunSpecification<KeycloakPortsList, KeycloakVolumesList> {
-    val keycloakConfig = loadKeycloakConfig()
-    val postgresKeycloakConfig = loadPostgresKeycloakConfig()
-
+internal fun keycloakRunSpec(
+    serviceWaiter: ServiceWaiter,
+    keycloakConfig: KeycloakConfig,
+    postgresKeycloakConfig: PostgresKeycloakConfig
+): ContainerRunSpecification<KeycloakPortsList, KeycloakVolumesList> {
     // The path is generated automatically by the buildConfig plugin
     val spiJarFile = File(InfrastructureConstants.KEYCLOAK_SPI_JAR_PATH)
 
@@ -42,6 +44,8 @@ internal fun keycloakRunSpec(): ContainerRunSpecification<KeycloakPortsList, Key
         environmentVariables = environmentVariables,
         portMappings = KeycloakPortsList,
         volumes = KeycloakVolumesList(spiJarHostPath = spiJarFile.absolutePath),
-        command = listOf("start-dev", "--features=scripts")
+        command = listOf("start-dev", "--features=scripts"),
+        requiresDataBackup = false,
+        containerHealthCheckVerificationAction = { serviceWaiter.waitForKeycloak() }
     )
 }

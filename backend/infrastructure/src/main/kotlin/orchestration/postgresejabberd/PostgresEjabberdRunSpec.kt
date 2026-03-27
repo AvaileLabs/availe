@@ -3,14 +3,16 @@ package com.availelabs.orchestration.postgresejabberd
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
+import com.availelabs.utils.ServiceWaiter
 
-internal fun postgresEjabberdRunSpecification(): ContainerRunSpecification<PostgresEjabberdPortsList, PostgresEjabberdVolumesList> {
-    val postgresEjabberdConfiguration = loadPostgresEjabberdConfig()
-
+internal fun postgresEjabberdRunSpecification(
+    serviceWaiter: ServiceWaiter,
+    postgresEjabberdConfig: PostgresEjabberdConfig
+): ContainerRunSpecification<PostgresEjabberdPortsList, PostgresEjabberdVolumesList> {
     val environmentVariables = listOf(
-        "POSTGRES_DB=${postgresEjabberdConfiguration.databaseName}",
-        "POSTGRES_USER=${postgresEjabberdConfiguration.databaseUser}",
-        "POSTGRES_PASSWORD=${postgresEjabberdConfiguration.databasePassword}",
+        "POSTGRES_DB=${postgresEjabberdConfig.databaseName}",
+        "POSTGRES_USER=${postgresEjabberdConfig.databaseUser}",
+        "POSTGRES_PASSWORD=${postgresEjabberdConfig.databasePassword}",
         "AVAILE_HOST_IP_TRACKER=${NetworkConstants.HOST_IP}"
     )
 
@@ -21,6 +23,8 @@ internal fun postgresEjabberdRunSpecification(): ContainerRunSpecification<Postg
         environmentVariables = environmentVariables,
         portMappings = PostgresEjabberdPortsList,
         volumes = PostgresEjabberdVolumesList,
-        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE,
+        requiresDataBackup = true,
+        containerHealthCheckVerificationAction = { serviceWaiter.waitForPostgresEjabberd(postgresEjabberdConfig) }
     )
 }

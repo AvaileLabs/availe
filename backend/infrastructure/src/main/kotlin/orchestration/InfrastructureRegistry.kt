@@ -6,13 +6,13 @@ internal object InfrastructureRegistry {
         const val POSTGRES_TAG = "18"
 
         const val KEYCLOAK_REPOSITORY = "quay.io/keycloak/keycloak"
-        const val KEYCLOAK_TAG = "26.0.7"
+        const val KEYCLOAK_TAG = "26.5.6"
 
         const val EJABBERD_REPOSITORY = "ghcr.io/processone/ejabberd"
-        const val EJABBERD_TAG = "25.10"
+        const val EJABBERD_TAG = "26.03"
 
         const val VALKEY_REPOSITORY = "valkey/valkey"
-        const val VALKEY_TAG = "9.0.1"
+        const val VALKEY_TAG = "9.0.3"
 
         const val OPENSEARCH_REPOSITORY = "opensearchproject/opensearch"
         const val OPENSEARCH_TAG = "3.3.2"

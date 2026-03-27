@@ -3,15 +3,18 @@ package com.availelabs.orchestration.postgres
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
+import com.availelabs.utils.ServiceWaiter
 
-internal fun postgresRunSpec(): ContainerRunSpecification<PostgresPortsList, PostgresVolumesList> {
-    val config = loadPostgresConfig()
-    val dbName = config.dbUrl.substringAfterLast('/')
+internal fun postgresRunSpec(
+    serviceWaiter: ServiceWaiter,
+    postgresConfig: PostgresConfig
+): ContainerRunSpecification<PostgresPortsList, PostgresVolumesList> {
+    val databaseName = postgresConfig.dbUrl.substringAfterLast('/')
 
     val environmentVariables = listOf(
-        "POSTGRES_DB=$dbName",
-        "POSTGRES_USER=${config.dbUser}",
-        "POSTGRES_PASSWORD=${config.dbPassword}",
+        "POSTGRES_DB=$databaseName",
+        "POSTGRES_USER=${postgresConfig.dbUser}",
+        "POSTGRES_PASSWORD=${postgresConfig.dbPassword}",
         "AVAILE_HOST_IP_TRACKER=${NetworkConstants.HOST_IP}"
     )
 
@@ -22,6 +25,8 @@ internal fun postgresRunSpec(): ContainerRunSpecification<PostgresPortsList, Pos
         environmentVariables = environmentVariables,
         portMappings = PostgresPortsList,
         volumes = PostgresVolumesList,
-        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE,
+        requiresDataBackup = true,
+        containerHealthCheckVerificationAction = { serviceWaiter.waitForPostgres(postgresConfig) }
     )
 }

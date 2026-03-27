@@ -94,7 +94,6 @@ internal class InfrastructureManager(
                 containerNameForLogs = postgresRunSpecification.name
             ) {
                 containerOrchestrator.orchestrationSetup(listOf(postgresRunSpecification))
-                serviceWaiter.waitForPostgres(postgresConfiguration)
                 postgresProvisioner.provision()
             }
 
@@ -103,7 +102,6 @@ internal class InfrastructureManager(
                 containerNameForLogs = postgresKeycloakRunSpecification.name
             ) {
                 containerOrchestrator.orchestrationSetup(listOf(postgresKeycloakRunSpecification))
-                serviceWaiter.waitForPostgresKeycloak(postgresKeycloakConfiguration)
             }
 
             executeProvisioningStep(
@@ -111,7 +109,6 @@ internal class InfrastructureManager(
                 containerNameForLogs = postgresEjabberdRunSpecification.name
             ) {
                 containerOrchestrator.orchestrationSetup(listOf(postgresEjabberdRunSpecification))
-                serviceWaiter.waitForPostgresEjabberd(postgresEjabberdConfiguration)
             }
 
             executeProvisioningStep(
@@ -119,7 +116,6 @@ internal class InfrastructureManager(
                 containerNameForLogs = valkeyRunSpecification.name
             ) {
                 containerOrchestrator.orchestrationSetup(listOf(valkeyRunSpecification))
-                serviceWaiter.waitForValkey(valkeyConfig)
             }
 
             executeProvisioningStep(
@@ -150,7 +146,6 @@ internal class InfrastructureManager(
                 containerNameForLogs = keycloakRunSpecification.name
             ) {
                 containerOrchestrator.orchestrationSetup(listOf(keycloakRunSpecification))
-                serviceWaiter.waitForKeycloak()
                 keycloakProvisioner.provision()
             }
 
@@ -163,7 +158,6 @@ internal class InfrastructureManager(
             ) {
                 generateEjabberdConfigurationFiles()
                 containerOrchestrator.orchestrationSetup(listOf(ejabberdRunSpecification))
-                serviceWaiter.waitForEjabberd(ejabberdContainerName)
             }
 
             logger.info(">>> SYSTEM PROVISIONING COMPLETE <<<")

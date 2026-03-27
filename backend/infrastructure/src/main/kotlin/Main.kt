@@ -62,15 +62,20 @@ internal fun main(args: Array<String>) {
         val openSearchConfig = loadOpenSearchConfig()
         val valkeyConfig = loadValkeyConfig()
 
-        val postgresRunSpecification = postgresRunSpec()
-        val postgresKeycloakRunSpecification = postgresKeycloakRunSpecification()
-        val postgresEjabberdRunSpecification = postgresEjabberdRunSpecification()
-        val keycloakRunSpecification = keycloakRunSpec()
-        val ejabberdRunSpecification = ejabberdRunSpec()
+        val serviceWaiter = ServiceWaiter(dockerContainerManager)
+
+        val postgresRunSpecification = postgresRunSpec(serviceWaiter, postgresConfiguration)
+        val postgresKeycloakRunSpecification =
+            postgresKeycloakRunSpecification(serviceWaiter, postgresKeycloakConfiguration)
+        val postgresEjabberdRunSpecification =
+            postgresEjabberdRunSpecification(serviceWaiter, postgresEjabberdConfiguration)
+        val keycloakRunSpecification =
+            keycloakRunSpec(serviceWaiter, keycloakConfiguration, postgresKeycloakConfiguration)
+        val ejabberdRunSpecification = ejabberdRunSpec(serviceWaiter)
         val openSearchNode1RunSpecification = openSearchNode1Spec()
         val openSearchNode2RunSpecification = openSearchNode2Spec()
         val openSearchDashboardsRunSpecification = openSearchDashboardsSpec()
-        val valkeyRunSpecification = valkeyRunSpecification()
+        val valkeyRunSpecification = valkeyRunSpecification(serviceWaiter, valkeyConfig)
 
         val postgresProvisioner = PostgresProvisioner(postgresConfiguration)
 
@@ -84,8 +89,6 @@ internal fun main(args: Array<String>) {
             clientsReconciler,
             userProfileReconciler
         )
-
-        val serviceWaiter = ServiceWaiter(dockerContainerManager)
 
         val infrastructureManager = InfrastructureManager(
             logger = mainLogger,

@@ -3,14 +3,16 @@ package com.availelabs.orchestration.postgreskeycloak
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
+import com.availelabs.utils.ServiceWaiter
 
-internal fun postgresKeycloakRunSpecification(): ContainerRunSpecification<PostgresKeycloakPortsList, PostgresKeycloakVolumesList> {
-    val postgresKeycloakConfiguration = loadPostgresKeycloakConfig()
-
+internal fun postgresKeycloakRunSpecification(
+    serviceWaiter: ServiceWaiter,
+    postgresKeycloakConfig: PostgresKeycloakConfig
+): ContainerRunSpecification<PostgresKeycloakPortsList, PostgresKeycloakVolumesList> {
     val environmentVariables = listOf(
-        "POSTGRES_DB=${postgresKeycloakConfiguration.databaseName}",
-        "POSTGRES_USER=${postgresKeycloakConfiguration.databaseUser}",
-        "POSTGRES_PASSWORD=${postgresKeycloakConfiguration.databasePassword}",
+        "POSTGRES_DB=${postgresKeycloakConfig.databaseName}",
+        "POSTGRES_USER=${postgresKeycloakConfig.databaseUser}",
+        "POSTGRES_PASSWORD=${postgresKeycloakConfig.databasePassword}",
         "AVAILE_HOST_IP_TRACKER=${NetworkConstants.HOST_IP}"
     )
 
@@ -21,6 +23,8 @@ internal fun postgresKeycloakRunSpecification(): ContainerRunSpecification<Postg
         environmentVariables = environmentVariables,
         portMappings = PostgresKeycloakPortsList,
         volumes = PostgresKeycloakVolumesList,
-        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
+        logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE,
+        requiresDataBackup = true,
+        containerHealthCheckVerificationAction = { serviceWaiter.waitForPostgresKeycloak(postgresKeycloakConfig) }
     )
 }

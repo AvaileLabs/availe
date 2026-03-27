@@ -12,7 +12,9 @@ internal data class ContainerRunSpecification<P : ContainerRunSpecification.Port
     val ulimits: List<Ulimit> = emptyList(),
     val restartPolicy: RestartPolicy = RestartPolicy.unlessStoppedRestart(),
     val command: List<String> = emptyList(),
-    val logStrategy: LogStrategy = LogStrategy.BUFFER_AND_DUMP_ON_FAILURE
+    val logStrategy: LogStrategy = LogStrategy.BUFFER_AND_DUMP_ON_FAILURE,
+    val requiresDataBackup: Boolean = false,
+    val containerHealthCheckVerificationAction: (() -> Unit)? = null
 ) {
     enum class LogStrategy {
         BUFFER_AND_DUMP_ON_FAILURE,
