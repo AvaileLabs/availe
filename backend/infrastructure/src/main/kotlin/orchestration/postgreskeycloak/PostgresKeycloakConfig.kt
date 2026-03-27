@@ -1,6 +1,7 @@
 package com.availelabs.orchestration.postgreskeycloak
 
 import com.availelabs.availe.configuration.SharedNetworkConstants
+import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.utils.loadGradleProperties
 
 internal data class PostgresKeycloakConfig(
@@ -13,7 +14,7 @@ internal data class PostgresKeycloakConfig(
 internal fun loadPostgresKeycloakConfig(): PostgresKeycloakConfig {
     val gradleProperties = loadGradleProperties()
 
-    val databaseName = SharedNetworkConstants.KEYCLOAK_DB_NAME
+    val databaseName = InfrastructureRegistry.Topology.KEYCLOAK_DATABASE_NAME
     val databasePort = SharedNetworkConstants.KEYCLOAK_POSTGRES_PORT
 
     val databaseUrl = "jdbc:postgresql://localhost:$databasePort/$databaseName"

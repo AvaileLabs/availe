@@ -1,6 +1,7 @@
 package com.availelabs.utils
 
 import com.availelabs.availe.configuration.SharedNetworkConstants
+import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.core.DockerContainerManager
 import com.availelabs.orchestration.keycloak.KeycloakPortsList
 import com.availelabs.orchestration.opensearch.OpenSearchConfig
@@ -240,7 +241,7 @@ internal class ServiceWaiter(private val dockerContainerManager: DockerContainer
     }
 
     fun waitForValkey(valkeyConfiguration: ValkeyConfig, timeoutSeconds: Long = 30) {
-        val containerName = SharedNetworkConstants.VALKEY_HOST
+        val containerName = InfrastructureRegistry.Topology.VALKEY_CONTAINER_NAME
         logger.info("Waiting for Valkey to be ready (via valkey-cli)...")
         val deadline = System.currentTimeMillis() + timeoutSeconds * 1000
         var lastError: Throwable? = null

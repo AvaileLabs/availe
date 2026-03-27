@@ -2,6 +2,7 @@ package com.availelabs.orchestration.ejabberd
 
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
+import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.availelabs.utils.TlsCertificateGenerator
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -20,9 +21,9 @@ internal fun ejabberdRunSpec(): ContainerRunSpecification<EjabberdPortsList, Eja
     )
 
     return ContainerRunSpecification(
-        name = "availe-ejabberd",
-        image = "ghcr.io/processone/ejabberd",
-        tag = "25.10",
+        name = InfrastructureRegistry.Topology.EJABBERD_CONTAINER_NAME,
+        image = InfrastructureRegistry.Images.EJABBERD_REPOSITORY,
+        tag = InfrastructureRegistry.Images.EJABBERD_TAG,
         environmentVariables = environmentVariables,
         portMappings = EjabberdPortsList,
         volumes = EjabberdVolumesList(
@@ -60,8 +61,8 @@ internal fun generateEjabberdConfigurationFiles() {
 
     val templateContent = resourceStream.bufferedReader().use { it.readText() }
 
-    val databaseName = SharedNetworkConstants.EJABBERD_DB_NAME
-    val databaseHost = SharedNetworkConstants.EJABBERD_DB_HOST
+    val databaseName = InfrastructureRegistry.Topology.EJABBERD_DATABASE_NAME
+    val databaseHost = InfrastructureRegistry.Topology.POSTGRES_EJABBERD_CONTAINER_NAME
     val containerJwkPath = "/opt/ejabberd/conf/keycloak.jwk"
 
     val substitutedContent = templateContent

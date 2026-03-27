@@ -1,6 +1,7 @@
 package com.availelabs.orchestration.opensearch
 
 import com.availelabs.availe.configuration.SharedOpenSearchConstants
+import com.availelabs.orchestration.InfrastructureRegistry
 import org.bouncycastle.crypto.generators.BCrypt
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -60,8 +61,8 @@ internal object OpenSearchConfigGen {
               - CN=admin
 
             plugins.security.nodes_dn:
-              - CN=${SharedOpenSearchConstants.NODE_1_NAME}
-              - CN=${SharedOpenSearchConstants.NODE_2_NAME}
+              - CN=${InfrastructureRegistry.Topology.OPENSEARCH_NODE_1_NAME}
+              - CN=${InfrastructureRegistry.Topology.OPENSEARCH_NODE_2_NAME}
 
             plugins.security.audit.type: internal_opensearch
             plugins.security.enable_snapshot_restore_privilege: true
@@ -81,9 +82,9 @@ internal object OpenSearchConfigGen {
     @Suppress("SetWorldReadable")
     private fun generateDashboardsYml(directory: File) {
         val content = """
-            server.name: ${SharedOpenSearchConstants.DASHBOARDS_NAME}
+            server.name: ${InfrastructureRegistry.Topology.OPENSEARCH_DASHBOARDS_NAME}
             server.host: "0.0.0.0"
-            opensearch.hosts: ["https://${SharedOpenSearchConstants.NODE_1_NAME}:${SharedOpenSearchConstants.OPENSEARCH_PORT}", "https://${SharedOpenSearchConstants.NODE_2_NAME}:${SharedOpenSearchConstants.OPENSEARCH_PORT}"]
+            opensearch.hosts: ["https://${InfrastructureRegistry.Topology.OPENSEARCH_NODE_1_NAME}:${SharedOpenSearchConstants.OPENSEARCH_PORT}", "https://${InfrastructureRegistry.Topology.OPENSEARCH_NODE_2_NAME}:${SharedOpenSearchConstants.OPENSEARCH_PORT}"]
             opensearch.ssl.verificationMode: none
             opensearch.username: kibanaserver
             opensearch.password: kibanaserver

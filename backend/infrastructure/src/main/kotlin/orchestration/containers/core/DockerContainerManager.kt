@@ -23,7 +23,8 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         data class ContainerRunning(
             val containerIdentifier: String,
             val name: String,
-            val environmentVariables: Array<String>
+            val environmentVariables: Array<String>,
+            val imageReference: String
         ) : ContainerStatus {
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true
@@ -34,6 +35,7 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
                 if (containerIdentifier != other.containerIdentifier) return false
                 if (name != other.name) return false
                 if (!environmentVariables.contentEquals(other.environmentVariables)) return false
+                if (imageReference != other.imageReference) return false
 
                 return true
             }
@@ -42,6 +44,7 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
                 var result = containerIdentifier.hashCode()
                 result = 31 * result + name.hashCode()
                 result = 31 * result + environmentVariables.contentHashCode()
+                result = 31 * result + imageReference.hashCode()
                 return result
             }
         }
@@ -276,9 +279,15 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         val containerInspect = dockerClient.inspectContainerCmd(containerSummary.id).exec()
         val containerState = containerInspect.state
         val environmentVariables = containerInspect.config.env ?: emptyArray()
+        val containerImageReference = containerInspect.config.image ?: ""
 
         return if (containerState.running == true) {
-            ContainerStatus.ContainerRunning(containerSummary.id, containerName, environmentVariables)
+            ContainerStatus.ContainerRunning(
+                containerSummary.id,
+                containerName,
+                environmentVariables,
+                containerImageReference
+            )
         } else {
             ContainerStatus.ContainerStopped(containerSummary.id, containerName)
         }
@@ -288,6 +297,17 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         desiredSpecification: ContainerRunSpecification<*, *>,
         actualStatus: ContainerStatus.ContainerRunning
     ): Boolean {
+        val desiredImageReference = "${desiredSpecification.image}:${desiredSpecification.tag}"
+        if (actualStatus.imageReference != desiredImageReference) {
+            logger.info(
+                "Image tag mismatch for '{}'. Desired: {}, Actual: {}",
+                desiredSpecification.name,
+                desiredImageReference,
+                actualStatus.imageReference
+            )
+            return true
+        }
+
         val actualEnvironmentSet = actualStatus.environmentVariables.toSet()
         val desiredEnvironmentSet = desiredSpecification.environmentVariables.toSet()
 

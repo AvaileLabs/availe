@@ -1,6 +1,7 @@
 package com.availelabs.orchestration.opensearch
 
 import com.availelabs.availe.configuration.SharedOpenSearchConstants
+import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.core.DockerContainerManager
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -9,7 +10,7 @@ internal class OpenSearchInitializer(private val dockerContainerManager: DockerC
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun initializeSecurity() {
-        val containerName = SharedOpenSearchConstants.NODE_1_NAME
+        val containerName = InfrastructureRegistry.Topology.OPENSEARCH_NODE_1_NAME
         val port = SharedOpenSearchConstants.OPENSEARCH_PORT
 
         val projectRootDirectory = System.getProperty("user.dir")

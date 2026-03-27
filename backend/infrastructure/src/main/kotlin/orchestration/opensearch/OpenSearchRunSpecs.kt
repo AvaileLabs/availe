@@ -1,14 +1,14 @@
 package com.availelabs.orchestration.opensearch
 
 import com.availelabs.availe.NetworkConstants
-import com.availelabs.availe.configuration.SharedOpenSearchConstants
+import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification.Ulimit
 import java.io.File
 
 internal fun openSearchNode1Spec(): ContainerRunSpecification<OpenSearchPortsList, OpenSearchNodeVolumesList> {
     return createOpenSearchNodeSpec(
-        nodeName = SharedOpenSearchConstants.NODE_1_NAME,
+        nodeName = InfrastructureRegistry.Topology.OPENSEARCH_NODE_1_NAME,
         dataVolumeName = "availe-opensearch-data1",
         certFileName = "node1.pem",
         keyFileName = "node1-key.pem",
@@ -23,7 +23,7 @@ internal fun openSearchNode2Spec(): ContainerRunSpecification<ContainerRunSpecif
     }
 
     return createOpenSearchNodeSpec(
-        nodeName = SharedOpenSearchConstants.NODE_2_NAME,
+        nodeName = InfrastructureRegistry.Topology.OPENSEARCH_NODE_2_NAME,
         dataVolumeName = "availe-opensearch-data2",
         certFileName = "node2.pem",
         keyFileName = "node2-key.pem",
@@ -50,8 +50,8 @@ private fun <P : ContainerRunSpecification.PortList> createOpenSearchNodeSpec(
     val environmentVariables = listOf(
         "cluster.name=availe-opensearch-cluster",
         "node.name=$nodeName",
-        "discovery.seed_hosts=${SharedOpenSearchConstants.NODE_1_NAME},${SharedOpenSearchConstants.NODE_2_NAME}",
-        "cluster.initial_cluster_manager_nodes=${SharedOpenSearchConstants.NODE_1_NAME},${SharedOpenSearchConstants.NODE_2_NAME}",
+        "discovery.seed_hosts=${InfrastructureRegistry.Topology.OPENSEARCH_NODE_1_NAME},${InfrastructureRegistry.Topology.OPENSEARCH_NODE_2_NAME}",
+        "cluster.initial_cluster_manager_nodes=${InfrastructureRegistry.Topology.OPENSEARCH_NODE_1_NAME},${InfrastructureRegistry.Topology.OPENSEARCH_NODE_2_NAME}",
         "bootstrap.memory_lock=true",
         "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m",
         "DISABLE_INSTALL_DEMO_CONFIG=true",
@@ -84,8 +84,8 @@ private fun <P : ContainerRunSpecification.PortList> createOpenSearchNodeSpec(
 
     return ContainerRunSpecification(
         name = nodeName,
-        image = "opensearchproject/opensearch",
-        tag = SharedOpenSearchConstants.OPENSEARCH_VERSION,
+        image = InfrastructureRegistry.Images.OPENSEARCH_REPOSITORY,
+        tag = InfrastructureRegistry.Images.OPENSEARCH_TAG,
         environmentVariables = environmentVariables,
         portMappings = portMappings,
         volumes = volumes,
@@ -101,7 +101,7 @@ internal fun openSearchDashboardsSpec(): ContainerRunSpecification<OpenSearchDas
     val staticAssetsHash = OpenSearchSecurityHasher.calculateStaticAssetsHash(generatedConfigDirectory)
 
     val environmentVariables = listOf(
-        "OPENSEARCH_HOSTS=[\"https://${SharedOpenSearchConstants.NODE_1_NAME}:${SharedOpenSearchConstants.OPENSEARCH_PORT}\",\"https://${SharedOpenSearchConstants.NODE_2_NAME}:${SharedOpenSearchConstants.OPENSEARCH_PORT}\"]",
+        "OPENSEARCH_HOSTS=[\"https://${InfrastructureRegistry.Topology.OPENSEARCH_NODE_1_NAME}:${com.availelabs.availe.configuration.SharedOpenSearchConstants.OPENSEARCH_PORT}\",\"https://${InfrastructureRegistry.Topology.OPENSEARCH_NODE_2_NAME}:${com.availelabs.availe.configuration.SharedOpenSearchConstants.OPENSEARCH_PORT}\"]",
         "DISABLE_SECURITY_DASHBOARDS_PLUGIN=false",
         "AVAILE_HOST_IP_TRACKER=${NetworkConstants.HOST_IP}",
         "OPENSEARCH_ASSET_HASH=$staticAssetsHash"
@@ -112,9 +112,9 @@ internal fun openSearchDashboardsSpec(): ContainerRunSpecification<OpenSearchDas
     )
 
     return ContainerRunSpecification(
-        name = SharedOpenSearchConstants.DASHBOARDS_NAME,
-        image = "opensearchproject/opensearch-dashboards",
-        tag = SharedOpenSearchConstants.DASHBOARDS_VERSION,
+        name = InfrastructureRegistry.Topology.OPENSEARCH_DASHBOARDS_NAME,
+        image = InfrastructureRegistry.Images.OPENSEARCH_DASHBOARDS_REPOSITORY,
+        tag = InfrastructureRegistry.Images.OPENSEARCH_DASHBOARDS_TAG,
         environmentVariables = environmentVariables,
         portMappings = OpenSearchDashboardsPortsList,
         volumes = volumes,

@@ -1,6 +1,6 @@
 package com.availelabs.orchestration.opensearch
 
-import com.availelabs.availe.configuration.SharedOpenSearchConstants
+import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.utils.TlsCertificateGenerator
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
 import org.bouncycastle.cert.X509CertificateHolder
@@ -61,24 +61,24 @@ internal object OpenSearchCertGen {
             rootBundle,
             File(generatedCertDirectory, "node1.pem"),
             File(generatedCertDirectory, "node1-key.pem"),
-            SharedOpenSearchConstants.NODE_1_NAME,
-            listOf(SharedOpenSearchConstants.NODE_1_NAME, "localhost", "127.0.0.1")
+            InfrastructureRegistry.Topology.OPENSEARCH_NODE_1_NAME,
+            listOf(InfrastructureRegistry.Topology.OPENSEARCH_NODE_1_NAME, "localhost", "127.0.0.1")
         )
 
         ensureSignedCertificate(
             rootBundle,
             File(generatedCertDirectory, "node2.pem"),
             File(generatedCertDirectory, "node2-key.pem"),
-            SharedOpenSearchConstants.NODE_2_NAME,
-            listOf(SharedOpenSearchConstants.NODE_2_NAME, "localhost", "127.0.0.1")
+            InfrastructureRegistry.Topology.OPENSEARCH_NODE_2_NAME,
+            listOf(InfrastructureRegistry.Topology.OPENSEARCH_NODE_2_NAME, "localhost", "127.0.0.1")
         )
 
         ensureSignedCertificate(
             rootBundle,
             File(generatedCertDirectory, "dashboards.pem"),
             File(generatedCertDirectory, "dashboards-key.pem"),
-            SharedOpenSearchConstants.DASHBOARDS_NAME,
-            listOf(SharedOpenSearchConstants.DASHBOARDS_NAME, "localhost", "127.0.0.1")
+            InfrastructureRegistry.Topology.OPENSEARCH_DASHBOARDS_NAME,
+            listOf(InfrastructureRegistry.Topology.OPENSEARCH_DASHBOARDS_NAME, "localhost", "127.0.0.1")
         )
 
         logger.info("OpenSearch certificates check complete at ${generatedCertDirectory.absolutePath}")

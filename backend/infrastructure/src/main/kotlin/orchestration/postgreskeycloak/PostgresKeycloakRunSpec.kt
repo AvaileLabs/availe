@@ -1,7 +1,7 @@
 package com.availelabs.orchestration.postgreskeycloak
 
 import com.availelabs.availe.NetworkConstants
-import com.availelabs.availe.configuration.SharedNetworkConstants
+import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 
 internal fun postgresKeycloakRunSpecification(): ContainerRunSpecification<PostgresKeycloakPortsList, PostgresKeycloakVolumesList> {
@@ -15,9 +15,9 @@ internal fun postgresKeycloakRunSpecification(): ContainerRunSpecification<Postg
     )
 
     return ContainerRunSpecification(
-        name = SharedNetworkConstants.KEYCLOAK_DB_HOST,
-        image = "docker.io/library/postgres",
-        tag = "18",
+        name = InfrastructureRegistry.Topology.POSTGRES_KEYCLOAK_CONTAINER_NAME,
+        image = InfrastructureRegistry.Images.POSTGRES_REPOSITORY,
+        tag = InfrastructureRegistry.Images.POSTGRES_TAG,
         environmentVariables = environmentVariables,
         portMappings = PostgresKeycloakPortsList,
         volumes = PostgresKeycloakVolumesList,
