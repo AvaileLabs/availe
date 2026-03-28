@@ -75,7 +75,6 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
                         runSpecification.name,
                         runSpecification.logStrategy
                     )
-                    runSpecification.containerHealthCheckVerificationAction?.invoke()
                     containerStatus.containerIdentifier
                 }
             }
@@ -406,17 +405,29 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         }
     }
 
+    private fun normalizeImageReference(imageReference: String): String {
+        var normalizedImageReference = imageReference
+        if (normalizedImageReference.startsWith("docker.io/library/")) {
+            normalizedImageReference = normalizedImageReference.removePrefix("docker.io/library/")
+        } else if (normalizedImageReference.startsWith("docker.io/")) {
+            normalizedImageReference = normalizedImageReference.removePrefix("docker.io/")
+        }
+        return normalizedImageReference
+    }
+
     private fun isConfigurationOutOfSync(
         desiredSpecification: ContainerRunSpecification<*, *>,
         actualStatus: ContainerStatus.ContainerRunning
     ): Boolean {
-        val desiredImageReference = "${desiredSpecification.image}:${desiredSpecification.tag}"
-        if (actualStatus.imageReference != desiredImageReference) {
+        val desiredImageReference = normalizeImageReference("${desiredSpecification.image}:${desiredSpecification.tag}")
+        val actualImageReference = normalizeImageReference(actualStatus.imageReference)
+
+        if (actualImageReference != desiredImageReference) {
             logger.info(
                 "Image tag mismatch for '{}'. Desired: {}, Actual: {}",
                 desiredSpecification.name,
                 desiredImageReference,
-                actualStatus.imageReference
+                actualImageReference
             )
             return true
         }
