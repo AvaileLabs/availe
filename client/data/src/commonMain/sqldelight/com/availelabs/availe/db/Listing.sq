@@ -84,7 +84,22 @@ LEFT JOIN listing_event_details ON listings.primary_key_id = listing_event_detai
 LEFT JOIN listing_service_details ON listings.primary_key_id = listing_service_details.listing_id
 WHERE (:publisher_id IS NULL OR listings.publisher_id = :publisher_id)
 AND listings.listing_type = :event_category
+AND listings.is_rsvped = 0
 AND listing_event_details.end_instant >= :current_instant
+ORDER BY listing_event_details.start_instant ASC
+LIMIT :limit;
+
+observeAgendaEvents:
+SELECT *
+FROM listings
+LEFT JOIN listing_item_details ON listings.primary_key_id = listing_item_details.listing_id
+LEFT JOIN listing_event_details ON listings.primary_key_id = listing_event_details.listing_id
+LEFT JOIN listing_service_details ON listings.primary_key_id = listing_service_details.listing_id
+WHERE (:publisher_id IS NULL OR listings.publisher_id = :publisher_id)
+AND listings.listing_type = :event_category
+AND listings.is_rsvped = 1
+AND listing_event_details.end_instant >= :current_instant
+AND listing_event_details.start_instant <= :cutoff_instant
 ORDER BY listing_event_details.start_instant ASC
 LIMIT :limit;
 

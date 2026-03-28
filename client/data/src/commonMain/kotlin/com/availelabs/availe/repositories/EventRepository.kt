@@ -69,6 +69,20 @@ internal class EventRepository(
                     listingsList.filterIsInstance<Listing.Event>()
                 }
             }
+
+            is EventFeedQuery.Agenda -> {
+                query.tickingNow.flatMapLatest { currentInstant ->
+                    val cutoffInstant = currentInstant + query.cutoffDuration
+                    localDataSource.observeAgendaEvents(
+                        limit = limit,
+                        publisherId = publisherId,
+                        currentInstant = currentInstant,
+                        cutoffInstant = cutoffInstant
+                    ).map { listingsList ->
+                        listingsList.filterIsInstance<Listing.Event>()
+                    }
+                }
+            }
         }
     }
 
@@ -78,10 +92,15 @@ internal class EventRepository(
         publisherId: UserId?,
         query: EventFeedQuery
     ): PageSyncResult {
+        if (query is EventFeedQuery.Agenda) {
+            throw IllegalArgumentException("Agenda query does not support network synchronization")
+        }
+
         val eventFeedFilter = when (query) {
             is EventFeedQuery.Upcoming -> EventFeedFilter.Upcoming
             is EventFeedQuery.Past -> EventFeedFilter.Past
             is EventFeedQuery.Going -> EventFeedFilter.Going
+            is EventFeedQuery.Agenda -> error("Unreachable state")
         }
 
         val fetchConfiguration = ListingFetchConfiguration(ListingCategoryFilter.All, eventFeedFilter)
@@ -133,6 +152,10 @@ internal class EventRepository(
     }
 
     override suspend fun isEventCacheStale(query: EventFeedQuery): Boolean {
+        if (query is EventFeedQuery.Agenda) {
+            return false
+        }
+
         return try {
             if (localDataSource.isListingDatabaseEmpty()) {
                 return true
@@ -142,6 +165,7 @@ internal class EventRepository(
                 is EventFeedQuery.Upcoming -> EventFeedFilter.Upcoming
                 is EventFeedQuery.Past -> EventFeedFilter.Past
                 is EventFeedQuery.Going -> EventFeedFilter.Going
+                is EventFeedQuery.Agenda -> error("Unreachable state")
             }
 
             val fetchConfiguration = ListingFetchConfiguration(ListingCategoryFilter.All, eventFeedFilter)

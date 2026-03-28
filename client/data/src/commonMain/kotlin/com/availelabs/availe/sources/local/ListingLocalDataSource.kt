@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 interface IListingLocalDataSource {
     suspend fun upsertListing(listing: Listing)
@@ -20,6 +21,13 @@ interface IListingLocalDataSource {
         publisherId: UserId?,
         filter: ListingCategoryFilter,
         eventFeedFilter: EventFeedFilter = EventFeedFilter.None
+    ): Flow<List<Listing>>
+
+    fun observeAgendaEvents(
+        limit: Long,
+        publisherId: UserId?,
+        currentInstant: Instant,
+        cutoffInstant: Instant
     ): Flow<List<Listing>>
 
     fun getListingByIdStream(id: ListingId): Flow<Listing?>
@@ -137,6 +145,25 @@ internal class ListingLocalDataSource(
                 emitAll(queryFlow)
             }
         }
+    }
+
+    override fun observeAgendaEvents(
+        limit: Long,
+        publisherId: UserId?,
+        currentInstant: Instant,
+        cutoffInstant: Instant
+    ): Flow<List<Listing>> = flow {
+        val database = databaseProvider.getDatabase()
+        val queryFlow = database.listingQueries.observeAgendaEvents(
+            publisher_id = publisherId,
+            event_category = ListingCategory.Event,
+            current_instant = currentInstant,
+            cutoff_instant = cutoffInstant,
+            limit = limit
+        ).asFlow().map { query ->
+            query.awaitAsList().map { observeAgendaEvents -> observeAgendaEvents.toDomain() }
+        }
+        emitAll(queryFlow)
     }
 
     override fun getListingByIdStream(id: ListingId): Flow<Listing?> = flow {

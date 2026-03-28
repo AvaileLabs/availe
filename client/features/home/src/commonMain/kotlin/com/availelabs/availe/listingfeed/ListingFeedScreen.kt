@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.availelabs.availe.listingfeed
 
 import androidx.compose.foundation.background
@@ -13,10 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import availe.client.designsystem.generated.resources.Res
-import availe.client.designsystem.generated.resources.generic_refresh
-import availe.client.designsystem.generated.resources.generic_retry
-import availe.client.designsystem.generated.resources.home_empty_state
+import availe.client.designsystem.generated.resources.*
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.availelabs.availe.domain.model.ListingId
 import com.availelabs.availe.navigation.DeepLinkRoute
@@ -24,6 +23,7 @@ import com.availelabs.availe.ui.RefreshStateHolder
 import com.availelabs.availe.ui.components.*
 import com.availelabs.availe.ui.layout.WindowSizeClass
 import com.availelabs.availe.ui.layout.rememberWindowSize
+import com.availelabs.availe.ui.model.AgendaState
 import com.availelabs.availe.ui.model.asString
 import com.availelabs.availe.ui.modifiers.refreshTrigger
 import com.availelabs.availe.ui.util.InfiniteGridHandler
@@ -107,7 +107,6 @@ fun ListingFeedScreen(
     }
 }
 
-@OptIn(ExperimentalUuidApi::class)
 @Composable
 private fun DesktopGridLayout(
     state: ListingFeedStore.State,
@@ -134,6 +133,17 @@ private fun DesktopGridLayout(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
     ) {
+        if (state.agendaState is AgendaState.Visible) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                AgendaCarousel(
+                    items = state.agendaState.items,
+                    carouselTitle = stringResource(Res.string.home_agenda_title),
+                    onListingClick = onListingClick,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+        }
+
         if (state.showCenterSpinner) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Box(
@@ -188,7 +198,6 @@ private fun DesktopGridLayout(
     }
 }
 
-@OptIn(ExperimentalUuidApi::class)
 @Composable
 private fun MobileListLayout(
     state: ListingFeedStore.State,
@@ -209,6 +218,17 @@ private fun MobileListLayout(
         state = listState,
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
+        if (state.agendaState is AgendaState.Visible) {
+            item {
+                AgendaCarousel(
+                    items = state.agendaState.items,
+                    carouselTitle = stringResource(Res.string.home_agenda_title),
+                    onListingClick = onListingClick,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+        }
+
         if (state.showCenterSpinner) {
             item {
                 Box(

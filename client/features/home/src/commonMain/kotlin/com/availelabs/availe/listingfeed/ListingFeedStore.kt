@@ -21,7 +21,10 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 data class ListingUiModel(
@@ -50,7 +53,8 @@ interface ListingFeedStore : Store<Intent, State, Label> {
         val paginationError: UiText? = null,
         val isAuthenticated: Boolean = false,
         val currentLimit: Long = 20L,
-        val networkPage: Int = 0
+        val networkPage: Int = 0,
+        val agendaState: AgendaState = AgendaState.Hidden
     ) : IFeedUiState<ListingUiModel>
 
     sealed interface Label {
@@ -91,6 +95,7 @@ internal class ListingFeedStoreFactory(
         data class SetAuthenticated(val isAuthenticated: Boolean) : Message
         data class SetNetworkPage(val page: Int) : Message
         data class SetCurrentLimit(val limit: Long) : Message
+        data class SetAgendaState(val agendaState: AgendaState) : Message
         data object ResetState : Message
     }
 
@@ -104,7 +109,8 @@ internal class ListingFeedStoreFactory(
 
     private inner class ListingFeedExecutor : CoroutineExecutor<Intent, Action, State, Message, Label>() {
         private val pageSize = 20
-        private var databaseObservationJob: Job? = null
+        private var mainFeedObservationJob: Job? = null
+        private var agendaObservationJob: Job? = null
 
         private val tickingClockFlow: Flow<Instant> = flow {
             while (currentCoroutineContext().isActive) {
@@ -146,8 +152,10 @@ internal class ListingFeedStoreFactory(
         }
 
         private fun observeDatabase(limit: Long) {
-            databaseObservationJob?.cancel()
-            databaseObservationJob = scope.launch {
+            mainFeedObservationJob?.cancel()
+            agendaObservationJob?.cancel()
+
+            mainFeedObservationJob = scope.launch {
                 val eventFeedQuery = when (feedType) {
                     ListingFeedType.Upcoming -> EventFeedQuery.Upcoming(tickingClockFlow)
                     ListingFeedType.Going -> EventFeedQuery.Going
@@ -167,6 +175,34 @@ internal class ListingFeedStoreFactory(
                     }
                     dispatch(Message.SetDatabaseState(newDatabaseState))
                 }
+            }
+
+            if (feedType is ListingFeedType.Upcoming) {
+                agendaObservationJob = scope.launch {
+                    val agendaFeedQuery = EventFeedQuery.Agenda(
+                        tickingNow = tickingClockFlow,
+                        cutoffDuration = 7.days
+                    )
+
+                    eventRepository.observeEventFeed(
+                        limit = 15L,
+                        publisherId = null,
+                        query = agendaFeedQuery
+                    ).collect { agendaListings ->
+                        val currentInstant = Clock.System.now()
+                        val agendaUiModels = agendaListings.map { eventListing ->
+                            eventListing.toAgendaUiModel(currentInstant, eventListing.schedule.timeZoneIdentifier)
+                        }
+
+                        if (agendaUiModels.isEmpty()) {
+                            dispatch(Message.SetAgendaState(AgendaState.Hidden))
+                        } else {
+                            dispatch(Message.SetAgendaState(AgendaState.Visible(agendaUiModels)))
+                        }
+                    }
+                }
+            } else {
+                dispatch(Message.SetAgendaState(AgendaState.Hidden))
             }
         }
 
@@ -276,13 +312,15 @@ internal class ListingFeedStoreFactory(
                 is Message.SetAuthenticated -> copy(isAuthenticated = msg.isAuthenticated)
                 is Message.SetNetworkPage -> copy(networkPage = msg.page)
                 is Message.SetCurrentLimit -> copy(currentLimit = msg.limit)
+                is Message.SetAgendaState -> copy(agendaState = msg.agendaState)
                 Message.ResetState -> copy(
                     databaseState = DatabaseState.Uninitialized,
                     networkSyncState = NetworkSyncState.Idle,
                     paginationState = PaginationState.Available,
                     paginationError = null,
                     currentLimit = 20L,
-                    networkPage = 0
+                    networkPage = 0,
+                    agendaState = AgendaState.Hidden
                 )
             }
     }
@@ -304,6 +342,34 @@ internal class ListingFeedStoreFactory(
             description = this.description,
             startTime = startTime,
             isRsvped = this.interactionState.isRsvped
+        )
+    }
+
+    private fun Listing.Event.toAgendaUiModel(
+        currentInstant: Instant,
+        timeZoneIdentifier: TimeZoneIdentifier
+    ): AgendaUiModel {
+        val timeZone = TimeZone.of(timeZoneIdentifier.value)
+        val currentLocalDate = currentInstant.toLocalDateTime(timeZone).date
+        val startLocalDate = this.schedule.startInstant.toLocalDateTime(timeZone).date
+
+        val proximity = if (currentInstant >= this.schedule.startInstant && currentInstant < this.schedule.endInstant) {
+            EventProximity.Ongoing
+        } else {
+            val differenceInDays = (startLocalDate.toEpochDays() - currentLocalDate.toEpochDays()).toInt()
+            when {
+                differenceInDays <= 0 -> EventProximity.Today
+                differenceInDays == 1 -> EventProximity.Tomorrow
+                else -> EventProximity.Future(differenceInDays)
+            }
+        }
+
+        return AgendaUiModel(
+            id = this.id,
+            title = this.title,
+            imageUrl = this.imageLinks.firstOrNull(),
+            startTime = this.schedule.startInstant,
+            proximity = proximity
         )
     }
 }

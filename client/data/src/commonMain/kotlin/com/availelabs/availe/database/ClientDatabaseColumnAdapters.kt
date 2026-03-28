@@ -71,6 +71,28 @@ internal fun ObserveUpcomingEvents.toDomain(): Listing {
     )
 }
 
+internal fun ObserveAgendaEvents.toDomain(): Listing {
+    return mapRawDataToListing(
+        id = primary_key_id,
+        createdAt = created_at,
+        publisherId = publisher_id,
+        publisherEmail = publisher_email,
+        listingType = listing_type,
+        title = title,
+        description = description,
+        priceAmount = price_amount,
+        priceCurrency = price_currency,
+        imageLinks = image_links,
+        isRsvped = is_rsvped,
+        isFavorited = is_favorited,
+        startLocalTime = start_local_time,
+        endLocalTime = end_local_time,
+        startInstant = start_instant,
+        endInstant = end_instant,
+        timeZoneIdentifier = time_zone_identifier
+    )
+}
+
 internal fun ObservePastEvents.toDomain(): Listing {
     return mapRawDataToListing(
         id = primary_key_id,

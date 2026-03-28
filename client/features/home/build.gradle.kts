@@ -33,6 +33,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.coil.compose)
             implementation(libs.kotlinx.serialization.core)
+            implementation(libs.kotlinx.datetime)
         }
     }
 }
