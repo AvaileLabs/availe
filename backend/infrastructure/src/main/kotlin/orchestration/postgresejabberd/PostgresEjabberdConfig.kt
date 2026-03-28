@@ -1,7 +1,6 @@
 package com.availelabs.orchestration.postgresejabberd
 
 import com.availelabs.availe.configuration.SharedNetworkConstants
-import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.utils.loadGradleProperties
 
 internal data class PostgresEjabberdConfig(
@@ -14,7 +13,7 @@ internal data class PostgresEjabberdConfig(
 internal fun loadPostgresEjabberdConfig(): PostgresEjabberdConfig {
     val gradleProperties = loadGradleProperties()
 
-    val databaseName = InfrastructureRegistry.Topology.EJABBERD_DATABASE_NAME
+    val databaseName = SharedNetworkConstants.EJABBERD_DB_NAME
     val databasePort = SharedNetworkConstants.EJABBERD_POSTGRES_PORT
 
     val databaseUrl = "jdbc:postgresql://localhost:$databasePort/$databaseName"

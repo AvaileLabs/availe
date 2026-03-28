@@ -66,8 +66,8 @@ internal fun generateEjabberdConfigurationFiles() {
 
     val templateContent = resourceStream.bufferedReader().use { it.readText() }
 
-    val databaseName = InfrastructureRegistry.Topology.EJABBERD_DATABASE_NAME
-    val databaseHost = InfrastructureRegistry.Topology.POSTGRES_EJABBERD_CONTAINER_NAME
+    val databaseName = SharedNetworkConstants.EJABBERD_DB_NAME
+    val databaseHost = SharedNetworkConstants.EJABBERD_DB_HOST
     val containerJwkPath = "/opt/ejabberd/conf/keycloak.jwk"
 
     val substitutedContent = templateContent

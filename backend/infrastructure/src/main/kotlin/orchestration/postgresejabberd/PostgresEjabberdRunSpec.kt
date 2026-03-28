@@ -1,6 +1,7 @@
 package com.availelabs.orchestration.postgresejabberd
 
 import com.availelabs.availe.NetworkConstants
+import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.availelabs.utils.ServiceWaiter
@@ -17,7 +18,7 @@ internal fun postgresEjabberdRunSpecification(
     )
 
     return ContainerRunSpecification(
-        name = InfrastructureRegistry.Topology.POSTGRES_EJABBERD_CONTAINER_NAME,
+        name = SharedNetworkConstants.EJABBERD_DB_HOST,
         image = InfrastructureRegistry.Images.POSTGRES_REPOSITORY,
         tag = InfrastructureRegistry.Images.POSTGRES_TAG,
         environmentVariables = environmentVariables,

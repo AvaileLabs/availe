@@ -1,6 +1,7 @@
 package com.availelabs.orchestration.keycloak
 
 import com.availelabs.availe.NetworkConstants
+import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.infrastructure.generated.InfrastructureConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
@@ -13,7 +14,6 @@ internal fun keycloakRunSpec(
     keycloakConfig: KeycloakConfig,
     postgresKeycloakConfig: PostgresKeycloakConfig
 ): ContainerRunSpecification<KeycloakPortsList, KeycloakVolumesList> {
-    // The path is generated automatically by the buildConfig plugin
     val spiJarFile = File(InfrastructureConstants.KEYCLOAK_SPI_JAR_PATH)
 
     check(spiJarFile.exists()) {
@@ -25,11 +25,11 @@ internal fun keycloakRunSpec(
         "KEYCLOAK_ADMIN=${keycloakConfig.adminUser}",
         "KEYCLOAK_ADMIN_PASSWORD=${keycloakConfig.adminPassword}",
         "KC_DB=postgres",
-        "KC_DB_URL_HOST=${InfrastructureRegistry.Topology.POSTGRES_KEYCLOAK_CONTAINER_NAME}",
+        "KC_DB_URL_HOST=${SharedNetworkConstants.KEYCLOAK_DB_HOST}",
         "KC_DB_URL_DATABASE=${postgresKeycloakConfig.databaseName}",
         "KC_DB_USERNAME=${postgresKeycloakConfig.databaseUser}",
         "KC_DB_PASSWORD=${postgresKeycloakConfig.databasePassword}",
-        "KC_DB_SCHEMA=${InfrastructureRegistry.Topology.DATABASE_SCHEMA_KEYCLOAK}",
+        "KC_DB_SCHEMA=${SharedNetworkConstants.DATABASE_SCHEMA_KEYCLOAK}",
         "KC_HOSTNAME=${NetworkConstants.HOST_IP}",
         "KC_HEALTH_ENABLED=true",
         "KC_HTTP_PORT=${KeycloakPortsList.Http.containerPortNumber}",

@@ -1,14 +1,14 @@
 package com.availelabs.provisioning.keycloak.specs
 
 import com.availelabs.availe.configuration.SharedAuthenticationConstants
-import com.availelabs.orchestration.InfrastructureRegistry
+import com.availelabs.availe.configuration.SharedNetworkConstants
 
 internal object KeycloakRealms {
     const val AVAILE = SharedAuthenticationConstants.REALM_NAME
 }
 
 internal object KeycloakDbSchemas {
-    const val KEYCLOAK = InfrastructureRegistry.Topology.DATABASE_SCHEMA_KEYCLOAK
+    const val KEYCLOAK = SharedNetworkConstants.DATABASE_SCHEMA_KEYCLOAK
 }
 
 internal object KeycloakClientIds {

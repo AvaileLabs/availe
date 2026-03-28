@@ -23,20 +23,10 @@ internal object InfrastructureRegistry {
 
     object Topology {
         const val POSTGRES_MAIN_CONTAINER_NAME = "availe-postgres"
-        const val POSTGRES_KEYCLOAK_CONTAINER_NAME = "availe-postgres-keycloak"
-        const val POSTGRES_EJABBERD_CONTAINER_NAME = "availe-postgres-ejabberd"
         const val KEYCLOAK_CONTAINER_NAME = "availe-keycloak"
         const val EJABBERD_CONTAINER_NAME = "availe-ejabberd"
-        const val VALKEY_CONTAINER_NAME = "availe-valkey"
         const val OPENSEARCH_NODE_1_NAME = "opensearch-node1"
         const val OPENSEARCH_NODE_2_NAME = "opensearch-node2"
         const val OPENSEARCH_DASHBOARDS_NAME = "opensearch-dashboards"
-
-        const val DATABASE_SCHEMA_APPLICATION = "availe"
-        const val DATABASE_SCHEMA_KEYCLOAK = "public"
-        const val DATABASE_SCHEMA_XMPP = "public"
-
-        const val EJABBERD_DATABASE_NAME = "availe_xmpp"
-        const val KEYCLOAK_DATABASE_NAME = "keycloak"
     }
 }
