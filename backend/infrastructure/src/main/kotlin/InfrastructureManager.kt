@@ -1,14 +1,13 @@
 package com.availelabs
 
+import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.ContainerOrchestrator
 import com.availelabs.orchestration.containers.core.DockerContainerManager
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
+import com.availelabs.orchestration.containers.domain.DeploymentGroup
 import com.availelabs.orchestration.ejabberd.generateEjabberdConfigurationFiles
 import com.availelabs.orchestration.hostsystem.HostSystemManager
-import com.availelabs.orchestration.opensearch.OpenSearchCertGen
-import com.availelabs.orchestration.opensearch.OpenSearchConfig
-import com.availelabs.orchestration.opensearch.OpenSearchConfigGen
-import com.availelabs.orchestration.opensearch.OpenSearchInitializer
+import com.availelabs.orchestration.opensearch.*
 import com.availelabs.orchestration.postgres.PostgresConfig
 import com.availelabs.orchestration.postgresejabberd.PostgresEjabberdConfig
 import com.availelabs.orchestration.postgreskeycloak.PostgresKeycloakConfig
@@ -43,16 +42,66 @@ internal class InfrastructureManager(
     private val dockerContainerManager: DockerContainerManager,
     private val serviceWaiter: ServiceWaiter
 ) {
-    private val allRunSpecificationsForTeardown = listOf(
-        openSearchDashboardsRunSpecification,
-        openSearchNode2RunSpecification,
-        openSearchNode1RunSpecification,
-        ejabberdRunSpecification,
-        keycloakRunSpecification,
-        valkeyRunSpecification,
-        postgresKeycloakRunSpecification,
-        postgresEjabberdRunSpecification,
-        postgresRunSpecification
+    private val postgresMainDeploymentGroup = DeploymentGroup(
+        deploymentGroupName = "Postgres Database (Main)",
+        containerRunSpecifications = listOf(postgresRunSpecification),
+        groupHealthCheckVerificationAction = { serviceWaiter.waitForPostgres(postgresConfiguration) }
+    )
+
+    private val postgresKeycloakDeploymentGroup = DeploymentGroup(
+        deploymentGroupName = "Postgres Database (Keycloak Dedicated)",
+        containerRunSpecifications = listOf(postgresKeycloakRunSpecification),
+        groupHealthCheckVerificationAction = { serviceWaiter.waitForPostgresKeycloak(postgresKeycloakConfiguration) }
+    )
+
+    private val postgresEjabberdDeploymentGroup = DeploymentGroup(
+        deploymentGroupName = "Postgres Database (Ejabberd Dedicated)",
+        containerRunSpecifications = listOf(postgresEjabberdRunSpecification),
+        groupHealthCheckVerificationAction = { serviceWaiter.waitForPostgresEjabberd(postgresEjabberdConfiguration) }
+    )
+
+    private val valkeyDeploymentGroup = DeploymentGroup(
+        deploymentGroupName = "Valkey Cache Service",
+        containerRunSpecifications = listOf(valkeyRunSpecification),
+        groupHealthCheckVerificationAction = { serviceWaiter.waitForValkey(valkeyConfig) }
+    )
+
+    private val openSearchClusterDeploymentGroup = DeploymentGroup(
+        deploymentGroupName = "OpenSearch Cluster",
+        containerRunSpecifications = listOf(openSearchNode1RunSpecification, openSearchNode2RunSpecification),
+        groupHealthCheckVerificationAction = {
+            val openSearchSecurityReconciler = OpenSearchSecurityReconciler()
+            openSearchSecurityReconciler.waitForClusterAvailability(60)
+        }
+    )
+
+    private val openSearchDashboardsDeploymentGroup = DeploymentGroup(
+        deploymentGroupName = "OpenSearch Dashboards",
+        containerRunSpecifications = listOf(openSearchDashboardsRunSpecification),
+        groupHealthCheckVerificationAction = null
+    )
+
+    private val keycloakDeploymentGroup = DeploymentGroup(
+        deploymentGroupName = "Keycloak Identity Service",
+        containerRunSpecifications = listOf(keycloakRunSpecification),
+        groupHealthCheckVerificationAction = { serviceWaiter.waitForKeycloak() }
+    )
+
+    private val ejabberdDeploymentGroup = DeploymentGroup(
+        deploymentGroupName = "Ejabberd Messaging Service",
+        containerRunSpecifications = listOf(ejabberdRunSpecification),
+        groupHealthCheckVerificationAction = { serviceWaiter.waitForEjabberd(InfrastructureRegistry.Topology.EJABBERD_CONTAINER_NAME) }
+    )
+
+    private val allDeploymentGroupsForTeardown = listOf(
+        openSearchDashboardsDeploymentGroup,
+        openSearchClusterDeploymentGroup,
+        ejabberdDeploymentGroup,
+        keycloakDeploymentGroup,
+        valkeyDeploymentGroup,
+        postgresKeycloakDeploymentGroup,
+        postgresEjabberdDeploymentGroup,
+        postgresMainDeploymentGroup
     )
 
     private val containerRunSpecificationByContainerName: Map<String, ContainerRunSpecification<*, *>> = listOf(
@@ -93,7 +142,7 @@ internal class InfrastructureManager(
                 stepName = "Postgres Database (Main)",
                 containerNameForLogs = postgresRunSpecification.name
             ) {
-                containerOrchestrator.orchestrationSetup(listOf(postgresRunSpecification))
+                containerOrchestrator.orchestrationSetup(listOf(postgresMainDeploymentGroup))
                 postgresProvisioner.provision()
             }
 
@@ -101,33 +150,28 @@ internal class InfrastructureManager(
                 stepName = "Postgres Database (Keycloak Dedicated)",
                 containerNameForLogs = postgresKeycloakRunSpecification.name
             ) {
-                containerOrchestrator.orchestrationSetup(listOf(postgresKeycloakRunSpecification))
+                containerOrchestrator.orchestrationSetup(listOf(postgresKeycloakDeploymentGroup))
             }
 
             executeProvisioningStep(
                 stepName = "Postgres Database (Ejabberd Dedicated)",
                 containerNameForLogs = postgresEjabberdRunSpecification.name
             ) {
-                containerOrchestrator.orchestrationSetup(listOf(postgresEjabberdRunSpecification))
+                containerOrchestrator.orchestrationSetup(listOf(postgresEjabberdDeploymentGroup))
             }
 
             executeProvisioningStep(
                 stepName = "Valkey Cache Service",
                 containerNameForLogs = valkeyRunSpecification.name
             ) {
-                containerOrchestrator.orchestrationSetup(listOf(valkeyRunSpecification))
+                containerOrchestrator.orchestrationSetup(listOf(valkeyDeploymentGroup))
             }
 
             executeProvisioningStep(
                 stepName = "OpenSearch Cluster",
                 containerNameForLogs = openSearchNode1RunSpecification.name
             ) {
-                containerOrchestrator.orchestrationSetup(
-                    listOf(
-                        openSearchNode1RunSpecification,
-                        openSearchNode2RunSpecification
-                    )
-                )
+                containerOrchestrator.orchestrationSetup(listOf(openSearchClusterDeploymentGroup))
 
                 val openSearchInitializer = OpenSearchInitializer(dockerContainerManager)
                 openSearchInitializer.initializeSecurity()
@@ -138,14 +182,14 @@ internal class InfrastructureManager(
                 stepName = "OpenSearch Dashboards",
                 containerNameForLogs = openSearchDashboardsRunSpecification.name
             ) {
-                containerOrchestrator.orchestrationSetup(listOf(openSearchDashboardsRunSpecification))
+                containerOrchestrator.orchestrationSetup(listOf(openSearchDashboardsDeploymentGroup))
             }
 
             executeProvisioningStep(
                 stepName = "Keycloak Identity Service",
                 containerNameForLogs = keycloakRunSpecification.name
             ) {
-                containerOrchestrator.orchestrationSetup(listOf(keycloakRunSpecification))
+                containerOrchestrator.orchestrationSetup(listOf(keycloakDeploymentGroup))
                 keycloakProvisioner.provision()
             }
 
@@ -157,7 +201,7 @@ internal class InfrastructureManager(
                 performZombieCheck = true
             ) {
                 generateEjabberdConfigurationFiles()
-                containerOrchestrator.orchestrationSetup(listOf(ejabberdRunSpecification))
+                containerOrchestrator.orchestrationSetup(listOf(ejabberdDeploymentGroup))
             }
 
             logger.info(">>> SYSTEM PROVISIONING COMPLETE <<<")
@@ -172,7 +216,7 @@ internal class InfrastructureManager(
 
     fun teardown() {
         logger.info(">>> STARTING INFRASTRUCTURE TEARDOWN <<<")
-        containerOrchestrator.orchestrationTeardown(allRunSpecificationsForTeardown)
+        containerOrchestrator.orchestrationTeardown(allDeploymentGroupsForTeardown)
 
         logger.info("Cleaning up generated host artifacts...")
         cleanLocalArtifacts()

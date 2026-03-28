@@ -4,10 +4,8 @@ import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
-import com.availelabs.utils.ServiceWaiter
 
 internal fun postgresKeycloakRunSpecification(
-    serviceWaiter: ServiceWaiter,
     postgresKeycloakConfig: PostgresKeycloakConfig
 ): ContainerRunSpecification<PostgresKeycloakPortsList, PostgresKeycloakVolumesList> {
     val environmentVariables = listOf(
@@ -25,7 +23,6 @@ internal fun postgresKeycloakRunSpecification(
         portMappings = PostgresKeycloakPortsList,
         volumes = PostgresKeycloakVolumesList,
         logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE,
-        requiresDataBackup = true,
-        containerHealthCheckVerificationAction = { serviceWaiter.waitForPostgresKeycloak(postgresKeycloakConfig) }
+        requiresDataBackup = true
     )
 }

@@ -64,18 +64,18 @@ internal fun main(args: Array<String>) {
 
         val serviceWaiter = ServiceWaiter(dockerContainerManager)
 
-        val postgresRunSpecification = postgresRunSpec(serviceWaiter, postgresConfiguration)
+        val postgresRunSpecification = postgresRunSpec(postgresConfiguration)
         val postgresKeycloakRunSpecification =
-            postgresKeycloakRunSpecification(serviceWaiter, postgresKeycloakConfiguration)
+            postgresKeycloakRunSpecification(postgresKeycloakConfiguration)
         val postgresEjabberdRunSpecification =
-            postgresEjabberdRunSpecification(serviceWaiter, postgresEjabberdConfiguration)
+            postgresEjabberdRunSpecification(postgresEjabberdConfiguration)
         val keycloakRunSpecification =
-            keycloakRunSpec(serviceWaiter, keycloakConfiguration, postgresKeycloakConfiguration)
-        val ejabberdRunSpecification = ejabberdRunSpec(serviceWaiter)
+            keycloakRunSpec(keycloakConfiguration, postgresKeycloakConfiguration)
+        val ejabberdRunSpecification = ejabberdRunSpec()
         val openSearchNode1RunSpecification = openSearchNode1Spec()
         val openSearchNode2RunSpecification = openSearchNode2Spec()
         val openSearchDashboardsRunSpecification = openSearchDashboardsSpec()
-        val valkeyRunSpecification = valkeyRunSpecification(serviceWaiter, valkeyConfig)
+        val valkeyRunSpecification = valkeyRunSpecification(valkeyConfig)
 
         val postgresProvisioner = PostgresProvisioner(postgresConfiguration)
 

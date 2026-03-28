@@ -4,14 +4,11 @@ import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
-import com.availelabs.utils.ServiceWaiter
 import com.availelabs.utils.TlsCertificateGenerator
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.File
 
-internal fun ejabberdRunSpec(
-    serviceWaiter: ServiceWaiter
-): ContainerRunSpecification<EjabberdPortsList, EjabberdVolumesList> {
+internal fun ejabberdRunSpec(): ContainerRunSpecification<EjabberdPortsList, EjabberdVolumesList> {
     val projectRootDirectory = System.getProperty("user.dir")
     val generatedConfigDirectory = File(projectRootDirectory, "build/generated/ejabberd")
     val configFile = File(generatedConfigDirectory, "ejabberd.yml")
@@ -35,8 +32,7 @@ internal fun ejabberdRunSpec(
             jwkHostPath = jwkFile.absolutePath
         ),
         logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE,
-        requiresDataBackup = true,
-        containerHealthCheckVerificationAction = { serviceWaiter.waitForEjabberd(InfrastructureRegistry.Topology.EJABBERD_CONTAINER_NAME) }
+        requiresDataBackup = true
     )
 }
 

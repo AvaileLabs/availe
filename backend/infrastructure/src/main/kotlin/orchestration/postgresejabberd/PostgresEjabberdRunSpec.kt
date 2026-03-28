@@ -4,10 +4,8 @@ import com.availelabs.availe.NetworkConstants
 import com.availelabs.availe.configuration.SharedNetworkConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
-import com.availelabs.utils.ServiceWaiter
 
 internal fun postgresEjabberdRunSpecification(
-    serviceWaiter: ServiceWaiter,
     postgresEjabberdConfig: PostgresEjabberdConfig
 ): ContainerRunSpecification<PostgresEjabberdPortsList, PostgresEjabberdVolumesList> {
     val environmentVariables = listOf(
@@ -25,7 +23,6 @@ internal fun postgresEjabberdRunSpecification(
         portMappings = PostgresEjabberdPortsList,
         volumes = PostgresEjabberdVolumesList,
         logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE,
-        requiresDataBackup = true,
-        containerHealthCheckVerificationAction = { serviceWaiter.waitForPostgresEjabberd(postgresEjabberdConfig) }
+        requiresDataBackup = true
     )
 }

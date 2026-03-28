@@ -6,11 +6,9 @@ import com.availelabs.infrastructure.generated.InfrastructureConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
 import com.availelabs.orchestration.postgreskeycloak.PostgresKeycloakConfig
-import com.availelabs.utils.ServiceWaiter
 import java.io.File
 
 internal fun keycloakRunSpec(
-    serviceWaiter: ServiceWaiter,
     keycloakConfig: KeycloakConfig,
     postgresKeycloakConfig: PostgresKeycloakConfig
 ): ContainerRunSpecification<KeycloakPortsList, KeycloakVolumesList> {
@@ -45,7 +43,6 @@ internal fun keycloakRunSpec(
         portMappings = KeycloakPortsList,
         volumes = KeycloakVolumesList(spiJarHostPath = spiJarFile.absolutePath),
         command = listOf("start-dev", "--features=scripts"),
-        requiresDataBackup = false,
-        containerHealthCheckVerificationAction = { serviceWaiter.waitForKeycloak() }
+        requiresDataBackup = false
     )
 }

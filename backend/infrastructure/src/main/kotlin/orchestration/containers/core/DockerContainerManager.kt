@@ -1,6 +1,7 @@
 package com.availelabs.orchestration.containers.core
 
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
+import com.availelabs.orchestration.containers.domain.ContainerTransitionState
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.model.*
@@ -51,7 +52,7 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         }
     }
 
-    fun ensureContainerIsRunning(runSpecification: ContainerRunSpecification<*, *>): String {
+    fun ensureContainerIsRunning(runSpecification: ContainerRunSpecification<*, *>): ContainerTransitionState {
         logger.info("Ensuring container '{}' is running...", runSpecification.name)
         return when (val containerStatus = getContainerStatus(runSpecification.name)) {
             is ContainerStatus.ContainerRunning -> {
@@ -65,8 +66,12 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
                         )
                         stopAndRemoveContainer(runSpecification.name)
                         val newContainerIdentifier = createAndStartNewContainer(runSpecification)
-                        runSpecification.containerHealthCheckVerificationAction?.invoke()
-                        newContainerIdentifier
+                        ContainerTransitionState.FreshDeployment(
+                            containerIdentifier = newContainerIdentifier,
+                            containerName = runSpecification.name,
+                            pendingCommitAction = {},
+                            pendingRollbackAction = { stopAndRemoveContainer(runSpecification.name) }
+                        )
                     }
                 } else {
                     logger.debug("Container '{}' is already running and up to date.", runSpecification.name)
@@ -75,7 +80,10 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
                         runSpecification.name,
                         runSpecification.logStrategy
                     )
-                    containerStatus.containerIdentifier
+                    ContainerTransitionState.AlreadyRunningAndUpToDate(
+                        containerIdentifier = containerStatus.containerIdentifier,
+                        containerName = runSpecification.name
+                    )
                 }
             }
 
@@ -86,15 +94,23 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
                 )
                 stopAndRemoveContainer(runSpecification.name)
                 val newContainerIdentifier = createAndStartNewContainer(runSpecification)
-                runSpecification.containerHealthCheckVerificationAction?.invoke()
-                newContainerIdentifier
+                ContainerTransitionState.FreshDeployment(
+                    containerIdentifier = newContainerIdentifier,
+                    containerName = runSpecification.name,
+                    pendingCommitAction = {},
+                    pendingRollbackAction = { stopAndRemoveContainer(runSpecification.name) }
+                )
             }
 
             is ContainerStatus.ContainerNotFound -> {
                 logger.info("Container '{}' not found, creating and starting it.", runSpecification.name)
                 val newContainerIdentifier = createAndStartNewContainer(runSpecification)
-                runSpecification.containerHealthCheckVerificationAction?.invoke()
-                newContainerIdentifier
+                ContainerTransitionState.FreshDeployment(
+                    containerIdentifier = newContainerIdentifier,
+                    containerName = runSpecification.name,
+                    pendingCommitAction = {},
+                    pendingRollbackAction = { stopAndRemoveContainer(runSpecification.name) }
+                )
             }
         }
     }
@@ -102,7 +118,7 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
     private fun executeSafeUpgradeTransaction(
         runSpecification: ContainerRunSpecification<*, *>,
         actualStatus: ContainerStatus.ContainerRunning
-    ): String {
+    ): ContainerTransitionState {
         logger.info("Initiating safe upgrade transaction for container '{}'...", runSpecification.name)
 
         val originalImageReference = actualStatus.imageReference
@@ -122,69 +138,46 @@ internal class DockerContainerManager(private val dockerClient: DockerClient, pr
         removeContainer(actualStatus.containerIdentifier, runSpecification.name)
         val newContainerIdentifier = createAndStartNewContainer(runSpecification)
 
-        val verificationAction = runSpecification.containerHealthCheckVerificationAction
-
-        if (verificationAction != null) {
-            try {
-                logger.info("Verifying health for upgraded container '{}'...", runSpecification.name)
-                verificationAction.invoke()
-                logger.info("Health check passed. Committing upgrade.")
-
-                val backupDirectoryFile = File(hostBackupDirectoryPath)
-                if (backupDirectoryFile.exists()) {
-                    backupDirectoryFile.deleteRecursively()
-                }
-
-                return newContainerIdentifier
-            } catch (exception: Exception) {
-                logger.error(
-                    "Health check failed for upgraded container '{}': {}. Initiating rollback...",
-                    runSpecification.name,
-                    exception.message
-                )
-
-                stopAndRemoveContainer(runSpecification.name)
-
-                volumesToBackup.forEach { volumeMount ->
-                    logger.info("Wiping mutated volume '{}'...", volumeMount.hostSource)
-                    dockerVolumeManager.removeVolume(volumeMount.hostSource)
-                    dockerVolumeManager.ensureVolumeExists(volumeMount.hostSource)
-
-                    val backupFileName = "${volumeMount.hostSource}-snapshot.tar"
-                    logger.info("Restoring volume '{}' from snapshot...", volumeMount.hostSource)
-                    dockerVolumeManager.restoreVolume(volumeMount.hostSource, hostBackupDirectoryPath, backupFileName)
-                }
-
-                logger.info(
-                    "Redeploying container '{}' with original image '{}'...",
-                    runSpecification.name,
-                    originalImageReference
-                )
-                createAndStartNewContainer(runSpecification, originalImageReference)
-
-                val backupDirectoryFile = File(hostBackupDirectoryPath)
-                if (backupDirectoryFile.exists()) {
-                    backupDirectoryFile.deleteRecursively()
-                }
-
-                throw IllegalStateException(
-                    "Upgrade failed for container '${runSpecification.name}'. The system has been rolled back to the previous version and your data is safe.",
-                    exception
-                )
+        val pendingCommitAction = {
+            logger.info("Committing upgrade for container '{}'. Wiping backup...", runSpecification.name)
+            val backupDirectoryFile = File(hostBackupDirectoryPath)
+            if (backupDirectoryFile.exists()) {
+                backupDirectoryFile.deleteRecursively()
             }
-        } else {
-            logger.warn(
-                "No verification action provided for container '{}'. Assuming successful upgrade.",
-                runSpecification.name
+        }
+
+        val pendingRollbackAction = {
+            stopAndRemoveContainer(runSpecification.name)
+
+            volumesToBackup.forEach { volumeMount ->
+                logger.info("Wiping mutated volume '{}'...", volumeMount.hostSource)
+                dockerVolumeManager.removeVolume(volumeMount.hostSource)
+                dockerVolumeManager.ensureVolumeExists(volumeMount.hostSource)
+
+                val backupFileName = "${volumeMount.hostSource}-snapshot.tar"
+                logger.info("Restoring volume '{}' from snapshot...", volumeMount.hostSource)
+                dockerVolumeManager.restoreVolume(volumeMount.hostSource, hostBackupDirectoryPath, backupFileName)
+            }
+
+            logger.info(
+                "Redeploying container '{}' with original image '{}'...",
+                runSpecification.name,
+                originalImageReference
             )
+            createAndStartNewContainer(runSpecification, originalImageReference)
 
             val backupDirectoryFile = File(hostBackupDirectoryPath)
             if (backupDirectoryFile.exists()) {
                 backupDirectoryFile.deleteRecursively()
             }
-
-            return newContainerIdentifier
         }
+
+        return ContainerTransitionState.UpgradePending(
+            containerIdentifier = newContainerIdentifier,
+            containerName = runSpecification.name,
+            pendingCommitAction = pendingCommitAction,
+            pendingRollbackAction = pendingRollbackAction
+        )
     }
 
     fun getRunningContainerId(containerName: String): String {

@@ -3,10 +3,8 @@ package com.availelabs.orchestration.postgres
 import com.availelabs.availe.NetworkConstants
 import com.availelabs.orchestration.InfrastructureRegistry
 import com.availelabs.orchestration.containers.domain.ContainerRunSpecification
-import com.availelabs.utils.ServiceWaiter
 
 internal fun postgresRunSpec(
-    serviceWaiter: ServiceWaiter,
     postgresConfig: PostgresConfig
 ): ContainerRunSpecification<PostgresPortsList, PostgresVolumesList> {
     val databaseName = postgresConfig.dbUrl.substringAfterLast('/')
@@ -26,7 +24,6 @@ internal fun postgresRunSpec(
         portMappings = PostgresPortsList,
         volumes = PostgresVolumesList,
         logStrategy = ContainerRunSpecification.LogStrategy.BUFFER_AND_DUMP_ON_FAILURE,
-        requiresDataBackup = true,
-        containerHealthCheckVerificationAction = { serviceWaiter.waitForPostgres(postgresConfig) }
+        requiresDataBackup = true
     )
 }
