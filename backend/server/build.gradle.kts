@@ -33,6 +33,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(platform(libs.kotlin.bom))
     implementation(projects.shared.logic)
     implementation(projects.shared.configuration)
     implementation(libs.logback)

@@ -8,6 +8,7 @@ group = "com.availelabs"
 version = "1.0.0"
 
 dependencies {
+    implementation(platform(libs.kotlin.bom))
     compileOnly(libs.keycloak.server.spi)
     compileOnly(libs.keycloak.server.spi.private)
     compileOnly(libs.keycloak.services)

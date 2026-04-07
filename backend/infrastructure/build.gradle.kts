@@ -13,6 +13,7 @@ val keycloakSpiArtifact by configurations.creating {
 }
 
 dependencies {
+    implementation(platform(libs.kotlin.bom))
     implementation(platform(libs.docker.java.bom))
     implementation(libs.docker.java)
     implementation(libs.docker.java.transport.httpclient5)

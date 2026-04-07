@@ -99,6 +99,9 @@ android {
 }
 
 dependencies {
+    implementation(platform(libs.kotlin.bom))
+    implementation(platform(libs.ktor.bom))
+    implementation(platform(libs.coil.bom))
     implementation(projects.client.composeApp)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
