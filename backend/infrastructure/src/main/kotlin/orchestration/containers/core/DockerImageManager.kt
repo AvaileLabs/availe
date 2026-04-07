@@ -12,7 +12,7 @@ internal class DockerImageManager(private val dockerClient: DockerClient) {
         DockerOperationRetrier.executeWithRetry("Ensure Docker Image Exists") {
             val imageReference = "$imageName:$imageTag"
             val doesImageExistLocally = dockerClient.listImagesCmd()
-                .withImageNameFilter(imageReference)
+                .withReferenceFilter(imageReference)
                 .exec()
                 .isNotEmpty()
 
