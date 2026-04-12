@@ -9,41 +9,45 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.*
-import com.availelabs.availe.domain.model.LocalTimeResolution
+import com.availelabs.availe.domain.model.ScheduleValidationState
 import com.availelabs.availe.domain.model.TimeZoneIdentifier
-import com.availelabs.availe.ui.components.pickers.DatePickerDialog
-import com.availelabs.availe.ui.components.pickers.TimePickerDialog
 import com.availelabs.availe.ui.components.pickers.TimeZoneSelectorDialog
+import com.availelabs.availe.ui.model.MeridiemIndicator
+import com.availelabs.availe.ui.model.SegmentedDateState
+import com.availelabs.availe.ui.model.SegmentedTimeState
 import com.composables.uikit.components.Text
 import com.composables.uikit.styling.*
 import com.composeunstyled.theme.Theme
-import kotlinx.datetime.*
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Clock
 
 @Composable
 fun EventScheduleWizard(
-    startDate: LocalDate?,
-    startTime: LocalTime?,
-    endDate: LocalDate?,
-    endTime: LocalTime?,
+    startDate: SegmentedDateState,
+    startTime: SegmentedTimeState,
+    endDate: SegmentedDateState,
+    endTime: SegmentedTimeState,
     timeZoneIdentifier: TimeZoneIdentifier,
-    timeResolutionError: LocalTimeResolution?,
-    onStartDateChanged: (LocalDate?) -> Unit,
-    onStartTimeChanged: (LocalTime?) -> Unit,
-    onEndDateChanged: (LocalDate?) -> Unit,
-    onEndTimeChanged: (LocalTime?) -> Unit,
+    isTwentyFourHourFormat: Boolean,
+    scheduleValidationState: ScheduleValidationState,
+    onStartDateMonthChanged: (String) -> Unit,
+    onStartDateDayChanged: (String) -> Unit,
+    onStartDateYearChanged: (String) -> Unit,
+    onStartTimeHourChanged: (String) -> Unit,
+    onStartTimeMinuteChanged: (String) -> Unit,
+    onStartTimeMeridiemToggled: () -> Unit,
+    onEndDateMonthChanged: (String) -> Unit,
+    onEndDateDayChanged: (String) -> Unit,
+    onEndDateYearChanged: (String) -> Unit,
+    onEndTimeHourChanged: (String) -> Unit,
+    onEndTimeMinuteChanged: (String) -> Unit,
+    onEndTimeMeridiemToggled: () -> Unit,
     onTimeZoneIdentifierChanged: (TimeZoneIdentifier) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isStartDatePickerVisible by remember { mutableStateOf(false) }
-    var isStartTimePickerVisible by remember { mutableStateOf(false) }
-    var isEndDatePickerVisible by remember { mutableStateOf(false) }
-    var isEndTimePickerVisible by remember { mutableStateOf(false) }
     var isTimeZoneSelectorVisible by remember { mutableStateOf(false) }
 
-    val currentSystemDate = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date }
-    val maximumAllowedDate = remember { currentSystemDate.plus(5, DateTimeUnit.YEAR) }
+    val hasDateConflict = scheduleValidationState is ScheduleValidationState.DateConflict
+    val hasTimeConflict = scheduleValidationState is ScheduleValidationState.TimeConflict
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -59,16 +63,37 @@ fun EventScheduleWizard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ScheduleInputBox(
-                    valueText = formatLocalDateForDisplay(startDate),
-                    isPlaceholder = startDate == null,
-                    onClick = { isStartDatePickerVisible = true },
+                SmartDateInput(
+                    monthString = startDate.monthInputString,
+                    dayString = startDate.dayInputString,
+                    yearString = startDate.yearInputString,
+                    onMonthChanged = onStartDateMonthChanged,
+                    onDayChanged = onStartDateDayChanged,
+                    onYearChanged = onStartDateYearChanged,
+                    monthPlaceholderString = stringResource(Res.string.listing_editor_schedule_month_placeholder),
+                    dayPlaceholderString = stringResource(Res.string.listing_editor_schedule_day_placeholder),
+                    yearPlaceholderString = stringResource(Res.string.listing_editor_schedule_year_placeholder),
+                    hasError = hasDateConflict,
                     modifier = Modifier.weight(1f)
                 )
-                ScheduleInputBox(
-                    valueText = formatLocalTimeForDisplay(startTime),
-                    isPlaceholder = startTime == null,
-                    onClick = { isStartTimePickerVisible = true },
+
+                val startMeridiemTextString = if (startTime.meridiemIndicator == MeridiemIndicator.AnteMeridiem) {
+                    stringResource(Res.string.listing_editor_schedule_meridiem_am)
+                } else {
+                    stringResource(Res.string.listing_editor_schedule_meridiem_pm)
+                }
+
+                SmartTimeInput(
+                    hourString = startTime.hourInputString,
+                    minuteString = startTime.minuteInputString,
+                    meridiemIndicatorString = startMeridiemTextString,
+                    isTwentyFourHourFormat = isTwentyFourHourFormat,
+                    onHourChanged = onStartTimeHourChanged,
+                    onMinuteChanged = onStartTimeMinuteChanged,
+                    onMeridiemToggled = onStartTimeMeridiemToggled,
+                    hourPlaceholderString = stringResource(Res.string.listing_editor_schedule_hour_placeholder),
+                    minutePlaceholderString = stringResource(Res.string.listing_editor_schedule_minute_placeholder),
+                    hasError = hasTimeConflict,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -84,16 +109,37 @@ fun EventScheduleWizard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ScheduleInputBox(
-                    valueText = formatLocalDateForDisplay(endDate),
-                    isPlaceholder = endDate == null,
-                    onClick = { isEndDatePickerVisible = true },
+                SmartDateInput(
+                    monthString = endDate.monthInputString,
+                    dayString = endDate.dayInputString,
+                    yearString = endDate.yearInputString,
+                    onMonthChanged = onEndDateMonthChanged,
+                    onDayChanged = onEndDateDayChanged,
+                    onYearChanged = onEndDateYearChanged,
+                    monthPlaceholderString = stringResource(Res.string.listing_editor_schedule_month_placeholder),
+                    dayPlaceholderString = stringResource(Res.string.listing_editor_schedule_day_placeholder),
+                    yearPlaceholderString = stringResource(Res.string.listing_editor_schedule_year_placeholder),
+                    hasError = hasDateConflict,
                     modifier = Modifier.weight(1f)
                 )
-                ScheduleInputBox(
-                    valueText = formatLocalTimeForDisplay(endTime),
-                    isPlaceholder = endTime == null,
-                    onClick = { isEndTimePickerVisible = true },
+
+                val endMeridiemTextString = if (endTime.meridiemIndicator == MeridiemIndicator.AnteMeridiem) {
+                    stringResource(Res.string.listing_editor_schedule_meridiem_am)
+                } else {
+                    stringResource(Res.string.listing_editor_schedule_meridiem_pm)
+                }
+
+                SmartTimeInput(
+                    hourString = endTime.hourInputString,
+                    minuteString = endTime.minuteInputString,
+                    meridiemIndicatorString = endMeridiemTextString,
+                    isTwentyFourHourFormat = isTwentyFourHourFormat,
+                    onHourChanged = onEndTimeHourChanged,
+                    onMinuteChanged = onEndTimeMinuteChanged,
+                    onMeridiemToggled = onEndTimeMeridiemToggled,
+                    hourPlaceholderString = stringResource(Res.string.listing_editor_schedule_hour_placeholder),
+                    minutePlaceholderString = stringResource(Res.string.listing_editor_schedule_minute_placeholder),
+                    hasError = hasTimeConflict,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -105,67 +151,51 @@ fun EventScheduleWizard(
                 style = Theme[textStyles][caption],
                 color = Theme[colors][onBackground].copy(alpha = 0.7f)
             )
-            ScheduleInputBox(
-                valueText = formatTimeZoneIdentifierForDisplay(timeZoneIdentifier.value),
-                isPlaceholder = false,
-                onClick = { isTimeZoneSelectorVisible = true },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(Theme[shapes][medium])
+                    .border(1.dp, Theme[colors][outline].copy(alpha = 0.2f), Theme[shapes][medium])
+                    .clickable(onClick = { isTimeZoneSelectorVisible = true })
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = formatTimeZoneIdentifierForDisplay(timeZoneIdentifier.value),
+                    style = Theme[textStyles][body],
+                    color = Theme[colors][onBackground]
+                )
+            }
         }
 
-        if (timeResolutionError is LocalTimeResolution.Skipped) {
-            Text(
-                text = stringResource(Res.string.listing_editor_schedule_daylight_saving_time_error),
-                style = Theme[textStyles][body],
-                color = Theme[colors][destructive]
-            )
+        when (scheduleValidationState) {
+            is ScheduleValidationState.DateConflict -> {
+                Text(
+                    text = stringResource(Res.string.listing_editor_error_date_conflict),
+                    style = Theme[textStyles][body],
+                    color = Theme[colors][destructive]
+                )
+            }
+
+            is ScheduleValidationState.TimeConflict -> {
+                Text(
+                    text = stringResource(Res.string.listing_editor_error_time_conflict),
+                    style = Theme[textStyles][body],
+                    color = Theme[colors][destructive]
+                )
+            }
+
+            is ScheduleValidationState.DaylightSavingTimeSkipped -> {
+                Text(
+                    text = stringResource(Res.string.listing_editor_schedule_daylight_saving_time_error),
+                    style = Theme[textStyles][body],
+                    color = Theme[colors][destructive]
+                )
+            }
+
+            else -> {}
         }
-    }
-
-    if (isStartDatePickerVisible) {
-        DatePickerDialog(
-            initialDate = startDate,
-            minDate = currentSystemDate,
-            maxDate = maximumAllowedDate,
-            onDateSelected = { newDate ->
-                onStartDateChanged(newDate)
-            },
-            onDismissRequest = { isStartDatePickerVisible = false }
-        )
-    }
-
-    if (isStartTimePickerVisible) {
-        TimePickerDialog(
-            initialTime = startTime,
-            is24Hour = false,
-            onTimeSelected = { newTime ->
-                onStartTimeChanged(newTime)
-            },
-            onDismissRequest = { isStartTimePickerVisible = false }
-        )
-    }
-
-    if (isEndDatePickerVisible) {
-        DatePickerDialog(
-            initialDate = endDate,
-            minDate = currentSystemDate,
-            maxDate = maximumAllowedDate,
-            onDateSelected = { newDate ->
-                onEndDateChanged(newDate)
-            },
-            onDismissRequest = { isEndDatePickerVisible = false }
-        )
-    }
-
-    if (isEndTimePickerVisible) {
-        TimePickerDialog(
-            initialTime = endTime,
-            is24Hour = false,
-            onTimeSelected = { newTime ->
-                onEndTimeChanged(newTime)
-            },
-            onDismissRequest = { isEndTimePickerVisible = false }
-        )
     }
 
     if (isTimeZoneSelectorVisible) {
@@ -177,52 +207,6 @@ fun EventScheduleWizard(
             onDismissRequest = { isTimeZoneSelectorVisible = false }
         )
     }
-}
-
-@Composable
-private fun ScheduleInputBox(
-    valueText: String,
-    isPlaceholder: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .height(48.dp)
-            .clip(Theme[shapes][medium])
-            .border(1.dp, Theme[colors][outline].copy(alpha = 0.2f), Theme[shapes][medium])
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Text(
-            text = valueText,
-            style = Theme[textStyles][body],
-            color = if (isPlaceholder) Theme[colors][onBackground].copy(alpha = 0.5f) else Theme[colors][onBackground]
-        )
-    }
-}
-
-@Composable
-private fun formatLocalDateForDisplay(localDate: LocalDate?): String {
-    if (localDate == null) return stringResource(Res.string.listing_editor_schedule_select_date)
-    val monthNamePrefix = localDate.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
-    val dayOfMonthString = localDate.day.toString()
-    val yearString = localDate.year.toString()
-    return "$monthNamePrefix $dayOfMonthString, $yearString"
-}
-
-@Composable
-private fun formatLocalTimeForDisplay(localTime: LocalTime?): String {
-    if (localTime == null) return stringResource(Res.string.listing_editor_schedule_select_time)
-    val displayHourValue = when {
-        localTime.hour == 0 -> 12
-        localTime.hour > 12 -> localTime.hour - 12
-        else -> localTime.hour
-    }
-    val periodIndicator = if (localTime.hour < 12) "AM" else "PM"
-    val displayMinuteString = localTime.minute.toString().padStart(2, '0')
-    return "$displayHourValue:$displayMinuteString $periodIndicator"
 }
 
 private fun formatTimeZoneIdentifierForDisplay(timeZoneIdentifierString: String): String {

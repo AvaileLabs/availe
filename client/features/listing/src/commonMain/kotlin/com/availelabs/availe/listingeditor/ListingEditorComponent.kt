@@ -27,8 +27,6 @@ import com.availelabs.availe.ui.model.ActionIcon
 import com.availelabs.availe.ui.model.AppBarAction
 import com.availelabs.availe.ui.model.UiText
 import kotlinx.coroutines.*
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.getString
 
 @OptIn(ExperimentalDecomposeApi::class, ExperimentalCoroutinesApi::class)
@@ -205,24 +203,60 @@ class ListingEditorComponent(
         store.accept(ListingEditorIntent.ChangeImage(ImageUrl(url)))
     }
 
-    override fun onStartDateChanged(startDate: LocalDate?) {
-        store.accept(ListingEditorIntent.ChangeStartDate(startDate))
+    override fun onStartDateMonthChanged(monthString: String) {
+        store.accept(ListingEditorIntent.UpdateStartDateMonth(monthString))
     }
 
-    override fun onStartTimeChanged(startTime: LocalTime?) {
-        store.accept(ListingEditorIntent.ChangeStartTime(startTime))
+    override fun onStartDateDayChanged(dayString: String) {
+        store.accept(ListingEditorIntent.UpdateStartDateDay(dayString))
     }
 
-    override fun onEndDateChanged(endDate: LocalDate?) {
-        store.accept(ListingEditorIntent.ChangeEndDate(endDate))
+    override fun onStartDateYearChanged(yearString: String) {
+        store.accept(ListingEditorIntent.UpdateStartDateYear(yearString))
     }
 
-    override fun onEndTimeChanged(endTime: LocalTime?) {
-        store.accept(ListingEditorIntent.ChangeEndTime(endTime))
+    override fun onStartTimeHourChanged(hourString: String) {
+        store.accept(ListingEditorIntent.UpdateStartTimeHour(hourString))
+    }
+
+    override fun onStartTimeMinuteChanged(minuteString: String) {
+        store.accept(ListingEditorIntent.UpdateStartTimeMinute(minuteString))
+    }
+
+    override fun onStartTimeMeridiemToggled() {
+        store.accept(ListingEditorIntent.ToggleStartTimeMeridiem)
+    }
+
+    override fun onEndDateMonthChanged(monthString: String) {
+        store.accept(ListingEditorIntent.UpdateEndDateMonth(monthString))
+    }
+
+    override fun onEndDateDayChanged(dayString: String) {
+        store.accept(ListingEditorIntent.UpdateEndDateDay(dayString))
+    }
+
+    override fun onEndDateYearChanged(yearString: String) {
+        store.accept(ListingEditorIntent.UpdateEndDateYear(yearString))
+    }
+
+    override fun onEndTimeHourChanged(hourString: String) {
+        store.accept(ListingEditorIntent.UpdateEndTimeHour(hourString))
+    }
+
+    override fun onEndTimeMinuteChanged(minuteString: String) {
+        store.accept(ListingEditorIntent.UpdateEndTimeMinute(minuteString))
+    }
+
+    override fun onEndTimeMeridiemToggled() {
+        store.accept(ListingEditorIntent.ToggleEndTimeMeridiem)
     }
 
     override fun onTimeZoneIdentifierChanged(timeZoneIdentifier: TimeZoneIdentifier) {
         store.accept(ListingEditorIntent.ChangeTimeZoneIdentifier(timeZoneIdentifier))
+    }
+
+    override fun onTwentyFourHourTimeFormatChanged(isTwentyFourHourFormat: Boolean) {
+        store.accept(ListingEditorIntent.SetTwentyFourHourTimeFormat(isTwentyFourHourFormat))
     }
 
     override fun onPageSelected(index: Int) {
@@ -240,14 +274,6 @@ class ListingEditorComponent(
 
     override fun onCancelPublish() {
         store.accept(ListingEditorIntent.CancelPublish)
-    }
-
-    override fun onConfirmScheduleAdjustment() {
-        store.accept(ListingEditorIntent.ConfirmScheduleAdjustment)
-    }
-
-    override fun onCancelScheduleAdjustment() {
-        store.accept(ListingEditorIntent.CancelScheduleAdjustment)
     }
 
     override fun onDiscardDraftClicked() {

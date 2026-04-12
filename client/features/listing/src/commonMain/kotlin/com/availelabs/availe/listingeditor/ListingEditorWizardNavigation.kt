@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import availe.client.designsystem.generated.resources.*
 import com.arkivanov.decompose.router.pages.ChildPages
 import com.availelabs.availe.ListingEditorState
+import com.availelabs.availe.domain.model.ScheduleValidationState
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Circle
 import com.composables.icons.lucide.CircleCheck
@@ -147,7 +148,7 @@ internal fun getStepStatus(config: ListingEditorPageConfig, state: ListingEditor
         }
 
         ListingEditorPageConfig.Schedule -> {
-            if (state.isScheduleStepValid) {
+            if (state.scheduleValidationState is ScheduleValidationState.Valid) {
                 StepStatus.Complete
             } else {
                 StepStatus.Incomplete
@@ -171,7 +172,7 @@ internal fun getStepStatus(config: ListingEditorPageConfig, state: ListingEditor
         }
 
         ListingEditorPageConfig.Review -> {
-            if (state.isBasicsStepValid && state.isPricingStepValid && state.isScheduleStepValid && state.type != null) {
+            if (state.isBasicsStepValid && state.isPricingStepValid && state.scheduleValidationState is ScheduleValidationState.Valid && state.type != null) {
                 StepStatus.Complete
             } else {
                 StepStatus.Incomplete
@@ -184,10 +185,10 @@ internal fun getStepValidationStatus(config: ListingEditorPageConfig, state: Lis
     return when (config) {
         ListingEditorPageConfig.Type -> state.type != null
         ListingEditorPageConfig.Basics -> state.isBasicsStepValid
-        ListingEditorPageConfig.Schedule -> state.isScheduleStepValid
+        ListingEditorPageConfig.Schedule -> state.scheduleValidationState is ScheduleValidationState.Valid
         ListingEditorPageConfig.Pricing -> state.isPricingStepValid
         ListingEditorPageConfig.Media -> true
-        ListingEditorPageConfig.Review -> state.isBasicsStepValid && state.isPricingStepValid && state.isScheduleStepValid && state.type != null
+        ListingEditorPageConfig.Review -> state.isBasicsStepValid && state.isPricingStepValid && state.scheduleValidationState is ScheduleValidationState.Valid && state.type != null
     }
 }
 

@@ -4,7 +4,12 @@ import com.availelabs.availe.domain.extensions.isValid
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.listingeditor.ListingEditorPageConfig
 import com.availelabs.availe.listingeditor.toEditorState
+import com.availelabs.availe.listingeditor.toLocalDateOrNull
+import com.availelabs.availe.listingeditor.toLocalTimeOrNull
 import com.availelabs.availe.model.ListingDraft
+import com.availelabs.availe.ui.model.MeridiemIndicator
+import com.availelabs.availe.ui.model.SegmentedDateState
+import com.availelabs.availe.ui.model.SegmentedTimeState
 import kotlinx.datetime.*
 
 sealed interface ListingEditorError {
@@ -24,18 +29,21 @@ data class ListingEditorState(
     val priceAmount: PriceAmount = PriceAmount(""),
     val priceCurrency: SupportedCurrency = SupportedCurrency.USD,
     val imageUrl: ImageUrl = ImageUrl(""),
-    val scheduleBounds: DraftEventBounds = DraftEventBounds(),
-    val timeResolutionError: LocalTimeResolution? = null,
+    val startDate: SegmentedDateState = SegmentedDateState(),
+    val startTime: SegmentedTimeState = SegmentedTimeState(),
+    val endDate: SegmentedDateState = SegmentedDateState(),
+    val endTime: SegmentedTimeState = SegmentedTimeState(),
+    val timeZoneIdentifier: TimeZoneIdentifier = TimeZoneIdentifier(TimeZone.currentSystemDefault().id),
+    val isTwentyFourHourTimeFormat: Boolean = false,
     val type: ListingCategory? = null,
     val isSubmitting: Boolean = false,
     val error: ListingEditorError? = null,
     val showDiscardDraftDialog: Boolean = false,
     val showDeleteDraftConfirmation: Boolean = false,
     val showPublishConfirmationDialog: Boolean = false,
-    val pendingScheduleAdjustment: PendingScheduleAdjustment? = null,
     val isBasicsStepValid: Boolean = false,
     val isPricingStepValid: Boolean = false,
-    val isScheduleStepValid: Boolean = false
+    val scheduleValidationState: ScheduleValidationState = ScheduleValidationState.Incomplete
 )
 
 sealed interface ListingEditorIntent {
@@ -47,13 +55,26 @@ sealed interface ListingEditorIntent {
     data class ChangeCurrency(val currency: SupportedCurrency) : ListingEditorIntent
     data class ChangeType(val type: ListingCategory) : ListingEditorIntent
     data class ChangeImage(val url: ImageUrl) : ListingEditorIntent
-    data class ChangeStartDate(val startDate: LocalDate?) : ListingEditorIntent
-    data class ChangeStartTime(val startTime: LocalTime?) : ListingEditorIntent
-    data class ChangeEndDate(val endDate: LocalDate?) : ListingEditorIntent
-    data class ChangeEndTime(val endTime: LocalTime?) : ListingEditorIntent
+
+    data class UpdateStartDateMonth(val monthString: String) : ListingEditorIntent
+    data class UpdateStartDateDay(val dayString: String) : ListingEditorIntent
+    data class UpdateStartDateYear(val yearString: String) : ListingEditorIntent
+
+    data class UpdateStartTimeHour(val hourString: String) : ListingEditorIntent
+    data class UpdateStartTimeMinute(val minuteString: String) : ListingEditorIntent
+    data object ToggleStartTimeMeridiem : ListingEditorIntent
+
+    data class UpdateEndDateMonth(val monthString: String) : ListingEditorIntent
+    data class UpdateEndDateDay(val dayString: String) : ListingEditorIntent
+    data class UpdateEndDateYear(val yearString: String) : ListingEditorIntent
+
+    data class UpdateEndTimeHour(val hourString: String) : ListingEditorIntent
+    data class UpdateEndTimeMinute(val minuteString: String) : ListingEditorIntent
+    data object ToggleEndTimeMeridiem : ListingEditorIntent
+
     data class ChangeTimeZoneIdentifier(val timeZoneIdentifier: TimeZoneIdentifier) : ListingEditorIntent
-    data object ConfirmScheduleAdjustment : ListingEditorIntent
-    data object CancelScheduleAdjustment : ListingEditorIntent
+    data class SetTwentyFourHourTimeFormat(val isTwentyFourHour: Boolean) : ListingEditorIntent
+
     data object AskToPublish : ListingEditorIntent
     data object CancelPublish : ListingEditorIntent
     data object ConfirmPublish : ListingEditorIntent
@@ -67,6 +88,43 @@ sealed interface ListingEditorIntent {
     data class ClearCurrentStep(val config: ListingEditorPageConfig) : ListingEditorIntent
 }
 
+internal fun String.filterDigitsAndTruncate(maximumLength: Int): String {
+    return this.filter { character -> character.isDigit() }.take(maximumLength)
+}
+
+internal fun LocalDate.toSegmentedDateState(): SegmentedDateState {
+    return SegmentedDateState(
+        monthInputString = this.monthNumber.toString().padStart(2, '0'),
+        dayInputString = this.dayOfMonth.toString().padStart(2, '0'),
+        yearInputString = this.year.toString()
+    )
+}
+
+internal fun LocalTime.toSegmentedTimeState(isTwentyFourHourTimeFormat: Boolean): SegmentedTimeState {
+    val displayHour = if (isTwentyFourHourTimeFormat) {
+        this.hour
+    } else {
+        when {
+            this.hour == 0 -> 12
+            this.hour > 12 -> this.hour - 12
+            else -> this.hour
+        }
+    }
+
+    val currentMeridiemIndicator =
+        if (this.hour < 12) MeridiemIndicator.AnteMeridiem else MeridiemIndicator.PostMeridiem
+
+    return SegmentedTimeState(
+        hourInputString = displayHour.toString().padStart(2, '0'),
+        minuteInputString = this.minute.toString().padStart(2, '0'),
+        meridiemIndicator = currentMeridiemIndicator
+    )
+}
+
+internal fun MeridiemIndicator.toggle(): MeridiemIndicator {
+    return if (this == MeridiemIndicator.AnteMeridiem) MeridiemIndicator.PostMeridiem else MeridiemIndicator.AnteMeridiem
+}
+
 fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent): ListingEditorState {
     return when (intent) {
         is ListingEditorIntent.LoadData -> {
@@ -74,21 +132,26 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
         }
 
         is ListingEditorIntent.RestoreDraft -> {
-            val currency = SupportedCurrency.fromCode(intent.draft.priceCurrencyCode) ?: SupportedCurrency.USD
-            val restoredBounds = DraftEventBounds(
-                startDate = intent.draft.startDate,
-                startTime = intent.draft.startTime,
-                endDate = intent.draft.endDate,
-                endTime = intent.draft.endTime,
-                timeZoneIdentifier = intent.draft.timeZoneIdentifier
-            )
+            val restoredCurrency = SupportedCurrency.fromCode(intent.draft.priceCurrencyCode) ?: SupportedCurrency.USD
+
+            val restoredStartDate = intent.draft.startDate?.toSegmentedDateState() ?: SegmentedDateState()
+            val restoredStartTime =
+                intent.draft.startTime?.toSegmentedTimeState(state.isTwentyFourHourTimeFormat) ?: SegmentedTimeState()
+            val restoredEndDate = intent.draft.endDate?.toSegmentedDateState() ?: SegmentedDateState()
+            val restoredEndTime =
+                intent.draft.endTime?.toSegmentedTimeState(state.isTwentyFourHourTimeFormat) ?: SegmentedTimeState()
+
             state.copy(
                 title = intent.draft.title,
                 description = intent.draft.description,
                 priceAmount = intent.draft.priceAmount,
-                priceCurrency = currency,
+                priceCurrency = restoredCurrency,
                 imageUrl = intent.draft.imageUrl,
-                scheduleBounds = restoredBounds,
+                startDate = restoredStartDate,
+                startTime = restoredStartTime,
+                endDate = restoredEndDate,
+                endTime = restoredEndTime,
+                timeZoneIdentifier = intent.draft.timeZoneIdentifier,
                 type = intent.draft.type,
                 error = null
             ).recalculateValidation()
@@ -126,70 +189,72 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
             state.copy(imageUrl = intent.url, error = null).recalculateValidation()
         }
 
-        is ListingEditorIntent.ChangeStartDate -> {
-            val currentBounds = state.scheduleBounds
-            val newStartDate = intent.startDate
-            if (newStartDate != null && currentBounds.endDate != null && newStartDate > currentBounds.endDate) {
-                val proposedBounds = currentBounds.copy(startDate = newStartDate, endDate = newStartDate)
-                state.copy(pendingScheduleAdjustment = PendingScheduleAdjustment.ShiftEndDate(proposedBounds))
-            } else {
-                state.copy(scheduleBounds = currentBounds.copy(startDate = newStartDate)).recalculateValidation()
-            }
+        is ListingEditorIntent.UpdateStartDateMonth -> {
+            val updatedDate = state.startDate.copy(monthInputString = intent.monthString.filterDigitsAndTruncate(2))
+            state.copy(startDate = updatedDate).recalculateValidation()
         }
 
-        is ListingEditorIntent.ChangeStartTime -> {
-            val currentBounds = state.scheduleBounds
-            val newStartTime = intent.startTime
-            if (newStartTime != null && currentBounds.startDate != null && currentBounds.endDate != null && currentBounds.startDate == currentBounds.endDate && currentBounds.endTime != null && newStartTime > currentBounds.endTime) {
-                val proposedBounds = currentBounds.copy(startTime = newStartTime, endTime = newStartTime)
-                state.copy(pendingScheduleAdjustment = PendingScheduleAdjustment.ShiftEndTime(proposedBounds))
-            } else {
-                state.copy(scheduleBounds = currentBounds.copy(startTime = newStartTime)).recalculateValidation()
-            }
+        is ListingEditorIntent.UpdateStartDateDay -> {
+            val updatedDate = state.startDate.copy(dayInputString = intent.dayString.filterDigitsAndTruncate(2))
+            state.copy(startDate = updatedDate).recalculateValidation()
         }
 
-        is ListingEditorIntent.ChangeEndDate -> {
-            val currentBounds = state.scheduleBounds
-            val newEndDate = intent.endDate
-            if (newEndDate != null && currentBounds.startDate != null && newEndDate < currentBounds.startDate) {
-                val proposedBounds = currentBounds.copy(endDate = newEndDate, startDate = newEndDate)
-                state.copy(pendingScheduleAdjustment = PendingScheduleAdjustment.ShiftStartDate(proposedBounds))
-            } else {
-                state.copy(scheduleBounds = currentBounds.copy(endDate = newEndDate)).recalculateValidation()
-            }
+        is ListingEditorIntent.UpdateStartDateYear -> {
+            val updatedDate = state.startDate.copy(yearInputString = intent.yearString.filterDigitsAndTruncate(4))
+            state.copy(startDate = updatedDate).recalculateValidation()
         }
 
-        is ListingEditorIntent.ChangeEndTime -> {
-            val currentBounds = state.scheduleBounds
-            val newEndTime = intent.endTime
-            if (newEndTime != null && currentBounds.startDate != null && currentBounds.endDate != null && currentBounds.startDate == currentBounds.endDate && currentBounds.startTime != null && newEndTime < currentBounds.startTime) {
-                val proposedBounds = currentBounds.copy(endTime = newEndTime, startTime = newEndTime)
-                state.copy(pendingScheduleAdjustment = PendingScheduleAdjustment.ShiftStartTime(proposedBounds))
-            } else {
-                state.copy(scheduleBounds = currentBounds.copy(endTime = newEndTime)).recalculateValidation()
-            }
+        is ListingEditorIntent.UpdateStartTimeHour -> {
+            val updatedTime = state.startTime.copy(hourInputString = intent.hourString.filterDigitsAndTruncate(2))
+            state.copy(startTime = updatedTime).recalculateValidation()
+        }
+
+        is ListingEditorIntent.UpdateStartTimeMinute -> {
+            val updatedTime = state.startTime.copy(minuteInputString = intent.minuteString.filterDigitsAndTruncate(2))
+            state.copy(startTime = updatedTime).recalculateValidation()
+        }
+
+        ListingEditorIntent.ToggleStartTimeMeridiem -> {
+            val updatedTime = state.startTime.copy(meridiemIndicator = state.startTime.meridiemIndicator.toggle())
+            state.copy(startTime = updatedTime).recalculateValidation()
+        }
+
+        is ListingEditorIntent.UpdateEndDateMonth -> {
+            val updatedDate = state.endDate.copy(monthInputString = intent.monthString.filterDigitsAndTruncate(2))
+            state.copy(endDate = updatedDate).recalculateValidation()
+        }
+
+        is ListingEditorIntent.UpdateEndDateDay -> {
+            val updatedDate = state.endDate.copy(dayInputString = intent.dayString.filterDigitsAndTruncate(2))
+            state.copy(endDate = updatedDate).recalculateValidation()
+        }
+
+        is ListingEditorIntent.UpdateEndDateYear -> {
+            val updatedDate = state.endDate.copy(yearInputString = intent.yearString.filterDigitsAndTruncate(4))
+            state.copy(endDate = updatedDate).recalculateValidation()
+        }
+
+        is ListingEditorIntent.UpdateEndTimeHour -> {
+            val updatedTime = state.endTime.copy(hourInputString = intent.hourString.filterDigitsAndTruncate(2))
+            state.copy(endTime = updatedTime).recalculateValidation()
+        }
+
+        is ListingEditorIntent.UpdateEndTimeMinute -> {
+            val updatedTime = state.endTime.copy(minuteInputString = intent.minuteString.filterDigitsAndTruncate(2))
+            state.copy(endTime = updatedTime).recalculateValidation()
+        }
+
+        ListingEditorIntent.ToggleEndTimeMeridiem -> {
+            val updatedTime = state.endTime.copy(meridiemIndicator = state.endTime.meridiemIndicator.toggle())
+            state.copy(endTime = updatedTime).recalculateValidation()
         }
 
         is ListingEditorIntent.ChangeTimeZoneIdentifier -> {
-            val currentBounds = state.scheduleBounds
-            val updatedBounds = currentBounds.copy(timeZoneIdentifier = intent.timeZoneIdentifier)
-            state.copy(scheduleBounds = updatedBounds, error = null).recalculateValidation()
+            state.copy(timeZoneIdentifier = intent.timeZoneIdentifier, error = null).recalculateValidation()
         }
 
-        ListingEditorIntent.ConfirmScheduleAdjustment -> {
-            val pendingAdjustment = state.pendingScheduleAdjustment
-            if (pendingAdjustment != null) {
-                state.copy(
-                    scheduleBounds = pendingAdjustment.proposedBounds,
-                    pendingScheduleAdjustment = null
-                ).recalculateValidation()
-            } else {
-                state
-            }
-        }
-
-        ListingEditorIntent.CancelScheduleAdjustment -> {
-            state.copy(pendingScheduleAdjustment = null)
+        is ListingEditorIntent.SetTwentyFourHourTimeFormat -> {
+            state.copy(isTwentyFourHourTimeFormat = intent.isTwentyFourHour).recalculateValidation()
         }
 
         ListingEditorIntent.AskToPublish -> {
@@ -226,14 +291,17 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
             priceAmount = PriceAmount(""),
             priceCurrency = SupportedCurrency.USD,
             imageUrl = ImageUrl(""),
-            scheduleBounds = DraftEventBounds(),
-            timeResolutionError = null,
+            startDate = SegmentedDateState(),
+            startTime = SegmentedTimeState(),
+            endDate = SegmentedDateState(),
+            endTime = SegmentedTimeState(),
+            timeZoneIdentifier = TimeZoneIdentifier(TimeZone.currentSystemDefault().id),
             type = if (state.isEditing) state.type else null,
             error = null
         ).recalculateValidation()
 
         is ListingEditorIntent.ClearCurrentStep -> {
-            val newState = when (intent.config) {
+            val stateWithClearedStep = when (intent.config) {
                 ListingEditorPageConfig.Type -> {
                     if (!state.isEditing) {
                         state.copy(type = null)
@@ -248,12 +316,10 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
                 )
 
                 ListingEditorPageConfig.Schedule -> state.copy(
-                    scheduleBounds = state.scheduleBounds.copy(
-                        startDate = null,
-                        startTime = null,
-                        endDate = null,
-                        endTime = null
-                    )
+                    startDate = SegmentedDateState(),
+                    startTime = SegmentedTimeState(),
+                    endDate = SegmentedDateState(),
+                    endTime = SegmentedTimeState()
                 )
 
                 ListingEditorPageConfig.Pricing -> state.copy(
@@ -266,51 +332,58 @@ fun reduceListingEditor(state: ListingEditorState, intent: ListingEditorIntent):
 
                 ListingEditorPageConfig.Review -> state
             }
-            newState.copy(showDiscardDraftDialog = false, error = null).recalculateValidation()
+            stateWithClearedStep.copy(showDiscardDraftDialog = false, error = null).recalculateValidation()
         }
     }
 }
 
 private fun ListingEditorState.recalculateValidation(): ListingEditorState {
-    val basicsValid = this.title.isValid()
-    val pricingValid = this.priceAmount.isValid() && this.priceAmount.value.isNotBlank()
+    val isBasicsStepCurrentlyValid = this.title.isValid()
+    val isPricingStepCurrentlyValid = this.priceAmount.isValid() && this.priceAmount.value.isNotBlank()
 
-    var scheduleValid = true
-    var calculatedTimeResolutionError: LocalTimeResolution? = null
+    var calculatedScheduleValidationState: ScheduleValidationState = ScheduleValidationState.Incomplete
 
     if (this.type == ListingCategory.Event) {
-        if (this.scheduleBounds.startDate != null && this.scheduleBounds.startTime != null && this.scheduleBounds.endDate != null && this.scheduleBounds.endTime != null) {
+        val parsedStartDate = this.startDate.toLocalDateOrNull()
+        val parsedStartTime = this.startTime.toLocalTimeOrNull(this.isTwentyFourHourTimeFormat)
+        val parsedEndDate = this.endDate.toLocalDateOrNull()
+        val parsedEndTime = this.endTime.toLocalTimeOrNull(this.isTwentyFourHourTimeFormat)
+
+        if (parsedStartDate != null && parsedStartTime != null && parsedEndDate != null && parsedEndTime != null) {
             try {
-                val timeZone = TimeZone.of(this.scheduleBounds.timeZoneIdentifier.value)
+                val selectedTimeZone = TimeZone.of(this.timeZoneIdentifier.value)
 
-                val startLocalDateTime = LocalDateTime(this.scheduleBounds.startDate, this.scheduleBounds.startTime)
-                val startInstant = startLocalDateTime.toInstant(timeZone)
-                val isStartSkipped = startInstant.toLocalDateTime(timeZone) != startLocalDateTime
+                val combinedStartLocalDateTime = LocalDateTime(parsedStartDate, parsedStartTime)
+                val startInstantInTimeZone = combinedStartLocalDateTime.toInstant(selectedTimeZone)
+                val isStartLocalDateTimeSkipped =
+                    startInstantInTimeZone.toLocalDateTime(selectedTimeZone) != combinedStartLocalDateTime
 
-                val endLocalDateTime = LocalDateTime(this.scheduleBounds.endDate, this.scheduleBounds.endTime)
-                val endInstant = endLocalDateTime.toInstant(timeZone)
-                val isEndSkipped = endInstant.toLocalDateTime(timeZone) != endLocalDateTime
+                val combinedEndLocalDateTime = LocalDateTime(parsedEndDate, parsedEndTime)
+                val endInstantInTimeZone = combinedEndLocalDateTime.toInstant(selectedTimeZone)
+                val isEndLocalDateTimeSkipped =
+                    endInstantInTimeZone.toLocalDateTime(selectedTimeZone) != combinedEndLocalDateTime
 
-                if (isStartSkipped || isEndSkipped) {
-                    scheduleValid = false
-                    calculatedTimeResolutionError = LocalTimeResolution.Skipped
+                if (isStartLocalDateTimeSkipped || isEndLocalDateTimeSkipped) {
+                    calculatedScheduleValidationState = ScheduleValidationState.DaylightSavingTimeSkipped
                 } else {
-                    if (endInstant <= startInstant) {
-                        scheduleValid = false
+                    if (combinedEndLocalDateTime.date < combinedStartLocalDateTime.date) {
+                        calculatedScheduleValidationState = ScheduleValidationState.DateConflict
+                    } else if (combinedEndLocalDateTime.date == combinedStartLocalDateTime.date && combinedEndLocalDateTime.time <= combinedStartLocalDateTime.time) {
+                        calculatedScheduleValidationState = ScheduleValidationState.TimeConflict
+                    } else {
+                        calculatedScheduleValidationState =
+                            ScheduleValidationState.Valid(combinedStartLocalDateTime, combinedEndLocalDateTime)
                     }
                 }
             } catch (exception: Exception) {
-                scheduleValid = false
+                calculatedScheduleValidationState = ScheduleValidationState.Incomplete
             }
-        } else {
-            scheduleValid = false
         }
     }
 
     return this.copy(
-        isBasicsStepValid = basicsValid,
-        isPricingStepValid = pricingValid,
-        isScheduleStepValid = scheduleValid,
-        timeResolutionError = calculatedTimeResolutionError
+        isBasicsStepValid = isBasicsStepCurrentlyValid,
+        isPricingStepValid = isPricingStepCurrentlyValid,
+        scheduleValidationState = calculatedScheduleValidationState
     )
 }

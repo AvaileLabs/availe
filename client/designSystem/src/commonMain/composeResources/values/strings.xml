@@ -65,7 +65,7 @@
     <string name="listing_date_time_format">%1$s • %2$s</string>
     <string name="action_rsvp">RSVP</string>
     <string name="action_cancel_rsvp">Cancel RSVP</string>
-    <string name="status_going">You\u0027re Going!</string>
+    <string name="status_going">You\'re Going!</string>
     <string name="interaction_error_rsvp">Failed to update RSVP status. Please try again.</string>
     <string name="listing_editor_title_invalid">Title is invalid</string>
     <string name="listing_editor_price_required">Price is required</string>
@@ -121,7 +121,6 @@
     <string name="listing_editor_label_start_time">Start Date &amp; Time</string>
     <string name="listing_editor_no_image_preview">No image preview</string>
     <string name="listing_editor_image_preview_desc">Listing Image Preview</string>
-    <string name="listing_editor_schedule_invalid">Please select a valid future date and time.</string>
     <string name="listing_editor_review_type_format">Type: %1$s</string>
     <string name="listing_editor_review_title_format">Title: %1$s</string>
     <string name="listing_editor_review_price_format">Price: %1$s</string>
@@ -141,44 +140,18 @@
     <string name="listing_editor_publish_success">Listing published successfully</string>
     <string name="listing_editor_draft_discarded">Draft discarded</string>
     <string name="currency_display_format">%1$s (%2$s)</string>
-    <string name="dialog_date_picker_title">Select a date</string>
-    <string name="dialog_date_picker_confirm">Set date</string>
-    <string name="dialog_time_picker_title">Select a time</string>
-    <string name="dialog_time_picker_confirm">Set time</string>
-    <string name="dialog_time_picker_twenty_four_hour">Use 24 hours</string>
     <string name="dialog_time_zone_picker_title">Select Time Zone</string>
     <string name="dialog_time_zone_picker_search">Search</string>
     <string name="listing_editor_schedule_start">Start</string>
     <string name="listing_editor_schedule_end">End</string>
     <string name="listing_editor_schedule_time_zone">Time Zone</string>
-    <string name="listing_editor_schedule_select_date">Select date</string>
-    <string name="listing_editor_schedule_select_time">Select time</string>
     <string name="listing_editor_schedule_daylight_saving_time_error">The selected time does not exist in this timezone
         due to Daylight Saving Time shifting forward. Please select a valid time.
     </string>
     <string name="listing_details_action_edit_listing">Edit Listing</string>
-    <string name="accessibility_picker_previous_month">Go to previous month</string>
-    <string name="accessibility_picker_next_month">Go to next month</string>
     <string name="accessibility_step_complete">Complete</string>
     <string name="accessibility_step_satisfied">Satisfied</string>
     <string name="accessibility_step_incomplete">Incomplete</string>
-    <string name="listing_editor_schedule_adjustment_start_date_title">Adjust Start Date?</string>
-    <string name="listing_editor_schedule_adjustment_start_date_body">The end date you selected is before the start
-        date. Would you like to automatically adjust the start date to match?
-    </string>
-    <string name="listing_editor_schedule_adjustment_end_date_title">Adjust End Date?</string>
-    <string name="listing_editor_schedule_adjustment_end_date_body">The start date you selected is after the end date.
-        Would you like to automatically adjust the end date to match?
-    </string>
-    <string name="listing_editor_schedule_adjustment_start_time_title">Adjust Start Time?</string>
-    <string name="listing_editor_schedule_adjustment_start_time_body">The end time you selected is before the start
-        time. Would you like to automatically adjust the start time to match?
-    </string>
-    <string name="listing_editor_schedule_adjustment_end_time_title">Adjust End Time?</string>
-    <string name="listing_editor_schedule_adjustment_end_time_body">The start time you selected is after the end time.
-        Would you like to automatically adjust the end time to match?
-    </string>
-    <string name="listing_editor_action_adjust">Adjust</string>
     <string name="home_agenda_title">Your Agenda</string>
     <string name="accessibility_agenda_carousel">Your upcoming RSVP\'d events carousel</string>
     <string name="agenda_proximity_ongoing">Ongoing</string>
@@ -186,4 +159,17 @@
     <string name="agenda_proximity_tomorrow">Tomorrow</string>
     <string name="agenda_proximity_future_format">In %1$d days</string>
     <string name="agenda_action_view_details">View Details</string>
+
+    <string name="listing_editor_schedule_month_placeholder">MM</string>
+    <string name="listing_editor_schedule_day_placeholder">DD</string>
+    <string name="listing_editor_schedule_year_placeholder">YYYY</string>
+    <string name="listing_editor_schedule_hour_placeholder">HH</string>
+    <string name="listing_editor_schedule_minute_placeholder">MM</string>
+    <string name="listing_editor_schedule_meridiem_am">AM</string>
+    <string name="listing_editor_schedule_meridiem_pm">PM</string>
+    <string name="listing_editor_error_invalid_date">Please enter a valid date.</string>
+    <string name="listing_editor_error_invalid_time">Please enter a valid time.</string>
+    <string name="listing_editor_error_date_conflict">End date cannot be before start date.</string>
+    <string name="listing_editor_error_time_conflict">End time must be after start time.</string>
+    <string name="listing_editor_error_incomplete_schedule">Please complete all schedule fields.</string>
 </resources>

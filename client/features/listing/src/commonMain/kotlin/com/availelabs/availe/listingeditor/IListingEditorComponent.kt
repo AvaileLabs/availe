@@ -7,8 +7,6 @@ import com.availelabs.availe.domain.model.ListingCategory
 import com.availelabs.availe.domain.model.SupportedCurrency
 import com.availelabs.availe.domain.model.TimeZoneIdentifier
 import com.availelabs.availe.ui.model.AppBarAction
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 
 interface IListingEditorComponent {
     val state: Value<ListingEditorState>
@@ -20,17 +18,24 @@ interface IListingEditorComponent {
     fun onCurrencySelected(currency: SupportedCurrency)
     fun onTypeSelected(type: ListingCategory)
     fun onImageUrlChanged(url: String)
-    fun onStartDateChanged(startDate: LocalDate?)
-    fun onStartTimeChanged(startTime: LocalTime?)
-    fun onEndDateChanged(endDate: LocalDate?)
-    fun onEndTimeChanged(endTime: LocalTime?)
+    fun onStartDateMonthChanged(monthString: String)
+    fun onStartDateDayChanged(dayString: String)
+    fun onStartDateYearChanged(yearString: String)
+    fun onStartTimeHourChanged(hourString: String)
+    fun onStartTimeMinuteChanged(minuteString: String)
+    fun onStartTimeMeridiemToggled()
+    fun onEndDateMonthChanged(monthString: String)
+    fun onEndDateDayChanged(dayString: String)
+    fun onEndDateYearChanged(yearString: String)
+    fun onEndTimeHourChanged(hourString: String)
+    fun onEndTimeMinuteChanged(minuteString: String)
+    fun onEndTimeMeridiemToggled()
     fun onTimeZoneIdentifierChanged(timeZoneIdentifier: TimeZoneIdentifier)
+    fun onTwentyFourHourTimeFormatChanged(isTwentyFourHourFormat: Boolean)
     fun onPageSelected(index: Int)
     fun onPublishClicked()
     fun onConfirmPublish()
     fun onCancelPublish()
-    fun onConfirmScheduleAdjustment()
-    fun onCancelScheduleAdjustment()
     fun onDiscardDraftClicked()
     fun onConfirmDiscardDraft()
     fun onCancelDiscardDraft()

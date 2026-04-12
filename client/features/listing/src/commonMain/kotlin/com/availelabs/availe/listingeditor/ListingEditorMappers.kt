@@ -1,15 +1,17 @@
 package com.availelabs.availe.listingeditor
 
 import availe.client.designsystem.generated.resources.*
-import com.availelabs.availe.DraftEventBounds
 import com.availelabs.availe.ListingEditorError
 import com.availelabs.availe.ListingEditorState
 import com.availelabs.availe.domain.model.*
 import com.availelabs.availe.dto.kreplica.*
 import com.availelabs.availe.model.ListingDraft
+import com.availelabs.availe.toSegmentedDateState
+import com.availelabs.availe.toSegmentedTimeState
+import com.availelabs.availe.ui.model.SegmentedDateState
+import com.availelabs.availe.ui.model.SegmentedTimeState
 import com.availelabs.availe.ui.model.UiText
 import io.availe.models.Patchable
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.jetbrains.compose.resources.StringResource
@@ -59,18 +61,19 @@ fun ListingEditorState.toNewListing(publisher: PublicProfile): NewListing? {
     return when (type) {
         ListingCategory.Item -> NewListing.Item(commonData, publisher)
         ListingCategory.Event -> {
-            if (!this.isScheduleStepValid || this.scheduleBounds.startDate == null || this.scheduleBounds.startTime == null || this.scheduleBounds.endDate == null || this.scheduleBounds.endTime == null) return null
+            val currentScheduleValidationState = this.scheduleValidationState
+            if (currentScheduleValidationState !is ScheduleValidationState.Valid) return null
 
-            val timeZone = TimeZone.of(this.scheduleBounds.timeZoneIdentifier.value)
-            val startLocal = LocalDateTime(this.scheduleBounds.startDate, this.scheduleBounds.startTime)
-            val endLocal = LocalDateTime(this.scheduleBounds.endDate, this.scheduleBounds.endTime)
+            val timeZone = TimeZone.of(this.timeZoneIdentifier.value)
+            val startLocal = currentScheduleValidationState.startLocalDateTime
+            val endLocal = currentScheduleValidationState.endLocalDateTime
 
             val schedule = EventSchedule(
                 startLocalTime = startLocal,
                 endLocalTime = endLocal,
                 startInstant = startLocal.toInstant(timeZone),
                 endInstant = endLocal.toInstant(timeZone),
-                timeZoneIdentifier = this.scheduleBounds.timeZoneIdentifier
+                timeZoneIdentifier = this.timeZoneIdentifier
             )
 
             NewListing.Event(
@@ -101,23 +104,25 @@ fun ListingEditorState.toPatchRequest(): TypeV1ListingDtoPatchRequest? {
         )
 
         ListingCategory.Event -> {
-            val schedulePatch =
-                if (this.scheduleBounds.startDate != null && this.scheduleBounds.startTime != null && this.scheduleBounds.endDate != null && this.scheduleBounds.endTime != null && this.isScheduleStepValid) {
-                    val timeZone = TimeZone.of(this.scheduleBounds.timeZoneIdentifier.value)
-                    val startLocal = LocalDateTime(this.scheduleBounds.startDate, this.scheduleBounds.startTime)
-                    val endLocal = LocalDateTime(this.scheduleBounds.endDate, this.scheduleBounds.endTime)
-                    Patchable.Set(
-                        EventScheduleDtoSchema.V1.PatchRequest(
-                            startLocalTime = Patchable.Set(startLocal),
-                            endLocalTime = Patchable.Set(endLocal),
-                            startInstant = Patchable.Set(startLocal.toInstant(timeZone)),
-                            endInstant = Patchable.Set(endLocal.toInstant(timeZone)),
-                            timeZoneIdentifier = Patchable.Set(this.scheduleBounds.timeZoneIdentifier)
-                        )
+            val currentScheduleValidationState = this.scheduleValidationState
+
+            val schedulePatch = if (currentScheduleValidationState is ScheduleValidationState.Valid) {
+                val timeZone = TimeZone.of(this.timeZoneIdentifier.value)
+                val startLocal = currentScheduleValidationState.startLocalDateTime
+                val endLocal = currentScheduleValidationState.endLocalDateTime
+
+                Patchable.Set(
+                    EventScheduleDtoSchema.V1.PatchRequest(
+                        startLocalTime = Patchable.Set(startLocal),
+                        endLocalTime = Patchable.Set(endLocal),
+                        startInstant = Patchable.Set(startLocal.toInstant(timeZone)),
+                        endInstant = Patchable.Set(endLocal.toInstant(timeZone)),
+                        timeZoneIdentifier = Patchable.Set(this.timeZoneIdentifier)
                     )
-                } else {
-                    Patchable.Unchanged
-                }
+                )
+            } else {
+                Patchable.Unchanged
+            }
 
             ListingEventDtoSchema.V1.PatchRequest(
                 title = Patchable.Set(this.title),
@@ -145,11 +150,11 @@ fun ListingEditorState.toDraft(stepIndex: Int): ListingDraft? {
         priceAmount = this.priceAmount,
         priceCurrencyCode = this.priceCurrency.code,
         imageUrl = this.imageUrl,
-        startDate = this.scheduleBounds.startDate,
-        startTime = this.scheduleBounds.startTime,
-        endDate = this.scheduleBounds.endDate,
-        endTime = this.scheduleBounds.endTime,
-        timeZoneIdentifier = this.scheduleBounds.timeZoneIdentifier,
+        startDate = this.startDate.toLocalDateOrNull(),
+        startTime = this.startTime.toLocalTimeOrNull(this.isTwentyFourHourTimeFormat),
+        endDate = this.endDate.toLocalDateOrNull(),
+        endTime = this.endTime.toLocalTimeOrNull(this.isTwentyFourHourTimeFormat),
+        timeZoneIdentifier = this.timeZoneIdentifier,
         type = type,
         stepIndex = stepIndex
     )
@@ -165,6 +170,14 @@ fun Listing.toEditorState(): ListingEditorState {
     val schedule = (this as? Listing.Event)?.schedule
 
     val currency = SupportedCurrency.fromCode(commonData.price.currency) ?: SupportedCurrency.USD
+    val isTwentyFourHourFormat = false
+
+    val initialStartDate = schedule?.startLocalTime?.date?.toSegmentedDateState() ?: SegmentedDateState()
+    val initialStartTime =
+        schedule?.startLocalTime?.time?.toSegmentedTimeState(isTwentyFourHourFormat) ?: SegmentedTimeState()
+    val initialEndDate = schedule?.endLocalTime?.date?.toSegmentedDateState() ?: SegmentedDateState()
+    val initialEndTime =
+        schedule?.endLocalTime?.time?.toSegmentedTimeState(isTwentyFourHourFormat) ?: SegmentedTimeState()
 
     return ListingEditorState(
         isEditing = true,
@@ -173,17 +186,23 @@ fun Listing.toEditorState(): ListingEditorState {
         priceAmount = commonData.price.amount,
         priceCurrency = currency,
         imageUrl = commonData.imageLinks.firstOrNull() ?: ImageUrl(""),
-        scheduleBounds = DraftEventBounds(
-            startDate = schedule?.startLocalTime?.date,
-            startTime = schedule?.startLocalTime?.time,
-            endDate = schedule?.endLocalTime?.date,
-            endTime = schedule?.endLocalTime?.time,
-            timeZoneIdentifier = schedule?.timeZoneIdentifier ?: TimeZoneIdentifier(TimeZone.currentSystemDefault().id)
-        ),
+        startDate = initialStartDate,
+        startTime = initialStartTime,
+        endDate = initialEndDate,
+        endTime = initialEndTime,
+        timeZoneIdentifier = schedule?.timeZoneIdentifier ?: TimeZoneIdentifier(TimeZone.currentSystemDefault().id),
+        isTwentyFourHourTimeFormat = isTwentyFourHourFormat,
         type = category,
         error = null,
         isSubmitting = false,
         showDiscardDraftDialog = false,
         showPublishConfirmationDialog = false
-    )
+    ).let {
+        it.copy(scheduleValidationState = it.run {
+            if (type == ListingCategory.Event && schedule != null) ScheduleValidationState.Valid(
+                schedule.startLocalTime,
+                schedule.endLocalTime
+            ) else ScheduleValidationState.Incomplete
+        })
+    }
 }

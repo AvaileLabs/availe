@@ -29,8 +29,9 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.router.pages.ChildPages
 import com.arkivanov.decompose.value.Value
 import com.availelabs.availe.ListingEditorState
-import com.availelabs.availe.PendingScheduleAdjustment
-import com.availelabs.availe.domain.model.*
+import com.availelabs.availe.domain.model.ListingCategory
+import com.availelabs.availe.domain.model.ScheduleValidationState
+import com.availelabs.availe.domain.model.SupportedCurrency
 import com.availelabs.availe.ui.components.EventScheduleWizard
 import com.availelabs.availe.ui.components.dialogs.ActionConfirmationModal
 import com.availelabs.availe.ui.components.dialogs.DimmedDialog
@@ -47,8 +48,6 @@ import com.composeunstyled.DropdownPanelAnchor
 import com.composeunstyled.Text
 import com.composeunstyled.theme.Theme
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -192,40 +191,6 @@ fun ListingEditorScreen(
                 )
             }
         }
-
-        if (state.pendingScheduleAdjustment != null) {
-            val adjustment = state.pendingScheduleAdjustment!!
-            val title = when (adjustment) {
-                is PendingScheduleAdjustment.ShiftStartDate -> stringResource(Res.string.listing_editor_schedule_adjustment_start_date_title)
-                is PendingScheduleAdjustment.ShiftEndDate -> stringResource(Res.string.listing_editor_schedule_adjustment_end_date_title)
-                is PendingScheduleAdjustment.ShiftStartTime -> stringResource(Res.string.listing_editor_schedule_adjustment_start_time_title)
-                is PendingScheduleAdjustment.ShiftEndTime -> stringResource(Res.string.listing_editor_schedule_adjustment_end_time_title)
-            }
-            val message = when (adjustment) {
-                is PendingScheduleAdjustment.ShiftStartDate -> stringResource(Res.string.listing_editor_schedule_adjustment_start_date_body)
-                is PendingScheduleAdjustment.ShiftEndDate -> stringResource(Res.string.listing_editor_schedule_adjustment_end_date_body)
-                is PendingScheduleAdjustment.ShiftStartTime -> stringResource(Res.string.listing_editor_schedule_adjustment_start_time_body)
-                is PendingScheduleAdjustment.ShiftEndTime -> stringResource(Res.string.listing_editor_schedule_adjustment_end_time_body)
-            }
-            val icon = when (adjustment) {
-                is PendingScheduleAdjustment.ShiftStartDate, is PendingScheduleAdjustment.ShiftEndDate -> Lucide.Calendar
-                is PendingScheduleAdjustment.ShiftStartTime, is PendingScheduleAdjustment.ShiftEndTime -> Lucide.Clock
-            }
-
-            DimmedDialog(onDismissRequest = component::onCancelScheduleAdjustment) {
-                ActionConfirmationModal(
-                    icon = icon,
-                    iconContentColor = Theme[colors][primary],
-                    iconBackgroundColor = Theme[colors][primary].copy(alpha = 0.1f),
-                    title = title,
-                    message = message,
-                    confirmText = stringResource(Res.string.listing_editor_action_adjust),
-                    cancelText = stringResource(Res.string.generic_cancel),
-                    onConfirm = component::onConfirmScheduleAdjustment,
-                    onDismiss = component::onCancelScheduleAdjustment
-                )
-            }
-        }
     }
 }
 
@@ -354,16 +319,25 @@ private fun ListingEditorWizardContent(
                     )
 
                     ListingEditorPageConfig.Schedule -> ListingEditorScheduleStep(
-                        startDate = state.scheduleBounds.startDate,
-                        startTime = state.scheduleBounds.startTime,
-                        endDate = state.scheduleBounds.endDate,
-                        endTime = state.scheduleBounds.endTime,
-                        timeZoneIdentifier = state.scheduleBounds.timeZoneIdentifier,
-                        timeResolutionError = state.timeResolutionError,
-                        onStartDateChanged = component::onStartDateChanged,
-                        onStartTimeChanged = component::onStartTimeChanged,
-                        onEndDateChanged = component::onEndDateChanged,
-                        onEndTimeChanged = component::onEndTimeChanged,
+                        startDate = state.startDate,
+                        startTime = state.startTime,
+                        endDate = state.endDate,
+                        endTime = state.endTime,
+                        timeZoneIdentifier = state.timeZoneIdentifier,
+                        isTwentyFourHourFormat = state.isTwentyFourHourTimeFormat,
+                        scheduleValidationState = state.scheduleValidationState,
+                        onStartDateMonthChanged = component::onStartDateMonthChanged,
+                        onStartDateDayChanged = component::onStartDateDayChanged,
+                        onStartDateYearChanged = component::onStartDateYearChanged,
+                        onStartTimeHourChanged = component::onStartTimeHourChanged,
+                        onStartTimeMinuteChanged = component::onStartTimeMinuteChanged,
+                        onStartTimeMeridiemToggled = component::onStartTimeMeridiemToggled,
+                        onEndDateMonthChanged = component::onEndDateMonthChanged,
+                        onEndDateDayChanged = component::onEndDateDayChanged,
+                        onEndDateYearChanged = component::onEndDateYearChanged,
+                        onEndTimeHourChanged = component::onEndTimeHourChanged,
+                        onEndTimeMinuteChanged = component::onEndTimeMinuteChanged,
+                        onEndTimeMeridiemToggled = component::onEndTimeMeridiemToggled,
                         onTimeZoneIdentifierChanged = component::onTimeZoneIdentifierChanged
                     )
 
@@ -545,8 +519,8 @@ private fun ListingEditorTypeOption(
 
 @Composable
 private fun ListingEditorBasicsStep(
-    title: ListingTitle,
-    description: ListingDescription,
+    title: com.availelabs.availe.domain.model.ListingTitle,
+    description: com.availelabs.availe.domain.model.ListingDescription,
     onTitleChanged: (String) -> Unit,
     onDescriptionChanged: (String) -> Unit
 ) {
@@ -575,17 +549,26 @@ private fun ListingEditorBasicsStep(
 
 @Composable
 private fun ListingEditorScheduleStep(
-    startDate: LocalDate?,
-    startTime: LocalTime?,
-    endDate: LocalDate?,
-    endTime: LocalTime?,
-    timeZoneIdentifier: TimeZoneIdentifier,
-    timeResolutionError: LocalTimeResolution?,
-    onStartDateChanged: (LocalDate?) -> Unit,
-    onStartTimeChanged: (LocalTime?) -> Unit,
-    onEndDateChanged: (LocalDate?) -> Unit,
-    onEndTimeChanged: (LocalTime?) -> Unit,
-    onTimeZoneIdentifierChanged: (TimeZoneIdentifier) -> Unit
+    startDate: com.availelabs.availe.ui.model.SegmentedDateState,
+    startTime: com.availelabs.availe.ui.model.SegmentedTimeState,
+    endDate: com.availelabs.availe.ui.model.SegmentedDateState,
+    endTime: com.availelabs.availe.ui.model.SegmentedTimeState,
+    timeZoneIdentifier: com.availelabs.availe.domain.model.TimeZoneIdentifier,
+    isTwentyFourHourFormat: Boolean,
+    scheduleValidationState: ScheduleValidationState,
+    onStartDateMonthChanged: (String) -> Unit,
+    onStartDateDayChanged: (String) -> Unit,
+    onStartDateYearChanged: (String) -> Unit,
+    onStartTimeHourChanged: (String) -> Unit,
+    onStartTimeMinuteChanged: (String) -> Unit,
+    onStartTimeMeridiemToggled: () -> Unit,
+    onEndDateMonthChanged: (String) -> Unit,
+    onEndDateDayChanged: (String) -> Unit,
+    onEndDateYearChanged: (String) -> Unit,
+    onEndTimeHourChanged: (String) -> Unit,
+    onEndTimeMinuteChanged: (String) -> Unit,
+    onEndTimeMeridiemToggled: () -> Unit,
+    onTimeZoneIdentifierChanged: (com.availelabs.availe.domain.model.TimeZoneIdentifier) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         EventScheduleWizard(
@@ -594,11 +577,20 @@ private fun ListingEditorScheduleStep(
             endDate = endDate,
             endTime = endTime,
             timeZoneIdentifier = timeZoneIdentifier,
-            timeResolutionError = timeResolutionError,
-            onStartDateChanged = onStartDateChanged,
-            onStartTimeChanged = onStartTimeChanged,
-            onEndDateChanged = onEndDateChanged,
-            onEndTimeChanged = onEndTimeChanged,
+            isTwentyFourHourFormat = isTwentyFourHourFormat,
+            scheduleValidationState = scheduleValidationState,
+            onStartDateMonthChanged = onStartDateMonthChanged,
+            onStartDateDayChanged = onStartDateDayChanged,
+            onStartDateYearChanged = onStartDateYearChanged,
+            onStartTimeHourChanged = onStartTimeHourChanged,
+            onStartTimeMinuteChanged = onStartTimeMinuteChanged,
+            onStartTimeMeridiemToggled = onStartTimeMeridiemToggled,
+            onEndDateMonthChanged = onEndDateMonthChanged,
+            onEndDateDayChanged = onEndDateDayChanged,
+            onEndDateYearChanged = onEndDateYearChanged,
+            onEndTimeHourChanged = onEndTimeHourChanged,
+            onEndTimeMinuteChanged = onEndTimeMinuteChanged,
+            onEndTimeMeridiemToggled = onEndTimeMeridiemToggled,
             onTimeZoneIdentifierChanged = onTimeZoneIdentifierChanged
         )
     }
@@ -606,7 +598,7 @@ private fun ListingEditorScheduleStep(
 
 @Composable
 private fun ListingEditorPricingStep(
-    priceAmount: PriceAmount,
+    priceAmount: com.availelabs.availe.domain.model.PriceAmount,
     priceCurrency: SupportedCurrency,
     onPriceChanged: (String) -> Unit,
     onCurrencySelected: (SupportedCurrency) -> Unit
@@ -688,7 +680,7 @@ private fun CurrencyDropdown(
 
 @Composable
 private fun ListingEditorMediaStep(
-    imageUrl: ImageUrl,
+    imageUrl: com.availelabs.availe.domain.model.ImageUrl,
     onImageUrlChanged: (String) -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -759,11 +751,12 @@ private fun ListingEditorReviewStep(
             SelectionContainer {
                 Text(stringResource(Res.string.listing_editor_review_title_format, editorState.title.value))
             }
-            if (editorState.type == ListingCategory.Event && editorState.scheduleBounds.startDate != null && editorState.scheduleBounds.startTime != null) {
+            if (editorState.type == ListingCategory.Event && editorState.scheduleValidationState is ScheduleValidationState.Valid) {
+                val validScheduleState = editorState.scheduleValidationState as ScheduleValidationState.Valid
+                val formattedStartString =
+                    "${validScheduleState.startLocalDateTime.date} at ${validScheduleState.startLocalDateTime.time}"
                 SelectionContainer {
-                    val formattedStart =
-                        "${editorState.scheduleBounds.startDate} at ${editorState.scheduleBounds.startTime}"
-                    Text(stringResource(Res.string.listing_editor_review_start_time_format, formattedStart))
+                    Text(stringResource(Res.string.listing_editor_review_start_time_format, formattedStartString))
                 }
             }
             if (editorState.priceAmount.value.isNotBlank()) {
