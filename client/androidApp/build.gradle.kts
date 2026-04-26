@@ -2,17 +2,12 @@ import com.availelabs.buildlogic.HostIpValueSource
 
 plugins {
     alias(libs.plugins.availe.buildutils)
-    id("org.jetbrains.kotlin.android")
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
 }
 
 val useLocalIpAddressForDebug = providers.gradleProperty("availe.dev.useLocalIp").getOrElse("false").toBoolean()
 val openIdConnectRedirectScheme = "com.availe.auth"
-
-kotlin {
-    jvmToolchain(17)
-}
 
 abstract class GenerateNetworkSecurityConfig : DefaultTask() {
 
