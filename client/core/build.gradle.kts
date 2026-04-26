@@ -14,7 +14,7 @@ base {
 
 kotlin {
     androidLibrary {
-        namespace = "com.availelabs.availe"
+        namespace = "com.availelabs.availe.core"
     }
 
     configureIosFramework()

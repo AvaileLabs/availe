@@ -11,7 +11,7 @@ plugins {
 
 kotlin {
     androidLibrary {
-        namespace = "com.availelabs.availe.features.chat"
+        namespace = "com.availelabs.availe.features.auth"
     }
 
     sourceSets {

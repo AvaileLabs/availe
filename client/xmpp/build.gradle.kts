@@ -11,7 +11,7 @@ version = "1.0.0"
 
 kotlin {
     androidLibrary {
-        namespace = "com.availelabs.xmpp"
+        namespace = "com.availelabs.availe.xmpp"
     }
 
     configureIosFramework()

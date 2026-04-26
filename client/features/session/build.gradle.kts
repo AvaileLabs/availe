@@ -8,7 +8,7 @@ plugins {
 
 kotlin {
     androidLibrary {
-        namespace = "com.availelabs.features.session"
+        namespace = "com.availelabs.availe.features.session"
     }
 
     sourceSets {

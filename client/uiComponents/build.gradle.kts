@@ -12,7 +12,7 @@ plugins {
 
 kotlin {
     androidLibrary {
-        namespace = "com.availelabs.uicomponents"
+        namespace = "com.availelabs.availe.uicomponents"
     }
 
     sourceSets {

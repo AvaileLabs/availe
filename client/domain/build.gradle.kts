@@ -13,7 +13,7 @@ version = "1.0.0"
 
 kotlin {
     androidLibrary {
-        namespace = "com.availelabs.availe"
+        namespace = "com.availelabs.availe.domain"
     }
 
     configureIosFramework()

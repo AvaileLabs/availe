@@ -12,7 +12,7 @@ plugins {
 
 kotlin {
     androidLibrary {
-        namespace = "com.availelabs.designsystem"
+        namespace = "com.availelabs.availe.designsystem"
     }
     sourceSets {
         androidMain.dependencies {

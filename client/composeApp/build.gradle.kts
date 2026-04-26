@@ -14,7 +14,7 @@ plugins {
 
 kotlin {
     androidLibrary {
-        namespace = "com.availelabs.availe"
+        namespace = "com.availelabs.availe.composeapp"
     }
 
     configureIosFramework {
