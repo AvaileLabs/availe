@@ -24,7 +24,7 @@ import com.composables.icons.lucide.Lucide
 import com.composables.uikit.components.Card
 import com.composables.uikit.components.Icon
 import com.composables.uikit.styling.*
-import com.composeunstyled.Text
+import com.composeunstyled.UnstyledText
 import com.composeunstyled.theme.Theme
 import org.jetbrains.compose.resources.stringResource
 
@@ -39,7 +39,7 @@ internal fun ListingEditorWizardStepList(
         modifier = modifier,
         title = {
             SelectionContainer {
-                Text(stringResource(Res.string.listing_editor_steps_title))
+                UnstyledText(stringResource(Res.string.listing_editor_steps_title))
             }
         }
     ) {
@@ -249,7 +249,7 @@ internal fun ListingStepRow(
 
         Spacer(Modifier.width(12.dp))
 
-        Text(
+        UnstyledText(
             text = title,
             style = Theme[textStyles][body],
             color = textColor,

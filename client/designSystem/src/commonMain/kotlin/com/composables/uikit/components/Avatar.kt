@@ -15,13 +15,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.medium
-import com.composables.uikit.styling.onSecondary
-import com.composables.uikit.styling.outline
-import com.composables.uikit.styling.secondary
-import com.composables.uikit.styling.shapes
-import com.composeunstyled.Text
+import com.composables.uikit.styling.*
+import com.composeunstyled.UnstyledText
 import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
 
@@ -48,7 +43,7 @@ fun Avatar(
             .background(backgroundColor),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = contentColor)
+        UnstyledText(text, color = contentColor)
         Image(
             painter = painter,
             contentDescription = contentDescription,

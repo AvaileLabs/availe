@@ -44,7 +44,7 @@ import com.availelabs.availe.ui.modifiers.refreshTrigger
 import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
-import com.composeunstyled.Text
+import com.composeunstyled.UnstyledText
 import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
 import org.jetbrains.compose.resources.stringResource
@@ -191,7 +191,7 @@ private fun MobileListingLayout(
                 Spacer(Modifier.height(12.dp))
 
                 SelectionContainer {
-                    Text(
+                    UnstyledText(
                         text = listing.title.value,
                         style = Theme[textStyles][title].copy(fontWeight = FontWeight.Bold)
                     )
@@ -199,7 +199,7 @@ private fun MobileListingLayout(
                 Spacer(Modifier.height(8.dp))
 
                 SelectionContainer {
-                    Text(
+                    UnstyledText(
                         text = listing.price.toDisplayString(),
                         style = Theme[textStyles][title].copy(fontSize = Theme[textStyles][title].fontSize * 1.2)
                     )
@@ -303,7 +303,7 @@ private fun DesktopListingLayout(
                 Spacer(Modifier.height(16.dp))
 
                 SelectionContainer {
-                    Text(
+                    UnstyledText(
                         text = listing.title.value,
                         style = Theme[textStyles][title].copy(
                             fontSize = Theme[textStyles][title].fontSize * 1.5,
@@ -658,7 +658,7 @@ private fun SellerInfoCard(
                         tint = Color(0xFFEAB308)
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text(
+                    UnstyledText(
                         text = stringResource(
                             Res.string.listing_rating_count_format,
                             listing.mockRating,

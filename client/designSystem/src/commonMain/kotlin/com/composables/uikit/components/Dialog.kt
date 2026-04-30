@@ -5,11 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
@@ -17,21 +13,9 @@ import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.composables.core.DialogPanel
-import com.composables.core.Scrim
-import com.composables.core.rememberDialogState
-import com.composables.uikit.styling.card
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.medium
-import com.composables.uikit.styling.modal
-import com.composables.uikit.styling.onCard
-import com.composables.uikit.styling.outline
-import com.composables.uikit.styling.scrim
-import com.composables.uikit.styling.shadows
-import com.composables.uikit.styling.shapes
-import com.composeunstyled.outline
+import com.composables.uikit.styling.*
+import com.composeunstyled.*
 import com.composeunstyled.theme.Theme
-import com.composables.core.Dialog as UnstyledDialog
 
 @Composable
 fun Dialog(visible: Boolean, content: @Composable () -> Unit) {
@@ -40,13 +24,13 @@ fun Dialog(visible: Boolean, content: @Composable () -> Unit) {
     SideEffect { state.visible = visible }
 
     UnstyledDialog(state) {
-        Scrim(enter = fadeIn(tween(300)), exit = fadeOut(tween(300)), scrimColor = Theme[colors][scrim])
+        UnstyledScrim(enter = fadeIn(tween(300)), exit = fadeOut(tween(300)), scrimColor = Theme[colors][scrim])
 
-        DialogPanel(
+        UnstyledDialogPanel(
             modifier = Modifier
                 .zIndex(10f)
                 .padding(16.dp)
-                .dropShadow(Theme[shapes][medium],Theme[shadows][modal])
+                .dropShadow(Theme[shapes][medium], Theme[shadows][modal])
                 .outline(Dp.Hairline, Theme[colors][outline], Theme[shapes][medium])
                 .widthIn(max = 560.dp)
                 .fillMaxWidth(),

@@ -13,7 +13,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.composables.uikit.styling.*
-import com.composeunstyled.Text
+import com.composeunstyled.UnstyledText
 import com.composeunstyled.theme.Theme
 
 @Composable
@@ -59,7 +59,7 @@ fun SmartTimeInput(
             modifier = Modifier.width(28.dp)
         )
 
-        Text(
+        UnstyledText(
             text = ":",
             color = Theme[colors][onBackground].copy(alpha = 0.5f),
             modifier = Modifier.padding(horizontal = 4.dp)
@@ -86,7 +86,7 @@ fun SmartTimeInput(
                     .padding(horizontal = 6.dp, vertical = 2.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
+                UnstyledText(
                     text = meridiemIndicatorString,
                     style = Theme[textStyles][caption].copy(fontWeight = FontWeight.Bold),
                     color = Theme[colors][onBackground]

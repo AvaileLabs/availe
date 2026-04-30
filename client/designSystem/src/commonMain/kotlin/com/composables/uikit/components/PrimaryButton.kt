@@ -13,24 +13,12 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.composables.uikit.styling.body
-import com.composables.uikit.styling.bright
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.dim
-import com.composables.uikit.styling.focusRing
-import com.composables.uikit.styling.indications
-import com.composables.uikit.styling.isBright
-import com.composables.uikit.styling.mutate
-import com.composables.uikit.styling.onPrimary
-import com.composables.uikit.styling.primary
-import com.composables.uikit.styling.shapes
-import com.composables.uikit.styling.small
-import com.composables.uikit.styling.textStyles
+import com.composables.uikit.styling.*
 import com.composeunstyled.ProvideTextStyle
+import com.composeunstyled.UnstyledButton
 import com.composeunstyled.focusRing
 import com.composeunstyled.minimumInteractiveComponentSize
 import com.composeunstyled.theme.Theme
-import com.composeunstyled.Button as UnstyledButton
 
 val DefaultButtonPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
 val DefaultIconButtonPadding = PaddingValues(8.dp)

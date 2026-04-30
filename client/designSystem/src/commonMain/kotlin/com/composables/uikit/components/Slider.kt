@@ -8,13 +8,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -27,15 +21,10 @@ import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.composables.core.androidx.annotation.IntRange
-import com.composables.uikit.styling.card
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.primary
-import com.composables.uikit.styling.shadows
-import com.composables.uikit.styling.subtle
-import com.composeunstyled.Thumb
-import com.composeunstyled.minimumInteractiveComponentSize
+import com.composables.uikit.styling.*
+import com.composeunstyled.UnstyledSlider
+import com.composeunstyled.UnstyledThumb
 import com.composeunstyled.theme.Theme
-import com.composeunstyled.Slider as UnstyledSlider
 import com.composeunstyled.SliderState as UnstyledSliderState
 
 @Composable
@@ -101,7 +90,7 @@ fun Slider(
                 modifier = Modifier.size(36.dp).clip(CircleShape).background(glowColor),
                 contentAlignment = Alignment.Center
             ) {
-                Thumb(
+                UnstyledThumb(
                     color = thumbColor,
                     modifier = Modifier.size(thumbSize)
                         .dropShadow(CircleShape, Theme[shadows][subtle])

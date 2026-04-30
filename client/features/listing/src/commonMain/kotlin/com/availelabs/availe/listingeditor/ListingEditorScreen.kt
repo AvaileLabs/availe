@@ -45,7 +45,7 @@ import com.composables.icons.lucide.*
 import com.composables.uikit.components.*
 import com.composables.uikit.styling.*
 import com.composeunstyled.DropdownPanelAnchor
-import com.composeunstyled.Text
+import com.composeunstyled.UnstyledText
 import com.composeunstyled.theme.Theme
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -264,7 +264,7 @@ private fun ListingEditorWizardContent(
                         )
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
+                            UnstyledText(
                                 text = stringResource(
                                     Res.string.listing_editor_step_progress_format,
                                     currentStepName,
@@ -282,7 +282,7 @@ private fun ListingEditorWizardContent(
                 }
             } else {
                 SelectionContainer {
-                    Text(
+                    UnstyledText(
                         text = stringResource(
                             Res.string.listing_editor_step_progress_format,
                             currentStepName,
@@ -361,7 +361,7 @@ private fun ListingEditorWizardContent(
 
             if (state.error != null) {
                 SelectionContainer {
-                    Text(
+                    UnstyledText(
                         text = mapListingEditorError(state.error).asString(),
                         color = Theme[colors][destructive]
                     )
@@ -389,7 +389,7 @@ private fun ListingEditorWizardContent(
                     onClick = { component.onPageSelected(currentStepIndex - 1) },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(stringResource(Res.string.generic_back))
+                    UnstyledText(stringResource(Res.string.generic_back))
                 }
             } else {
                 Spacer(modifier = Modifier.weight(1f))
@@ -406,7 +406,7 @@ private fun ListingEditorWizardContent(
                 enabled = isNextEnabled && !state.isSubmitting,
                 modifier = Modifier.weight(1f)
             ) {
-                Text(primaryLabel)
+                UnstyledText(primaryLabel)
             }
         }
     }
@@ -438,7 +438,7 @@ private fun DraftOptionsDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
+                UnstyledText(
                     text = stringResource(Res.string.generic_options),
                     style = Theme[textStyles][title],
                     fontWeight = FontWeight.Bold
@@ -458,12 +458,12 @@ private fun DraftOptionsDialog(
             Column(modifier = Modifier.padding(vertical = 8.dp)) {
                 DropdownMenuItem(onClick = onClearStep) {
                     Icon(Lucide.Eraser, null, Modifier.size(20.dp))
-                    Text(stringResource(Res.string.listing_editor_draft_action_clear_step_format, stepName))
+                    UnstyledText(stringResource(Res.string.listing_editor_draft_action_clear_step_format, stepName))
                 }
 
                 DropdownMenuItem(onClick = onRequestDeleteDraft) {
                     Icon(Lucide.Trash2, null, Modifier.size(20.dp), tint = Theme[colors][destructive])
-                    Text(
+                    UnstyledText(
                         text = stringResource(Res.string.listing_editor_draft_action_delete),
                         color = Theme[colors][destructive],
                         fontWeight = FontWeight.Medium
@@ -481,7 +481,7 @@ private fun ListingEditorChooseTypeStep(
 ) {
     Card(modifier = Modifier.fillMaxWidth(), title = {
         SelectionContainer {
-            Text(stringResource(Res.string.listing_editor_label_type))
+            UnstyledText(stringResource(Res.string.listing_editor_label_type))
         }
     }) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -513,7 +513,7 @@ private fun ListingEditorTypeOption(
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = title)
+        UnstyledText(text = title)
     }
 }
 
@@ -528,7 +528,7 @@ private fun ListingEditorBasicsStep(
         TextField(
             value = title.value,
             onValueChange = onTitleChanged,
-            label = { Text(stringResource(Res.string.listing_editor_label_title)) },
+            label = { UnstyledText(stringResource(Res.string.listing_editor_label_title)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -538,7 +538,7 @@ private fun ListingEditorBasicsStep(
         TextField(
             value = description.value,
             onValueChange = onDescriptionChanged,
-            label = { Text(stringResource(Res.string.listing_editor_label_description)) },
+            label = { UnstyledText(stringResource(Res.string.listing_editor_label_description)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),
@@ -611,7 +611,7 @@ private fun ListingEditorPricingStep(
             TextField(
                 value = priceAmount.value,
                 onValueChange = onPriceChanged,
-                label = { Text(stringResource(Res.string.listing_editor_label_price)) },
+                label = { UnstyledText(stringResource(Res.string.listing_editor_label_price)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -643,7 +643,7 @@ private fun CurrencyDropdown(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
+            UnstyledText(
                 text = stringResource(
                     Res.string.currency_display_format,
                     selectedCurrency.code.value,
@@ -665,7 +665,7 @@ private fun CurrencyDropdown(
                         expanded = false
                     }
                 ) {
-                    Text(
+                    UnstyledText(
                         text = stringResource(
                             Res.string.currency_display_format,
                             currency.code.value,
@@ -687,7 +687,7 @@ private fun ListingEditorMediaStep(
         TextField(
             value = imageUrl.value,
             onValueChange = onImageUrlChanged,
-            label = { Text(stringResource(Res.string.listing_editor_label_image_url)) },
+            label = { UnstyledText(stringResource(Res.string.listing_editor_label_image_url)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -722,7 +722,7 @@ private fun ListingEditorMediaStep(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     SelectionContainer {
-                        Text(
+                        UnstyledText(
                             text = stringResource(Res.string.listing_editor_no_image_preview),
                             color = Theme[colors][outline]
                         )
@@ -741,27 +741,27 @@ private fun ListingEditorReviewStep(
 
     Card(modifier = Modifier.fillMaxWidth(), title = {
         SelectionContainer {
-            Text(stringResource(Res.string.listing_editor_step_review))
+            UnstyledText(stringResource(Res.string.listing_editor_step_review))
         }
     }) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SelectionContainer {
-                Text(stringResource(Res.string.listing_editor_review_type_format, typeName))
+                UnstyledText(stringResource(Res.string.listing_editor_review_type_format, typeName))
             }
             SelectionContainer {
-                Text(stringResource(Res.string.listing_editor_review_title_format, editorState.title.value))
+                UnstyledText(stringResource(Res.string.listing_editor_review_title_format, editorState.title.value))
             }
             if (editorState.type == ListingCategory.Event && editorState.scheduleValidationState is ScheduleValidationState.Valid) {
                 val validScheduleState = editorState.scheduleValidationState as ScheduleValidationState.Valid
                 val formattedStartString =
                     "${validScheduleState.startLocalDateTime.date} at ${validScheduleState.startLocalDateTime.time}"
                 SelectionContainer {
-                    Text(stringResource(Res.string.listing_editor_review_start_time_format, formattedStartString))
+                    UnstyledText(stringResource(Res.string.listing_editor_review_start_time_format, formattedStartString))
                 }
             }
             if (editorState.priceAmount.value.isNotBlank()) {
                 SelectionContainer {
-                    Text(
+                    UnstyledText(
                         stringResource(
                             Res.string.listing_editor_review_price_format,
                             "${editorState.priceCurrency.symbol}${editorState.priceAmount.value}"
@@ -771,7 +771,7 @@ private fun ListingEditorReviewStep(
             }
             if (editorState.description.value.isNotBlank()) {
                 SelectionContainer {
-                    Text(
+                    UnstyledText(
                         stringResource(
                             Res.string.listing_editor_review_description_format,
                             editorState.description.value
@@ -781,7 +781,7 @@ private fun ListingEditorReviewStep(
             }
             if (editorState.imageUrl.value.isNotBlank()) {
                 SelectionContainer {
-                    Text(stringResource(Res.string.listing_editor_review_image_url_format, editorState.imageUrl.value))
+                    UnstyledText(stringResource(Res.string.listing_editor_review_image_url_format, editorState.imageUrl.value))
                 }
             }
         }

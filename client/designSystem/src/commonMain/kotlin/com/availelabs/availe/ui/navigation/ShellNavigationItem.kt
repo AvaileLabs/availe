@@ -15,7 +15,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.composables.uikit.styling.*
-import com.composeunstyled.Button
+import com.composeunstyled.UnstyledButton
 import com.composeunstyled.LocalContentColor
 import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
@@ -33,7 +33,7 @@ fun ShellNavigationItem(
     val outlineColor = if (focused) Theme[colors][focusRing] else Color.Transparent
     val shape: Shape = Theme[shapes][medium]
 
-    Button(
+    UnstyledButton(
         onClick = onClick,
         modifier = modifier
             .semantics { role = Role.Tab }
@@ -68,7 +68,7 @@ fun ShellRailNavigationItem(
     val outlineColor = if (focused) Theme[colors][focusRing] else Color.Transparent
     val shape: Shape = Theme[shapes][medium]
 
-    Button(
+    UnstyledButton(
         onClick = onClick,
         modifier = modifier
             .semantics { role = Role.Tab }

@@ -3,12 +3,7 @@ package com.composables.uikit.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,19 +18,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.composables.uikit.styling.accent
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.focusRing
-import com.composables.uikit.styling.medium
-import com.composables.uikit.styling.mutate
-import com.composables.uikit.styling.onAccent
-import com.composables.uikit.styling.outline
-import com.composables.uikit.styling.primary
-import com.composables.uikit.styling.shadows
-import com.composables.uikit.styling.shapes
-import com.composables.uikit.styling.subtle
-import com.composeunstyled.Thumb
-import com.composeunstyled.ToggleSwitch
+import com.composables.uikit.styling.*
+import com.composeunstyled.UnstyledThumb
+import com.composeunstyled.UnstyledToggleSwitch
 import com.composeunstyled.focusRing
 import com.composeunstyled.outline
 import com.composeunstyled.theme.Theme
@@ -61,7 +46,7 @@ fun ToggleSwitch(
         verticalAlignment = Alignment.CenterVertically
     ) {
         val thumbSize = 24.dp
-        ToggleSwitch(
+        UnstyledToggleSwitch(
             enabled = enabled,
             toggled = toggled,
             onToggled = onToggled,
@@ -73,7 +58,7 @@ fun ToggleSwitch(
                 .focusRing(interactionSource, 2.dp, color = Theme[colors][focusRing], shape)
                 .outline(1.dp, Theme[colors][outline], shape),
         ) {
-            Thumb(
+            UnstyledThumb(
                 shape = CircleShape,
                 color = Theme[colors][onAccent],
                 modifier = Modifier.size(thumbSize).dropShadow(shape = CircleShape, shadow = Theme[shadows][subtle])

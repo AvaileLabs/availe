@@ -4,41 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContent
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.dropShadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -50,33 +22,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.zIndex
-import com.composables.uikit.styling.accent
-import com.composables.uikit.styling.body
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.elevated
-import com.composables.uikit.styling.focusRing
-import com.composables.uikit.styling.medium
-import com.composables.uikit.styling.navigation
-import com.composables.uikit.styling.onAccent
-import com.composables.uikit.styling.onNavigation
-import com.composables.uikit.styling.outline
-import com.composables.uikit.styling.primary
-import com.composables.uikit.styling.shadows
-import com.composables.uikit.styling.shapes
-import com.composables.uikit.styling.small
-import com.composables.uikit.styling.textStyles
-import com.composeunstyled.Button
-import com.composeunstyled.LocalContentColor
-import com.composeunstyled.ProvideContentColor
-import com.composeunstyled.ProvideTextStyle
-import com.composeunstyled.Tab
-import com.composeunstyled.TabKey
-import com.composeunstyled.TabList
-import com.composeunstyled.buildModifier
-import com.composeunstyled.outline
+import com.composables.uikit.styling.*
+import com.composeunstyled.*
 import com.composeunstyled.theme.Theme
-import com.composeunstyled.TabGroup as UnstyledTabGroup
-import com.composeunstyled.TabPanel as UnstyledTabPanel
 
 @Composable
 fun TabGroup(
@@ -106,7 +54,7 @@ fun BottomNavigationBar(
     contentColor: Color = Theme[colors][onNavigation],
     content: @Composable RowScope.() -> Unit,
 ) {
-    TabList(
+    UnstyledTabList(
         modifier = modifier
             .dropShadow(shape, Theme[shadows][elevated])
             .outline(Dp.Hairline, Theme[colors][outline])
@@ -146,7 +94,7 @@ fun PrimaryTab(
     val focused by interactionSource.collectIsFocusedAsState()
     val outlineColor = if (focused) Theme[colors][focusRing] else Color.Transparent
 
-    Tab(
+    UnstyledTab(
         key = key,
         selected = selected,
         onSelected = onSelected,
@@ -180,7 +128,7 @@ fun PrimaryTab(
     val focused by interactionSource.collectIsFocusedAsState()
     val outlineColor = if (focused) Theme[colors][focusRing] else Color.Transparent
 
-    Button(
+    UnstyledButton(
         onClick = onSelected,
         modifier = modifier.outline(2.dp, outlineColor, Theme[shapes][medium]),
         shape = Theme[shapes][medium],
@@ -207,7 +155,7 @@ fun TabBar(
     contentColor: Color = Theme[colors][onNavigation],
     content: @Composable RowScope.() -> Unit,
 ) {
-    TabList(
+    UnstyledTabList(
         modifier = modifier
             .zIndex(5f)
             .fillMaxWidth()
@@ -240,7 +188,7 @@ fun SecondaryTab(
         // visually balance the bottom indicator
         Spacer(Modifier.height(10.dp))
 
-        Tab(
+        UnstyledTab(
             key = key,
             selected = selected,
             onSelected = onSelected,

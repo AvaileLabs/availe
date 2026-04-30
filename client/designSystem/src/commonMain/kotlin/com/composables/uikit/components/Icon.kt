@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.composeunstyled.LocalContentColor
-import com.composeunstyled.Icon as UnstyledIcon
+import com.composeunstyled.UnstyledIcon
 
 @Composable
 fun Icon(

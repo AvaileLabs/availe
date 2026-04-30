@@ -2,12 +2,7 @@ package com.composables.uikit.components
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -17,28 +12,9 @@ import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.composables.uikit.styling.accent
-import com.composables.uikit.styling.bright
-import com.composables.uikit.styling.card
-import com.composables.uikit.styling.colors
-import com.composables.uikit.styling.dim
-import com.composables.uikit.styling.indications
-import com.composables.uikit.styling.isBright
-import com.composables.uikit.styling.medium
-import com.composables.uikit.styling.modal
-import com.composables.uikit.styling.onAccent
-import com.composables.uikit.styling.onCard
-import com.composables.uikit.styling.outline
-import com.composables.uikit.styling.shadows
-import com.composables.uikit.styling.shapes
-import com.composeunstyled.DropdownPanelAnchor
-import com.composeunstyled.LocalContentColor
-import com.composeunstyled.minimumInteractiveComponentSize
-import com.composeunstyled.outline
+import com.composables.uikit.styling.*
+import com.composeunstyled.*
 import com.composeunstyled.theme.Theme
-import com.composeunstyled.Button as UnstyledButton
-import com.composeunstyled.DropdownMenu as UnstyledDropdownMenu
-import com.composeunstyled.DropdownMenuPanel as UnstyledDropdownMenuPanel
 
 @Composable
 fun DropdownMenu(

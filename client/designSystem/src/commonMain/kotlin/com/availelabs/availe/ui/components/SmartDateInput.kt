@@ -18,7 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.composables.uikit.styling.*
-import com.composeunstyled.Text
+import com.composeunstyled.UnstyledText
 import com.composeunstyled.theme.Theme
 
 @Composable
@@ -65,7 +65,7 @@ fun SmartDateInput(
             modifier = Modifier.width(28.dp)
         )
 
-        Text(
+        UnstyledText(
             text = "/",
             color = Theme[colors][onBackground].copy(alpha = 0.5f),
             modifier = Modifier.padding(horizontal = 4.dp)
@@ -85,7 +85,7 @@ fun SmartDateInput(
             modifier = Modifier.width(28.dp)
         )
 
-        Text(
+        UnstyledText(
             text = "/",
             color = Theme[colors][onBackground].copy(alpha = 0.5f),
             modifier = Modifier.padding(horizontal = 4.dp)
@@ -135,7 +135,7 @@ internal fun SegmentedTextField(
         decorationBox = { innerTextField ->
             Box(contentAlignment = Alignment.Center) {
                 if (valueString.isEmpty()) {
-                    Text(
+                    UnstyledText(
                         text = placeholderString,
                         style = Theme[textStyles][body],
                         color = Theme[colors][onBackground].copy(alpha = 0.3f)
