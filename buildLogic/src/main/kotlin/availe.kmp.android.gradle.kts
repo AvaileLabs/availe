@@ -1,4 +1,3 @@
-import com.android.build.api.dsl.androidLibrary
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -12,7 +11,7 @@ plugins {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         compileSdk = compileSdkVersion
         minSdk = minSdkVersion
 

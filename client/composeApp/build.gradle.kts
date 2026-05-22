@@ -1,4 +1,3 @@
-import com.android.build.api.dsl.androidLibrary
 import com.availelabs.buildlogic.configureIosFramework
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
@@ -13,7 +12,7 @@ plugins {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "com.availelabs.availe.composeapp"
     }
 

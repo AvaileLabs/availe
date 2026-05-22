@@ -1,5 +1,3 @@
-import com.android.build.api.dsl.androidLibrary
-
 plugins {
     alias(libs.plugins.availe.kmp.sourcesets.nonAndroidNonWeb)
     alias(libs.plugins.composeMultiplatform)
@@ -10,7 +8,7 @@ plugins {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "com.availelabs.availe.features.appshell"
     }
     sourceSets {

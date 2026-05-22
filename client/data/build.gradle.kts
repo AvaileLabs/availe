@@ -1,5 +1,4 @@
 import app.cash.sqldelight.gradle.SqlDelightDatabase
-import com.android.build.api.dsl.androidLibrary
 import com.availelabs.buildlogic.configureIosFramework
 import java.security.MessageDigest
 
@@ -16,7 +15,7 @@ group = "com.availelabs"
 version = "1.0.0"
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "com.availelabs.availe.data"
     }
 

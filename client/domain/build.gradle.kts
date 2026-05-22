@@ -1,4 +1,3 @@
-import com.android.build.api.dsl.androidLibrary
 import com.availelabs.buildlogic.configureIosFramework
 
 plugins {
@@ -12,7 +11,7 @@ group = "com.availelabs"
 version = "1.0.0"
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "com.availelabs.availe.domain"
     }
 

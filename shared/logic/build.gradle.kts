@@ -1,4 +1,3 @@
-import com.android.build.api.dsl.androidLibrary
 import com.availelabs.buildlogic.HostIpValueSource
 import com.github.gmazzo.buildconfig.BuildConfigSourceSet
 
@@ -13,7 +12,7 @@ plugins {
 val useLocalIp = providers.gradleProperty("availe.dev.useLocalIp").getOrElse("false").toBoolean()
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "com.availelabs.availe.logic"
     }
 

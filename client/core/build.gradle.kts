@@ -1,4 +1,3 @@
-import com.android.build.api.dsl.androidLibrary
 import com.availelabs.buildlogic.configureIosFramework
 
 plugins {
@@ -13,7 +12,7 @@ base {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "com.availelabs.availe.core"
     }
 
